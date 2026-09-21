@@ -1,0 +1,125 @@
+{
+  "updated_utc": "2026-09-19T20:18:31.527448+00:00",
+  "archives": [
+    {
+      "archive": "woodscape_rgb_images.zip",
+      "status": "extracted",
+      "downloaded_bytes": 15220809344,
+      "size": 15220809344,
+      "directory": "training\\woodscape",
+      "files": 8234,
+      "archive_sha256": "bfbfb97c0214c3971ce0dfb647ecfdf2c7c42ca589e555883a207340f7a5373c",
+      "completed_utc": "2026-09-19T19:46:39.827406+00:00",
+      "sha256": "bfbfb97c0214c3971ce0dfb647ecfdf2c7c42ca589e555883a207340f7a5373c",
+      "zip_crc_ok": true
+    },
+    {
+      "archive": "woodscape_semantic_annotations.zip",
+      "status": "extracted",
+      "downloaded_bytes": 198490338,
+      "size": 198490338,
+      "directory": "training\\woodscape",
+      "files": 16468,
+      "archive_sha256": "10e4affcd91b63d2bf0198e48be3f20f216c191b7972370b34fd6171ec4dd704",
+      "completed_utc": "2026-09-19T19:14:22.773749+00:00",
+      "sha256": "10e4affcd91b63d2bf0198e48be3f20f216c191b7972370b34fd6171ec4dd704",
+      "zip_crc_ok": true
+    },
+    {
+      "archive": "woodscape_instance_annotations.zip",
+      "status": "extracted",
+      "downloaded_bytes": 303859968,
+      "size": 303859968,
+      "directory": "training\\woodscape",
+      "files": 8234,
+      "archive_sha256": "a192839e1f223865fffde5d72ca1964ec4707898383db1110a15b2c63c522a13",
+      "completed_utc": "2026-09-19T19:14:55.242438+00:00",
+      "sha256": "a192839e1f223865fffde5d72ca1964ec4707898383db1110a15b2c63c522a13",
+      "zip_crc_ok": true
+    },
+    {
+      "archive": "dataset_AnomalyTrack.zip",
+      "status": "extracted",
+      "downloaded_bytes": 52625353,
+      "size": 52625353,
+      "directory": "training\\road_anomaly",
+      "files": 131,
+      "archive_sha256": "06e5f4233e5d90bd34f98aba08d8ef9ef81090dac597fe47ce6ca47003761320",
+      "completed_utc": "2026-09-19T19:14:56.026353+00:00",
+      "sha256": "06e5f4233e5d90bd34f98aba08d8ef9ef81090dac597fe47ce6ca47003761320",
+      "zip_crc_ok": true
+    },
+    {
+      "archive": "dataset_ObstacleTrack.zip",
+      "status": "extracted",
+      "downloaded_bytes": 207582233,
+      "size": 207582233,
+      "directory": "training\\road_obstacle",
+      "files": 503,
+      "archive_sha256": "14d7f6e693cffee86c7b454191f42d936d80ec7215f4ab45a976bb46fa728e72",
+      "completed_utc": "2026-09-19T19:14:58.373443+00:00",
+      "sha256": "14d7f6e693cffee86c7b454191f42d936d80ec7215f4ab45a976bb46fa728e72",
+      "zip_crc_ok": true
+    },
+    {
+      "archive": "acdc_rgb_anon_trainvaltest.zip",
+      "status": "extracted",
+      "downloaded_bytes": 16742344108,
+      "size": 16742344108,
+      "directory": "training\\acdc\\rgb",
+      "files": 8014,
+      "archive_sha256": "f1765e65f077b5f33f9b58fe05b802bdecf24c798f8f95e7d217c223e5bb56d3",
+      "completed_utc": "2026-09-19T20:18:31.516447+00:00",
+      "sha256": "f1765e65f077b5f33f9b58fe05b802bdecf24c798f8f95e7d217c223e5bb56d3",
+      "zip_crc_ok": true
+    },
+    {
+      "archive": "acdc_gt_trainval.zip",
+      "status": "extracted",
+      "downloaded_bytes": 133426176,
+      "size": 133426176,
+      "directory": "training\\acdc\\gt",
+      "files": 10032,
+      "archive_sha256": "e4fd19c5516e80cba18d50038f1b8721608ee762be2eb15f26e016a59bc5bbcf",
+      "completed_utc": "2026-09-19T19:11:15.877816+00:00",
+      "sha256": "e4fd19c5516e80cba18d50038f1b8721608ee762be2eb15f26e016a59bc5bbcf",
+      "zip_crc_ok": true
+    },
+    {
+      "archive": "acdc_gt_trainval_ref.zip",
+      "status": "extracted",
+      "downloaded_bytes": 57476002,
+      "size": 57476002,
+      "directory": "training\\acdc\\gt_ref",
+      "files": 3012,
+      "archive_sha256": "a8d29c273490cc8745bbc64a28709dd22fb576b28541617fd8d1fccc6688fb5b",
+      "completed_utc": "2026-09-19T19:10:07.972447+00:00",
+      "sha256": "a8d29c273490cc8745bbc64a28709dd22fb576b28541617fd8d1fccc6688fb5b",
+      "zip_crc_ok": true
+    }
+  ],
+  "complete": true,
+  "inventory": {
+    "woodscape": {
+      "rgb": 8234,
+      "semantic": 8234,
+      "paired": 8234,
+      "missing_masks": []
+    },
+    "acdc": {
+      "png": 21051,
+      "jpg": 0,
+      "json": 3
+    },
+    "road_anomaly": {
+      "png": 20,
+      "jpg": 110,
+      "json": 1
+    },
+    "road_obstacle": {
+      "png": 60,
+      "jpg": 0,
+      "json": 1
+    }
+  }
+}

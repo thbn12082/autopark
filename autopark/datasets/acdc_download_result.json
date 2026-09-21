@@ -1,0 +1,59 @@
+{
+  "verified": [
+    {
+      "name": "acdc_gt_trainval_ref.zip",
+      "package_id": "65cfd124084b30d6b1f1779e",
+      "source": "https://acdc.vision.ee.ethz.ch/download",
+      "publisher_md5": "fbf6faa5d10aa884c25889c5561a2e50",
+      "description": "Ground-truth annotations for semantic segmentation for half of train_ref and val_ref sets (1003 normal-condition images)",
+      "status": "verified",
+      "downloaded_bytes": 57476002,
+      "attempt": 1,
+      "updated_utc": "2026-09-19T19:06:43.839660+00:00",
+      "entries": 3012,
+      "uncompressed_bytes": 61128213,
+      "size": 57476002,
+      "sha256": "a8d29c273490cc8745bbc64a28709dd22fb576b28541617fd8d1fccc6688fb5b",
+      "md5": "fbf6faa5d10aa884c25889c5561a2e50",
+      "zip_crc_ok": true,
+      "verified_utc": "2026-09-19T19:06:46.639346+00:00"
+    },
+    {
+      "name": "acdc_gt_trainval.zip",
+      "package_id": "6436eeae9880d97633275dc9",
+      "source": "https://acdc.vision.ee.ethz.ch/download",
+      "publisher_md5": "54cf06e3f2d8a8c5d297dc55aa107cee",
+      "description": "Ground-truth annotations for semantic segmentation and uncertainty-aware semantic segmentation for train and val sets (2006 images)",
+      "status": "verified",
+      "downloaded_bytes": 133426176,
+      "attempt": 1,
+      "updated_utc": "2026-09-19T19:09:44.229261+00:00",
+      "entries": 10032,
+      "uncompressed_bytes": 145519622,
+      "size": 133426176,
+      "sha256": "e4fd19c5516e80cba18d50038f1b8721608ee762be2eb15f26e016a59bc5bbcf",
+      "md5": "54cf06e3f2d8a8c5d297dc55aa107cee",
+      "zip_crc_ok": true,
+      "verified_utc": "2026-09-19T19:09:57.964804+00:00"
+    },
+    {
+      "name": "acdc_rgb_anon_trainvaltest.zip",
+      "package_id": "6436f2259880d97633275dfc",
+      "source": "https://acdc.vision.ee.ethz.ch/download",
+      "publisher_md5": "3350587a08502b4dfee47750bfd2a052",
+      "description": "Anonymized adverse-condition images for train, val, and test sets distributed evenly among fog, night, rain, and snow (4006 images) and anonymized corresponding normal-condition images for train, val, and test sets (4006 images)",
+      "status": "verified",
+      "downloaded_bytes": 16742344108,
+      "attempt": 1,
+      "updated_utc": "2026-09-19T20:13:42.805238+00:00",
+      "entries": 8225,
+      "uncompressed_bytes": 16788756852,
+      "size": 16742344108,
+      "sha256": "f1765e65f077b5f33f9b58fe05b802bdecf24c798f8f95e7d217c223e5bb56d3",
+      "md5": "3350587a08502b4dfee47750bfd2a052",
+      "zip_crc_ok": true,
+      "verified_utc": "2026-09-19T20:16:08.756410+00:00"
+    }
+  ],
+  "errors": []
+}

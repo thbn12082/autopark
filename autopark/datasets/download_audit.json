@@ -1,0 +1,107 @@
+{
+  "avm_ss": {
+    "images": 6763,
+    "masks": 6763,
+    "pairs": 6763,
+    "shapes": {
+      "(160, 320, 3)": 6763
+    },
+    "bad_pairs": [],
+    "palette_rgb_packed": {
+      "0": 61193645,
+      "255": 241827329,
+      "16711680": 24457173,
+      "16777215": 15457491,
+      "65280": 3322891,
+      "16776960": 7071
+    },
+    "unexpected_palette": [
+      16776960
+    ],
+    "splits": {
+      "train": 4057,
+      "test": 2706
+    },
+    "split_id_overlap": [],
+    "exact_image_hash_overlap": 0,
+    "missing_split_ids": [],
+    "unknown_color_policy": "RGB (255,255,0) and all unmapped colors -> UNKNOWN/IGNORE 255"
+  },
+  "drow_v2": {
+    "splits": {
+      "train": {
+        "scan_files": 78,
+        "scan_rows": 341147,
+        "columns": {
+          "452": 341147
+        },
+        "person_annotation_files": 78,
+        "wheelchair_annotation_files": 78,
+        "walking_aid_annotation_files": 78
+      },
+      "val": {
+        "scan_files": 30,
+        "scan_rows": 74745,
+        "columns": {
+          "452": 74745
+        },
+        "person_annotation_files": 30,
+        "wheelchair_annotation_files": 31,
+        "walking_aid_annotation_files": 31
+      },
+      "test": {
+        "scan_files": 5,
+        "scan_rows": 48131,
+        "columns": {
+          "452": 48131
+        },
+        "person_annotation_files": 5,
+        "wheelchair_annotation_files": 5,
+        "walking_aid_annotation_files": 5
+      }
+    },
+    "note": "Column count only; not a geometric/label accuracy audit.",
+    "csv_schema": {
+      "sequence_id_column": 0,
+      "timestamp_column": 1,
+      "range_columns": [
+        2,
+        451
+      ],
+      "reference": "https://github.com/VisualComputingInstitute/DROW/blob/master/v2/utils/__init__.py"
+    },
+    "orphan_annotations": [
+      "val/run_2015-11-25-11-18-12-d.bag.wc",
+      "val/run_2015-11-25-11-18-12-d.bag.wa"
+    ]
+  },
+  "woodscape": {
+    "subset_only": true,
+    "pairs": 64,
+    "cameras": {
+      "FV": 16,
+      "MVL": 16,
+      "MVR": 16,
+      "RV": 16
+    },
+    "image_shapes": {
+      "(966, 1280, 3)": 64
+    },
+    "class_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "bad_pairs": [],
+    "matching_calibrations": 64,
+    "local_bytes": 126532608,
+    "status": "verified_subset"
+  }
+}

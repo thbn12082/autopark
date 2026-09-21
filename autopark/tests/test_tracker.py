@@ -1,0 +1,54 @@
+import math
+
+from autopark.domain.types import Pose
+from autopark.planning.parking import plan_parking
+from autopark.planning.trajectory import build_trajectory
+from autopark.simulation.rollout import rollout
+from autopark.storage.scenario_store import load_scenario, load_vehicle_config
+from tests.conftest import PROJECT_ROOT
+
+
+def load_default():
+    scenario = load_scenario(PROJECT_ROOT / "scenarios" / "bai_do_xe.json")
+    cfg = load_vehicle_config(scenario.vehicle_config_path)
+    return scenario, cfg
+
+
+def test_closed_loop_parks_in_default_scene():
+    scenario, cfg = load_default()
+    result = plan_parking(scenario, cfg)
+    assert result.ok, result.message
+    run = rollout(scenario, cfg, result.trajectory)
+    report = run.report
+    assert report is not None
+    assert not report.collided, report.describe()
+    assert report.completed, report.describe()
+    assert report.position_error < 0.03, report.describe()
+    assert abs(report.heading_error) < math.radians(3.0), report.describe()
+    assert report.sim_time < 90.0
+
+
+def test_tracker_converges_from_lateral_offset(cfg, scenario):
+    # Quỹ đạo thẳng 1,5 m; xe xuất phát lệch ngang 5 cm và lệch hướng 10°
+    raw = [(Pose(0.5 + 0.02 * k, 1.0, 0.0), 1, 0.0) for k in range(76)]
+    traj = build_trajectory(raw, Pose(2.0, 1.0, 0.0), cfg, 0.15, 0.08)
+    scenario.obstacles = []
+    scenario.start = Pose(0.5, 1.05, math.radians(10))
+    run = rollout(scenario, cfg, traj)
+    report = run.report
+    assert report.completed and not report.collided, report.describe()
+    assert report.position_error < 0.02
+    assert abs(report.heading_error) < math.radians(2.0)
+
+
+def test_tracker_reverses_along_straight_line(cfg, scenario):
+    raw = [(Pose(1.5 - 0.02 * k, 1.0, 0.0), -1, 0.0) for k in range(51)]
+    traj = build_trajectory(raw, Pose(0.5, 1.0, 0.0), cfg, 0.15, 0.08)
+    scenario.obstacles = []
+    scenario.start = Pose(1.5, 1.03, 0.0)
+    run = rollout(scenario, cfg, traj)
+    report = run.report
+    assert report.completed and not report.collided, report.describe()
+    assert report.position_error < 0.02
+    assert abs(report.heading_error) < math.radians(2.0)
+    assert min(s.speed for s in run.states) < 0

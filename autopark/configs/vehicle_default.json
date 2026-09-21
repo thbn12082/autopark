@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "xe_mo_phong_giai_doan_0_gia_dinh",
+  "wheelbase_m": 0.19,
+  "width_m": 0.14,
+  "front_overhang_m": 0.06,
+  "rear_overhang_m": 0.06,
+  "max_steer_deg": 30.0,
+  "max_speed_mps": 0.3,
+  "max_accel_mps2": 0.3,
+  "max_decel_mps2": 0.6,
+  "max_steer_rate_deg_s": 90.0,
+  "notes": "TOÀN BỘ thông số là giả định để kiểm thử phần mềm giai đoạn 0; giữ kích thước nhỏ để tái hiện sa bàn hiện có. KHÔNG phải số đo hay thông số xác nhận của MN300 Tank300 1/12. Thay cấu hình sau khi đo xe ở giai đoạn 4."
+}

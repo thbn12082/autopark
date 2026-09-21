@@ -1,0 +1,18 @@
+{
+  "verified": [
+    {
+      "name": "woodscape_rgb_images.zip",
+      "size": 15220809344,
+      "url": "https://drive.usercontent.google.com/download?id=1xQ5J4huNmyK9WPoipHTnuZ7lw_J0xhvL&export=download&confirm=t",
+      "source": "https://github.com/valeoai/WoodScape",
+      "status": "verified",
+      "sha256": "bfbfb97c0214c3971ce0dfb647ecfdf2c7c42ca589e555883a207340f7a5373c",
+      "md5": "4905dfd51d4dd5111dc85a6dd19b2010",
+      "zip_crc_ok": true,
+      "entries": 8235,
+      "uncompressed_bytes": 15890276505,
+      "verified_utc": "2026-09-19T19:43:54.566890+00:00"
+    }
+  ],
+  "errors": []
+}

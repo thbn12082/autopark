@@ -1,0 +1,7 @@
+[
+  {"name":"woodscape_rgb_images.zip","size":15220809344,"url":"https://drive.usercontent.google.com/download?id=1xQ5J4huNmyK9WPoipHTnuZ7lw_J0xhvL&export=download&confirm=t","source":"https://github.com/valeoai/WoodScape"},
+  {"name":"woodscape_semantic_annotations.zip","size":198490338,"url":"https://drive.usercontent.google.com/download?id=1CBwi0fpDE2G99hHiINTI-AXlOMQSUnb-&export=download&confirm=t","source":"https://github.com/valeoai/WoodScape"},
+  {"name":"woodscape_instance_annotations.zip","size":303859968,"url":"https://drive.usercontent.google.com/download?id=1k9q1k8rh6hghSPFdmxmkZUd_Mip6pt6F&export=download&confirm=t","source":"https://github.com/valeoai/WoodScape"},
+  {"name":"dataset_AnomalyTrack.zip","size":52625353,"url":"https://zenodo.org/api/records/5270237/files/dataset_AnomalyTrack.zip/content","md5":"231bf79ed58924bcd33d9cbe22e61076","source":"https://segmentmeifyoucan.com/datasets"},
+  {"name":"dataset_ObstacleTrack.zip","size":207582233,"url":"https://zenodo.org/api/records/5281633/files/dataset_ObstacleTrack.zip/content","md5":"895fb36d18765482cc291f69e63d6da6","source":"https://segmentmeifyoucan.com/datasets"}
+]

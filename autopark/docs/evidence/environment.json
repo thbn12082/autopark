@@ -1,0 +1,45 @@
+{
+  "os": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "packages": {
+    "autopark": "0.1.0",
+    "beautifulsoup4": "4.15.0",
+    "certifi": "2026.7.22",
+    "charset-normalizer": "3.5.1",
+    "colorama": "0.4.6",
+    "filelock": "4.0.1",
+    "gdown": "6.4.0",
+    "idna": "3.20",
+    "iniconfig": "2.3.0",
+    "numpy": "2.5.2",
+    "opencv-python": "5.0.0.93",
+    "packaging": "26.3",
+    "pip": "26.2.1",
+    "pluggy": "1.6.0",
+    "Pygments": "2.21.0",
+    "PySide6": "6.11.2",
+    "PySide6_Addons": "6.11.2",
+    "PySide6_Essentials": "6.11.2",
+    "PySocks": "1.7.1",
+    "pytest": "9.1.1",
+    "requests": "2.34.2",
+    "shapely": "2.1.2",
+    "shiboken6": "6.11.2",
+    "soupsieve": "2.9.2",
+    "tqdm": "4.70.1",
+    "typing_extensions": "4.16.0",
+    "urllib3": "2.8.0"
+  },
+  "hardware": {
+    "gpu": [
+      "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "SuperDisplay Virtual Adapter",
+      "Intel(R) Iris(R) Xe Graphics"
+    ],
+    "cpu": [
+      "12th Gen Intel(R) Core(TM) i7-12700H"
+    ],
+    "ram_bytes": 68409155584
+  }
+}

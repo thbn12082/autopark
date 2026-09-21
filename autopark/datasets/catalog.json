@@ -1,0 +1,555 @@
+{
+  "reviewed_on": "2026-09-20",
+  "count": 44,
+  "entries": [
+    {
+      "id": "A01",
+      "priority": "1",
+      "description": "**AVM-SS / avm_seg_db** — [repo](https://github.com/Engro39/avm_dataset), [Google Drive của tác giả](https://drive.google.com/drive/folders/1izgXSHUisjdJMMLz43B8vjI9-JjqTDQL)",
+      "details": [
+        "6.763 ảnh 320×160; mask free space, marker, vehicle, other objects; ego bị bỏ qua.",
+        "Phù hợp nhất để làm loader, chuyển nhãn và baseline bãi đỗ. Ảnh AVM đã chiếu/ghép, không thay được hiệu chuẩn bốn camera USB.",
+        "Link công khai; README chưa nêu giấy phép dữ liệu rõ ràng. Đã kiểm tra cặp mẫu, xem mục 7."
+      ],
+      "urls": [
+        "https://github.com/Engro39/avm_dataset",
+        "https://drive.google.com/drive/folders/1izgXSHUisjdJMMLz43B8vjI9-JjqTDQL"
+      ]
+    },
+    {
+      "id": "A02",
+      "priority": "1",
+      "description": "**WoodScape** — [repo](https://github.com/valeoai/WoodScape), [Drive](https://drive.google.com/drive/folders/1X5JOMEfVlaXfdNy24P8VA-jMs0yzf_HR)",
+      "details": [
+        "Semantic 10 lớp gồm void; instance polygon hơn 40 lớp; calibration và các task khác tùy gói phát hành.",
+        "Nguồn fisheye thật quan trọng. Bản công khai có khoảng 8,2k ảnh có nhãn; không giả định bốn hướng đều có nhãn đồng thời.",
+        "Dữ liệu proprietary; MIT của code không áp dụng cho data. [Điều khoản](https://drive.google.com/file/d/12IrLnGfng6s-NogJLIvUZsCxF1NDA-FA/view)."
+      ],
+      "urls": [
+        "https://github.com/valeoai/WoodScape",
+        "https://drive.google.com/drive/folders/1X5JOMEfVlaXfdNy24P8VA-jMs0yzf_HR",
+        "https://drive.google.com/file/d/12IrLnGfng6s-NogJLIvUZsCxF1NDA-FA/view"
+      ]
+    },
+    {
+      "id": "A03",
+      "priority": "2",
+      "description": "**SynWoodScape** — [paper tác giả](https://arxiv.org/abs/2203.05056), [đầu mối WoodScape](https://github.com/valeoai/WoodScape)",
+      "details": [
+        "Dữ liệu tổng hợp bốn fisheye, semantic/depth/flow và nhiều task; paper nêu 80k ảnh.",
+        "Hợp để thử hình học nhiều camera/BEV. Phân biệt bộ tổng hợp với WoodScape thật; cần xác nhận gói tải thực tế.",
+        "Chưa xác nhận đường tải toàn bộ ổn định và license riêng trong lần khảo sát; chưa coi là đã tải."
+      ],
+      "urls": [
+        "https://arxiv.org/abs/2203.05056",
+        "https://github.com/valeoai/WoodScape"
+      ]
+    },
+    {
+      "id": "A04",
+      "priority": "2",
+      "description": "**FishEye8K / FE-DETRAC** — [repo](https://github.com/MoyoG/FishEye8K), [cổng dữ liệu](https://scidm.nchc.org.tw/en/dataset/fisheye8k)",
+      "details": [
+        "8.000 ảnh; bounding box 5 lớp: người, xe đạp, ô tô, xe tải, bus.",
+        "Dùng detector vật thể trên ảnh méo; camera giám sát trên cao, khác camera gắn sát xe. Không có mask free-space đầy đủ.",
+        "Cổng hiện dùng tên FE-DETRAC; điều khoản công bố CC BY-NC-SA 4.0. Chọn nhãn cập nhật 01/2024 theo repo."
+      ],
+      "urls": [
+        "https://github.com/MoyoG/FishEye8K",
+        "https://scidm.nchc.org.tw/en/dataset/fisheye8k"
+      ]
+    },
+    {
+      "id": "A05",
+      "priority": "3",
+      "description": "**PAIR360** — [trang nhóm AIRLAB](https://airlabkhu.github.io/PAIR-360-Dataset/)",
+      "details": [
+        "Panorama/fisheye, LiDAR 32 kênh, IMU/GPS, map; nhãn/depth có thành phần sinh bằng mô hình.",
+        "Tham khảo chiếu LiDAR–camera và 360°. Không coi pseudo-label là ground truth độc lập; không giống LiDAR 2D.",
+        "ODbL theo trang dự án; tải cần xin mật khẩu qua email. Chưa tải, chưa gửi email."
+      ],
+      "urls": [
+        "https://airlabkhu.github.io/PAIR-360-Dataset/"
+      ]
+    },
+    {
+      "id": "B01",
+      "priority": "2",
+      "description": "**Cityscapes** — [overview](https://www.cityscapes-dataset.com/dataset-overview/), [tải](https://www.cityscapes-dataset.com/downloads/)",
+      "details": [
+        "Semantic/instance/panoptic; road, sidewalk, người, xe, tường, cột. 5k fine + 20k coarse.",
+        "Đăng ký và điều khoản nghiên cứu riêng; camera đường phố. `parking` thuộc nhóm không tính đánh giá, thường thành void trong train IDs; không được mặc định có lớp ô đỗ huấn luyện."
+      ],
+      "urls": [
+        "https://www.cityscapes-dataset.com/dataset-overview/",
+        "https://www.cityscapes-dataset.com/downloads/"
+      ]
+    },
+    {
+      "id": "B02",
+      "priority": "2",
+      "description": "**BDD100K** — [repo](https://github.com/bdd100k/bdd100k), [tài liệu](https://doc.bdd100k.com/)",
+      "details": [
+        "Drivable-area, lane, detection, semantic/instance và tracking, tùy tập con.",
+        "Chọn gói ảnh + nhãn của đúng task, không tải mọi video; không phải toàn bộ 100k video đều có semantic mask. Trang tải/điều khoản BDD100K cần kiểm tra lúc đăng ký."
+      ],
+      "urls": [
+        "https://github.com/bdd100k/bdd100k",
+        "https://doc.bdd100k.com/"
+      ]
+    },
+    {
+      "id": "B03",
+      "priority": "2",
+      "description": "**Mapillary Vistas** — [cổng dataset](https://www.mapillary.com/dataset/vistas), [evaluation repo](https://github.com/mapillary/mapillary_vistas)",
+      "details": [
+        "Semantic/instance nhiều loại mặt đường, vật và cảnh.",
+        "Tốt cho đa dạng cảnh; chuyển schema theo phiên bản. Cổng yêu cầu đăng nhập trong lần kiểm tra; cần điều khoản dữ liệu riêng, không lấy license scripts làm license ảnh."
+      ],
+      "urls": [
+        "https://www.mapillary.com/dataset/vistas",
+        "https://github.com/mapillary/mapillary_vistas"
+      ]
+    },
+    {
+      "id": "B04",
+      "priority": "2",
+      "description": "**CamVid** — [Cambridge](https://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/)",
+      "details": [
+        "Hơn 700 ảnh được kiểm tra nhãn pixel 32 lớp, gồm road/parking block/pole/vehicle.",
+        "Nhỏ, hợp chạy baseline; bản 11 lớp là phép gộp riêng. Trang có ảnh/nhãn và bảng màu; một số link lưu trữ cũ có thể hỏng. Chưa xác minh license chuẩn hóa của toàn bộ ảnh."
+      ],
+      "urls": [
+        "https://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/"
+      ]
+    },
+    {
+      "id": "B05",
+      "priority": "2",
+      "description": "**KITTI Road** — [benchmark và tải](https://www.cvlibs.net/datasets/kitti/eval_road.php)",
+      "details": [
+        "289 train, 290 test; mask road/ego-lane, calibration; gói cơ sở khoảng 0,5 GB.",
+        "Hợp kiểm tra road segmentation/BEV; không phải nhãn toàn bộ vật cản. Tải qua tài khoản; điều khoản KITTI, kiểm tra trên cổng."
+      ],
+      "urls": [
+        "https://www.cvlibs.net/datasets/kitti/eval_road.php"
+      ]
+    },
+    {
+      "id": "B06",
+      "priority": "2",
+      "description": "**ACDC** — [ETH](https://acdc.vision.ee.ethz.ch/)",
+      "details": [
+        "4.006 ảnh sương mù, đêm, mưa, tuyết; 19 lớp, ảnh điều kiện thường tương ứng và invalid masks.",
+        "Hợp kiểm thử bất định/thiếu sáng. Invalid mask không tự tương đương lớp UNKNOWN vận hành. Điều khoản riêng, cho nghiên cứu/thử nghiệm phi thương mại."
+      ],
+      "urls": [
+        "https://acdc.vision.ee.ethz.ch/"
+      ]
+    },
+    {
+      "id": "B07",
+      "priority": "2",
+      "description": "**Lost and Found** — [nguồn gốc](http://www.6d-vision.com/lostandfounddataset), [paper](https://arxiv.org/abs/1609.04653)",
+      "details": [
+        "Vật nhỏ trên đường, nhãn obstacle/free-space và stereo.",
+        "Hữu ích cho hộp/vật thấp. Máy chủ cũ chưa xác minh tải thành công; cần giữ điều khoản nguồn gốc. Không dùng test để huấn luyện."
+      ],
+      "urls": [
+        "http://www.6d-vision.com/lostandfounddataset",
+        "https://arxiv.org/abs/1609.04653"
+      ]
+    },
+    {
+      "id": "B08",
+      "priority": "2",
+      "description": "**Fishyscapes** — [trang benchmark](https://fishyscapes.com/)",
+      "details": [
+        "Nhãn anomaly pixel; gồm dữ liệu thật dựa trên Lost and Found và anomaly tổng hợp.",
+        "Đánh giá khả năng báo vùng lạ, không thay tập train semantic chính. Có phần benchmark giữ kín; điều khoản ảnh gốc và nhãn có thể khác nhau."
+      ],
+      "urls": [
+        "https://fishyscapes.com/"
+      ]
+    },
+    {
+      "id": "B09",
+      "priority": "2",
+      "description": "**RoadAnomaly21** — [Segment Me If You Can](https://segmentmeifyoucan.com/)",
+      "details": [
+        "Nhãn anomaly trên cảnh đường cho benchmark.",
+        "Dùng kiểm thử lỗi vật bị nhận nhầm thành nền; cần bộ đánh giá/download theo trang tác giả và giữ split. License chưa xác minh độc lập."
+      ],
+      "urls": [
+        "https://segmentmeifyoucan.com/"
+      ]
+    },
+    {
+      "id": "B10",
+      "priority": "2",
+      "description": "**RoadObstacle21** — [Segment Me If You Can](https://segmentmeifyoucan.com/)",
+      "details": [
+        "Benchmark vật cản trên vùng đường.",
+        "Bổ sung vật thấp/lạ; không suy độ chính xác khoảng cách thật chỉ từ mask. License và truy cập theo benchmark, chưa tải."
+      ],
+      "urls": [
+        "https://segmentmeifyoucan.com/"
+      ]
+    },
+    {
+      "id": "C01",
+      "priority": "3",
+      "description": "**AVM-PS / avm_ps_db** — [repo](https://github.com/Engro39/avm_dataset), [Drive](https://drive.google.com/drive/folders/1izgXSHUisjdJMMLz43B8vjI9-JjqTDQL)",
+      "details": [
+        "21.581 frame, 35.889 chỗ đỗ theo README.",
+        "Gói khác AVM-SS; không thay nhãn free-space. Link công khai, license dữ liệu chưa rõ; chưa ưu tiên tải."
+      ],
+      "urls": [
+        "https://github.com/Engro39/avm_dataset",
+        "https://drive.google.com/drive/folders/1izgXSHUisjdJMMLz43B8vjI9-JjqTDQL"
+      ]
+    },
+    {
+      "id": "C02",
+      "priority": "3",
+      "description": "**Tongji PS2.0** — [DeepPS](https://cslinzhang.github.io/deepps/)",
+      "details": [
+        "9.827 train + 2.338 test; hình học điểm/ô đỗ trong AVM.",
+        "Tải `ps2.0.zip` trên trang tác giả; cần đọc format MAT/tool gán nhãn. Không có mask pixel mọi vật cản. License dữ liệu chưa xác minh."
+      ],
+      "urls": [
+        "https://cslinzhang.github.io/deepps/"
+      ]
+    },
+    {
+      "id": "C03",
+      "priority": "3",
+      "description": "**PSV** — [paper gốc](https://arxiv.org/abs/1804.07027), [đầu mối tải qua tác giả VPS-Net](https://github.com/weili1457355863/VPS-Net)",
+      "details": [
+        "Segmentation vạch/ô đỗ panoramic surround view.",
+        "Không phải segmentation vật cản tổng quát; link Tongji cũ cần kiểm tra. License dữ liệu chưa rõ."
+      ],
+      "urls": [
+        "https://arxiv.org/abs/1804.07027",
+        "https://github.com/weili1457355863/VPS-Net"
+      ]
+    },
+    {
+      "id": "C04",
+      "priority": "3",
+      "description": "**PIL-park / SNU** — [repo tác giả](https://github.com/dohoseok/context-based-parking-slot-detect)",
+      "details": [
+        "Vị trí, góc, kiểu, khả dụng của ô đỗ trong ảnh AVM.",
+        "Repo có train/test Drive riêng; tên SNU/PIL-park không phải hai bộ độc lập. Chưa xác minh license ảnh."
+      ],
+      "urls": [
+        "https://github.com/dohoseok/context-based-parking-slot-detect"
+      ]
+    },
+    {
+      "id": "C05",
+      "priority": "3",
+      "description": "**ParkScape** — [repo tác giả](https://github.com/Vipermdl/ParkScape)",
+      "details": [
+        "10.000 ảnh fisheye, nhãn góc ô đỗ.",
+        "Link Baidu; README ghi license không rõ (`no License`). Không coi là bộ tự do sử dụng; không có mask obstacle/free-space."
+      ],
+      "urls": [
+        "https://github.com/Vipermdl/ParkScape"
+      ]
+    },
+    {
+      "id": "C06",
+      "priority": "3",
+      "description": "**VPS-Net extra annotations** — [repo tác giả](https://github.com/weili1457355863/VPS-Net)",
+      "details": [
+        "Bổ sung nhãn ô trống cho PS2.0/PSV.",
+        "Đây là phần mở rộng nhãn, không phải nguồn ảnh mới; tránh đếm trùng và rò rỉ train/test. License cần kiểm tra cả ảnh gốc và nhãn bổ sung."
+      ],
+      "urls": [
+        "https://github.com/weili1457355863/VPS-Net"
+      ]
+    },
+    {
+      "id": "C07",
+      "priority": "3",
+      "description": "**PKLot** — [UFPR](https://web.inf.ufpr.br/vri/databases/parking-lot-database/)",
+      "details": [
+        "12.417 ảnh bãi, XML tọa độ và nhãn occupied/vacant; khoảng 695.900 crop.",
+        "Camera cố định trên cao; hợp phân loại ô, ít sát V1. Trang nguồn ghi CC BY 4.0."
+      ],
+      "urls": [
+        "https://web.inf.ufpr.br/vri/databases/parking-lot-database/"
+      ]
+    },
+    {
+      "id": "C08",
+      "priority": "3",
+      "description": "**CNRPark+EXT** — [trang tác giả](https://cnrpark.it/)",
+      "details": [
+        "Khoảng 150k crop occupied/vacant và thông tin vị trí ô.",
+        "Góc camera cố định; không có dense obstacle mask. Trang tải có gói crop nhỏ; một lần truy cập trả 502, không đồng nghĩa ngừng cung cấp. Cần xem license hiện hành khi tải."
+      ],
+      "urls": [
+        "https://cnrpark.it/"
+      ]
+    },
+    {
+      "id": "D01",
+      "priority": "1",
+      "description": "**Bộ log 2D SLAM cổ điển** — [StachnissLab](https://www.ipb.uni-bonn.de/datasets/), [bản chuyển đổi IR-MCL](https://github.com/PRBonn/ir-mcl/blob/main/PREPARE_DATA.md)",
+      "details": [
+        "Intel Lab, MIT CSAIL, Freiburg, Seattle, MIT corridor và các log khác; laser/odometry dạng CARMEN/GFS.",
+        "Hợp scanner/map/định vị 2D trước RPLIDAR. Phân biệt raw và corrected, corrected pose không phải ground truth độc lập. License từng log cần kiểm tra; không mặc định chung MIT."
+      ],
+      "urls": [
+        "https://www.ipb.uni-bonn.de/datasets/",
+        "https://github.com/PRBonn/ir-mcl/blob/main/PREPARE_DATA.md"
+      ]
+    },
+    {
+      "id": "D02",
+      "priority": "1",
+      "description": "**DROW v2** — [repo và license](https://github.com/VisualComputingInstitute/DROW), [ZIP chính thức](https://github.com/VisualComputingInstitute/DROW/releases/download/v2/DROWv2-data.zip)",
+      "details": [
+        "Laser 2D, odometry và nhãn người/xe lăn/dụng cụ hỗ trợ đi lại, theo sequence.",
+        "Gói 197.970.996 byte theo GitHub API. MIT trừ `reha` giữ CC BY-NC-SA 3.0; không biến 29.96 N/A thành vùng trống. Không phải ground truth free-space camera."
+      ],
+      "urls": [
+        "https://github.com/VisualComputingInstitute/DROW",
+        "https://github.com/VisualComputingInstitute/DROW/releases/download/v2/DROWv2-data.zip"
+      ]
+    },
+    {
+      "id": "D03",
+      "priority": "2",
+      "description": "**OpenLORIS-Scene** — [trang tác giả](https://lifelong-robotic-vision.github.io/dataset/scene)",
+      "details": [
+        "Camera RGB-D/fisheye, IMU, odometry, laser scan, quỹ đạo tham chiếu.",
+        "Gần mô hình robot trong nhà; office có motion capture, nhiều cảnh khác dùng offline LiDAR SLAM. Market có cấu hình khác: đọc metadata từng scene. Drive/Baidu; license cần xác minh theo gói."
+      ],
+      "urls": [
+        "https://lifelong-robotic-vision.github.io/dataset/scene"
+      ]
+    },
+    {
+      "id": "D04",
+      "priority": "2",
+      "description": "**MIT Stata Center** — [MIT](https://projects.csail.mit.edu/stata/)",
+      "details": [
+        "Log robot với camera/laser/odometry, phục vụ mapping dài hạn.",
+        "Hợp replay/mapping, dung lượng lớn; tải từng ngày/sequence. Không mặc định cảm biến/tham chiếu giống sa bàn; đọc điều khoản nguồn."
+      ],
+      "urls": [
+        "https://projects.csail.mit.edu/stata/"
+      ]
+    },
+    {
+      "id": "D05",
+      "priority": "3",
+      "description": "**Oxford RobotCar** — [Oxford](https://robotcar-dataset.robots.ox.ac.uk/)",
+      "details": [
+        "Camera, laser và dữ liệu định vị lặp lại cùng tuyến.",
+        "Dùng relocalization/thay đổi môi trường; quy mô và cảm biến khác MN300. Tải chọn sequence, license theo trang tác giả."
+      ],
+      "urls": [
+        "https://robotcar-dataset.robots.ox.ac.uk/"
+      ]
+    },
+    {
+      "id": "D06",
+      "priority": "3",
+      "description": "**TUM RGB-D** — [TUM](https://cvg.cit.tum.de/data/datasets/rgbd-dataset)",
+      "details": [
+        "RGB-D và quỹ đạo tham chiếu cho visual SLAM.",
+        "Chỉ bổ sung kiểm thử ước lượng; bốn USB RGB không tự có depth như Kinect. Download từng sequence; license theo nguồn."
+      ],
+      "urls": [
+        "https://cvg.cit.tum.de/data/datasets/rgbd-dataset"
+      ]
+    },
+    {
+      "id": "D07",
+      "priority": "3",
+      "description": "**EuRoC MAV** — [ETH ASL](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets)",
+      "details": [
+        "Stereo/IMU và tham chiếu, cho visual-inertial odometry.",
+        "Dữ liệu phương tiện bay; hữu ích kiểm tra đồng bộ/ước lượng, không học tự đỗ. Trang cũ thông báo chuyển địa chỉ; theo liên kết mới và điều khoản ETH."
+      ],
+      "urls": [
+        "https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets"
+      ]
+    },
+    {
+      "id": "E01",
+      "priority": "2",
+      "description": "**KITTI-360** — [trang tác giả](https://www.cvlibs.net/datasets/kitti-360/)",
+      "details": [
+        "2D/3D semantic, instance, pose, camera phối cảnh và fisheye.",
+        "CC BY-NC-SA 3.0; đăng ký. Không suy mọi fisheye đều có dense label như camera phối cảnh; SICK dạng pushbroom không giống scan ngang C1."
+      ],
+      "urls": [
+        "https://www.cvlibs.net/datasets/kitti-360/"
+      ]
+    },
+    {
+      "id": "E02",
+      "priority": "2",
+      "description": "**nuScenes + lidarseg/panoptic/map** — [devkit tác giả](https://github.com/nutonomy/nuscenes-devkit), [tải](https://www.nuscenes.org/download)",
+      "details": [
+        "Hợp nhất nhiều cảm biến, quỹ đạo, map; nhãn point cloud trong expansion riêng.",
+        "Cần tài khoản/Terms of Use; chọn mini trước. Nhãn map/3D không tự là pixel free-space. Không chuyển thuật toán yêu cầu LiDAR 3D sang C1 bằng cách đổi tên input."
+      ],
+      "urls": [
+        "https://github.com/nutonomy/nuscenes-devkit",
+        "https://www.nuscenes.org/download"
+      ]
+    },
+    {
+      "id": "E03",
+      "priority": "3",
+      "description": "**nuImages** — [devkit và setup](https://github.com/nutonomy/nuscenes-devkit#nuimages)",
+      "details": [
+        "Nhãn ảnh cho nhận thức 2D; cùng hệ sinh thái nuScenes.",
+        "Là bộ ảnh riêng; cần samples + metadata đúng split; không giả định có chuỗi đồng bộ đa cảm biến đầy đủ. Tài khoản/điều khoản nuScenes."
+      ],
+      "urls": [
+        "https://github.com/nutonomy/nuscenes-devkit#nuimages"
+      ]
+    },
+    {
+      "id": "E04",
+      "priority": "3",
+      "description": "**SemanticKITTI** — [dataset](https://www.semantic-kitti.org/dataset.html)",
+      "details": [
+        "Semantic point cloud, động/tĩnh; nghiên cứu vật cản LiDAR.",
+        "Nhãn LiDAR 3D, không phải mask USB; cần tải scan KITTI và nhãn tương ứng. License theo nguồn KITTI/SemanticKITTI."
+      ],
+      "urls": [
+        "https://www.semantic-kitti.org/dataset.html"
+      ]
+    },
+    {
+      "id": "E05",
+      "priority": "3",
+      "description": "**Argoverse 2 Sensor / Lidar** — [trang chính thức](https://www.argoverse.org/av2.html)",
+      "details": [
+        "Sensor có ảnh/cuboid/pose/map; bộ Lidar riêng chứa sequence không nhãn.",
+        "Chọn Sensor nếu cần giám sát; map polygon drivable không phải nhãn ảnh. Creative Commons share-alike theo Terms of Use; kiểm tra phiên bản cụ thể."
+      ],
+      "urls": [
+        "https://www.argoverse.org/av2.html"
+      ]
+    },
+    {
+      "id": "E06",
+      "priority": "3",
+      "description": "**Waymo Open Perception** — [cổng chính thức](https://waymo.com/open/)",
+      "details": [
+        "Detection/segmentation cảm biến xe thật tùy release.",
+        "Tải cần đăng nhập Google và license Waymo. Chỉ chọn Perception phù hợp; Motion/End-to-End không thay dense free-space cho dự án."
+      ],
+      "urls": [
+        "https://waymo.com/open/"
+      ]
+    },
+    {
+      "id": "E07",
+      "priority": "3",
+      "description": "**A2D2** — [cổng Audi](https://www.a2d2.audi/a2d2/en.html), [paper tác giả](https://arxiv.org/abs/2004.06320)",
+      "details": [
+        "Camera/LiDAR, semantic và calibration.",
+        "Nguồn tham khảo fusion xe lớn. Cổng tải không truy cập được bằng công cụ trong lần này; chưa coi là tải được. Xác minh license của bản phát hành trước dùng."
+      ],
+      "urls": [
+        "https://www.a2d2.audi/a2d2/en.html",
+        "https://arxiv.org/abs/2004.06320"
+      ]
+    },
+    {
+      "id": "E08",
+      "priority": "3",
+      "description": "**JRDB / JRDB-PanoTrack** — [cổng hiện hành](https://jrdb.erc.monash.edu/)",
+      "details": [
+        "Robot quanh người, nhãn người 2D/3D; PanoTrack bổ sung panoptic.",
+        "Hợp test người gần robot, không có sẵn mọi loại vật thấp. Đăng nhập; nhãn của từng nhánh riêng, đọc điều khoản."
+      ],
+      "urls": [
+        "https://jrdb.erc.monash.edu/"
+      ]
+    },
+    {
+      "id": "E09",
+      "priority": "3",
+      "description": "**COCO** — [API tác giả](https://github.com/cocodataset/cocoapi), [tải](https://cocodataset.org/#download)",
+      "details": [
+        "Detector/instance segmentation các vật phổ biến.",
+        "Chỉ tiền huấn luyện hoặc thêm vật thể; bounding box/instance không phải dense free-space. Giấy phép nhãn và ảnh Flickr khác nhau; xem metadata/license gốc."
+      ],
+      "urls": [
+        "https://github.com/cocodataset/cocoapi",
+        "https://cocodataset.org/#download"
+      ]
+    },
+    {
+      "id": "E10",
+      "priority": "3",
+      "description": "**Open Images V7** — [Google](https://storage.googleapis.com/openimages/web/index.html)",
+      "details": [
+        "Detection/segmentation vật thể theo lớp/tập con.",
+        "Chỉ tải lớp/ảnh cần dùng; không phải nhãn nền đi được. Kiểm tra license ảnh và nhãn, tránh tải toàn kho cho baseline."
+      ],
+      "urls": [
+        "https://storage.googleapis.com/openimages/web/index.html"
+      ]
+    },
+    {
+      "id": "F01",
+      "priority": "chờ",
+      "description": "**FPD — Fisheye Parking Dataset** — [paper tác giả](https://arxiv.org/abs/2212.04111)",
+      "details": [
+        "Perception fisheye trong bãi đỗ, gần bài toán.",
+        "Tìm thấy paper; chưa xác nhận endpoint tải công khai và license. Không đưa vào danh sách đã sẵn sàng huấn luyện."
+      ],
+      "urls": [
+        "https://arxiv.org/abs/2212.04111"
+      ]
+    },
+    {
+      "id": "F02",
+      "priority": "chờ",
+      "description": "**PPD — Parking Pedestrian Dataset** — [paper tác giả](https://arxiv.org/abs/2309.11002)",
+      "details": [
+        "Người nhiều tư thế/che khuất trong bãi đỗ fisheye.",
+        "Tìm thấy paper; chưa xác nhận gói tải và license."
+      ],
+      "urls": [
+        "https://arxiv.org/abs/2309.11002"
+      ]
+    },
+    {
+      "id": "F03",
+      "priority": "3",
+      "description": "**SYNTHIA** — [trang tác giả](https://synthia-dataset.net/)",
+      "details": [
+        "Dữ liệu tổng hợp có semantic để nghiên cứu chuyển miền.",
+        "Cổng chưa truy cập được trong lần kiểm tra; cần chọn release/đọc license. Nhãn tổng hợp không thay kiểm thử ảnh sa bàn."
+      ],
+      "urls": [
+        "https://synthia-dataset.net/"
+      ]
+    },
+    {
+      "id": "F04",
+      "priority": "3",
+      "description": "**Virtual KITTI 2** — [NAVER LABS](https://europe.naverlabs.com/proxy-virtual-worlds-vkitti-2/)",
+      "details": [
+        "RGB, semantic/instance/depth và biến đổi điều kiện tổng hợp.",
+        "Phù hợp thử độ bền thuật toán, không phải bốn fisheye bãi đỗ. Tải và license theo NAVER LABS."
+      ],
+      "urls": [
+        "https://europe.naverlabs.com/proxy-virtual-worlds-vkitti-2/"
+      ]
+    }
+  ]
+}

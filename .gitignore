@@ -1,0 +1,4 @@
+# Staging folder for files awaiting manual deletion (redundant dataset ZIPs, broken venvs)
+_CHO_XOA/
+# Former nested repository of autopark/ (had no commits); kept renamed instead of deleted
+autopark/.git.cu/

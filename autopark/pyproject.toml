@@ -1,0 +1,29 @@
+[project]
+name = "autopark"
+version = "0.1.0"
+description = "Mô phỏng xe mô hình tự đỗ bằng laptop (P0–P3: sa bàn, lập đường, bám đường, lái tay)"
+requires-python = ">=3.11"
+dependencies = [
+    "PySide6>=6.6",
+    "numpy>=1.26",
+    "shapely>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "coverage>=7"]
+video = ["opencv-python>=4.10"]
+perception = ["opencv-python>=4.10", "torch>=2.4"]
+datasets = ["opencv-python>=4.10", "gdown>=6.4", "requests>=2.32"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["autopark*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+markers = ["planner_budget: checks search results under wall-clock budgets; run without coverage tracing"]

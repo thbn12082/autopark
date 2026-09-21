@@ -1,0 +1,22 @@
+{
+  "tests.test_background_work": 8,
+  "tests.test_collision_oracle": 9,
+  "tests.test_computation": 12,
+  "tests.test_fast_collision": 8,
+  "tests.test_geometry": 10,
+  "tests.test_phase0": 13,
+  "tests.test_planner_hard_cases": 10,
+  "tests.test_planning": 7,
+  "tests.test_portfolio_validation": 8,
+  "tests.test_reeds_shepp": 6,
+  "tests.test_reeds_shepp_full": 7,
+  "tests.test_runtime_safety": 40,
+  "tests.test_scenario_store": 24,
+  "tests.test_session": 11,
+  "tests.test_session_run": 11,
+  "tests.test_tracker": 3,
+  "tests.test_ui_smoke": 9,
+  "tests.test_vehicle_editing_ui": 4,
+  "tests.test_vehicle_layouts": 10,
+  "tests.test_vehicle_model": 10
+}

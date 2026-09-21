@@ -1,0 +1,650 @@
+"""Phiên làm việc: chỉnh sa bàn, lập đường, xem trước, chạy kín vòng, lái tay.
+
+Máy trạng thái theo tài liệu mục 5.4, thêm COMPLETED (đỗ xong) và MANUAL (lái tay P2):
+
+    EDITING --plan--> PLANNING --ok--> READY --start--> RUNNING --xong--> COMPLETED
+                               --lỗi--> EDITING          |      --va chạm--> FAULT
+    READY --sửa sa bàn--> EDITING (kết quả lập đường cũ bị hủy)   --dừng--> STOPPING --> STOPPED
+    READY --xem trước--> PREPARING_PREVIEW --xong--> PREVIEW --> READY
+                         --hủy/lỗi/hết giờ--> READY
+
+Mô phỏng chạy trên bản sao kịch bản; xuất phát trong sa bàn không bị thay đổi.
+Lập đường và chuẩn bị xem trước dùng chung một worker; hủy tác vụ phát tín hiệu
+tới vòng tìm kiếm/mô phỏng. Kết quả trễ của tác vụ cũ không được áp dụng vào phiên mới.
+Phản hồi giả có thể thêm trễ/nhiễu/mất mẫu; cấu hình mặc định là lý tưởng.
+Đóng phiên ngừng đồng hồ mô phỏng; đây không phải phép thử phanh phần cứng.
+"""
+from __future__ import annotations
+
+import copy
+import math
+from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import dataclass, field, replace
+from enum import Enum
+
+from autopark.control.tracker import TrackerOutput, TrackerParams, TrajectoryTracker
+from autopark.application.layouts import scatter_parked_cars
+from autopark.domain.computation import ComputationCancelled, ComputationControl, ComputationTimedOut
+from autopark.domain.types import Obstacle, ParkingMode, ParkingSlot, Pose, Scenario, VehicleConfig, clamp
+from autopark.evaluation.logger import RunLog
+from autopark.geometry.footprint import CollisionResult, body_polygon, check_pose
+from autopark.planning.hybrid_astar import PlannerParams, PlanResult
+from autopark.planning.parking import plan_parking
+from autopark.planning.trajectory import Trajectory
+from autopark.simulation.rollout import RolloutResult, RunReport, pose_error, rollout
+from autopark.simulation.world import SimWorld, StepResult
+from autopark.simulation.feedback import FeedbackConfig, SimFeedback
+from autopark.domain.sensors import SafetyEvent, SourceStamp
+
+from shapely.geometry import Polygon
+
+
+class SessionState(str, Enum):
+    EDITING = "EDITING"
+    PLANNING = "PLANNING"
+    READY = "READY"
+    PREPARING_PREVIEW = "PREPARING_PREVIEW"
+    PREVIEW = "PREVIEW"
+    RUNNING = "RUNNING"
+    STOPPING = "STOPPING"
+    STOPPED = "STOPPED"
+    COMPLETED = "COMPLETED"
+    FAULT = "FAULT"
+    MANUAL = "MANUAL"
+
+    @property
+    def label(self) -> str:
+        return {
+            "EDITING": "Đang chỉnh sa bàn", "PLANNING": "Đang tính đường", "READY": "Sẵn sàng",
+            "PREPARING_PREVIEW": "Đang chuẩn bị xem trước", "PREVIEW": "Xem trước",
+            "RUNNING": "Đang đỗ", "STOPPING": "Đang dừng", "STOPPED": "Đã dừng",
+            "COMPLETED": "Đỗ xong", "FAULT": "Lỗi", "MANUAL": "Lái tay",
+        }[self.value]
+
+
+class SessionError(RuntimeError):
+    pass
+
+
+@dataclass
+class ManualTargets:
+    speed: float = 0.0
+    steer: float = 0.0
+
+
+@dataclass(frozen=True)
+class PoseCheck:
+    ok: bool
+    reasons: list[str] = field(default_factory=list)
+    collision: CollisionResult | None = None
+
+    def describe(self) -> str:
+        if self.ok:
+            return "Hợp lệ" + (f" (hở {self.collision.min_clearance * 100:.1f} cm)" if self.collision else "")
+        return "; ".join(self.reasons)
+
+
+EDITABLE_STATES = (SessionState.EDITING, SessionState.READY)
+
+
+class Session:
+    PHYSICS_DT = 0.005            # s (tài liệu 6.2: 5–10 ms)
+    CONTROL_EVERY = 4             # 50 Hz bám đường
+    MAX_STEPS_PER_ADVANCE = 400   # tối đa 2 s mô phỏng mỗi lần gọi advance()
+    LOG_EVERY_STEPS = 4
+    MAX_RUN_TIME = 180.0          # s mô phỏng
+    PREVIEW_TIME_LIMIT = 15.0     # s thời gian thực, cho phép hủy trong lúc chuẩn bị
+
+    def __init__(self, scenario: Scenario, cfg: VehicleConfig,
+                 planner_params: PlannerParams | None = None,
+                 tracker_params: TrackerParams | None = None,
+                 feedback_config: FeedbackConfig | None = None):
+        self.scenario = scenario
+        self.cfg = cfg
+        self.scenario.sync_goal(cfg)
+        self.planner_params = planner_params or PlannerParams()
+        self.tracker_params = tracker_params or TrackerParams()
+        self.state = SessionState.EDITING
+        self.world: SimWorld | None = None
+        self.targets = ManualTargets()
+        self.realtime_factor = 1.0
+        self.lagging = False
+        self.log = RunLog()
+        self._accumulator = 0.0
+        self.speed_step = 0.02
+        self.steer_step = math.radians(2.0)
+        # lập đường
+        self.trajectory: Trajectory | None = None
+        self.plan_result: PlanResult | None = None
+        self.plan_version = 0
+        self._executor: ThreadPoolExecutor | None = None
+        self._closed = False
+        self._plan_future: Future | None = None
+        self._plan_control: ComputationControl | None = None
+        self._pending_plan_version = 0
+        # xem trước / chạy
+        self.preview: RolloutResult | None = None
+        self.preview_error = ""
+        self._preview_future: Future | None = None
+        self._preview_control: ComputationControl | None = None
+        self._preview_key: tuple | None = None
+        self._pending_preview_key: tuple | None = None
+        self.tracker: TrajectoryTracker | None = None
+        self.last_output: TrackerOutput | None = None
+        self.report: RunReport | None = None
+        self.stop_reason = ""
+        self.feedback_config = feedback_config or FeedbackConfig()
+        self.feedback: SimFeedback | None = None
+        self.safety_events: list[SafetyEvent] = []
+        self.run_events: list[dict] = []
+        self.run_snapshot: dict | None = None
+        self.path_invalidated = False
+        self._stop_outcome = SessionState.STOPPED
+
+    # ------------------------------------------------------------------ chỉnh sa bàn
+    def _require_editable(self) -> None:
+        if self._closed:
+            raise SessionError("Phiên đã đóng")
+        if self.state not in EDITABLE_STATES:
+            raise SessionError(f"Chỉ chỉnh sa bàn khi đang chỉnh hoặc sẵn sàng (đang {self.state.label})")
+
+    def _invalidate(self) -> None:
+        self.plan_version += 1
+        self.trajectory = None
+        self.plan_result = None
+        self.preview = None
+        self._preview_key = None
+        self.preview_error = ""
+        self.report = None
+        if self.state == SessionState.READY:
+            self.state = SessionState.EDITING
+
+    def replace_scenario(self, scenario: Scenario, cfg: VehicleConfig) -> None:
+        self._require_editable()
+        self.scenario = scenario
+        self.cfg = cfg
+        self.scenario.sync_goal(cfg)
+        self.log.clear()
+        self._invalidate()
+
+    def set_start(self, pose: Pose) -> None:
+        self._require_editable()
+        self.scenario.start = pose
+        self.scenario.sync_goal(self.cfg)   # đỗ song song chọn hướng theo hướng xe
+        self._invalidate()
+
+    def set_goal_pose(self, pose: Pose) -> None:
+        self._require_editable()
+        self.scenario.slot = None
+        self.scenario.goal = replace(self.scenario.goal, pose=pose)
+        self._invalidate()
+
+    def set_slot(self, slot: ParkingSlot) -> None:
+        self._require_editable()
+        self.scenario.slot = slot
+        self.scenario.sync_goal(self.cfg)
+        self._invalidate()
+
+    def set_mode(self, mode: ParkingMode) -> None:
+        self._require_editable()
+        self.scenario.mode = mode
+        self.scenario.sync_goal(self.cfg)
+        self._invalidate()
+
+    def add_obstacle(self, obstacle: Obstacle | None = None) -> Obstacle:
+        self._require_editable()
+        if obstacle is None:
+            cx, cy = self.scenario.bounds.center
+            obstacle = Obstacle(self.scenario.next_obstacle_id(), cx, cy, 0.3, 0.3, 0.0)
+        if self.scenario.obstacle_by_id(obstacle.id) is not None:
+            raise SessionError(f"Vật cản {obstacle.id} đã tồn tại")
+        self.scenario.obstacles.append(obstacle)
+        self._invalidate()
+        return obstacle
+
+    def update_obstacle(self, obstacle: Obstacle) -> None:
+        self._require_editable()
+        for i, o in enumerate(self.scenario.obstacles):
+            if o.id == obstacle.id:
+                self.scenario.obstacles[i] = obstacle
+                self._invalidate()
+                return
+        raise SessionError(f"Không có vật cản {obstacle.id}")
+
+    def remove_obstacle(self, obstacle_id: str) -> None:
+        self._require_editable()
+        before = len(self.scenario.obstacles)
+        self.scenario.obstacles = [o for o in self.scenario.obstacles if o.id != obstacle_id]
+        if len(self.scenario.obstacles) == before:
+            raise SessionError(f"Không có vật cản {obstacle_id}")
+        self._invalidate()
+
+    def scatter_cars(self, seed: int | None = None) -> None:
+        """Atomically replace parked-car poses and invalidate the old trajectory."""
+        self._require_editable()
+        seed = self.scenario.seed + 1 if seed is None else seed
+        try:
+            obstacles = scatter_parked_cars(self.scenario, self.cfg, seed)
+        except ValueError as exc:
+            raise SessionError(str(exc)) from exc
+        self.scenario.obstacles = obstacles
+        self.scenario.seed = seed
+        self._invalidate()
+
+    # ------------------------------------------------------------------ kiểm tra
+    def _check_pose(self, pose: Pose, label: str) -> PoseCheck:
+        col = check_pose(self.cfg, pose, self.scenario.obstacles, self.scenario.bounds)
+        reasons = []
+        if col.out_of_bounds:
+            reasons.append(f"{label} ra ngoài sa bàn")
+        if col.collides:
+            reasons.append(f"{label} chạm " + ", ".join(col.obstacle_ids))
+        return PoseCheck(ok=not reasons, reasons=reasons, collision=col)
+
+    def start_check(self) -> PoseCheck:
+        return self._check_pose(self.scenario.start, "Xuất phát")
+
+    def goal_check(self) -> PoseCheck:
+        """Đích không hợp lệ và không tìm được đường là hai kết quả riêng (mục 5.2)."""
+        check = self._check_pose(self.scenario.goal.pose, "Đích")
+        if self.scenario.slot is not None and not self.scenario.slot.fits_vehicle(self.cfg):
+            return PoseCheck(False, [*check.reasons, "Ô đỗ nhỏ hơn thân xe"], check.collision)
+        return check
+
+    def footprint_inside_slot(self, pose: Pose, tolerance: float = 0.01) -> bool | None:
+        if self.scenario.slot is None:
+            return None
+        slot_poly = Polygon(self.scenario.slot.corners()).buffer(tolerance)
+        return slot_poly.contains(body_polygon(self.cfg, pose))
+
+    # ------------------------------------------------------------------ lập đường
+    def _worker(self) -> ThreadPoolExecutor:
+        if self._closed:
+            raise SessionError("Phiên đã đóng")
+        if self._executor is None:
+            self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="autopark")
+        return self._executor
+
+    @staticmethod
+    def _calculate_plan(scenario, cfg, planner_params, tracker_params, max_run_time,
+                        control: ComputationControl) -> PlanResult:
+        try:
+            control.check()
+            return plan_parking(scenario, cfg, planner_params, tracker_params=tracker_params,
+                                max_run_time=max_run_time, control=control)
+        except ComputationCancelled:
+            return PlanResult("CANCELLED", "Đã hủy tính đường")
+        except ComputationTimedOut:
+            return PlanResult("TIMEOUT", "Đã hết thời gian tính đường")
+        except Exception as exc:  # lỗi thuật toán phải khác với không tìm được đường
+            return PlanResult("ERROR", f"Lỗi lập đường: {exc!r}")
+
+    def plan_sync(self) -> PlanResult:
+        self._require_editable()
+        control = ComputationControl().with_timeout(self.planner_params.time_limit)
+        self._invalidate()
+        version = self.plan_version
+        self.state = SessionState.PLANNING
+        result = self._calculate_plan(copy.deepcopy(self.scenario), self.cfg,
+                                      copy.deepcopy(self.planner_params), copy.deepcopy(self.tracker_params),
+                                      self.MAX_RUN_TIME, control)
+        self._apply_plan(result, version)
+        return result
+
+    def plan_async(self) -> None:
+        """Lập đường trong luồng nền; gọi `poll_plan()` định kỳ để nhận kết quả."""
+        self._require_editable()
+        control = ComputationControl().with_timeout(self.planner_params.time_limit)
+        self._invalidate()
+        version = self.plan_version
+        snapshot = copy.deepcopy(self.scenario)
+        cfg = self.cfg
+        planner_params = copy.deepcopy(self.planner_params)
+        tracker_params = copy.deepcopy(self.tracker_params)
+        max_run_time = self.MAX_RUN_TIME
+        self._plan_control = control
+        self._pending_plan_version = version
+        self._plan_future = self._worker().submit(self._calculate_plan, snapshot, cfg, planner_params,
+                                                tracker_params, max_run_time, control)
+        self.state = SessionState.PLANNING
+
+    def poll_plan(self) -> PlanResult | None:
+        if self.state != SessionState.PLANNING or self._plan_future is None:
+            return None
+        if not self._plan_future.done():
+            return None
+        result = self._plan_future.result()
+        self._plan_future = None
+        self._plan_control = None
+        return self._apply_plan(result, self._pending_plan_version)
+
+    def _apply_plan(self, result: PlanResult, version: int) -> PlanResult | None:
+        if version != self.plan_version:
+            # Người dùng đã sửa sa bàn trong lúc tính: bỏ kết quả cũ (mục 5.2)
+            return None
+        self.plan_result = result
+        if result.ok:
+            self.trajectory = result.trajectory
+            self.path_invalidated = False
+            self.state = SessionState.READY
+        else:
+            self.trajectory = None
+            self.state = SessionState.EDITING
+        return result
+
+    def cancel_plan(self) -> None:
+        if self.state == SessionState.PLANNING:
+            if self._plan_control is not None:
+                self._plan_control.cancel()
+            if self._plan_future is not None:
+                self._plan_future.cancel()  # bỏ cả việc còn đang đợi worker
+            self._plan_future = None
+            self._plan_control = None
+            self.plan_version += 1   # kết quả về sau sẽ bị bỏ
+            self.state = SessionState.EDITING
+
+    # ------------------------------------------------------------------ xem trước
+    def _preview_settings(self) -> tuple:
+        return (self.plan_version, id(self.trajectory), self.cfg, copy.deepcopy(self.tracker_params),
+                self.PHYSICS_DT, self.CONTROL_EVERY, self.MAX_RUN_TIME)
+
+    def _prepare_preview(self) -> tuple:
+        if self._closed or self.state != SessionState.READY or self.trajectory is None:
+            raise SessionError("Chưa có đường để xem trước")
+        self.preview_error = ""
+        return self._preview_settings()
+
+    def begin_preview(self) -> RolloutResult:
+        """Bản đồng bộ cho mã ngoại tuyến; giao diện dùng begin_preview_async()."""
+        key = self._prepare_preview()
+        if self.preview is None or key != self._preview_key:
+            self.preview = rollout(self.scenario, self.cfg, self.trajectory, self.tracker_params,
+                                   dt=self.PHYSICS_DT, control_every=self.CONTROL_EVERY,
+                                   max_time=self.MAX_RUN_TIME,
+                                   control=ComputationControl().with_timeout(self.PREVIEW_TIME_LIMIT))
+            self._preview_key = key
+        self.state = SessionState.PREVIEW
+        return self.preview
+
+    def begin_preview_async(self) -> None:
+        key = self._prepare_preview()
+        if self.preview is not None and key == self._preview_key:
+            self.state = SessionState.PREVIEW
+            return
+        self.preview = None
+        self._preview_key = None
+        control = ComputationControl().with_timeout(self.PREVIEW_TIME_LIMIT)
+        self._preview_control = control
+        self._pending_preview_key = key
+        self._preview_future = self._worker().submit(
+            rollout, copy.deepcopy(self.scenario), self.cfg, copy.deepcopy(self.trajectory),
+            copy.deepcopy(self.tracker_params), dt=self.PHYSICS_DT, control_every=self.CONTROL_EVERY,
+            max_time=self.MAX_RUN_TIME, control=control)
+        self.state = SessionState.PREPARING_PREVIEW
+
+    def poll_preview(self) -> RolloutResult | None:
+        if self.state != SessionState.PREPARING_PREVIEW or self._preview_future is None:
+            return None
+        if not self._preview_future.done():
+            return None
+        future, key = self._preview_future, self._pending_preview_key
+        self._preview_future = None
+        self._preview_control = None
+        self.state = SessionState.READY
+        try:
+            result = future.result()
+        except (ComputationCancelled, ComputationTimedOut) as exc:
+            self.preview_error = str(exc)
+            return None
+        except Exception as exc:
+            self.preview_error = f"Không tính được xem trước: {exc!r}"
+            return None
+        if key != self._preview_settings():
+            self.preview_error = "Cấu hình đã thay đổi; hãy xem trước lại"
+            return None
+        self.preview = result
+        self._preview_key = key
+        self.state = SessionState.PREVIEW
+        return result
+
+    def end_preview(self) -> None:
+        if self.state in (SessionState.PREVIEW, SessionState.PREPARING_PREVIEW):
+            if self._preview_control is not None:
+                self._preview_control.cancel()
+            if self._preview_future is not None:
+                self._preview_future.cancel()
+            self._preview_future = None
+            self._preview_control = None
+            self.state = SessionState.READY
+
+    def close(self) -> None:
+        """Dừng tác vụ khi đóng cửa sổ; không chặn luồng giao diện để join worker."""
+        self.cancel_plan()
+        self.end_preview()
+        self._closed = True
+        if self._executor is not None:
+            self._executor.shutdown(wait=False, cancel_futures=True)
+
+    # ------------------------------------------------------------------ chạy kín vòng
+    def start_run(self) -> None:
+        if self._closed:
+            raise SessionError("Phiên đã đóng")
+        if self.state != SessionState.READY or self.trajectory is None or not self.trajectory.valid or self.path_invalidated:
+            raise SessionError("Chưa có đường để chạy")
+        chk = self.start_check()
+        if not chk.ok:
+            raise SessionError("Không bắt đầu được: " + chk.describe())
+        self.world = SimWorld(copy.deepcopy(self.scenario), self.cfg, dt=self.PHYSICS_DT)
+        self.tracker = TrajectoryTracker(self.trajectory, self.cfg, self.tracker_params)
+        self.targets = ManualTargets()
+        self.last_output = None
+        self.report = None
+        self.stop_reason = ""
+        self._stop_outcome = SessionState.STOPPED
+        self._accumulator = 0.0
+        self.lagging = False
+        self.log.clear()
+        from dataclasses import asdict
+        self.feedback = SimFeedback(self.feedback_config, self.scenario.seed)
+        self.safety_events.clear()
+        self.run_events.clear()
+        self.run_snapshot = copy.deepcopy({
+            "scenario": self.scenario.to_dict(), "vehicle": self.cfg.to_dict(),
+            "planner": asdict(self.planner_params), "tracker": asdict(self.tracker_params),
+            "feedback": asdict(self.feedback_config), "trajectory": asdict(self.trajectory),
+            "physics_dt": self.PHYSICS_DT, "control_every": self.CONTROL_EVERY,
+            "max_run_time": self.MAX_RUN_TIME,
+        })
+        self.state = SessionState.RUNNING
+
+    def _safety_stop(self, code: str, message: str) -> None:
+        assert self.world is not None
+        self.safety_events.append(SafetyEvent(SourceStamp("sim_safety", self.world.time), code, message))
+        self.path_invalidated = True
+        if self.trajectory is not None:
+            self.trajectory.valid = False
+        self.preview = None
+        self._preview_key = None
+        self.plan_version += 1
+        self.request_stop(message, record=False)
+
+    def inject_obstacle(self, obstacle: Obstacle) -> None:
+        """Nguồn map giả: mọi vật cản mới đều buộc phanh rồi chờ lập lại đường."""
+        if self._closed or self.state not in (SessionState.RUNNING, SessionState.STOPPING) or self.world is None:
+            raise SessionError("Chỉ chèn vật cản giả khi đang chạy")
+        obstacle = Obstacle.from_dict(obstacle.to_dict())
+        if self.scenario.obstacle_by_id(obstacle.id) is not None:
+            raise SessionError("ID vật cản đã tồn tại")
+        # STOP trước, cập nhật map sau; không gọi planner trong lúc phanh.
+        self._safety_stop("MAP_CHANGED", "Vật cản mới: dừng, cập nhật và chờ lập lại đường")
+        self.scenario.obstacles.append(obstacle)
+        self.world.scenario.obstacles.append(obstacle)
+        self.run_events.append({"t": self.world.time, "kind": "obstacle", "obstacle": obstacle.to_dict()})
+
+    def inject_data_loss(self) -> None:
+        if self._closed or self.state not in (SessionState.RUNNING, SessionState.STOPPING) or self.feedback is None or self.world is None:
+            raise SessionError("Chỉ ngắt phản hồi giả khi đang chạy")
+        self.feedback.lost = True
+        self.run_events.append({"t": self.world.time, "kind": "data_loss"})
+
+    def request_stop(self, reason: str = "Người dùng yêu cầu dừng", *, record: bool = True) -> None:
+        if self.state == SessionState.RUNNING:
+            if record and self.world is not None:
+                self.run_events.append({"t": self.world.time, "kind": "stop", "reason": reason})
+            self.stop_reason = reason
+            self.state = SessionState.STOPPING
+        elif self.state == SessionState.MANUAL:
+            self.brake()
+
+    def reset(self) -> None:
+        """Bỏ lần chạy hiện tại; về READY nếu đường còn hợp lệ, không thì về EDITING."""
+        if self.state == SessionState.PLANNING:
+            self.cancel_plan()
+            return
+        if self.state == SessionState.PREPARING_PREVIEW:
+            self.end_preview()
+            return
+        if self.state == SessionState.STOPPING or (self.simulating and self.world is not None
+                                                  and abs(self.world.state.speed) > 1e-9):
+            raise SessionError("Phải dừng hẳn trước khi đặt lại")
+        if self.path_invalidated and self.world is not None:
+            self.scenario.start = self.world.state.pose
+            self._invalidate()
+        self.world = None
+        self.tracker = None
+        self.last_output = None
+        self.targets = ManualTargets()
+        self.state = SessionState.READY if self.trajectory is not None else SessionState.EDITING
+
+    def _finish_run(self, state: SessionState, reason: str, completed: bool, collision: CollisionResult | None = None) -> None:
+        assert self.world is not None and self.trajectory is not None
+        pe, he = pose_error(self.world.state, self.trajectory.goal)
+        self.report = RunReport(completed, collision is not None and not collision.ok, self.world.time,
+                                self.world.distance, self.world.state, pe, he, collision, reason,
+                                bool(self.last_output and self.last_output.done))
+        self.stop_reason = reason
+        self.state = state
+        if self.path_invalidated:
+            self.safety_events.append(SafetyEvent(SourceStamp("sim_safety", self.world.time),
+                                                  "WAIT_REPLAN", reason, "WAIT"))
+
+    def _step_closed_loop(self) -> StepResult:
+        assert self.world is not None and self.tracker is not None
+        if self.state == SessionState.RUNNING and self.world.time >= self.MAX_RUN_TIME:
+            self._stop_outcome = SessionState.FAULT
+            self._safety_stop("RUN_TIMEOUT", f"Quá {self.MAX_RUN_TIME:.0f} s mô phỏng mà chưa tới đích")
+        if self.state == SessionState.RUNNING and self.world.step_count % self.CONTROL_EVERY == 0:
+            assert self.feedback is not None
+            observed = self.feedback.sample(self.world.state)
+            if not self.feedback.fresh(self.world.time):
+                self.targets = ManualTargets(0.0, self.targets.steer)
+                malformed = observed is not None and (not observed.usable() or observed.t > self.world.time)
+                if malformed:
+                    self._safety_stop("INVALID_FEEDBACK", "Phản hồi không hợp lệ: dừng và chờ đánh giá lại")
+                elif self.world.time >= self.feedback_config.stale_after_s:
+                    self._safety_stop("STALE_FEEDBACK", "Mất hoặc cũ phản hồi: dừng và chờ đánh giá lại")
+            else:
+                out = self.tracker.update(observed)
+                self.last_output = out
+                self.targets = ManualTargets(out.target_speed, out.target_steer)
+        if self.state == SessionState.STOPPING:
+            self.targets = ManualTargets(0.0, self.targets.steer)
+        result = self.world.step(self.targets.speed, self.targets.steer)
+        if result.stopped_by_collision:
+            self._finish_run(SessionState.FAULT, "Va chạm: " + result.collision.describe(), False, result.collision)
+        elif self.state == SessionState.STOPPING and result.state.speed == 0.0:
+            self._finish_run(self._stop_outcome, self.stop_reason, False)
+        elif self.state == SessionState.RUNNING and self.last_output is not None and self.last_output.done \
+                and result.state.speed == 0.0:
+            pe, he = pose_error(result.state, self.scenario.goal.pose)
+            goal = self.scenario.goal
+            if pe <= goal.tolerance_xy and abs(he) <= goal.tolerance_yaw:
+                self._finish_run(SessionState.COMPLETED, "Đỗ xong", True)
+            else:
+                self._finish_run(SessionState.FAULT,
+                                 f"Xe dừng ngoài dung sai: {pe * 100:.1f} cm / {math.degrees(he):+.1f}°",
+                                 False)
+        return result
+
+    # ------------------------------------------------------------------ lái tay (P2)
+    def start_manual(self) -> None:
+        if self._closed:
+            raise SessionError("Phiên đã đóng")
+        if self.state not in EDITABLE_STATES:
+            raise SessionError(f"Không lái tay khi đang {self.state.label}")
+        chk = self.start_check()
+        if not chk.ok:
+            raise SessionError("Không bắt đầu được: " + chk.describe())
+        self.world = SimWorld(copy.deepcopy(self.scenario), self.cfg, dt=self.PHYSICS_DT)
+        self.targets = ManualTargets()
+        self._accumulator = 0.0
+        self.lagging = False
+        self.log.clear()
+        self.run_snapshot = None
+        self.state = SessionState.MANUAL
+
+    def stop_manual(self) -> None:
+        if self.state != SessionState.MANUAL:
+            raise SessionError("Không ở chế độ lái tay")
+        self.world = None
+        self.targets = ManualTargets()
+        self.state = SessionState.READY if self.trajectory is not None else SessionState.EDITING
+
+    def reset_manual(self) -> None:
+        if self.state != SessionState.MANUAL or self.world is None:
+            raise SessionError("Không ở chế độ lái tay")
+        self.world.reset()
+        self.targets = ManualTargets()
+        self._accumulator = 0.0
+        self.log.clear()
+
+    def set_manual_targets(self, speed: float, steer: float) -> None:
+        if not all(math.isfinite(v) for v in (speed, steer)):
+            raise ValueError("Lệnh phải là số hữu hạn")
+        self.targets.speed = clamp(speed, -self.cfg.max_speed, self.cfg.max_speed)
+        self.targets.steer = clamp(steer, -self.cfg.max_steer, self.cfg.max_steer)
+
+    def nudge_speed(self, delta: float) -> None:
+        self.set_manual_targets(self.targets.speed + delta, self.targets.steer)
+
+    def nudge_steer(self, delta: float) -> None:
+        self.set_manual_targets(self.targets.speed, self.targets.steer + delta)
+
+    def brake(self) -> None:
+        self.set_manual_targets(0.0, self.targets.steer)
+
+    def center_steer(self) -> None:
+        self.set_manual_targets(self.targets.speed, 0.0)
+
+    # ------------------------------------------------------------------ nhịp mô phỏng
+    @property
+    def simulating(self) -> bool:
+        return not self._closed and self.state in (SessionState.MANUAL, SessionState.RUNNING, SessionState.STOPPING)
+
+    def advance(self, real_dt: float) -> list[StepResult]:
+        """Tiến mô phỏng theo thời gian thực đã trôi (nhân realtime_factor), bước cố định."""
+        if not self.simulating or self.world is None:
+            return []
+        if not math.isfinite(real_dt) or real_dt < 0:
+            raise ValueError("real_dt phải hữu hạn và >= 0")
+        if (not math.isfinite(self.realtime_factor) or self.realtime_factor <= 0
+                or not math.isfinite(self.PHYSICS_DT) or self.PHYSICS_DT <= 0):
+            raise ValueError("Nhịp mô phỏng và hệ số thời gian phải hữu hạn và > 0")
+        self._accumulator += real_dt * self.realtime_factor
+        results: list[StepResult] = []
+        steps = 0
+        while self._accumulator >= self.PHYSICS_DT and steps < self.MAX_STEPS_PER_ADVANCE and self.simulating:
+            if self.state == SessionState.MANUAL:
+                result = self.world.step(self.targets.speed, self.targets.steer)
+            else:
+                result = self._step_closed_loop()
+            results.append(result)
+            self._accumulator -= self.PHYSICS_DT
+            steps += 1
+            if self.world.step_count % self.LOG_EVERY_STEPS == 0 or not self.simulating:
+                self.log.add(result.state, self.targets.speed, self.targets.steer,
+                             result.collision, self.world.distance)
+        self.lagging = steps >= self.MAX_STEPS_PER_ADVANCE
+        if self.lagging or not self.simulating:
+            self._accumulator = 0.0
+        return results

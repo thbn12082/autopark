@@ -1,0 +1,66 @@
+{
+  "source": "https://github.com/Engro39/avm_dataset",
+  "sample_only": true,
+  "image_shape": [
+    160,
+    320,
+    3
+  ],
+  "mask_colors_rgb": [
+    {
+      "rgb": [
+        0,
+        0,
+        0
+      ],
+      "pixels": 6063
+    },
+    {
+      "rgb": [
+        0,
+        0,
+        255
+      ],
+      "pixels": 34923
+    },
+    {
+      "rgb": [
+        0,
+        255,
+        0
+      ],
+      "pixels": 3440
+    },
+    {
+      "rgb": [
+        255,
+        0,
+        0
+      ],
+      "pixels": 2714
+    },
+    {
+      "rgb": [
+        255,
+        255,
+        255
+      ],
+      "pixels": 4060
+    }
+  ],
+  "project_pixels": {
+    "0": 38983,
+    "1": 6154,
+    "255": 6063
+  },
+  "mapping": {
+    "0": "FREE (free space + marker)",
+    "1": "OBSTACLE (vehicle + other)",
+    "255": "UNKNOWN/IGNORE (ego + unrecognized colors)"
+  },
+  "sha256": {
+    "image.jpg": "16f04e59bebaa3eb2e5d477bb873c644a31c2fc7862fb3e054c3e1d8699b9101",
+    "gt.png": "51d45217cd298b6924fcc38c77b97512a222f3e84d477da3d8fd606419b51dd6"
+  },
+  "caveat": "Đây là chuyển nhãn mẫu do tác giả công bố; không phải dự đoán, không phải nghiệm thu toàn dataset."
+}

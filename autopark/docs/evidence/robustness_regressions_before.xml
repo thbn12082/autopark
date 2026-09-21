@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="25" skipped="0" tests="28" time="0.875" timestamp="2026-09-20T02:38:38.816819+07:00" hostname="thebinh"><testcase classname="tests.test_runtime_safety" name="test_closed_session_rejects_execution[start_run]" time="0.003"><failure message="Failed: DID NOT RAISE SessionError">tests\test_runtime_safety.py:39: in test_closed_session_rejects_execution
+    with pytest.raises(SessionError, match="đóng"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE SessionError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_closed_session_rejects_execution[start_manual]" time="0.001"><failure message="Failed: DID NOT RAISE SessionError">tests\test_runtime_safety.py:39: in test_closed_session_rejects_execution
+    with pytest.raises(SessionError, match="đóng"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE SessionError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_close_freezes_simulation_and_does_not_report_success" time="0.014"><failure message="assert not True&#10; +  where True = &lt;autopark.application.session.Session object at 0x000001AE2FF02AE0&gt;.simulating">tests\test_runtime_safety.py:49: in test_close_freezes_simulation_and_does_not_report_success
+    assert not s.simulating
+E   assert not True
+E    +  where True = &lt;autopark.application.session.Session object at 0x000001AE2FF02AE0&gt;.simulating</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_timeout_brakes_before_entering_terminal_fault" time="0.015"><failure message="AssertionError: assert 0.060000000000000026 == 0&#10; +  where 0.060000000000000026 = VehicleState(pose=Pose(x=0.015000000000000013, y=0.0, yaw=0), speed=0.060000000000000026, steer=0.0, t=0.5000000000000003, source_id='sim_vehicle', valid=True).speed&#10; +    where VehicleState(pose=Pose(x=0.015000000000000013, y=0.0, yaw=0), speed=0.060000000000000026, steer=0.0, t=0.5000000000000003, source_id='sim_vehicle', valid=True) = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FE9BB90&gt;.state&#10; +      where &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FE9BB90&gt; = &lt;autopark.application.session.Session object at 0x000001AE2FE9A9F0&gt;.world">tests\test_runtime_safety.py:61: in test_timeout_brakes_before_entering_terminal_fault
+    assert s.world.state.speed == 0
+E   AssertionError: assert 0.060000000000000026 == 0
+E    +  where 0.060000000000000026 = VehicleState(pose=Pose(x=0.015000000000000013, y=0.0, yaw=0), speed=0.060000000000000026, steer=0.0, t=0.5000000000000003, source_id='sim_vehicle', valid=True).speed
+E    +    where VehicleState(pose=Pose(x=0.015000000000000013, y=0.0, yaw=0), speed=0.060000000000000026, steer=0.0, t=0.5000000000000003, source_id='sim_vehicle', valid=True) = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FE9BB90&gt;.state
+E    +      where &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FE9BB90&gt; = &lt;autopark.application.session.Session object at 0x000001AE2FE9A9F0&gt;.world</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_requested_stop_finishes_braking_even_after_run_deadline" time="0.016"><failure message="AssertionError: assert &lt;SessionState.FAULT: 'FAULT'&gt; == &lt;SessionState...ED: 'STOPPED'&gt;&#10;  &#10;  - STOPPED&#10;  + FAULT">tests\test_runtime_safety.py:74: in test_requested_stop_finishes_braking_even_after_run_deadline
+    assert s.state == SessionState.STOPPED
+E   AssertionError: assert &lt;SessionState.FAULT: 'FAULT'&gt; == &lt;SessionState...ED: 'STOPPED'&gt;
+E     
+E     - STOPPED
+E     + FAULT</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_stopped_means_zero_not_a_frozen_residual_speed" time="0.002"><failure message="AssertionError: assert 0.0005 == 0&#10; +  where 0.0005 = VehicleState(pose=Pose(x=1e-05, y=0.0, yaw=0), speed=0.0005, steer=0.0, t=0.005, source_id='sim_vehicle', valid=True).speed&#10; +    where VehicleState(pose=Pose(x=1e-05, y=0.0, yaw=0), speed=0.0005, steer=0.0, t=0.005, source_id='sim_vehicle', valid=True) = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FEEF170&gt;.state&#10; +      where &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FEEF170&gt; = &lt;autopark.application.session.Session object at 0x000001AE2FEEEF60&gt;.world">tests\test_runtime_safety.py:85: in test_stopped_means_zero_not_a_frozen_residual_speed
+    assert s.world.state.speed == 0
+E   AssertionError: assert 0.0005 == 0
+E    +  where 0.0005 = VehicleState(pose=Pose(x=1e-05, y=0.0, yaw=0), speed=0.0005, steer=0.0, t=0.005, source_id='sim_vehicle', valid=True).speed
+E    +    where VehicleState(pose=Pose(x=1e-05, y=0.0, yaw=0), speed=0.0005, steer=0.0, t=0.005, source_id='sim_vehicle', valid=True) = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FEEF170&gt;.state
+E    +      where &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FEEF170&gt; = &lt;autopark.application.session.Session object at 0x000001AE2FEEEF60&gt;.world</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_world_starting_inside_obstacle_is_latched_even_if_first_step_escapes" time="0.001"><failure message="assert False&#10; +  where False = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF25460&gt;.collided">tests\test_runtime_safety.py:92: in test_world_starting_inside_obstacle_is_latched_even_if_first_step_escapes
+    assert world.collided
+E   assert False
+E    +  where False = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF25460&gt;.collided</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_advance_rejected_without_corrupting_session[nan]" time="0.002"><failure message="Failed: DID NOT RAISE ValueError">tests\test_runtime_safety.py:103: in test_nonfinite_advance_rejected_without_corrupting_session
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_advance_rejected_without_corrupting_session[inf]" time="0.046"><failure message="Failed: DID NOT RAISE ValueError">tests\test_runtime_safety.py:103: in test_nonfinite_advance_rejected_without_corrupting_session
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_advance_rejected_without_corrupting_session[-inf]" time="0.002" /><testcase classname="tests.test_runtime_safety" name="test_nonfinite_vehicle_inputs_rejected_atomically[nan-speed]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">tests\test_runtime_safety.py:116: in test_nonfinite_vehicle_inputs_rejected_atomically
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_vehicle_inputs_rejected_atomically[nan-steer]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">tests\test_runtime_safety.py:116: in test_nonfinite_vehicle_inputs_rejected_atomically
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_vehicle_inputs_rejected_atomically[nan-dt]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">tests\test_runtime_safety.py:116: in test_nonfinite_vehicle_inputs_rejected_atomically
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_vehicle_inputs_rejected_atomically[inf-speed]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">tests\test_runtime_safety.py:116: in test_nonfinite_vehicle_inputs_rejected_atomically
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_vehicle_inputs_rejected_atomically[inf-steer]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">tests\test_runtime_safety.py:116: in test_nonfinite_vehicle_inputs_rejected_atomically
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_vehicle_inputs_rejected_atomically[inf-dt]" time="0.001" /><testcase classname="tests.test_runtime_safety" name="test_nonfinite_vehicle_inputs_rejected_atomically[-inf-speed]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">tests\test_runtime_safety.py:116: in test_nonfinite_vehicle_inputs_rejected_atomically
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_vehicle_inputs_rejected_atomically[-inf-steer]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">tests\test_runtime_safety.py:116: in test_nonfinite_vehicle_inputs_rejected_atomically
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_nonfinite_vehicle_inputs_rejected_atomically[-inf-dt]" time="0.001" /><testcase classname="tests.test_runtime_safety" name="test_malformed_feedback_stops_without_entering_controller[x]" time="0.013"><failure message="Failed: Bad feedback reached tracker">tests\test_runtime_safety.py:139: in test_malformed_feedback_stops_without_entering_controller
+    finish(s)
+tests\test_runtime_safety.py:29: in finish
+    s.advance(0.02)
+autopark\application\session.py:624: in advance
+    result = self._step_closed_loop()
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+autopark\application\session.py:536: in _step_closed_loop
+    out = self.tracker.update(observed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_runtime_safety.py:138: in &lt;lambda&gt;
+    monkeypatch.setattr(s.tracker, "update", lambda state: pytest.fail("Bad feedback reached tracker"))
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: Bad feedback reached tracker</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_malformed_feedback_stops_without_entering_controller[yaw]" time="0.017"><failure message="Failed: Bad feedback reached tracker">tests\test_runtime_safety.py:139: in test_malformed_feedback_stops_without_entering_controller
+    finish(s)
+tests\test_runtime_safety.py:29: in finish
+    s.advance(0.02)
+autopark\application\session.py:624: in advance
+    result = self._step_closed_loop()
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+autopark\application\session.py:536: in _step_closed_loop
+    out = self.tracker.update(observed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_runtime_safety.py:138: in &lt;lambda&gt;
+    monkeypatch.setattr(s.tracker, "update", lambda state: pytest.fail("Bad feedback reached tracker"))
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: Bad feedback reached tracker</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_malformed_feedback_stops_without_entering_controller[speed]" time="0.015"><failure message="Failed: Bad feedback reached tracker">tests\test_runtime_safety.py:139: in test_malformed_feedback_stops_without_entering_controller
+    finish(s)
+tests\test_runtime_safety.py:29: in finish
+    s.advance(0.02)
+autopark\application\session.py:624: in advance
+    result = self._step_closed_loop()
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+autopark\application\session.py:536: in _step_closed_loop
+    out = self.tracker.update(observed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_runtime_safety.py:138: in &lt;lambda&gt;
+    monkeypatch.setattr(s.tracker, "update", lambda state: pytest.fail("Bad feedback reached tracker"))
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: Bad feedback reached tracker</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_malformed_feedback_stops_without_entering_controller[steer]" time="0.014"><failure message="Failed: Bad feedback reached tracker">tests\test_runtime_safety.py:139: in test_malformed_feedback_stops_without_entering_controller
+    finish(s)
+tests\test_runtime_safety.py:29: in finish
+    s.advance(0.02)
+autopark\application\session.py:624: in advance
+    result = self._step_closed_loop()
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+autopark\application\session.py:536: in _step_closed_loop
+    out = self.tracker.update(observed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_runtime_safety.py:138: in &lt;lambda&gt;
+    monkeypatch.setattr(s.tracker, "update", lambda state: pytest.fail("Bad feedback reached tracker"))
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: Bad feedback reached tracker</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_malformed_feedback_stops_without_entering_controller[future]" time="0.016"><failure message="AssertionError: assert 7.806255641895632e-18 == 0&#10; +  where 7.806255641895632e-18 = VehicleState(pose=Pose(x=0.01800000000000002, y=0.0, yaw=0), speed=7.806255641895632e-18, steer=0.0, t=0.6000000000000004, source_id='sim_vehicle', valid=True).speed&#10; +    where VehicleState(pose=Pose(x=0.01800000000000002, y=0.0, yaw=0), speed=7.806255641895632e-18, steer=0.0, t=0.6000000000000004, source_id='sim_vehicle', valid=True) = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF2E030&gt;.state&#10; +      where &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF2E030&gt; = &lt;autopark.application.session.Session object at 0x000001AE2FF2DE80&gt;.world">tests\test_runtime_safety.py:141: in test_malformed_feedback_stops_without_entering_controller
+    assert s.world.state.speed == 0
+E   AssertionError: assert 7.806255641895632e-18 == 0
+E    +  where 7.806255641895632e-18 = VehicleState(pose=Pose(x=0.01800000000000002, y=0.0, yaw=0), speed=7.806255641895632e-18, steer=0.0, t=0.6000000000000004, source_id='sim_vehicle', valid=True).speed
+E    +    where VehicleState(pose=Pose(x=0.01800000000000002, y=0.0, yaw=0), speed=7.806255641895632e-18, steer=0.0, t=0.6000000000000004, source_id='sim_vehicle', valid=True) = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF2E030&gt;.state
+E    +      where &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF2E030&gt; = &lt;autopark.application.session.Session object at 0x000001AE2FF2DE80&gt;.world</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_malformed_feedback_stops_without_entering_controller[invalid]" time="0.015"><failure message="AssertionError: assert 7.806255641895632e-18 == 0&#10; +  where 7.806255641895632e-18 = VehicleState(pose=Pose(x=0.01800000000000002, y=0.0, yaw=0), speed=7.806255641895632e-18, steer=0.0, t=0.6000000000000004, source_id='sim_vehicle', valid=True).speed&#10; +    where VehicleState(pose=Pose(x=0.01800000000000002, y=0.0, yaw=0), speed=7.806255641895632e-18, steer=0.0, t=0.6000000000000004, source_id='sim_vehicle', valid=True) = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF7C710&gt;.state&#10; +      where &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF7C710&gt; = &lt;autopark.application.session.Session object at 0x000001AE2FF7E7E0&gt;.world">tests\test_runtime_safety.py:141: in test_malformed_feedback_stops_without_entering_controller
+    assert s.world.state.speed == 0
+E   AssertionError: assert 7.806255641895632e-18 == 0
+E    +  where 7.806255641895632e-18 = VehicleState(pose=Pose(x=0.01800000000000002, y=0.0, yaw=0), speed=7.806255641895632e-18, steer=0.0, t=0.6000000000000004, source_id='sim_vehicle', valid=True).speed
+E    +    where VehicleState(pose=Pose(x=0.01800000000000002, y=0.0, yaw=0), speed=7.806255641895632e-18, steer=0.0, t=0.6000000000000004, source_id='sim_vehicle', valid=True) = &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF7C710&gt;.state
+E    +      where &lt;autopark.simulation.world.SimWorld object at 0x000001AE2FF7C710&gt; = &lt;autopark.application.session.Session object at 0x000001AE2FF7E7E0&gt;.world</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_second_obstacle_and_data_loss_are_accepted_during_braking" time="0.013"><failure message="autopark.application.session.SessionError: Chỉ ngắt phản hồi giả khi đang chạy">tests\test_runtime_safety.py:150: in test_second_obstacle_and_data_loss_are_accepted_during_braking
+    s.inject_data_loss()
+autopark\application\session.py:482: in inject_data_loss
+    raise SessionError("Chỉ ngắt phản hồi giả khi đang chạy")
+E   autopark.application.session.SessionError: Chỉ ngắt phản hồi giả khi đang chạy</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_preview_must_not_claim_completed_outside_goal_tolerance" time="0.195"><failure message="AssertionError: assert not True&#10; +  where True = RunReport(completed=True, collided=False, sim_time=8.879999999999988, distance=0.9915189541676172, final_state=Vehicle...source_id='sim_vehicle', valid=True), position_error=0.08044829481356941, heading_error=0.0, collision=None, reason='').completed&#10; +    where RunReport(completed=True, collided=False, sim_time=8.879999999999988, distance=0.9915189541676172, final_state=Vehicle...source_id='sim_vehicle', valid=True), position_error=0.08044829481356941, heading_error=0.0, collision=None, reason='') = RolloutResult(states=[VehicleState(pose=Pose(x=0, y=0.08, yaw=0), speed=0.0, steer=0.0, t=0.0, source_id='sim_vehicle'...ource_id='sim_vehicle', valid=True), position_error=0.08044829481356941, heading_error=0.0, collision=None, reason='')).report">tests\test_runtime_safety.py:163: in test_preview_must_not_claim_completed_outside_goal_tolerance
+    assert not result.report.completed
+E   AssertionError: assert not True
+E    +  where True = RunReport(completed=True, collided=False, sim_time=8.879999999999988, distance=0.9915189541676172, final_state=Vehicle...source_id='sim_vehicle', valid=True), position_error=0.08044829481356941, heading_error=0.0, collision=None, reason='').completed
+E    +    where RunReport(completed=True, collided=False, sim_time=8.879999999999988, distance=0.9915189541676172, final_state=Vehicle...source_id='sim_vehicle', valid=True), position_error=0.08044829481356941, heading_error=0.0, collision=None, reason='') = RolloutResult(states=[VehicleState(pose=Pose(x=0, y=0.08, yaw=0), speed=0.0, steer=0.0, t=0.0, source_id='sim_vehicle'...ource_id='sim_vehicle', valid=True), position_error=0.08044829481356941, heading_error=0.0, collision=None, reason='')).report</failure></testcase><testcase classname="tests.test_runtime_safety" name="test_trajectory_and_controller_respect_small_speed_limit" time="0.001"><failure message="assert False&#10; +  where False = all(&lt;generator object test_trajectory_and_controller_respect_small_speed_limit.&lt;locals&gt;.&lt;genexpr&gt; at 0x000001AE2FEF13C0&gt;)">tests\test_runtime_safety.py:170: in test_trajectory_and_controller_respect_small_speed_limit
+    assert all(p.v &lt;= cfg.max_speed for p in s.trajectory.points)
+E   assert False
+E    +  where False = all(&lt;generator object test_trajectory_and_controller_respect_small_speed_limit.&lt;locals&gt;.&lt;genexpr&gt; at 0x000001AE2FEF13C0&gt;)</failure></testcase></testsuite></testsuites>

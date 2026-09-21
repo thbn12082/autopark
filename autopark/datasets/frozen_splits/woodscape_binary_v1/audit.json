@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "height": 384,
+  "width": 512,
+  "seed": 20260920,
+  "source": "https://github.com/valeoai/WoodScape",
+  "mapping": {
+    "schema_version": 1,
+    "classes": {
+      "0": "FREE_CANDIDATE",
+      "1": "OBSTACLE_OR_BLOCKED",
+      "255": "IGNORE"
+    },
+    "free": [
+      "road_surface",
+      "parking_marking",
+      "lane_marking",
+      "parking_line",
+      "other_ground_marking",
+      "zebra_crossing"
+    ],
+    "blocked": [
+      "curb",
+      "car",
+      "train/tram",
+      "truck",
+      "other_wheeled_transport",
+      "trailer",
+      "van",
+      "caravan",
+      "bus",
+      "bicycle",
+      "motorcycle",
+      "person",
+      "rider",
+      "fence",
+      "traffic_light_yellow",
+      "pole",
+      "structure",
+      "traffic_sign",
+      "animal",
+      "traffic_light_red",
+      "unknown_traffic_light",
+      "movable_object",
+      "traffic_light_green",
+      "grouped_vehicles",
+      "grouped_pedestrian_and_animals",
+      "grouped_animals",
+      "nature",
+      "construction",
+      "trafficsign_indistingushable"
+    ],
+    "ignore": [
+      "grouped_botts_dots",
+      "cats_eyes_and_botts_dots",
+      "sky",
+      "ego_vehicle",
+      "free_space",
+      "void",
+      "green_strip",
+      "Other_NoSight"
+    ],
+    "notes": "Mapping for a research baseline, not proof of traversability. free_space remains ignored because official mapping also treats it as void and its meaning has not been verified. Sky, ego and image borders are ignored. IGNORE is not a learned unknown-object class."
+  },
+  "mapping_sha256": "9b656ebfca228d1ecf95344e5148e5fe7fb8b001cb1ead20a1d718dd67bb590c",
+  "statistics": {
+    "train": {
+      "images": 5764,
+      "pixels": {
+        "0": 310668887,
+        "1": 204249901,
+        "255": 618329724
+      },
+      "cameras": {
+        "FV": 1239,
+        "RV": 1306,
+        "MVR": 1639,
+        "MVL": 1580
+      }
+    },
+    "val": {
+      "images": 1235,
+      "pixels": {
+        "0": 64441353,
+        "1": 48655489,
+        "255": 129714038
+      },
+      "cameras": {
+        "FV": 392,
+        "RV": 338,
+        "MVR": 248,
+        "MVL": 257
+      }
+    },
+    "test": {
+      "images": 1235,
+      "pixels": {
+        "0": 64749995,
+        "1": 48774624,
+        "255": 129286261
+      },
+      "cameras": {
+        "FV": 406,
+        "RV": 342,
+        "MVR": 258,
+        "MVL": 229
+      }
+    }
+  },
+  "grouping": {
+    "group_count": 1261,
+    "largest_group": 4108,
+    "temporal_links": 5919,
+    "exact_duplicate_links": 0,
+    "near_duplicate_links": 6380,
+    "phash_distance": 6,
+    "dhash_distance": 8,
+    "known_duplicate_groups_crossing_splits": 0,
+    "limitation": "Timestamp-run heuristics, not verified recording/session IDs; scene leakage cannot be ruled out."
+  },
+  "skipped_degenerate_annotations": 0,
+  "unmapped_classes": [],
+  "released_semantic_comparison": {
+    "pixels": 3296307368,
+    "differences": 1484502,
+    "rate": 0.0004503530266659283
+  },
+  "preparation_seconds": 277.6536120000019,
+  "prepared": true,
+  "official_test_set": false,
+  "ignore_policy": "255 excluded from loss/metrics, not trained as an unknown class"
+}

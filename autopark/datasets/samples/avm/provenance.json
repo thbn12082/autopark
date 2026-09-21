@@ -1,0 +1,20 @@
+[
+  {
+    "file": "image.jpg",
+    "url": "https://raw.githubusercontent.com/Engro39/avm_dataset/master/images/image.jpg",
+    "sha256": "16f04e59bebaa3eb2e5d477bb873c644a31c2fc7862fb3e054c3e1d8699b9101",
+    "bytes": 35121
+  },
+  {
+    "file": "gt.png",
+    "url": "https://raw.githubusercontent.com/Engro39/avm_dataset/master/images/gt.png",
+    "sha256": "51d45217cd298b6924fcc38c77b97512a222f3e84d477da3d8fd606419b51dd6",
+    "bytes": 2187
+  },
+  {
+    "file": "avm_image_samples.png",
+    "url": "https://raw.githubusercontent.com/Engro39/avm_dataset/master/images/avm_image_samples.png",
+    "sha256": "ff34a3bd0fd2ab96784f728d1efd8549e3b580c130f98778117e6d9f18bacc0f",
+    "bytes": 355127
+  }
+]

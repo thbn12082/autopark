@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "Giai đoạn 0 — vùng chưa biết",
+  "notes": "UNKNOWN là vùng chưa quan sát, chặn lập đường như vật cản; không phải kết quả AI.",
+  "vehicle_config": "../configs/vehicle_default.json",
+  "bounds": {"xmin": 0, "ymin": 0, "xmax": 3, "ymax": 2},
+  "start": {"x": 0.5, "y": 1, "yaw_deg": 0},
+  "goal": {"x": 2.4, "y": 1, "yaw_deg": 0},
+  "obstacles": [
+    {"id": "chua_quan_sat", "cx": 1.5, "cy": 1, "width": 0.3, "height": 0.5, "kind": "unknown"},
+    {"id": "tuong", "cx": 1.5, "cy": 0.05, "width": 3, "height": 0.1, "kind": "wall"}
+  ],
+  "seed": 42
+}

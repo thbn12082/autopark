@@ -1,0 +1,86 @@
+# AutoPark — giai đoạn 0 của kế hoạch v3.1
+
+Mô phỏng xe đạp động học, đặt/xoay đích, Hybrid A*/Reeds–Shepp, bám quỹ đạo tiến/lùi và dừng khi bản đồ/phản hồi không còn hợp lệ. Đây là phần mềm mô phỏng; thông số trong `configs/vehicle_default.json` **chưa phải số đo MN300**.
+
+## Chạy trên Windows
+
+Trong thư mục `autopark`, chạy `cai_dat.cmd` rồi `chay_app.cmd`. Hoặc dùng PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-phase0.lock
+.\.venv\Scripts\python.exe -m pip install -e . --no-deps
+.\.venv\Scripts\python.exe -X utf8 run_app.py
+```
+
+Môi trường đã kiểm tra dùng Python 3.12.10. Các phiên bản thực tế được cố định trong `requirements-phase0.lock` và ghi vào manifest của phiên chạy. PyTorch không thuộc môi trường mô phỏng; phần nhận thức dùng môi trường riêng `.venv-train` (xem mục **Huấn luyện nhận thức** bên dưới).
+
+## Thử giai đoạn 0
+
+1. Kéo và xoay ô đỗ/đích. Đích đè vật cản hoặc thân xe vượt sa bàn bị báo không hợp lệ và không được lập đường.
+2. Bấm **Tìm đường đỗ**, **Xem trước**, rồi kết thúc xem trước và **Bắt đầu đỗ**. Xem trước dùng một rollout riêng; không có kết nối phần cứng.
+3. Khi đang chạy, bấm **Vật cản giả** hoặc **Mất dữ liệu** bên phải sa bàn. Đường cũ bị vô hiệu; xe phanh, dừng rồi chờ. Với mất dữ liệu, cờ dừng xuất hiện khi mẫu vượt hạn 150 ms, kiểm tra theo chu kỳ điều khiển 20 ms.
+4. Sau khi dừng, bấm **Chọn lại vị trí**, đánh giá bản đồ/đích rồi lập đường lại. Với sự kiện an toàn, xuất phát mới là vị trí xe thực sự vừa dừng. Không tự tiếp tục chạy.
+5. Trong thiết lập mô phỏng có profile **Trễ 40 ms + nhiễu 2 mm / 0,2°**. Mất mẫu ngẫu nhiên có thể cấu hình qua `FeedbackConfig` trong API. Seed lấy từ kịch bản.
+6. Bấm **Lưu phiên…** trước khi đặt lại phiên. Ngoài CSV, lượt chạy tự động được lưu thành thư mục có cấu hình, quỹ đạo, sự kiện, kết quả, môi trường và snapshot source. Chế độ lái tay chỉ xuất CSV.
+
+Kịch bản `scenarios/giai_doan_0_unknown.json` minh họa vùng chưa quan sát: vẽ gạch chéo và chặn như vật cản. Có thể thêm loại **chưa quan sát** trong mục Vật cản.
+
+## Kiểm thử, bằng chứng và replay
+
+Đợt kiểm thử mở rộng: **220 ca pytest** và chiến dịch **2.880 trường hợp theo seed**. Xem [báo cáo, các lỗi đã sửa và giới hạn](docs/KIEM_THU_DO_BEN_GIAI_DOAN_0.md). Chạy bộ đo theo thời hạn riêng với campaign/coverage để tránh làm sai kết quả thời gian.
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m pytest
+.\.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.phase0 --out runs/thu_nghiem_moi
+.\.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.replay runs/thu_nghiem_moi/obstacle
+```
+
+Kiểm thử diện rộng: `python -m autopark.evaluation.robustness --out runs/kiem_thu_moi`.
+Tái hiện một input: thêm `--case runtime:137` và dùng thư mục đầu ra mới.
+
+Lệnh tạo bằng chứng cần OpenCV, dùng thư mục đầu ra mới. Mỗi ca có `simulation.mp4`, `final_frame.png`, `telemetry.csv`, `events.jsonl`, `safety_events.json`, `result.json`, `manifest.json`, `source.zip` và `config_snapshot/`. Quỹ đạo và tham số controller/fault được lưu trong `config_snapshot/run.json`. Replay dùng chính quỹ đạo đã lưu để tránh khác biệt do time budget của planner.
+
+Mỗi bước replay đối chiếu kết quả với bản ghi; cùng code/môi trường/seed tái tạo đúng trạng thái cuối. Bộ kiểm thử còn đối chiếu toàn bộ dòng log và sự kiện an toàn. Đây là replay mô phỏng, chưa phải replay camera/LiDAR thực.
+
+## Dữ liệu công khai
+
+- [Danh mục dataset, nhãn, nguồn tải và điều kiện sử dụng](datasets/DANH_MUC_DATASET.md).
+- [Các bộ đã tải, kiểm tra và cách dùng](datasets/TAI_VA_KIEM_TRA.md).
+- Kiểm tra lại mẫu AVM: `python -m autopark.evaluation.dataset_audit`.
+- Kiểm tra các bộ đã giải nén: `python datasets/verify_downloads.py`.
+
+## Huấn luyện nhận thức (WoodScape, FREE / BLOCKED)
+
+Baseline L-RASPP/MobileNetV3 đã được huấn luyện ngày 21/09/2026 trên RTX 4000 Ada; quá trình, kết quả và giới hạn ghi tại [HUAN_LUYEN.md](../HUAN_LUYEN.md). Đây là AI trên ảnh lưu sẵn, chưa nối vào planner hay phần cứng. Chạy trong `.venv-train` (Python 3.12, torch 2.11.0+cu128), từ thư mục `autopark`:
+
+```powershell
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.verify_cache      # bắt buộc trước khi train
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.benchmark --config configs/train_woodscape_rtx4000_baseline.json --out runs/<ten>/benchmark.json
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --config configs/train_woodscape_rtx4000_baseline.json --out runs/<ten>
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --out runs/<ten> --resume runs/<ten>/latest.pt
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate --checkpoint runs/<ten>/best.pt --split val --out runs/<ten>/eval_val
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.predict --checkpoint runs/<ten>/best.pt --input <anh_hoac_thu_muc> --out runs/<ten>/predict
+.\.venv-train\Scripts\python.exe -X utf8 -m pytest tests/test_perception_data.py tests/test_perception_training.py
+```
+
+Dừng có kiểm soát: tạo file rỗng `STOP` trong thư mục run; trainer lưu `latest.pt` rồi kết thúc ở trạng thái `stopped` (xem `status.json`). Tập test chỉ đánh giá được với `--split test --final-test`, mỗi lần đều ghi vào `test_evaluations.jsonl`.
+
+## Cấu trúc chính
+
+| Thư mục | Nội dung |
+|---|---|
+| `autopark/domain/` | Pose, trạng thái xe, cấu hình, hợp đồng camera/scan/telemetry/costmap/safety |
+| `autopark/planning/`, `control/` | Planner, quỹ đạo và controller |
+| `autopark/geometry/`, `simulation/` | Thân xe/vùng quét, động học, phản hồi có lỗi |
+| `autopark/application/`, `ui/` | Máy trạng thái phiên và giao diện PySide6 |
+| `autopark/storage/`, `evaluation/` | Kịch bản, log/snapshot/replay, nghiệm thu/video/audit nhãn |
+| `autopark/perception/` | Chuẩn bị/xác minh cache WoodScape, trainer, benchmark, đánh giá, suy luận (cần `.venv-train`) |
+| `configs/`, `scenarios/`, `tests/` | Tham số giả định, bản đồ và kiểm thử |
+| `datasets/`, `docs/`, `runs/` | Dữ liệu, biên bản và bằng chứng từng phiên |
+
+Quy ước: mét, giây, radian; pose tại tâm trục sau; x hướng trước, y trái, yaw dương ngược chiều kim đồng hồ. Timestamps mô phỏng dùng cùng đồng hồ phiên. Khi kết nối cảm biến thật phải xác định chuyển hệ tọa độ và đồng bộ thời gian.
+
+Giới hạn: profile nhiễu là giả định, chưa đo trên xe; preview hiện là rollout lý tưởng. Vật xuất hiện ngay trong thân hoặc quá gần để phanh có thể gây FAULT. Không coi cờ dừng mô phỏng là bằng chứng phanh/E-stop phần cứng.
+
+[Biên bản đối chiếu giai đoạn 0](docs/GIAI_DOAN_0.md).

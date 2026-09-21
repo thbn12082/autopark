@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "classes": {"0": "FREE_CANDIDATE", "1": "OBSTACLE_OR_BLOCKED", "255": "IGNORE"},
+  "free": ["road_surface", "parking_marking", "lane_marking", "parking_line", "other_ground_marking", "zebra_crossing"],
+  "blocked": ["curb", "car", "train/tram", "truck", "other_wheeled_transport", "trailer", "van", "caravan", "bus", "bicycle", "motorcycle", "person", "rider", "fence", "traffic_light_yellow", "pole", "structure", "traffic_sign", "animal", "traffic_light_red", "unknown_traffic_light", "movable_object", "traffic_light_green", "grouped_vehicles", "grouped_pedestrian_and_animals", "grouped_animals", "nature", "construction", "trafficsign_indistingushable"],
+  "ignore": ["grouped_botts_dots", "cats_eyes_and_botts_dots", "sky", "ego_vehicle", "free_space", "void", "green_strip", "Other_NoSight"],
+  "notes": "Mapping for a research baseline, not proof of traversability. free_space remains ignored because official mapping also treats it as void and its meaning has not been verified. Sky, ego and image borders are ignored. IGNORE is not a learned unknown-object class."
+}

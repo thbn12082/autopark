@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "name": "bai_do_xe",
+  "notes": "Bãi đỗ 3 x 2 m: hàng xe đỗ vuông góc ở cạnh dưới, một ô trống ở giữa. Xe xuất phát ở làn trên, đầu hướng sang phải. Kích thước là ví dụ, chỉnh theo xe thật.",
+  "vehicle_config": "../configs/vehicle_default.json",
+  "bounds": {"xmin": 0.0, "ymin": 0.0, "xmax": 3.0, "ymax": 2.0},
+  "start": {"x": 0.6, "y": 1.45, "yaw_deg": 0.0},
+  "slot": {"cx": 2.2, "cy": 0.35, "yaw_deg": -90.0, "length": 0.5, "width": 0.34},
+  "mode": "reverse_in",
+  "obstacles": [
+    {"id": "xe_1", "cx": 1.45, "cy": 0.35, "width": 0.31, "height": 0.14, "yaw_deg": 90.0, "kind": "car"},
+    {"id": "xe_2", "cx": 1.95, "cy": 0.35, "width": 0.31, "height": 0.14, "yaw_deg": 90.0, "kind": "car"},
+    {"id": "xe_3", "cx": 2.45, "cy": 0.35, "width": 0.31, "height": 0.14, "yaw_deg": 90.0, "kind": "car"},
+    {"id": "xe_4", "cx": 2.95, "cy": 0.35, "width": 0.31, "height": 0.14, "yaw_deg": 90.0, "kind": "car"},
+    {"id": "cot", "cx": 0.9, "cy": 0.5, "width": 0.12, "height": 0.12, "yaw_deg": 0.0, "kind": "box"}
+  ],
+  "seed": 0
+}
