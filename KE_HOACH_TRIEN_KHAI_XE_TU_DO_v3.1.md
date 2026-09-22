@@ -739,10 +739,10 @@ Log phải ghi phiên bản code/model/map/calibration và phép thử; tránh �
 
 | Giai đoạn | Trạng thái | Bằng chứng/log | Vướng mắc | Công việc tiếp theo |
 |---|---|---|---|---|
-| 0 — Phần mềm/mô phỏng | ĐẠT (mô phỏng) | [Biên bản, test, video và replay](autopark/docs/GIAI_DOAN_0.md) | Chưa kiểm chứng phần cứng; chưa huấn luyện AI | Nguồn video/scan lưu sẵn và tiếp nhận giai đoạn 1 |
-| 1 — LiDAR + camera mẫu | Chưa cập nhật | | | |
+| 0 — Phần mềm/mô phỏng | ĐẠT (mô phỏng) | [Biên bản, test, video và replay](autopark/docs/GIAI_DOAN_0.md); [AI baseline WoodScape](HUAN_LUYEN.md) | Chưa kiểm chứng phần cứng; AI mới chạy trên ảnh lưu sẵn | Tiếp nhận thiết bị giai đoạn 1 |
+| 1 — LiDAR + camera mẫu | ĐANG LÀM (LiDAR đọc được scan trên máy bàn; sai số khoảng cách chưa đo; camera chưa có) | [Chuẩn bị khi chờ đồ](autopark/docs/GIAI_DOAN_1_CHUAN_BI.md); [Nhánh LiDAR: driver C1, ghi phiên, bản đồ tĩnh](autopark/docs/GIAI_DOAN_1_LIDAR.md); [gate_01](autopark/docs/gate_01.md); [kiểm kê](autopark/docs/hardware_inventory.md) | Chưa đo sai số với vật tham chiếu (cần người đặt hộp); chưa có camera mẫu; chưa thử trên laptop của xe | Phiên đặt hộp 7 lần theo GIAI_DOAN_1_LIDAR.md mục 6; chụp/đo camera mẫu; hiệu chuẩn |
 | 2 — Bốn camera/BEV | Chưa cập nhật | | | |
-| 3 — Fusion bench | Chưa cập nhật | | | |
+| 3 — Fusion bench | ĐANG LÀM (phần mềm khi chưa có IMU/ToF/ESP32) | [Các lớp bản đồ, hợp nhất, cầu nối vào phiên, demo LiDAR thật](autopark/docs/GIAI_DOAN_3_CHUAN_BI.md) | Chưa có IMU, ToF, ESP32, rig; ToF chỉ có số đo giả | Đọc ToF/IMU thật qua ESP32; thử vật mẫu có tọa độ đo được |
 | 4 — Đo MN300 | Chưa cập nhật | | | |
 | 5 — Điều khiển có phản hồi | Chưa cập nhật | | | |
 | 6 — Nguồn/dừng | Chưa cập nhật | | | |

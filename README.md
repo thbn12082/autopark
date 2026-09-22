@@ -7,6 +7,8 @@ MN300 Tank300 1/12 + laptop + RPLIDAR C1 + bốn camera USB + ESP32-S3. Người
 | [KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) | Kế hoạch 11 giai đoạn, 6 đợt mua, điều kiện chuyển bước |
 | [BAO_CAO_GIAI_DOAN_0.md](BAO_CAO_GIAI_DOAN_0.md) | Giai đoạn 0 — mô phỏng: 220 test, 2.880 ca theo seed, replay |
 | [HUAN_LUYEN.md](HUAN_LUYEN.md) | Huấn luyện baseline nhận thức FREE/BLOCKED trên WoodScape (21/09/2026) |
+| [autopark/docs/GIAI_DOAN_1_CHUAN_BI.md](autopark/docs/GIAI_DOAN_1_CHUAN_BI.md) | Giai đoạn 1 khi chưa đủ thiết bị: calibration, ROI, costmap, nguồn phát lại, giám sát dữ liệu cũ (22/09/2026) |
+| [autopark/docs/GIAI_DOAN_1_LIDAR.md](autopark/docs/GIAI_DOAN_1_LIDAR.md), [gate_01.md](autopark/docs/gate_01.md) | Nhánh LiDAR thật: driver RPLIDAR C1, ghi phiên, bench, bản đồ tĩnh; biên bản cổng chuyển bước 1 (22/09/2026) |
 | [autopark/README.md](autopark/README.md) | Mã nguồn: cách cài, chạy mô phỏng, kiểm thử, huấn luyện |
 
 **Mức bằng chứng hiện tại:** mô phỏng trên laptop và AI trên ảnh lưu sẵn. Chưa có kết quả trên phần cứng hay xe thật.

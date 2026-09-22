@@ -1,6 +1,6 @@
 # HUẤN LUYỆN AI NHẬN THỨC — BASELINE WOODSCAPE FREE / BLOCKED
 
-**Ngày thực hiện:** 21/09/2026
+**Ngày thực hiện:** 21/09/2026 (phần I) và 22/09/2026 (phần II — đánh giá mở rộng, từ mục 8)
 **Máy:** Intel Core i9-14900, NVIDIA RTX 4000 Ada 20 GB (driver 596.72), Windows 11, RAM 64 GB
 **Mã nguồn:** [autopark/autopark/perception](autopark/autopark/perception/) · **Hồ sơ lượt chạy:** [autopark/runs/ai_woodscape_rtx4000_v1](autopark/runs/ai_woodscape_rtx4000_v1/)
 **Mức bằng chứng:** AI trên ảnh lưu sẵn của bộ dữ liệu công khai. Chưa có ảnh sa bàn/MN300, chưa nối vào planner hay phần cứng.
@@ -170,3 +170,110 @@ Thư mục `runs/` và `datasets/prepared/` nằm trong `.gitignore`: **checkpoi
 2. Tạo mặt nạ ROI xe mình/bầu trời theo từng camera trước khi đưa đầu ra vào bất kỳ costmap nào; giữ vùng ngoài ROI là `UNKNOWN`.
 3. Thử loss có trọng số hoặc ngưỡng quyết định thiên về BLOCKED để giảm tỷ lệ vật cản → FREE, chấp nhận tăng báo động giả; chọn trên val, không trên test.
 4. Khi có camera mẫu (giai đoạn 1): thu ảnh sa bàn, gán nhãn một tập nhỏ và đo lại — đó mới là phép thử có ý nghĩa cho dự án.
+
+
+---
+
+# PHẦN II — ĐÁNH GIÁ MỞ RỘNG (22/09/2026)
+
+Cùng checkpoint `best.pt` của phần I (SHA-256 `0459c3f4…0ccc`), cùng máy. Mục 7 phần I đề xuất bốn việc; ba việc đầu làm ở đây, việc thứ tư (ảnh sa bàn) vẫn chờ camera. Mã: `autopark/perception/evaluate_external.py`, `evaluate.py --sweep/--threshold`, `engine.decide`. Hồ sơ: các thư mục `eval_*` trong `autopark/runs/ai_woodscape_rtx4000_v1/` và ba thư mục run thêm.
+
+## 8. Ra khỏi vùng quen thuộc: ACDC và RoadObstacle21
+
+Cả hai bộ đều là camera thường (pinhole) 16:9, khác nước, khác xe; ảnh 1920×1080 đi qua đúng đường triển khai của `predict.py` (letterbox về 512×384 → mạng → trả về kích thước gốc) và được chấm ở **độ phân giải nhãn gốc**. ACDC: nhãn Cityscapes 34 lớp → FREE (road, parking) / BLOCKED (nhà, tường, rào, cột, biển, cây, người, xe…) / IGNORE (sidewalk, terrain, ground, static, dynamic, sky, ego, unlabeled, và mọi pixel ACDC đánh dấu *invalid*) theo [acdc_cityscapes_to_binary_v1.json](autopark/configs/acdc_cityscapes_to_binary_v1.json); sidewalk/terrain để IGNORE vì WoodScape không có lớp tương ứng — mô hình chưa từng được dạy chúng là gì. Mô hình **không** được huấn luyện hay chọn theo bất kỳ ảnh nào của hai bộ này.
+
+| Tập | Ảnh | mIoU | IoU BLOCKED | Recall vật cản | **Vật cản → FREE** | FREE → vật cản |
+|---|---:|---:|---:|---:|---:|---:|
+| WoodScape test (phần I) | 1.235 | 0,969 | 0,965 | 98,3 % | 1,75 % | 1,37 % |
+| ACDC val_ref — cùng cảnh, trời quang | 203 | 0,966 | 0,977 | 98,4 % | 1,59 % | 1,49 % |
+| ACDC val — sương / đêm / mưa / tuyết | 406 | **0,908** | 0,942 | 95,6 % | **4,42 %** | 3,47 % |
+| — fog | 100 | 0,950 | 0,973 | 97,9 % | 2,11 % | 1,69 % |
+| — night | 106 | 0,899 | 0,900 | 91,6 % | **8,38 %** | 1,98 % |
+| — rain | 100 | 0,886 | 0,939 | 95,2 % | 4,83 % | 4,16 % |
+| — snow | 100 | 0,880 | 0,942 | 96,3 % | 3,75 % | **7,60 %** |
+| ACDC train / train_ref (chưa từng dùng, 1.600 / 800 ảnh) | | 0,913 / 0,961 | | | 4,31 % / 1,56 % | 3,77 % / 2,33 % |
+| RoadObstacle21 validation (vật lạ nhỏ trên đường) | 30 | 0,520 | **0,088** | **68,3 %** | **31,7 %** | 4,57 % |
+
+Đọc kết quả:
+
+- **Đổi nước, đổi ống kính, đổi xe gần như không mất gì** khi trời quang (0,966 trên ACDC val_ref ≈ 0,969 trên WoodScape). Điều làm mô hình yếu là *điều kiện*, không phải miền ảnh.
+- **Ban đêm là điểm yếu nguy hiểm nhất**: 8,4 % pixel vật cản bị gọi là FREE; ảnh tệ nhất ([night worst](autopark/runs/ai_woodscape_rtx4000_v1/eval_acdc_val/night_worst_1_night_GOPR0356_GOPR0356_frame_000391_rgb_anon.png)) sai 49 % vật cản: tường hầm và lan can tối màu bị coi là mặt đường. **Tuyết** thì ngược lại — nhiều báo động giả (7,6 %): mặt đường phủ tuyết bị coi là vật cản, lỗi này chỉ làm xe dừng.
+- **Vỉa hè bị coi là FREE.** Biến thể chấm với sidewalk/terrain = BLOCKED kéo ACDC val xuống mIoU 0,768 và vật cản → FREE lên 14,5 %. Mô hình học "mặt phẳng lát" = FREE, không học "đường xe chạy"; với sa bàn phẳng điều này không gây hại, với đường thật thì có.
+- **Vật lạ nhỏ hầu như vô hình.** RoadObstacle21 có vật cỡ trung vị 2.240 pixel (0,1 % ảnh); 11/30 ảnh mô hình không thấy gì, 12/30 thấy ≥ một nửa vật. AP pixel 0,12 (các phương pháp chuyên vật lạ trên bảng xếp hạng đạt 0,7–0,9). Một phần do độ phân giải 512×288 hữu dụng sau letterbox, phần lớn do mô hình chỉ biết hai lớp và chưa từng thấy các vật đó. Đây là số đo đúng cho cảnh báo "không cam kết phát hiện mọi vật bất ngờ" của kế hoạch.
+
+- **Con số gộp che giấu lớp nguy hiểm.** Trên ACDC, pixel BLOCKED gồm 33 % cây cối, 29 % nhà/tường/rào và chỉ 5,4 % xe, 0,3 % người. Tách theo lớp gốc (`per_source_class` trong metrics.json), tỉ lệ *bị gọi là FREE* trong thời tiết xấu là: **xe 12,4 %, người 6,4 %, xe hai bánh 19 %** — so với cây 2,7 %, nhà 4,7 %. Trời quang cùng cảnh: xe 3,5 %, người 3,7 %. Ở ngưỡng 0,15 (mục 10): xe 6,3 %, người 2,7 %. Khi báo cáo "vật cản → FREE" cho xe tự đỗ phải dùng các con số theo lớp này, không dùng con số gộp 4,4 %.
+
+Phân biệt hai loại lỗi ở mọi bảng: *vật cản → FREE* (nguy hiểm, có thể đâm) và *FREE → vật cản* (chỉ tốn một lần dừng).
+
+## 9. Độ dao động theo seed
+
+Ba lượt cùng cấu hình, chỉ đổi seed (thứ tự batch, augment, khởi tạo hai đầu phân lớp):
+
+| Seed | Val mIoU tốt nhất (epoch) | Val vật cản → FREE | Test mIoU | Test vật cản → FREE |
+|---|---:|---:|---:|---:|
+| 20260920 (phần I) | 0,9700 (30) | 1,70 % | 0,9692 | 1,75 % |
+| 20260921 | 0,9706 (27) | 1,68 % | 0,9693 | 1,79 % |
+| 20260922 | 0,9702 (29) | 1,72 % | 0,9693 | 1,77 % |
+
+Trung bình val 0,9703 ± 0,0003, test 0,9693 ± 0,0001. **Mọi khác biệt dưới 0,001 mIoU giữa các thí nghiệm sau này là nhiễu.** Mỗi checkpoint chấm test đúng một lần, ghi trong `test_evaluations.jsonl` của run tương ứng. Hai lượt thêm chạy song song với việc khác nên chậm hơn (939 s và 1.024 s).
+
+## 10. Ngưỡng quyết định thiên về an toàn
+
+Quét ngưỡng xác suất BLOCKED 0,05 → 0,95 trên **validation** ([threshold_sweep.json](autopark/runs/ai_woodscape_rtx4000_v1/eval_val_sweep/threshold_sweep.json)). Quy tắc chọn được ghi trước khi nhìn test: tối đa F2 của lớp BLOCKED (recall nặng gấp đôi precision) → **ngưỡng 0,15**; quy tắc tối đa mIoU giữ 0,50.
+
+| Ngưỡng | Val mIoU | Recall vật cản | Vật cản → FREE | FREE → vật cản |
+|---:|---:|---:|---:|---:|
+| 0,50 (argmax) | 0,9700 | 98,30 % | 1,70 % | 1,33 % |
+| 0,30 | 0,9671 | 98,94 % | 1,06 % | 2,08 % |
+| **0,15** | 0,9595 | 99,37 % | **0,63 %** | 3,10 % |
+| 0,05 | 0,9434 | 99,69 % | 0,31 % | 4,82 % |
+
+Chấm lại ở 0,15 (mỗi tập một lần):
+
+| Tập | Vật cản → FREE @0,50 → @0,15 | FREE → vật cản @0,50 → @0,15 | mIoU @0,50 → @0,15 |
+|---|---:|---:|---:|
+| WoodScape test | 1,75 % → **0,69 %** | 1,37 % → 3,97 % | 0,969 → 0,959 |
+| ACDC val (thời tiết xấu) | 4,42 % → **2,28 %** | 3,47 % → 7,70 % | 0,908 → 0,911 |
+| — night | 8,38 % → 5,41 % | 1,98 % → 5,24 % | |
+| — snow | 3,75 % → 1,47 % | 7,60 % → 15,23 % | |
+| RoadObstacle21 | 31,7 % → **18,2 %** (ảnh thấy ≥ ½ vật: 12 → 19/30) | 4,57 % → 7,79 % | |
+
+Đổi ngưỡng không tốn thêm tính toán và giảm lỗi nguy hiểm 2–2,5 lần trên mọi bộ, đổi lại gấp 2–3 lần báo động giả (tuyết: 15 % mặt đường bị coi là vật cản). Đây là một tham số vận hành, nên chốt theo khoảng hở và chính sách dừng của giai đoạn 9, không phải hằng số của mô hình. `predict.py`, `evaluate.py`, `evaluate_external.py` và `costmap.py` đều nhận `--threshold`.
+
+## 11. Loss có trọng số lớp
+
+Một lượt cùng cấu hình, chỉ đổi `class_weights = train_inverse_frequency` (trọng số tính từ tỉ lệ pixel **của tập train**: FREE 60 % / BLOCKED 40 % → trọng số ≈ 0,83 / 1,26). Run: `autopark/runs/ai_woodscape_rtx4000_v1_weighted/`.
+
+| Mô hình | Ngưỡng | Val mIoU | Recall vật cản | Vật cản → FREE | FREE → vật cản |
+|---|---:|---:|---:|---:|---:|
+| Baseline | 0,50 | 0,9700 | 98,30 % | 1,70 % | 1,33 % |
+| Loss có trọng số | 0,50 | 0,9694 | 98,65 % | 1,35 % | 1,66 % |
+| Loss có trọng số | 0,60 | 0,9702 | 98,31 % | 1,69 % | 1,33 % |
+| Baseline | 0,40 | 0,9692 | 98,64 % | 1,36 % | 1,66 % |
+
+Trọng số lớp **chỉ dịch điểm làm việc**, không đổi đường cong đánh đổi: loss có trọng số ở ngưỡng 0,60 trùng baseline ở 0,50 tới ba chữ số (recall, báo động giả, mIoU), và baseline ở 0,40 trùng loss có trọng số ở 0,50. Với cùng dữ liệu và mô hình, mọi khác biệt còn lại nằm trong độ dao động theo seed (±0,0003). Kết luận: **không cần train lại để thiên về an toàn — đổi ngưỡng là đủ và rẻ hơn** (không tốn 15 phút GPU, không thêm checkpoint phải quản lý). Không chấm test cho lượt này vì không chọn nó.
+
+## 12. Độ trễ và ONNX
+
+`python -m autopark.perception.export_onnx` xuất `best.pt` sang ONNX (opset 17, exporter TorchScript, 12,9 MB) và đối chiếu với PyTorch trên 16 ảnh val bằng onnxruntime CPU: lệch logit tối đa 7·10⁻⁵, trùng argmax 99,9999 %. Độ trễ một ảnh, đo khi GPU rảnh (p50 của 200 lượt sau warm-up, [export_report.json](autopark/runs/ai_woodscape_rtx4000_v1/export/export_report.json)):
+
+| Đường chạy | Máy này (i9-14900 / RTX 4000 Ada) |
+|---|---:|
+| onnxruntime CPU fp32, 512×384 | 7,6 ms |
+| torch CPU fp32 | 23,6 ms |
+| torch CUDA fp32 | 4,4 ms |
+| torch CUDA fp16 (autocast) | 5,5 ms — chậm hơn fp32 vì batch 1 bị giới hạn bởi khởi động kernel, không phải tính toán |
+| Đầu-cuối từ ảnh 1280×966: letterbox → mạng fp16 → softmax về CPU | 7,8 ms |
+
+Bốn camera ở 30 FPS cần 120 ảnh/s ≈ 8,3 ms/ảnh: trên máy này đủ, kể cả chỉ dùng CPU. **Laptop RTX 3050 Ti của xe chưa đo** — script chạy được không cần dataset (tự sinh ảnh nhiễu khi thiếu cache), chỉ cần chép `best.pt` và chạy cùng lệnh trên đó. Kết quả lúc GPU đang bận huấn luyện (đo lần đầu) cao gấp 2–3 lần, nên mọi số độ trễ phải kèm điều kiện tải của máy.
+
+## 13. Kiểm thử và review độc lập (22/09)
+
+- Bộ test mô phỏng (`.venv`, PySide6/Shapely, không torch): **260 đạt, 4 bỏ qua** (bốn module cần torch) trong 45 s, gồm 220 test giai đoạn 0 (kể cả 10 test ngân sách thời gian planner) và các test mới không cần torch. Bộ test nhận thức (`.venv-train`, torch): **65 đạt**. Hai môi trường cố ý tách nhau: `.venv-train` không có Shapely/PySide6 nên không chạy được test mô phỏng, `.venv` không có torch nên bỏ qua test trainer.
+- Một vòng review đối kháng bằng 4 agent theo 4 lăng kính (hình học, ngữ nghĩa nhãn, nguồn dữ liệu, độ phủ test) đưa ra **46 phát hiện**, mỗi phát hiện được 2 agent hoài nghi độc lập cố bác bỏ (92 phán quyết). Các lỗi thật đã sửa trước khi vòng xác minh kết thúc: nón che khuất của costmap quá hẹp khi ô sát camera; `project_labels` không kiểm tra kích thước mask so với calibration; hòa 0,5 nghiêng về FREE; dấu thời gian camera USB lấy sau khi giải mã; mẫu đã cũ ngay lúc đến vẫn được nhận; sắp xếp tên file theo chuỗi; cờ `mirror` không áp cho nhãn; hợp đồng `LidarScan` nhận range âm; ví dụ minh họa chọn từ cửa sổ 400 ảnh; thiếu phân tích theo lớp gốc trên ACDC. Các phát hiện còn lại là yêu cầu thêm test (đã thêm) hoặc bị bác bỏ.
+
+## 14. Kết luận phần II
+
+- Baseline **ổn định** (±0,0003 theo seed) và **chuyển miền tốt khi trời quang**, nhưng **yếu về đêm, yếu với vật lạ nhỏ, và không phân biệt vỉa hè với đường**.
+- Ngưỡng 0,15 là đòn bẩy rẻ nhất để giảm lỗi nguy hiểm; giá phải trả là dừng nhiều hơn.
+- Các số này vẫn là ảnh đường phố thật; câu hỏi "trên sa bàn thì sao" chỉ trả lời được khi có camera. Việc hạ tầng để nối đầu ra AI vào costmap (ROI, calibration, phép chiếu) ghi ở [GIAI_DOAN_1_CHUAN_BI.md](autopark/docs/GIAI_DOAN_1_CHUAN_BI.md).

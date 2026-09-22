@@ -60,11 +60,33 @@ Baseline L-RASPP/MobileNetV3 đã được huấn luyện ngày 21/09/2026 trên
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --config configs/train_woodscape_rtx4000_baseline.json --out runs/<ten>
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --out runs/<ten> --resume runs/<ten>/latest.pt
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate --checkpoint runs/<ten>/best.pt --split val --out runs/<ten>/eval_val
-.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.predict --checkpoint runs/<ten>/best.pt --input <anh_hoac_thu_muc> --out runs/<ten>/predict
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.predict --checkpoint runs/<ten>/best.pt --input <anh_hoac_thu_muc> --out runs/<ten>/predict --threshold 0.15
 .\.venv-train\Scripts\python.exe -X utf8 -m pytest tests/test_perception_data.py tests/test_perception_training.py
 ```
 
 Dừng có kiểm soát: tạo file rỗng `STOP` trong thư mục run; trainer lưu `latest.pt` rồi kết thúc ở trạng thái `stopped` (xem `status.json`). Tập test chỉ đánh giá được với `--split test --final-test`, mỗi lần đều ghi vào `test_evaluations.jsonl`.
+
+## Giai đoạn 1 khi chưa đủ thiết bị — phát lại, ROI, costmap, ONNX
+
+Chi tiết và giới hạn ở [docs/GIAI_DOAN_1_CHUAN_BI.md](docs/GIAI_DOAN_1_CHUAN_BI.md). Đánh giá ngoài miền (ACDC, RoadObstacle21), độ dao động theo seed, loss có trọng số và ngưỡng an toàn ở [HUAN_LUYEN.md](../HUAN_LUYEN.md) phần II.
+
+Nhánh LiDAR thật (driver RPLIDAR C1 qua COM, ghi/phát lại phiên, phiên đo tĩnh, bản đồ lưới tĩnh, màn hình trực tiếp): [docs/GIAI_DOAN_1_LIDAR.md](docs/GIAI_DOAN_1_LIDAR.md); cổng chuyển bước giai đoạn 1: [docs/gate_01.md](docs/gate_01.md); kiểm kê thiết bị: [docs/hardware_inventory.md](docs/hardware_inventory.md). Cần `pip install -e .[lidar]` (pyserial).
+
+Hợp nhất cảm biến chuẩn bị cho giai đoạn 3 (lớp bản đồ, hợp nhất, cầu nối vật cản vào phiên, demo LiDAR thật dừng xe ảo): [docs/GIAI_DOAN_3_CHUAN_BI.md](docs/GIAI_DOAN_3_CHUAN_BI.md).
+Giao diện bàn thử LiDAR: `python -m autopark.ui.lidar_app --port COM4` (cửa sổ đỗ xe + ngăn LiDAR).
+
+```powershell
+# .venv-train (torch)
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate_external --checkpoint runs/<ten>/best.pt --dataset acdc --split val --out runs/<ten>/eval_acdc_val
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate --checkpoint runs/<ten>/best.pt --split val --sweep --out runs/<ten>/eval_val_sweep
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.roi build
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.costmap --checkpoint runs/<ten>/best.pt --image datasets/training/woodscape/rgb_images/00007_FV.png --roi configs/roi/woodscape_v1 --out runs/perception_integration/costmap_00007_FV
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.export_onnx --checkpoint runs/<ten>/best.pt --out runs/<ten>/export
+# .venv (mô phỏng, PySide6; không cần torch)
+.\.venv\Scripts\python.exe -X utf8 -m autopark.lidar.viewer datasets/drow/DROWv2-data/val/run_2015-11-25-10-34-20-a.bag.csv --labels wp
+```
+
+Các khối `lidar/`, `video/`, `safety/`, `perception/calibration.py`, `perception/costmap.py` không cần torch và được test trong cả hai môi trường. Chạy toàn bộ bộ test bằng `.venv` (`pytest`; các test cần torch tự bỏ qua) và các test nhận thức bằng `.venv-train` (`pytest tests/test_perception_*.py tests/test_phase1_sources.py`); `.venv-train` không có Shapely/PySide6 nên không chạy được test mô phỏng. Chưa có driver RPLIDAR/camera thật; `UsbCameraSource` chưa chạy với thiết bị nào.
 
 ## Cấu trúc chính
 
@@ -75,7 +97,8 @@ Dừng có kiểm soát: tạo file rỗng `STOP` trong thư mục run; trainer 
 | `autopark/geometry/`, `simulation/` | Thân xe/vùng quét, động học, phản hồi có lỗi |
 | `autopark/application/`, `ui/` | Máy trạng thái phiên và giao diện PySide6 |
 | `autopark/storage/`, `evaluation/` | Kịch bản, log/snapshot/replay, nghiệm thu/video/audit nhãn |
-| `autopark/perception/` | Chuẩn bị/xác minh cache WoodScape, trainer, benchmark, đánh giá, suy luận (cần `.venv-train`) |
+| `autopark/perception/` | Chuẩn bị/xác minh cache WoodScape, trainer, benchmark, đánh giá (kể cả ACDC/RoadObstacle21), suy luận, calibration fisheye, ROI, costmap, xuất ONNX |
+| `autopark/lidar/`, `video/`, `safety/` | Phát lại scan DROW v2 và hiển thị; nguồn ảnh (thư mục/video/USB); giám sát dữ liệu cũ |
 | `configs/`, `scenarios/`, `tests/` | Tham số giả định, bản đồ và kiểm thử |
 | `datasets/`, `docs/`, `runs/` | Dữ liệu, biên bản và bằng chứng từng phiên |
 
