@@ -70,7 +70,7 @@ Dừng có kiểm soát: tạo file rỗng `STOP` trong thư mục run; trainer 
 
 ## Giai đoạn 1 khi chưa đủ thiết bị — phát lại, ROI, costmap, ONNX
 
-Chi tiết và giới hạn ở [docs/GIAI_DOAN_1_CHUAN_BI.md](docs/GIAI_DOAN_1_CHUAN_BI.md). Đánh giá ngoài miền (ACDC, RoadObstacle21), độ dao động theo seed, loss có trọng số và ngưỡng an toàn ở [HUAN_LUYEN.md](../HUAN_LUYEN.md) phần II.
+Chi tiết và giới hạn ở [docs/GIAI_DOAN_1_CHUAN_BI.md](docs/GIAI_DOAN_1_CHUAN_BI.md). Đánh giá ngoài miền (ACDC, RoadObstacle21), độ dao động theo seed, loss có trọng số và ngưỡng an toàn ở [HUAN_LUYEN.md](../HUAN_LUYEN.md) phần II. Thử thêm dữ liệu AVM-SS và ACDC (cache `prepare_extra`, chấm chéo miền, ba seed mỗi nhóm) ở phần III: không lượt nào vượt lượt nền trên hai tập chưa chạm; lượt nền vẫn là checkpoint tham chiếu.
 
 Nhánh LiDAR thật (driver RPLIDAR C1 qua COM, ghi/phát lại phiên, phiên đo tĩnh, bản đồ lưới tĩnh, màn hình trực tiếp): [docs/GIAI_DOAN_1_LIDAR.md](docs/GIAI_DOAN_1_LIDAR.md); cổng chuyển bước giai đoạn 1: [docs/gate_01.md](docs/gate_01.md); kiểm kê thiết bị: [docs/hardware_inventory.md](docs/hardware_inventory.md). Cần `pip install -e .[lidar]` (pyserial).
 

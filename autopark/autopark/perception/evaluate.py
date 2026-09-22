@@ -99,7 +99,7 @@ def per_image_rows(records, matrices):
         report = summarize(matrix)
         valid, counts = report["valid_pixels"], report["confusion_matrix"]
         wrong = counts[0][1] + counts[1][0]
-        rows.append({"id": record["id"], "camera": record["camera"], "valid_pixels": valid,
+        rows.append({"id": record["id"], "camera": record.get("camera", record.get("source", "-")), "valid_pixels": valid,
                      "error_rate": wrong / valid if valid else None,
                      "iou_free": report["iou_free"], "iou_blocked": report["iou_blocked"],
                      "blocked_as_free_rate": report["blocked_as_free_rate"]})
