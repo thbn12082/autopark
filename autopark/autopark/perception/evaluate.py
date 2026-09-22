@@ -115,6 +115,10 @@ def main(argv=None) -> int:
                         help="required for --split test: confirms model selection is finished")
     parser.add_argument("--examples", type=int, default=3, help="best / typical / worst panels per camera")
     parser.add_argument("--threshold", type=float, default=0.5, help="BLOCKED probability threshold (ties -> BLOCKED)")
+    parser.add_argument("--manifest", type=Path, default=None,
+                        help="score against ANOTHER prepared cache (chấm chéo miền). Dùng cache này thay cache mà "
+                             "checkpoint được huấn luyện trên đó; khi đó bỏ qua phép kiểm split/mapping vì hai bộ "
+                             "vốn khác nhau, và kết quả PHẢI được ghi rõ là chấm chéo, không phải val của chính nó.")
     parser.add_argument("--sweep", action="store_true",
                         help="validation only: score every threshold in 0.05..0.95 and write threshold_sweep.json")
     args = parser.parse_args(argv)
@@ -128,9 +132,14 @@ def main(argv=None) -> int:
 
     state = load_checkpoint(args.checkpoint)
     cfg = state["config"]
-    cache = PreparedCache.open(PROJECT / cfg["prepared_manifest"], cfg["require_handoff_split_verified"])
-    if state["split_sha256"] != cache.split_sha256 or state["mapping_sha256"] != cache.manifest["mapping_sha256"]:
-        raise SystemExit("Checkpoint was trained on a different split or label mapping; refusing to evaluate.")
+    manifest_path = args.manifest or (PROJECT / cfg["prepared_manifest"])
+    cache = PreparedCache.open(manifest_path, cfg["require_handoff_split_verified"])
+    cross_domain = args.manifest is not None and str(Path(args.manifest).resolve()) != str((PROJECT / cfg["prepared_manifest"]).resolve())
+    if not cross_domain:
+        if state["split_sha256"] != cache.split_sha256 or state["mapping_sha256"] != cache.manifest["mapping_sha256"]:
+            raise SystemExit("Checkpoint was trained on a different split or label mapping; refusing to evaluate.")
+    elif cache.manifest["height"] != cfg["height"] or cache.manifest["width"] != cfg["width"]:
+        raise SystemExit("Cross-domain evaluation needs the same input size as training.")
     model = build_model(cfg["num_classes"], pretrained=False)
     model.load_state_dict(state["model"])
     model.to(device)
@@ -158,7 +167,8 @@ def main(argv=None) -> int:
         "class_names": {"0": "FREE_CANDIDATE", "1": "OBSTACLE_OR_BLOCKED"},
         "confusion_matrix_layout": "rows = ground truth, columns = prediction, IGNORE (255) excluded",
         "confusion_matrix_row_normalized": (matrix / np.maximum(matrix.sum(1, keepdims=True), 1)).tolist(),
-        "resolution": [cfg["height"], cfg["width"]], "split_sha256": cache.split_sha256, **report})
+        "resolution": [cfg["height"], cfg["width"]], "split_sha256": cache.split_sha256,
+        "evaluated_manifest": str(manifest_path), "cross_domain": cross_domain, **report})
 
     rows = per_image_rows(data.records, result["per_image"])
     with (args.out / "per_image.csv").open("w", newline="", encoding="utf-8") as f:

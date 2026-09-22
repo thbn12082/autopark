@@ -45,11 +45,17 @@ def evaluate_split(model, data: SplitData, *, batch_size, device, amp, num_class
         if on_batch is not None:
             on_batch(positions, images_u8, masks, logits)
     per_image = torch.cat(per_image)
-    cameras = [record["camera"] for record in data.records]
+    # `camera` chỉ có ở cache WoodScape; cache khác (AVM-SS, ACDC, cache ghép) dùng `source`/`condition`.
+    cameras = [record.get("camera", "-") for record in data.records]
+    subsets = [record.get("camera") or record.get("condition") or record.get("source") or "-"
+               for record in data.records]
     report = {"split": data.split, "images": len(data), "loss": loss_sum / max(1, pixels), "threshold": threshold,
-              **summarize(per_image.sum(0)), "per_camera": {}}
+              **summarize(per_image.sum(0)), "per_camera": {}, "per_subset": {}}
     for camera in CAMERAS:
         rows = [i for i, name in enumerate(cameras) if name == camera]
         if rows:
             report["per_camera"][camera] = {"images": len(rows), **summarize(per_image[rows].sum(0))}
+    for subset in sorted(set(subsets)):
+        rows = [i for i, name in enumerate(subsets) if name == subset]
+        report["per_subset"][subset] = {"images": len(rows), **summarize(per_image[rows].sum(0))}
     return {"report": report, "per_image": per_image, "sweep": {t: summarize(m) for t, m in sweep.items()}}

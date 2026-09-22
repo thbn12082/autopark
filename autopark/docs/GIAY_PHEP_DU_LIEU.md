@@ -25,5 +25,11 @@ một và ghi rõ trong khóa luận:
 3. **Hỏi Valeo.** Email xin xác nhận liệu xe mô hình 1/12 trên sa bàn trong phòng thí nghiệm có nằm trong phạm
    vi "operation of a vehicle" không. Chưa có trả lời thì không coi là được phép.
 
+**Quyết định của người làm khóa luận (22/09/2026):** chọn cách hiểu rằng xe mô hình 1/12 chạy trên sa bàn trong
+phòng, không ra đường công cộng, thuộc phạm vi "personal experimentation" và "academic research" mà điều khoản
+cho phép, nên tiếp tục dùng mô hình huấn luyện trên WoodScape. Ghi nhận để minh bạch: văn bản Valeo viết
+"operation of a vehicle" mà không kèm điều kiện đường công cộng, nên cách hiểu này chưa được Valeo xác nhận.
+Nếu sau này sản phẩm được thương mại hóa hoặc đưa lên phương tiện thật thì phải huấn luyện lại bằng dữ liệu khác.
+
 Ghi công bắt buộc đã được thêm vào đầu `HUAN_LUYEN.md` và `autopark/README.md` theo yêu cầu
 *"conspicuously displayed in all public material and website referencing research conducted with the Dataset"*.
