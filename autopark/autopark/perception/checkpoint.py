@@ -7,12 +7,7 @@ import random
 import numpy as np
 import torch
 
-
-def atomic_write_json(path, value) -> None:
-    path = Path(path)
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
-    os.replace(temporary, path)
+from .paths import atomic_write_json  # noqa: F401  (re-exported; torch-free modules import it from .paths)
 
 
 def atomic_save(state: dict, path) -> None:

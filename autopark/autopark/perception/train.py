@@ -35,7 +35,7 @@ from .engine import autocast, evaluate_split
 from .metrics import segmentation_loss
 from .model import build_model, parameter_groups
 
-PROJECT = Path(__file__).resolve().parents[2]
+from .paths import PROJECT, utc_now  # noqa: E402  (shared with torch-free modules)
 PRETRAINED = "torchvision_official_pretrained_weights"
 MAX_CONSECUTIVE_BAD_UPDATES = 10
 
@@ -78,10 +78,6 @@ DEFAULTS = {
 
 class StopRequested(Exception):
     pass
-
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def _merge(base: dict, extra: dict) -> dict:

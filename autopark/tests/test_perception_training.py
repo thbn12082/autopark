@@ -42,6 +42,14 @@ def test_class_weighted_loss_is_a_weighted_mean():
     loss, _ = segmentation_loss(logits, torch.tensor([[[0, 1]]], dtype=torch.uint8),
                                 class_weights=torch.tensor([1.0, 3.0]))
     assert float(loss) == pytest.approx(float(np.log(2)))
+    # biased prediction: the weight must reach the numerator, not only the denominator
+    logits = torch.tensor([[[[2.0, 2.0]], [[0.0, 0.0]]]])          # confident FREE on both pixels
+    target = torch.tensor([[[0, 1]]], dtype=torch.uint8)
+    plain, _ = segmentation_loss(logits, target)
+    weighted, _ = segmentation_loss(logits, target, class_weights=torch.tensor([1.0, 3.0]))
+    cheap, expensive = -np.log(np.exp(2) / (np.exp(2) + 1)), -np.log(1 / (np.exp(2) + 1))
+    assert float(plain) == pytest.approx((cheap + expensive) / 2)
+    assert float(weighted) == pytest.approx((cheap + 3 * expensive) / 4) and float(weighted) > float(plain)
 
 
 def test_confusion_matrices_per_image_with_ignore():
@@ -253,3 +261,24 @@ def test_config_without_measured_batch_size_or_with_test_split_is_rejected(tmp_p
     with pytest.raises(ValueError, match="validation_split"):
         load_config(path, ["batch_size=8", "validation_split=\"test\""])
     assert load_config(path, ["batch_size=8", "augment.enabled=false"])["augment"]["enabled"] is False
+
+
+def test_trainer_never_touches_the_test_split_and_class_weights_come_from_train(tmp_path, monkeypatch):
+    from autopark.perception import train as train_module
+
+    original = train_module.SplitData
+
+    class Spy(original):
+        def __init__(self, cache, split, limit=None):
+            assert split != "test", "trainer must never load the test split"
+            super().__init__(cache, split, limit)
+    monkeypatch.setattr(train_module, "SplitData", Spy)
+    cfg = _config(_make_cache(tmp_path / "cache"), epochs=1, class_weights="train_inverse_frequency")
+    (tmp_path / "run").mkdir()
+    trainer = Trainer(cfg, tmp_path / "run")
+    pixels = trainer.cache.manifest["statistics"]["train"]["pixels"]
+    counts = torch.tensor([pixels["0"], pixels["1"]], dtype=torch.float64)
+    expected = (counts.sum() / (2 * counts)).float()
+    assert torch.allclose(trainer.class_weights.cpu(), expected)
+    trainer.run()
+    assert trainer.epoch == 1

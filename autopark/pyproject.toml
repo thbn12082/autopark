@@ -12,8 +12,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "coverage>=7"]
 video = ["opencv-python>=4.10"]
-perception = ["opencv-python>=4.10", "torch>=2.4"]
+perception = ["opencv-python>=4.10", "torch>=2.4", "torchvision>=0.19", "pillow>=10"]
 datasets = ["opencv-python>=4.10", "gdown>=6.4", "requests>=2.32"]
+lidar = ["opencv-python>=4.10", "pyserial>=3.5"]
 
 [build-system]
 requires = ["setuptools>=68"]

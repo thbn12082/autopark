@@ -36,8 +36,11 @@ def _write(path: Path, image, extension: str) -> None:
 
 
 @torch.no_grad()
-def predict_image(model, image_bgr, height: int, width: int, device, amp: bool):
-    """Returns (labels uint8 {0 FREE, 1 BLOCKED}, probability of BLOCKED float32), both at the input size."""
+def predict_image(model, image_bgr, height: int, width: int, device, amp: bool, threshold: float = 0.5):
+    """Returns (labels uint8 {0 FREE, 1 BLOCKED}, probability of BLOCKED float32), both at the input size.
+
+    `threshold` is the BLOCKED probability above which a pixel is called BLOCKED; 0.5 is the argmax rule.
+    """
     original_height, original_width = image_bgr.shape[:2]
     prepared, _, box = letterbox(image_bgr, np.zeros((original_height, original_width), np.uint8), height, width)
     rgb = torch.from_numpy(cv2.cvtColor(prepared, cv2.COLOR_BGR2RGB)).unsqueeze(0).to(device)
@@ -46,7 +49,7 @@ def predict_image(model, image_bgr, height: int, width: int, device, amp: bool):
     blocked = logits.float().softmax(1)[0, 1].cpu().numpy()
     blocked = blocked[box["y"]:box["y"] + box["height"], box["x"]:box["x"] + box["width"]]
     blocked = cv2.resize(blocked, (original_width, original_height), interpolation=cv2.INTER_LINEAR)
-    return (blocked >= 0.5).astype(np.uint8), blocked
+    return (blocked >= threshold).astype(np.uint8), blocked
 
 
 def main(argv=None) -> int:
@@ -55,7 +58,10 @@ def main(argv=None) -> int:
     parser.add_argument("--input", type=Path, required=True, help="image file or a directory of images")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--device", choices=("cuda", "cpu"), default="cuda")
+    parser.add_argument("--threshold", type=float, default=0.5, help="BLOCKED probability threshold chosen on validation")
     args = parser.parse_args(argv)
+    if not 0.0 < args.threshold < 1.0:
+        parser.error("--threshold must be in (0, 1)")
     if args.device == "cuda" and not torch.cuda.is_available():
         raise SystemExit("CUDA unavailable. Pass --device cpu explicitly if a slow CPU run is intended.")
     device = torch.device(args.device)
@@ -76,7 +82,7 @@ def main(argv=None) -> int:
     for path in files:
         image = read_image(path)
         tick = time.perf_counter()
-        labels, blocked = predict_image(model, image, cfg["height"], cfg["width"], device, amp)
+        labels, blocked = predict_image(model, image, cfg["height"], cfg["width"], device, amp, threshold=args.threshold)
         if device.type == "cuda":
             torch.cuda.synchronize()
         seconds = time.perf_counter() - tick
@@ -90,6 +96,7 @@ def main(argv=None) -> int:
     atomic_write_json(args.out / "predictions.json", {
         "created_utc": utc_now(), "checkpoint": str(args.checkpoint), "checkpoint_sha256": file_sha256(args.checkpoint),
         "checkpoint_epoch": state["epoch"], "device": str(device), "model_input": [cfg["height"], cfg["width"]],
+        "threshold": args.threshold,
         "labels": {"0": "FREE_CANDIDATE", "1": "OBSTACLE_OR_BLOCKED"},
         "limitations": "Two-class output only: sky, ego vehicle and border regions were IGNORE in training and their "
                        "labels are meaningless. FREE is a candidate on a stored image, not verified traversability. "

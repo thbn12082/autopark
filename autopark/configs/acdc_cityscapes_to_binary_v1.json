@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "purpose": "Map ACDC ground truth (Cityscapes labelIds, file *_gt_labelIds.png) to the WoodScape binary classes for EVALUATION ONLY. Nothing is trained on ACDC with this file.",
+  "classes": {"0": "FREE_CANDIDATE", "1": "OBSTACLE_OR_BLOCKED", "255": "IGNORE"},
+  "free": {"7": "road", "9": "parking"},
+  "blocked": {
+    "11": "building", "12": "wall", "13": "fence", "14": "guard rail", "15": "bridge", "16": "tunnel",
+    "17": "pole", "18": "polegroup", "19": "traffic light", "20": "traffic sign", "21": "vegetation",
+    "24": "person", "25": "rider", "26": "car", "27": "truck", "28": "bus", "29": "caravan", "30": "trailer",
+    "31": "train", "32": "motorcycle", "33": "bicycle"
+  },
+  "ignore": {
+    "0": "unlabeled", "1": "ego vehicle", "2": "rectification border", "3": "out of roi", "4": "static",
+    "5": "dynamic", "6": "ground", "8": "sidewalk", "10": "rail track", "22": "terrain", "23": "sky",
+    "255": "license plate / unlabeled"
+  },
+  "invalid_mask": "pixels with *_gt_invIds.png == 1 are IGNORE (ACDC marks regions the annotators could not label reliably)",
+  "variants": {
+    "sidewalk_terrain_blocked": {"8": 1, "22": 1, "note": "stricter reading: a car must not drive on sidewalk/terrain; WoodScape training never labelled these, so the main mapping ignores them"}
+  },
+  "notes": "Sidewalk, terrain and ground are IGNORE in the main mapping because WoodScape has no equivalent class and the model never saw a supervised label for them; treating them as either class would invent a label. Cityscapes 'static' (4) and 'dynamic' (5) are void classes of unclear content (mounted objects, movable clutter) and are IGNORE for that reason, not for lack of a WoodScape counterpart (WoodScape maps movable_object/animal to BLOCKED); ACDC val contains zero pixels of ids 1-6, 9 and 10, so this choice changes nothing measured there. Vegetation is BLOCKED to match WoodScape 'nature'. Values not listed anywhere are IGNORE and counted as unmapped. On ACDC, BLOCKED pixels are ~83 % vegetation and buildings: read metrics.json per_source_class for people and vehicles separately."
+}

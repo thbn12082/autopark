@@ -1,0 +1,83 @@
+{
+  "created_utc": "2026-09-22T05:15:54+00:00",
+  "source_split": "train",
+  "ego_threshold": 0.2,
+  "dark_threshold": 8,
+  "dark_fraction": 0.95,
+  "dark_sample_every": 4,
+  "model_size": [
+    384,
+    512
+  ],
+  "cameras": {
+    "FV": {
+      "images": 1239,
+      "dark_samples": 310,
+      "native_size": [
+        966,
+        1280
+      ],
+      "excluded_fraction_native": 0.4876188858695652,
+      "excluded_fraction_model_size": 0.4890238444010417,
+      "ego_excluded_fraction": 0.4876116071428571,
+      "border_excluded_fraction": 7.278726708074534e-06,
+      "ego_frequency_percentiles": {
+        "50": 0.13962873284907182,
+        "90": 0.9991928974979822,
+        "99": 0.9991928974979822
+      }
+    },
+    "MVL": {
+      "images": 1580,
+      "dark_samples": 395,
+      "native_size": [
+        966,
+        1280
+      ],
+      "excluded_fraction_native": 0.48449469461697725,
+      "excluded_fraction_model_size": 0.4867757161458333,
+      "ego_excluded_fraction": 0.48448741589026917,
+      "border_excluded_fraction": 7.278726708074534e-06,
+      "ego_frequency_percentiles": {
+        "50": 0.05443037974683544,
+        "90": 1.0,
+        "99": 1.0
+      }
+    },
+    "MVR": {
+      "images": 1639,
+      "dark_samples": 410,
+      "native_size": [
+        966,
+        1280
+      ],
+      "excluded_fraction_native": 0.4875388198757764,
+      "excluded_fraction_model_size": 0.4891560872395833,
+      "ego_excluded_fraction": 0.4875315411490683,
+      "border_excluded_fraction": 7.278726708074534e-06,
+      "ego_frequency_percentiles": {
+        "50": 0.04820012202562538,
+        "90": 0.9987797437461867,
+        "99": 1.0
+      }
+    },
+    "RV": {
+      "images": 1306,
+      "dark_samples": 327,
+      "native_size": [
+        966,
+        1280
+      ],
+      "excluded_fraction_native": 0.6135772515527951,
+      "excluded_fraction_model_size": 0.6143035888671875,
+      "ego_excluded_fraction": 0.6135699728260869,
+      "border_excluded_fraction": 7.278726708074534e-06,
+      "ego_frequency_percentiles": {
+        "50": 0.26263399693721284,
+        "90": 0.9992343032159265,
+        "99": 0.9992343032159265
+      }
+    }
+  },
+  "notes": "Built from WoodScape training-split ego_vehicle polygons and near-black pixels. Four files (06418_MVR, 06419_RV, 06423_MVR, 06424_RV) carry a front-camera calibration despite their names; they are a negligible fraction under the frequency threshold. These masks describe the WoodScape rigs, not the project's own camera mounts."
+}

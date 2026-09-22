@@ -85,3 +85,22 @@ def test_invalid_obstacle_numbers_are_rejected(scenario, field, value):
     data["obstacles"][0][field] = value
     with pytest.raises(ValueError):
         Scenario.from_dict(data)
+
+
+def test_save_falls_back_to_absolute_posix_path_across_drives(tmp_path, monkeypatch):
+    """Windows: kịch bản trên ổ khác cấu hình xe không có đường dẫn tương đối; phải vẫn nạp lại được."""
+    import os
+    from autopark.storage import scenario_store
+    from autopark.storage.scenario_store import load_scenario, save_scenario
+
+    scenario = load_scenario(scenario_store.__file__.rsplit("autopark", 2)[0] + "autopark/scenarios/bai_do_xe.json")
+    original = os.path.relpath
+
+    def cross_drive(path, start):
+        raise ValueError("path is on mount 'D:', start on mount 'C:'")
+    monkeypatch.setattr(scenario_store.os.path, "relpath", cross_drive)
+    saved = save_scenario(scenario, tmp_path / "xa.json")
+    monkeypatch.setattr(scenario_store.os.path, "relpath", original)
+    assert "\\" not in scenario.vehicle_config and scenario.vehicle_config.endswith("vehicle_default.json")
+    reloaded = load_scenario(saved)
+    assert reloaded.vehicle_config_path.exists() and reloaded.vehicle_config_path.name == "vehicle_default.json"

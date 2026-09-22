@@ -40,7 +40,11 @@ def save_scenario(scenario: Scenario, path: str | Path) -> Path:
     path = Path(path).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     if scenario.vehicle_config_path is not None:
-        rel = os.path.relpath(scenario.vehicle_config_path, path.parent)
+        try:
+            rel = os.path.relpath(scenario.vehicle_config_path, path.parent)
+        except ValueError:
+            # Windows: kịch bản và cấu hình xe nằm trên hai ổ đĩa khác nhau, không có đường dẫn tương đối
+            rel = str(Path(scenario.vehicle_config_path).resolve())
         scenario.vehicle_config = Path(rel).as_posix()
     with path.open("w", encoding="utf-8") as f:
         json.dump(scenario.to_dict(), f, ensure_ascii=False, indent=2)
