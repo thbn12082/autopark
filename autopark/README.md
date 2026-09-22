@@ -1,5 +1,7 @@
 # AutoPark — giai đoạn 0 của kế hoạch v3.1
 
+> **Ghi công bắt buộc theo giấy phép dữ liệu:** nghiên cứu nhận thức trong dự án này được thực hiện với **Valeo WoodScape Dataset** (<https://woodscape.valeo.com>, [repo](https://github.com/valeoai/WoodScape)). Điều khoản Valeo yêu cầu hiển thị rõ ghi công này trong mọi tài liệu công bố có nhắc tới nghiên cứu dùng bộ dữ liệu. Bảng giấy phép đầy đủ và vấn đề cần xử lý: [docs/GIAY_PHEP_DU_LIEU.md](docs/GIAY_PHEP_DU_LIEU.md).
+
 Mô phỏng xe đạp động học, đặt/xoay đích, Hybrid A*/Reeds–Shepp, bám quỹ đạo tiến/lùi và dừng khi bản đồ/phản hồi không còn hợp lệ. Đây là phần mềm mô phỏng; thông số trong `configs/vehicle_default.json` **chưa phải số đo MN300**.
 
 ## Chạy trên Windows
