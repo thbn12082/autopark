@@ -1,0 +1,24 @@
+{
+  "file": "p07_nen_phong.npz",
+  "analyzed_utc": "2026-09-22T06:10:34+00:00",
+  "summary": {
+    "scans": 181,
+    "duration_s": 17.844000000040978,
+    "rate_hz": 10.087424344294252,
+    "median_period_s": 0.0940000000409782,
+    "max_gap_s": 0.10999999998603016,
+    "beams_median": 508.0,
+    "beams_min": 396,
+    "beams_max": 536,
+    "no_return_fraction": 0.34639015217771557,
+    "range_min_m": 0.09049999713897705,
+    "range_max_m": 14.64900016784668
+  },
+  "checks": {
+    "rate_8_12_hz": true,
+    "beams_within_5pct_of_5khz": true,
+    "no_gap_over_3_periods": true
+  },
+  "target": null,
+  "passed": true
+}

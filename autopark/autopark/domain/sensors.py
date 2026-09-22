@@ -41,6 +41,11 @@ class CameraFrame:
 
 @dataclass(frozen=True)
 class LidarScan:
+    """Góc theo quy ước yaw của dự án (0 = phía trước, dương ngược chiều kim đồng hồ).
+
+    `ranges_m` là NaN khi chùm tia không có phản hồi; NaN không phải bằng chứng vùng trống.
+    """
+
     stamp: SourceStamp
     angles_rad: tuple[float, ...]
     ranges_m: tuple[float, ...]
@@ -48,6 +53,10 @@ class LidarScan:
     def __post_init__(self):
         if len(self.angles_rad) != len(self.ranges_m):
             raise ValueError("Số góc và khoảng cách phải bằng nhau")
+        if not all(math.isfinite(a) for a in self.angles_rad):
+            raise ValueError("Góc quét phải hữu hạn")
+        if not all(math.isnan(r) or (math.isfinite(r) and r >= 0) for r in self.ranges_m):
+            raise ValueError("Khoảng cách phải là NaN (không phản hồi) hoặc số hữu hạn >= 0")
 
 
 @dataclass(frozen=True)
