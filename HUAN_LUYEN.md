@@ -2,7 +2,7 @@
 
 > **Ghi công bắt buộc theo giấy phép dữ liệu:** nghiên cứu nhận thức trong dự án này được thực hiện với **Valeo WoodScape Dataset** (<https://woodscape.valeo.com>, [repo](https://github.com/valeoai/WoodScape)). Điều khoản Valeo yêu cầu hiển thị rõ ghi công này trong mọi tài liệu công bố có nhắc tới nghiên cứu dùng bộ dữ liệu.
 
-**Ngày thực hiện:** 21/09/2026 (phần I), 22/09/2026 (phần II — đánh giá mở rộng, từ mục 8) và đêm 22 → 23/09/2026 (phần III — thêm dữ liệu AVM-SS và ACDC, từ mục 15)
+**Ngày thực hiện:** 21/09/2026 (phần I), 22/09/2026 (phần II — đánh giá mở rộng, từ mục 8) và đêm 22 → 23/09/2026 kèm sáng 23/09 (phần III — thêm dữ liệu AVM-SS và ACDC, từ mục 15)
 **Máy:** Intel Core i9-14900, NVIDIA RTX 4000 Ada 20 GB (driver 596.72), Windows 11, RAM 64 GB
 **Mã nguồn:** [autopark/autopark/perception](autopark/autopark/perception/) · **Hồ sơ lượt chạy:** [autopark/runs/ai_woodscape_rtx4000_v1](autopark/runs/ai_woodscape_rtx4000_v1/)
 **Mức bằng chứng:** AI trên ảnh lưu sẵn của bộ dữ liệu công khai. Chưa có ảnh sa bàn/MN300, chưa nối vào planner hay phần cứng.
@@ -280,9 +280,9 @@ Bốn camera ở 30 FPS cần 120 ảnh/s ≈ 8,3 ms/ảnh: trên máy này đ�
 - Ngưỡng 0,15 là đòn bẩy rẻ nhất để giảm lỗi nguy hiểm; giá phải trả là dừng nhiều hơn.
 - Các số này vẫn là ảnh đường phố thật; câu hỏi "trên sa bàn thì sao" chỉ trả lời được khi có camera. Việc hạ tầng để nối đầu ra AI vào costmap (ROI, calibration, phép chiếu) ghi ở [GIAI_DOAN_1_CHUAN_BI.md](autopark/docs/GIAI_DOAN_1_CHUAN_BI.md).
 
-# PHẦN III — THÊM DỮ LIỆU: AVM-SS VÀ ACDC (đêm 22 → 23/09/2026)
+# PHẦN III — THÊM DỮ LIỆU: AVM-SS VÀ ACDC (đêm 22 → 23/09/2026, bổ sung sáng 23/09)
 
-Câu hỏi: **thêm hai bộ dữ liệu mới có làm mô hình tốt hơn không, và tốt hơn theo thước nào?** Chưa có ảnh sa bàn, nên "tốt hơn" chỉ đo được bằng ba loại tập: val của chính miền đã học, val của miền kia (chấm chéo), và hai tập chưa lượt nào chạm tới — ACDC val (thời tiết xấu, camera thường) và RoadObstacle21 (vật lạ nhỏ). Mã mới: `autopark/perception/prepare_extra.py` (dựng cache AVM-SS, ACDC, trộn), `evaluate.py --manifest` (chấm chéo miền), `engine.evaluate_split` có `per_subset`. Hồ sơ: các thư mục `autopark/runs/ai_avm_only`, `ai_ws_avm`, `ai_ws_avm_seed20260923`, `ai_ws_avm_seed20260924`, `ai_ws_avm_acdc`, `ai_ws_avm_weighted` (git-ignored), log hàng đợi trong scratchpad của phiên.
+Câu hỏi: **thêm hai bộ dữ liệu mới có làm mô hình tốt hơn không, và tốt hơn theo thước nào?** Chưa có ảnh sa bàn, nên "tốt hơn" chỉ đo được bằng ba loại tập: val của chính miền đã học, val của miền kia (chấm chéo), và hai tập chưa lượt nào chạm tới — ACDC val (thời tiết xấu, camera thường) và RoadObstacle21 (vật lạ nhỏ). Mã mới: `autopark/perception/prepare_extra.py` (dựng cache AVM-SS, ACDC, trộn), `evaluate.py --manifest` (chấm chéo miền), `engine.evaluate_split` có `per_subset`. Hồ sơ: các thư mục `autopark/runs/ai_avm_only`, `ai_ws_avm`, `ai_ws_avm_seed20260923`, `ai_ws_avm_seed20260924`, `ai_ws_avm_acdc`, `ai_ws_avm_weighted`, `ai_ws_avm_weighted_seed20260923`, `ai_ws_avm_weighted_seed20260924` (git-ignored), log hàng đợi trong scratchpad của phiên.
 
 Giấy phép của hai bộ mới ghi ở [GIAY_PHEP_DU_LIEU.md](autopark/docs/GIAY_PHEP_DU_LIEU.md), kèm quyết định ngày 22/09 của người làm khóa luận về phạm vi sử dụng.
 
@@ -296,7 +296,7 @@ Giấy phép của hai bộ mới ghi ở [GIAY_PHEP_DU_LIEU.md](autopark/docs/G
 | `ws_avm_v1` | WoodScape + AVM-SS | 10.477 / 2.285 / 2.235 | 75 : 25 | ghép hai cache, nhóm giữ tiền tố tên cache |
 | `ws_avm_acdc_v1` | + ACDC train | 12.077 / 2.691 / 2.235 | 71 : 29 | val của ACDC = ACDC val chính thức → rò rỉ như trên |
 
-Cấu hình huấn luyện **giữ nguyên phần I** (L-RASPP + MobileNetV3-Large, 384×512, batch 16, AMP, 30 epoch, cùng augment), chỉ đổi manifest; trọng số lớp chỉ bật ở lượt ghi rõ. Thời gian một lượt trên RTX 4000 Ada: AVM riêng 13 phút, trộn hai bộ 26–27 phút (28 phút khi có trọng số lớp), trộn ba bộ 30 phút. Tổng cộng sáu lượt huấn luyện mới và 31 lần chấm ngoài miền trong đêm.
+Cấu hình huấn luyện **giữ nguyên phần I** (L-RASPP + MobileNetV3-Large, 384×512, batch 16, AMP, 30 epoch, cùng augment), chỉ đổi manifest; trọng số lớp chỉ bật ở lượt ghi rõ. Thời gian một lượt trên RTX 4000 Ada: AVM riêng 13 phút, trộn hai bộ 26–27 phút (22–28 phút khi có trọng số lớp), trộn ba bộ 30 phút. Tổng cộng tám lượt huấn luyện mới (sáu trong đêm, hai seed trọng số thêm sáng 23/09) và 40 lần chấm ngoài miền, chưa kể chấm chéo.
 
 ## 16. Bảng kết quả — mọi số của nhóm ba seed là trung bình ± độ lệch chuẩn
 
@@ -308,28 +308,28 @@ Cấu hình huấn luyện **giữ nguyên phần I** (L-RASPP + MobileNetV3-Lar
 | AVM-SS riêng (1) | 0,910 | 0,487 / 49,8 % | 0,910 / 9,0 % | 0,209 | 82,7 % | 78,6 % | 34,1 % | 8 |
 | WoodScape + AVM (3) | 0,958 | 0,970 / 1,8 % ¹ | 0,913 / 8,7 % ¹ | **0,781 ± 0,021** | **13,5 ± 2,8 %** | 13,5 ± 7,2 % | **63,0 ± 1,6 %** | 11 · 12 · 11 |
 | WoodScape + AVM + ACDC train (1) | 0,966 | 0,970 / 1,8 % | 0,915 / 8,3 % | 0,983 ² | 0,5 % ² | 1,0 % ² | 48,8 % | 11 |
-| WoodScape + AVM, trọng số lớp (1) | 0,956 | — | — | 0,813 | 7,9 % | 4,3 % | 67,7 % | 13 |
+| WoodScape + AVM, trọng số lớp (3) | 0,955 | 0,965 / 1,1 % | 0,912 / 5,6 % | 0,790 ± 0,105 | **11,2 ± 9,2 %** | 9,3 ± 7,8 % | 69,6 ± 3,1 % | 13 · 14 · 14 |
 | WoodScape nền, trọng số lớp (1, phần II §11) | 0,969 | — | — | 0,905 | 4,4 % | 8,4 % | 67,5 % | 12 |
 
-¹ chấm chéo chỉ làm cho seed đầu của nhóm. ² **rò rỉ**: lượt này học ACDC train, chung chuỗi GoPro với ACDC val (mục 15) — con số chỉ chứng minh mô hình học được ACDC, không phải tổng quát hóa; **không được trích dẫn** như kết quả ngoài miền.
+¹ chấm chéo chỉ làm cho seed đầu của nhóm (nhóm trọng số chấm chéo cả ba seed). ² **rò rỉ**: lượt này học ACDC train, chung chuỗi GoPro với ACDC val (mục 15) — con số chỉ chứng minh mô hình học được ACDC, không phải tổng quát hóa; **không được trích dẫn** như kết quả ngoài miền.
 
-Giá trị từng seed để ai cũng kiểm lại được: WoodScape nền — ACDC vật cản→FREE 4,42 / 3,60 / 4,17 %, RO21 recall 68,3 / 68,4 / 64,4 %. WoodScape + AVM — ACDC 10,95 / 13,01 / 16,46 %, ACDC đêm 5,9 / 20,3 / 14,3 %, RO21 62,2 / 64,8 / 62,0 %. Val riêng của ba seed trộn: 0,9584 / 0,9585 / 0,9585.
+Giá trị từng seed để ai cũng kiểm lại được: WoodScape nền — ACDC vật cản→FREE 4,42 / 3,60 / 4,17 %, RO21 recall 68,3 / 68,4 / 64,4 %. WoodScape + AVM — ACDC 10,95 / 13,01 / 16,46 %, ACDC đêm 5,9 / 20,3 / 14,3 %, RO21 62,2 / 64,8 / 62,0 %. Val riêng của ba seed trộn: 0,9584 / 0,9585 / 0,9585. WoodScape + AVM có trọng số lớp — ACDC 7,94 / 21,63 / 4,17 %, ACDC đêm 4,3 / 18,3 / 5,5 %, RO21 67,7 / 67,9 / 73,2 %; val riêng 0,9556 / 0,9556 / 0,9541.
 
-### 16.1. Tách theo lớp gốc trên ACDC val (% pixel của lớp bị gọi FREE, ngưỡng 0,50, trung bình 3 seed)
+### 16.1. Tách theo lớp gốc trên ACDC val (% pixel của lớp bị gọi FREE, ngưỡng 0,50, trung bình ± độ lệch chuẩn 3 seed)
 
-| Lớp gốc | WoodScape nền | WoodScape + AVM | WS + AVM trọng số (1 seed) |
+| Lớp gốc | WoodScape nền | WoodScape + AVM | WS + AVM trọng số (3 seed) |
 |---|---:|---:|---:|
-| car | 10,8 ± 0,9 | 9,5 ± 2,8 | 4,5 |
-| person | 6,7 ± 0,1 | 6,8 ± 1,7 | 1,4 |
-| bicycle | 25,0 ± 2,5 | 12,5 ± 2,6 | 0,2 |
-| motorcycle | 3,9 ± 0,4 | 2,7 ± 1,4 | 0,2 |
-| truck | 16,8 ± 5,9 | 32,9 ± 4,0 | 18,1 |
-| bus | 13,2 ± 4,1 | 35,3 ± 2,9 | 28,2 |
-| wall | 26,0 ± 3,8 | 40,2 ± 3,2 | 23,8 |
-| fence | 17,2 ± 1,7 | 25,4 ± 3,7 | 18,7 |
-| pole | 6,6 ± 0,9 | 15,7 ± 4,7 | 7,9 |
-| building | 1,6 ± 0,2 | 11,5 ± 1,6 | 6,6 |
-| vegetation | 2,2 ± 0,4 | 11,9 ± 3,7 | 7,0 |
+| car | 10,8 ± 0,9 | 9,5 ± 2,8 | 5,4 ± 0,8 |
+| person | 6,7 ± 0,1 | 6,8 ± 1,7 | 2,6 ± 1,6 |
+| bicycle | 25,0 ± 2,5 | 12,5 ± 2,6 | 5,5 ± 4,7 |
+| motorcycle | 3,9 ± 0,4 | 2,7 ± 1,4 | 0,5 ± 0,5 |
+| truck | 16,8 ± 5,9 | 32,9 ± 4,0 | 21,1 ± 12,0 |
+| bus | 13,2 ± 4,1 | 35,3 ± 2,9 | 32,5 ± 8,1 |
+| wall | 26,0 ± 3,8 | 40,2 ± 3,2 | 28,1 ± 8,9 |
+| fence | 17,2 ± 1,7 | 25,4 ± 3,7 | 21,2 ± 5,4 |
+| pole | 6,6 ± 0,9 | 15,7 ± 4,7 | 11,8 ± 9,6 |
+| building | 1,6 ± 0,2 | 11,5 ± 1,6 | 9,2 ± 8,3 |
+| vegetation | 2,2 ± 0,4 | 11,9 ± 3,7 | 11,0 ± 11,2 |
 
 ## 17. Đọc kết quả
 
@@ -347,18 +347,19 @@ Giá trị từng seed để ai cũng kiểm lại được: WoodScape nền —
 | WoodScape nền @0,15 (3 seed) | 2,2 ± 0,2 % | 7,6 ± 1,2 % | 5,4 ± 0,5 % | 79,9 ± 3,2 % |
 | WS + AVM @0,50 (3 seed) | 13,5 ± 2,8 % | 5,6 ± 2,0 % | 13,5 ± 7,2 % | 63,0 ± 1,6 % |
 | WS + AVM @0,15 (3 seed) | 7,1 ± 1,5 % | 12,9 ± 2,6 % | 8,4 ± 4,9 % | 72,8 ± 1,1 % |
-| WS + AVM trọng số @0,50 (1 seed) | 7,9 % | 11,3 % | 4,3 % | 67,7 % |
-| WS + AVM trọng số @0,15 (1 seed) | 4,2 % | 20,5 % | 1,9 % | 75,8 % |
+| WS + AVM trọng số @0,50 (3 seed) | 11,2 ± 9,2 % | 9,7 ± 1,6 % | 9,3 ± 7,8 % | 69,6 ± 3,1 % |
+| WS + AVM trọng số @0,15 (3 seed) | 6,5 ± 6,1 % | 19,2 ± 1,2 % | 5,4 ± 5,4 % | 77,0 ± 2,8 % |
 
 - **Hạ ngưỡng xuống 0,15** kéo lỗi nguy hiểm của lượt trộn xuống một nửa (13,5 → 7,1 %) nhưng lượt nền ở cùng ngưỡng còn 2,2 %: khoảng cách vẫn hơn ba lần, và báo động giả của lượt trộn lên 12,9 %. Đổi ngưỡng không bù được dữ liệu sai miền.
-- **Trọng số lớp nghịch tần suất** trên cache trộn là 0,66 / 2,04 (mạnh hơn nhiều so với 0,83 / 1,26 trên WoodScape ở phần II §11, vì AVM kéo tỉ lệ FREE lên 75 %). Một seed cho thấy nó sửa đúng chỗ đau: ô tô 4,5 %, người 1,4 %, xe đạp 0,2 % bị gọi FREE — tốt hơn cả lượt nền — và ban đêm 4,3 %. Nhưng xe buýt (28 %), nhà (6,6 %), cây (7 %) vẫn xấu hơn cả ba seed nền; xe tải (18,1 %) nằm trong khoảng ba seed nền (10,5 / 17,7 / 22,3 %) nên chưa phân biệt được. Giá là báo động giả gấp ba (11,3 % so với 3,4 %; ở ngưỡng 0,15 lên 20,5 % — một phần năm mặt đường bị coi là vật cản). Ở phần II, trọng số chỉ dịch điểm làm việc; ở đây nó có vẻ đổi cả hành vi theo lớp, nhưng **mới một seed nên chưa được coi là kết quả**. Nếu muốn dùng, phải chạy thêm hai seed (≈ 1 giờ GPU).
+- **Trọng số lớp nghịch tần suất** trên cache trộn là 0,66 / 2,04 (mạnh hơn nhiều so với 0,83 / 1,26 trên WoodScape ở phần II §11, vì AVM kéo tỉ lệ FREE lên 75 %). Seed đầu (20260922) trông như sửa đúng chỗ đau: vật cản→FREE trên ACDC 7,9 %, ban đêm 4,3 %. **Hai seed thêm sáng 23/09 bác bỏ điều đó**: cùng cấu hình, seed 20260923 cho 21,6 % và seed 20260924 cho 4,2 %; trung bình 11,2 ± 9,2 %, độ lệch chuẩn gấp 3,3 lần nhóm không trọng số, và trung bình đó không khác 13,5 ± 2,8 % của nhóm không trọng số một cách có ý nghĩa (chênh 2,2 điểm, nhỏ hơn độ lệch chuẩn). So từng cặp cùng seed với lượt trộn không trọng số (cùng seed nên cùng thứ tự batch và cùng phép augment theo mã `train.py`; riêng cặp 20260924 lượt trọng số dừng sớm ở epoch 25 với `best.pt` epoch 17, còn lượt trộn chạy đủ 30 epoch): −3,0 / +8,6 / −12,3 điểm — trọng số không có chiều nhất quán trên ACDC. Tách theo lớp: ô tô, người, xe máy, xe đạp giảm lỗi ở cả ba cặp và thấp hơn mọi seed nền (ô tô 5,4 ± 0,8 %, người 2,6 ± 1,6 %); tường cũng giảm ở cả ba cặp (−12,8 / −3,9 / −19,9 điểm, 40,2 → 28,1 %) nhưng dao động 22–38 % và chỉ hai trong ba seed về mức nền; còn xe buýt, xe tải, nhà, cây thì đổi chiều tùy seed (nhà 6,6 / 18,4 / 2,4 %, cây 7,0 / 23,8 / 2,4 %). Hai điều nhất quán ở cả ba cặp, đều so với lượt trộn cùng seed: recall vật lạ RO21 tăng (+5,5 / +3,2 / +11,2 điểm; nhóm 69,6 ± 3,1 % so với 63,0 ± 1,6 % của lượt trộn, nhưng chỉ hơn nền 67,0 ± 2,3 % có 2,6 điểm, chưa phân biệt được) và báo động giả trên ACDC tăng 3,5–4,7 điểm (9,7 ± 1,6 % so với 5,6 ± 2,0 % của lượt trộn; so với nền 3,4 ± 0,6 % là cao hơn 6,3 điểm). Điều thứ ba mới so được với một seed: bỏ sót trên chính WoodScape / AVM của cả ba seed trọng số (1,01 / 1,06 / 1,12 % và 5,88 / 5,66 / 5,33 %) đều thấp hơn seed đầu nhóm không trọng số (1,8 % / 8,7 %; hai seed trộn sau chưa chấm chéo), đổi lấy mIoU thấp hơn một chút (0,965 / 0,912). Kết luận: trọng số lớp **không phải cách gỡ** thiệt hại do AVM trên ảnh đường phố; nó dịch mô hình về phía thận trọng với người và xe, với giá là báo động giả, và không làm mô hình ổn định hơn. Run: `runs/ai_ws_avm_weighted`, `_seed20260923`, `_seed20260924`.
 
 ## 18. Kết luận phần III và checkpoint tham chiếu
 
 - **Không lượt nào trong đêm vượt lượt nền WoodScape trên cả hai tập chưa chạm.** `runs/ai_woodscape_rtx4000_v1/best.pt` vẫn là checkpoint tham chiếu của dự án; ngưỡng vận hành 0,15 vẫn là đòn bẩy rẻ nhất (phần II §10).
 - **Thêm dữ liệu công khai khác miền không phải đường đi tự động tốt.** AVM giúp đúng một việc: nhìn được ảnh từ trên xuống. Nếu camera trên xe thực sự cho góc nhìn đó, dùng `ai_ws_avm` và chấp nhận giá đã đo ở tường, xe lớn, nhà; nếu không, đừng dùng.
-- Câu trả lời cuối cùng vẫn nằm ở ảnh sa bàn tự thu, đúng như kết luận phần II §14: không bộ nào trong số này là camera của xe mô hình. Khi có 100–200 ảnh sa bàn có nhãn, phép chấm đầu tiên là chạy ba checkpoint (nền, trộn, trộn có trọng số) ở cả hai ngưỡng 0,50 và 0,15 trên chúng.
-- Chưa làm: seed thứ hai và ba cho lượt trọng số và lượt ba bộ; chấm chéo AVM cho hai seed trộn sau; ảnh minh họa lỗi theo lớp cho lượt trộn.
+- Câu trả lời cuối cùng vẫn nằm ở ảnh sa bàn tự thu, đúng như kết luận phần II §14: không bộ nào trong số này là camera của xe mô hình. Khi có 100–200 ảnh sa bàn có nhãn, phép chấm đầu tiên là chạy ba checkpoint (nền, trộn, trộn có trọng số — mỗi loại đủ ba seed) ở cả hai ngưỡng 0,50 và 0,15 trên chúng.
+- **Trọng số lớp đã kiểm đủ ba seed và không phải cách gỡ** (17.1). So với lượt trộn cùng seed nó cho nhất quán ba điều: bớt bỏ sót người và ô tô trên ACDC, tăng recall vật lạ RO21 (69,6 ± 3,1 % so với 63,0 ± 1,6 %), và tăng báo động giả (9,7 ± 1,6 % so với 5,6 ± 2,0 %). So với nền thì RO21 recall chưa phân biệt được (67,0 ± 2,3 %), còn lỗi vật cản→FREE trên ACDC không có chiều nhất quán.
+- Chưa làm: seed thứ hai và ba cho lượt ba bộ; chấm chéo WoodScape / AVM cho hai seed trộn sau; ảnh minh họa lỗi theo lớp cho lượt trộn.
 
 ## 19. Cách chạy lại
 
