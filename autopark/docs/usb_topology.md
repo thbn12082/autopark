@@ -32,13 +32,13 @@ là cổng nó cắm vào.
 | 3 | `USB\VID_1BCF&PID_0B09&MI_00\7&2ADEA245&0&0000` | 1 |
 | 4 | `USB\VID_1BCF&PID_0B09&MI_00\7&1FD88E3&0&0000` | 2 |
 
-**Index OpenCV không theo thứ tự cổng** (0→1, 1→3, 2→4, 3→2). Bản `list` đầu trong ngày (10:06, vòng 1) đã bị ghi đè cùng đường dẫn nên không còn file. Bản `list` thứ hai `usb_topology_2.json` (created_utc 04:06:08Z, sau toàn bộ 23 phiên đo và 3 lần ghi video, tức sau hàng chục lần mở/đóng VideoCapture) cho **cùng** bảng index ↔ cổng ↔ InstanceId với bản 10:36 — tính ổn định của index qua mở/đóng trong cùng phiên máy đã có hai file đối chiếu. **Rút/cắm lại cùng cổng đã kiểm hai lần** (≈ 11:45 các camera, ≈ 12:00 camera cổng 3; `usb_topology_replug1.json` và `usb_topology_replug2.json` cho cùng bảng index ↔ cổng ↔ InstanceId). **Chưa thử đổi cổng, chưa thử khởi động lại máy** (giai đoạn 2, bước 3). Theo cơ chế Windows cấp InstanceId theo vị trí cho thiết bị không serial, đổi cổng sẽ đổi InstanceId — cũng chưa thử. Vì vậy mã vận
+**Index OpenCV không theo thứ tự cổng** (0→1, 1→3, 2→4, 3→2). Bản `list` đầu trong ngày (10:06, vòng 1) đã bị ghi đè cùng đường dẫn nên không còn file. Bản `list` thứ hai `usb_topology_2.json` (created_utc 04:06:08Z, sau toàn bộ 23 phiên đo và 3 lần ghi video, tức sau hàng chục lần mở/đóng VideoCapture) cho **cùng** bảng index ↔ cổng ↔ InstanceId với bản 10:36 — tính ổn định của index qua mở/đóng trong cùng phiên máy đã có hai file đối chiếu. **Rút/cắm lại cùng cổng đã kiểm hai lần** (≈ 11:45 các camera, ≈ 12:00 camera cổng 3; `usb_topology_replug1.json` và `usb_topology_replug2.json` cho cùng bảng index ↔ cổng ↔ InstanceId). **Sau khởi động lại máy** (12:35 ngày 23/09; bản `list` lúc 13:07, `usb_topology_20260923_after_reboot.json`): InstanceId của từng cổng **giữ nguyên**, nhưng **index OpenCV đã đổi**: 0→1, 1→3, **2→2, 3→4** (trước là 2→4, 3→2). Đây là bằng chứng trực tiếp rằng index không dùng được làm danh tính. **Chưa thử đổi cổng** (giai đoạn 2, bước 3). Theo cơ chế Windows cấp InstanceId theo vị trí cho thiết bị không serial, đổi cổng sẽ đổi InstanceId — cũng chưa thử. Vì vậy mã vận
 hành phải chọn camera theo *InstanceId / cổng* (hàm `join_index_to_port` trong `camera_bench.py` cho bảng này lúc
 chạy), không hard-code index; việc gán hướng trước/sau/trái/phải sẽ ghi theo cổng khi có gá.
 
 ## Điều chưa làm
 
-- Đổi cổng camera và khởi động lại máy để kiểm InstanceId/index (rút/cắm cùng cổng đã kiểm).
+- Đổi cổng camera để kiểm InstanceId (rút/cắm cùng cổng và khởi động lại máy đã kiểm).
 - Thử trên laptop của xe; thử cáp kéo dài.
 - Phép thử nguồn ngoài cho hub; đo dòng tiêu thụ camera (không có đồng hồ đo USB).
 - Đo băng thông đẳng thời mỗi camera đặt trước (USB Device Tree Viewer / USBPcap).

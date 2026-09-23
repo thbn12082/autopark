@@ -33,6 +33,7 @@ Số đo trên bàn ngày 22/09/2026, chế độ Standard, chưa làm nóng, kh
 | Hub | UGREEN 4 cổng, chip Genesys Logic: 05E3:0626 "USB3.1 Hub" ở cổng gốc 24 và 05E3:0610 "USB2.1 Hub" ở cổng gốc 5; cả bốn camera ở nhánh USB 2.0 cổng 1–4 ([usb_topology.md](usb_topology.md)) | `camera_bench list` → `usb_topology.json` khóa `hubs` |
 | Nguồn hub | hub có cổng nguồn ngoài (theo người dùng); **bus-powered trong mọi phiên ngày 23/09**, chưa thử adapter; dòng camera **chưa đo** | |
 | Rút/cắm lại camera | hai lần (≈ 11:45 các camera; ≈ 12:00 camera cổng 3 sau khi bị treo không mở được): index và InstanceId giữ nguyên; sau đó 0 khung cũ trong 7 phiên, nguyên nhân chưa rõ | `usb_topology_replug1/2.json`, [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.5 |
+| Khởi động lại máy | 12:35 ngày 23/09: InstanceId theo cổng giữ nguyên, index OpenCV đổi (cổng 2 ↔ cổng 4) → chọn camera theo cổng, không theo index | `usb_topology_20260923_after_reboot.json` |
 | Góc nhìn thực, nhãn/hộp, độ nét trong vùng làm việc | **chưa đo** (camera mới nằm trên bàn) | |
 | Lớp phim bảo vệ ống kính | các phiên m01–m13 đo khi còn phim; lột lúc ≈ 11:15 ngày 23/09; phiên n01–n06 sau khi lột: nhịp khung/FPS không đổi, ảnh sáng hơn ≈ 5 lần ở cùng phơi sáng thủ công | [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.4 |
 | `camera_01_calibration.yaml` | chưa có (chưa in bảng hiệu chuẩn; mã hiệu chuẩn cho ống kính thật chưa viết) | |
