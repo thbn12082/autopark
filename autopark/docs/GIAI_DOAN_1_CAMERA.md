@@ -8,7 +8,7 @@ luồng (mục 4.2). Sơ đồ cổng và danh tính camera: [usb_topology.md](u
 **Mọi con số trong tài liệu này đều có file** trong `runs/camera_bench/20260923/` (git-ignored; bản sao json/báo cáo
 ở [evidence/camera/](evidence/camera/)): `mNN_*.measure.json` (phiên đo, kể cả danh sách khoảng cách từng khung),
 `traps_cam0.traps.json`, `source_cam0_720p.source.json`, `r0N_*.json` + `.avi` + ảnh PNG, `report.md`,
-`usb_topology.json`, `nNN_*_nofilm.measure.json` (sau khi lột phim bảo vệ, mục 4.4). Phiên chính thức chạy lại lúc 10:36–10:44 ngày 23/09 (giờ máy, UTC+7; `created_utc` 03:36:17Z ở `usb_topology.json` tới 03:44:07Z ở `r02_cam2_720p.json`) sau khi công cụ được sửa theo vòng kiểm tra đối kháng (mục 8); các lần thử tay trước đó (10:03–10:09, file đã bị ghi đè) không còn được trích dẫn.
+`usb_topology.json`, `nNN_*_nofilm.measure.json` (sau khi lột phim bảo vệ, mục 4.4), `pNN_*_power.measure.json` (hub có nguồn ngoài, mục 4.5), `usb_topology_replug.json`. Phiên chính thức chạy lại lúc 10:36–10:44 ngày 23/09 (giờ máy, UTC+7; `created_utc` 03:36:17Z ở `usb_topology.json` tới 03:44:07Z ở `r02_cam2_720p.json`) sau khi công cụ được sửa theo vòng kiểm tra đối kháng (mục 8); các lần thử tay trước đó (10:03–10:09, file đã bị ghi đè) không còn được trích dẫn.
 
 ## 1. Tiếp nhận thiết bị
 
@@ -17,7 +17,8 @@ luồng (mục 4.2). Sơ đồ cổng và danh tính camera: [usb_topology.md](u
 | Camera | 4 × "HD Camera", VID 1BCF (Sunplus Innovation) PID 0B09, UVC composite (giao diện video MI_00), **không có serial** | `usb_topology.json` (Get-PnpDevice + DirectShow DevicePath) |
 | Hub | UGREEN 4 cổng, chip Genesys Logic: "USB3.1 Hub" 05E3:0626 ở cổng gốc 24 và "USB2.1 Hub" 05E3:0610 ở cổng gốc 5; **cả bốn camera ở nhánh USB 2.0, cổng 1–4** | `usb_topology.json` khóa `hubs`, `pnp` |
 | Mode camera công bố | MJPG 640×480 / 1280×720 / 1920×1080 đều 30 fps; YUY2 640×480 30 fps, 1280×720 **10** fps, 1920×1080 **5** fps | `camera_modes.csv` (media type DirectShow) |
-| Góc nhìn 130°, nhãn/hộp, nguồn hub, dòng tiêu thụ | **chưa ghi / chưa đo** | |
+| Nguồn hub | bus-powered tới ≈ 11:45 ngày 23/09 (mọi phiên m*, n*), sau đó cắm adapter nguồn ngoài của hub (phiên p*, mục 4.5); điện áp/dòng của adapter và dòng camera **chưa đo** | người dùng; `pNN_*_power` |
+| Góc nhìn 130°, nhãn/hộp, dòng tiêu thụ | **chưa ghi / chưa đo** | |
 
 ## 2. Đã viết gì
 
@@ -81,12 +82,12 @@ giải mã MJPG và phép so khung trùng của bench.
 | m10, 20 s, mở 3-2-1-0 | 1920×1080 | 23,8 / **22,7** / **18,7** / 23,8 | 0 / 23 (97) / **102** (176 ms) / 0 | 89,1 | 1,31 lõi |
 | m07, 30 s, chỉ 0, 1, 3 | 1920×1080 | 23,9 / **20,0** / — / 23,8 | 0 / **116** (101 ms) / — / 0 | 67,7 | 0,98 lõi |
 
-- **Camera ở cổng 4 của hub (index 2) rớt khung khi chạy chung từ 720p trở lên**: ở cả ba thứ tự mở 1080p đã ghi (m06, m09, m10) và ở 720p (m05, m12a–c); ở 640×480 (m04, 30 s) **không rớt** (0 khung cũ, khoảng cách max 51,4 ms). Mức rớt dao động mạnh giữa các lần: 4 khung cũ trong 60 s (m05) tới 200 khung cũ trong 10 s với khoảng cách 1 s (m12c); quy về mỗi giây, 720p (0,07–20 khung cũ/s) và 1080p (1,3–10,7 khung cũ/s) chồng lấn nhau, nên chỉ nói được "480p không rớt, từ 720p có rớt", chưa nói được rớt tăng đều theo độ phân giải. Một mình nó chạy đủ 23,8 fps ở cả 720p lẫn 1080p (m08, m13), nên không hỏng khi chạy đơn. **Nguyên nhân khi có tranh chấp chưa xác định** — giả thuyết: chia băng thông trên nhánh USB 2.0 chung (cả bốn camera qua cổng gốc 5; việc 480p không rớt hợp với giả thuyết này nhưng chưa đủ để chọn nó); chiếc camera/dây này yếu hơn khi tranh chấp; đường nội bộ cổng 4 của hub; thứ tự SetInterface lúc mở — riêng thứ tự mở không làm hết rớt, kể cả khi cổng 4 được mở đầu tiên (m09: 13,1 fps, 214 khung cũ), nhưng mỗi thứ tự chỉ có một phiên trong khi cùng một thứ tự đã cho 15–200 khung cũ (m12b/c), nên chưa xếp hạng được các thứ tự. Phép thử phân biệt là đổi chỗ cắm (mục 6, việc 1); chưa làm.
+- **Camera ở cổng 4 của hub (index 2) rớt khung khi chạy chung từ 720p trở lên**: ở cả ba thứ tự mở 1080p đã ghi (m06, m09, m10) và ở 720p (m05, m12a–c); ở 640×480 (m04, 30 s) **không rớt** (0 khung cũ, khoảng cách max 51,4 ms). Mức rớt dao động mạnh giữa các lần: 4 khung cũ trong 60 s (m05) tới 200 khung cũ trong 10 s với khoảng cách 1 s (m12c); quy về mỗi giây, 720p (0,07–20 khung cũ/s) và 1080p (1,3–10,7 khung cũ/s) chồng lấn nhau, nên chỉ nói được "480p không rớt, từ 720p có rớt", chưa nói được rớt tăng đều theo độ phân giải. Một mình nó chạy đủ 23,8 fps ở cả 720p lẫn 1080p (m08, m13), nên không hỏng khi chạy đơn. **Nguyên nhân khi có tranh chấp** — mục 4.5: sau khi cắm nguồn ngoài cho hub, 0 khung cũ trong 7 phiên cùng cấu hình, nên **thiếu nguồn của hub bus-powered** là giả thuyết được ủng hộ nhất; các giả thuyết khác chưa bị loại hẳn: chia băng thông trên nhánh USB 2.0 chung (cả bốn camera qua cổng gốc 5; việc 480p không rớt hợp với cả hai giả thuyết); chiếc camera/dây này yếu hơn khi tranh chấp; đường nội bộ cổng 4 của hub; thứ tự SetInterface lúc mở — riêng thứ tự mở không làm hết rớt, kể cả khi cổng 4 được mở đầu tiên (m09: 13,1 fps, 214 khung cũ), nhưng mỗi thứ tự chỉ có một phiên trong khi cùng một thứ tự đã cho 15–200 khung cũ (m12b/c), nên chưa xếp hạng được các thứ tự. Phép thử đảo nguồn và đổi chỗ cắm (mục 6, việc 1) sẽ chốt; chưa làm.
 - **720p × 4 chưa đủ bằng chứng để nói ổn định.** Phiên 60 s chỉ rớt 4 khung, nhưng ba phiên 10 s liền sau đó cho
   18,6 / 22,3 / 3,9 fps ở camera cổng 4. Ba camera còn lại không rớt khung nào trong mọi phiên 720p.
-- **1080p với ba hoặc bốn camera không đạt**: cổng 4 rớt ở mọi phiên bốn camera; cổng 3 (index 1) cũng rớt (22,3–22,7
-  fps) ở hai thứ tự mở và rớt nặng (20,0 fps, 116 khung cũ) khi chỉ chạy ba camera (m07). Với một hub USB 2.0, 1080p
-  chỉ chắc chắn cho một camera (m03, m13); **hai camera 1080p chưa thử**.
+- **1080p với ba hoặc bốn camera không đạt khi hub bus-powered**: cổng 4 rớt ở cả ba phiên bốn camera 1080p (m06, m09, m10); cổng 3 (index 1) cũng rớt (22,3–22,7
+  fps) ở hai thứ tự mở và rớt nặng (20,0 fps, 116 khung cũ) khi chỉ chạy ba camera (m07). Với hub bus-powered, 1080p
+  chỉ chắc chắn cho một camera (m03, m13); **hai camera 1080p chưa thử**. Với hub có nguồn ngoài, bốn camera 1080p chạy sạch (mục 4.5).
 - **Băng thông USB thật chưa đo.** Cỡ khung trong AVI (r01: 45,6 MB / 478 khung ≈ 95 KB; r02: 23,7 MB / 239 khung
   ≈ 99 KB) là JPEG do OpenCV **mã hóa lại** từ ảnh BGR đã giải mã, không phải số byte camera đẩy qua USB. Payload thật
   và băng thông đẳng thời mỗi camera đặt trước theo alt-setting của mode cần `CAP_PROP_CONVERT_RGB=0`, USB Device
@@ -129,10 +130,48 @@ lúc ≈ 11:15). Chạy lại các phiên chính để xem điều đó đổi g
   sạch (n05: 0 khung cũ, khác m07 có 116) — cũng thất thường.
 - r03 (10 s, còn ảnh tĩnh `r03_cam0_720p_nofilm_*.png`): 240 khung, 23,99 fps, 0 khung cũ.
 
+### 4.5. Nguồn ngoài cho hub — phép thử A/B (phiên p*, `created_utc` 05:05:30Z–05:08:19Z, tức ≈ 12:05–12:08 giờ máy)
+
+Người dùng đặt câu hỏi hub bus-powered có đủ nguồn cho bốn camera không, và cắm adapter nguồn ngoài của hub lúc ≈ 11:45
+(không đổi dây, không đổi cổng). Chạy lại đúng các cấu hình từng rớt khung:
+
+| Cấu hình | CHƯA có nguồn ngoài (m*, n*) | CÓ nguồn ngoài (p*) |
+|---|---|---|
+| 4 × 720p, 10 s × 3 | m12a: 52 khung cũ (cam2 18,6 fps, max 97 ms); m12b: 15 khung cũ (cam2 22,3 fps, max 97 ms); m12c: 200 khung cũ (cam2 3,9 fps, max 1008 ms) | p12a: 0 khung cũ; p12b: 0 khung cũ; p12c: 0 khung cũ |
+| 4 × 720p, 60 s | m05: 4 khung cũ (cam2 23,8 fps, max 96 ms); n03: 0 khung cũ | p05: 0 khung cũ |
+| 4 × 1080p, mở 0-1-2-3, 30 s | m06: 40 khung cũ (cam2 22,5 fps, max 129 ms); n04: 147 khung cũ (cam2 19,0 fps, max 129 ms) | p06: 0 khung cũ |
+| 4 × 1080p, mở 2-0-1-3, 20 s | m09: 245 khung cũ (cam2 13,1 fps, max 304 ms) | p09: 0 khung cũ |
+| 3 × 1080p (cổng 1, 3, 2), 20–30 s | m07: 116 khung cũ (cam1 20,0 fps, max 101 ms); n05: 0 khung cũ | p07: 0 khung cũ |
+
+- **Có nguồn ngoài: 0 khung cũ trong cả 7 phiên** (≈ 3 phút, kể cả bốn camera 1080p ở hai thứ tự mở). Chưa có nguồn:
+  8/10 phiên cùng cấu hình rớt, tổng 819 khung cũ. Đây là bằng chứng mạnh nhất tới giờ về nguyên nhân rớt
+  khung: **hub bus-powered không cấp đủ nguồn cho bốn camera từ 720p trở lên** là giả thuyết được ủng hộ nhất; giả thuyết băng thông
+  đẳng thời chưa bị loại hẳn (vẫn chưa đo băng thông) nhưng không còn cần thiết để giải thích số liệu.
+- Ba biến số không kiểm soát được trong A/B này, ghi để không ai coi đây là phép thử sạch: (1) giữa hai lô, camera cổng 3 bị rút/cắm
+  lại (sự cố bên dưới); (2) ánh sáng/khung cảnh đổi — độ sáng trung bình của lô p là 35–65 so với ≈ 90 ở lô
+  m/n; (3) ba phiên p12a–c chạy ngay sau khi cắm lại (12:05) cho FPS 24,5–29,2 với nhiều khoảng ngắn liền
+  nhau và độ sáng dao động 44–94, tức phơi sáng tự động chưa ổn định — số FPS của ba phiên
+  đó không so được với m12a–c, chỉ số khung cũ (0) là so được; từ p05 trở đi nhịp khung trở lại đúng dạng 23,8 fps / 38 % khoảng ngắn.
+  Phép thử đảo (rút adapter, chạy lại bốn camera 1080p 30 s) sẽ chốt nguyên nhân; chưa làm vì lần cắm adapter đã làm treo một camera.
+- Với hub có nguồn, ba camera gồm cả cổng 4 (p08 1080p, p10 720p) và camera cổng 4 một mình (p13) đều 0 khung cũ; CPU bốn camera 1080p
+  1,40 lõi.
+
+**Sự cố khi cắm adapter (≈ 11:45):** Windows không ghi nhận reset hay cấu hình lại thiết bị nào (Kernel-PnP không có sự kiện cho
+VID_1BCF/VID_05E3, trạng thái OK, không lỗi USB trong System log), DirectShow vẫn liệt kê đủ bốn camera, nhưng camera ở **cổng 3**
+(index 1) từ chối mở (`VideoCapture.isOpened() = False`) trong khi ba chiếc kia mở bình thường; bảy lệnh đo bốn camera đầu tiên vì
+thế thất bại với `không mở được camera index 1`. Không có quyền admin để khởi động lại thiết bị bằng phần mềm; người dùng rút và cắm
+lại camera đó vào đúng cổng 3, sau đó cả bốn mở được. Bài học: **cắm/rút nguồn hub khi camera đang cắm có thể làm treo camera mà
+Windows không báo**; nguồn hub phải cắm trước khi cắm camera, và mã vận hành phải coi "mở thất bại dù PnP OK" là trạng thái cần
+người can thiệp.
+
+**Hồ sơ rút/cắm (giai đoạn 2, bước 3):** sau khi rút/cắm camera cổng 3, bản `list` `usb_topology_replug.json` cho **cùng** bảng
+index ↔ cổng ↔ InstanceId với bản 10:36 (0→1, 1→3, 2→4, 3→2); danh tính theo cổng và index DirectShow giữ nguyên qua một lần rút/cắm
+cùng cổng và một lần cắm nguồn hub. Đổi cổng và khởi động lại máy vẫn chưa thử.
+
 ## 5. Đối chiếu với kế hoạch
 
 - Bước 1–2 "Khi nhận một camera": bước 1 xong phần biến thể theo VID/PID (1BCF:0B09) và giao tiếp (UVC qua DirectShow), có hồ sơ; góc nhìn 130° là số nhà bán ghi, chưa đo (mục 1); chiều dài/loại dây camera **chưa ghi** (tiền đề "dùng dây ngắn trước" chưa có hồ sơ; cần ghi vào hardware_inventory.md để bước 9 giai đoạn 2 có cấu hình "ngắn" đối chiếu). Bước 2 (mode thật): xong, có hồ sơ (`camera_modes.csv`). Bước 3 (một phiên đo FPS, thời gian suy luận, độ trễ, mất hình, CPU/GPU, nhiệt): **có** FPS, mất hình (khung cũ), CPU; **chưa** độ trễ, thời gian suy luận, GPU, nhiệt. Bước 4 (ảnh ở độ cao/góc chúc/khoảng cách dự kiến): chưa. Bước 5 (hiệu chuẩn): chưa. Bước 6 (AI trên ảnh thật): chưa.
-- Giai đoạn 2 "Khi đủ bốn camera": bước 1 (bốn camera cùng mode chung) làm xong về phép đo: mốc đề xuất 720p30 MJPEG đạt về mode nhưng thực tế là **720p ≈ 24 fps** với camera cổng 4 rớt thất thường; 1080p × 4 không đạt qua một hub USB 2.0; tiền đề "trên dây ngắn" chưa ghi (dây camera chưa kiểm kê). Bước 3 gồm bốn phần: sơ đồ cổng USB — xong ([usb_topology.md](usb_topology.md)); nguồn hub — **chưa ghi**; cách gán camera vào hướng — chưa (sẽ ghi theo cổng khi có gá); kiểm nhận dạng sau rút/cắm/khởi động lại — chưa. Bước 2, 4, 5, 6, 7, 8, 9: chưa.
+- Giai đoạn 2 "Khi đủ bốn camera": bước 1 (bốn camera cùng mode chung) làm xong về phép đo: mốc đề xuất 720p30 MJPEG đạt về mode nhưng thực tế là **720p ≈ 24 fps**; với hub bus-powered camera cổng 4 rớt thất thường và 1080p × 4 không đạt, **với hub có nguồn ngoài cả 720p × 4 lẫn 1080p × 4 chạy sạch** (mục 4.5); tiền đề "trên dây ngắn" chưa ghi (dây camera chưa kiểm kê). Bước 3 gồm bốn phần: sơ đồ cổng USB — xong ([usb_topology.md](usb_topology.md)); nguồn hub — có adapter nguồn ngoài từ ≈ 11:45 ngày 23/09, điện áp/dòng chưa đo; cách gán camera vào hướng — chưa (sẽ ghi theo cổng khi có gá); kiểm nhận dạng sau rút/cắm — **xong một lần** (cùng bảng, `usb_topology_replug.json`), sau khởi động lại — chưa. Bước 2, 4, 5, 6, 7, 8, 9: chưa.
 - Danh tính camera = cổng hub (không serial); index OpenCV không theo thứ tự cổng (0→1, 1→3, 2→4, 3→2) → mã vận hành
   phải chọn theo InstanceId.
 - Điều kiện chuyển bước gate 1 phần camera ghi ở [gate_01.md](gate_01.md): "nhận ổn ở mode đã ghi rõ" đạt trên máy
@@ -141,14 +180,15 @@ lúc ≈ 11:15). Chạy lại các phiên chính để xem điều đó đổi g
 
 ## 6. Việc còn lại — cần người
 
-1. **Đổi chỗ cắm camera đang ở cổng 4** (hoặc hoán đổi hai camera) rồi chạy lại m05/m06 để biết rớt khung theo camera
-   hay theo cổng: `camera_bench list` (xem index mới) rồi `measure --index 0 1 2 3 --width 1920 --height 1080 --seconds 30 --name m06b_doi_cong --out runs/camera_bench/<ngày>`.
-2. **Rút/cắm lại và khởi động lại máy**, chạy `list` xem InstanceId và index có đổi (giai đoạn 2, bước 3).
+1. **Phép thử đảo nguồn**: rút adapter của hub (rút camera ra trước, cắm lại sau, vì cắm/rút nguồn khi camera đang cắm đã làm treo một
+   camera), chạy lại `measure --index 0 1 2 3 --width 1920 --height 1080 --seconds 30`; nếu rớt khung quay lại thì nguyên nhân nguồn được chốt.
+   Nếu vẫn muốn tách "camera hay cổng": đổi chỗ cắm camera cổng 4 rồi chạy lại cùng lệnh.
+2. **Khởi động lại máy**, chạy `list` xem InstanceId và index có đổi (giai đoạn 2, bước 3; rút/cắm cùng cổng đã kiểm một lần, mục 4.5).
 3. **Đặt camera ở độ cao và góc chúc dự kiến trên xe**, bày hộp/thành/xe mô hình, ghi ảnh bằng `record` — ảnh sa bàn
    đầu tiên cho nhánh AI (HUAN_LUYEN.md phần III, mục 18).
 4. **In bảng ô vuông** có kích thước đo được để hiệu chuẩn 130°; mã hiệu chuẩn cho ống kính thật chưa có
    (`perception/calibration.py` hiện chỉ đọc mô hình fisheye của WoodScape).
-5. Xác nhận nguồn hub và dòng camera; ghi chiều dài/loại dây camera vào kiểm kê; thử trên laptop của xe; thử cáp kéo dài — theo thứ tự kế hoạch.
+5. Đo điện áp/dòng adapter hub và dòng camera; ghi chiều dài/loại dây camera vào kiểm kê; thử trên laptop của xe; thử cáp kéo dài — theo thứ tự kế hoạch.
 6. Chạy AI trên ảnh thật và lưu cả lỗi (bước 6 "Khi nhận một camera").
 7. Một phiên đo đủ bước 3 trên laptop của xe: FPS, độ trễ (LED/đồng hồ), mất hình, thời gian suy luận, CPU/GPU, nhiệt.
 8. Bốn camera chạy cùng LiDAR + AI, ghi sai lệch thời gian giữa các luồng (giai đoạn 2, bước 2 và 5).

@@ -31,7 +31,8 @@ Số đo trên bàn ngày 22/09/2026, chế độ Standard, chưa làm nóng, kh
 | FPS thật đo được | ≈ 24 fps với phơi sáng tự động trong phòng (720p và 1080p một camera: m01, m03, m08, m13; 640×480 chỉ đo trong phiên bốn camera m04), nhịp khung không đều (trung bình 41,9 ms, trung vị 47 ms); 29,3 fps khi ép phơi sáng −5…−8 (ảnh tối, m02/m11) | [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.1 |
 | Bốn luồng đồng thời | 640×480 (m04, 30 s): 4 × 23,9 fps, 0 khung cũ. 720p (m05, 60 s): 4 × 23,8 fps, camera cổng 4 rớt 4 khung; ba phiên 10 s (m12a–c) camera cổng 4 còn 18,6 / 22,3 / 3,9 fps, ba chiếc kia không rớt. 1080p (m06, m09, m10): camera cổng 4 còn 22,5 / 13,1 / 18,7 fps, cổng 3 còn 22,3–22,7; ba camera 1080p (m07) cổng 3 còn 20,0 fps | cùng tài liệu, mục 4.2 |
 | Hub | UGREEN 4 cổng, chip Genesys Logic: 05E3:0626 "USB3.1 Hub" ở cổng gốc 24 và 05E3:0610 "USB2.1 Hub" ở cổng gốc 5; cả bốn camera ở nhánh USB 2.0 cổng 1–4 ([usb_topology.md](usb_topology.md)) | `camera_bench list` → `usb_topology.json` khóa `hubs` |
-| Nguồn hub, dòng tiêu thụ camera | **chưa ghi** | |
+| Nguồn hub | có cổng nguồn ngoài; bus-powered tới ≈ 11:45 ngày 23/09 (rớt khung ở cổng 4 từ 720p), có adapter từ đó (0 khung cũ trong 7 phiên A/B); điện áp/dòng adapter và dòng camera **chưa đo** | [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.5 |
+| Rút/cắm lại camera | một lần (cổng 3, sau khi bị treo lúc cắm adapter): index và InstanceId giữ nguyên | `usb_topology_replug.json` |
 | Góc nhìn thực, nhãn/hộp, độ nét trong vùng làm việc | **chưa đo** (camera mới nằm trên bàn) | |
 | Lớp phim bảo vệ ống kính | các phiên m01–m13 đo khi còn phim; lột lúc ≈ 11:15 ngày 23/09; phiên n01–n06 sau khi lột: nhịp khung/FPS không đổi, ảnh sáng hơn ≈ 5 lần ở cùng phơi sáng thủ công | [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.4 |
 | `camera_01_calibration.yaml` | chưa có (chưa in bảng hiệu chuẩn; mã hiệu chuẩn cho ống kính thật chưa viết) | |
