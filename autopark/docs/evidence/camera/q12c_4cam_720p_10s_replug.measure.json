@@ -1152,5 +1152,6 @@
       ]
     }
   ],
-  "name": "p12c_4cam_720p_10s_power"
+  "name": "q12c_4cam_720p_10s_replug",
+  "note": "Phiên sau khi người dùng rút/cắm lại các camera (KHÔNG cắm nguồn ngoài; tên cũ *_power là do hiểu nhầm, đã đổi 23/09 12:30)."
 }
