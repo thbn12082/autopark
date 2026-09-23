@@ -11,6 +11,7 @@ logs/
 review_artifacts/
 runs/
 !docs/evidence/*.csv
+!docs/camera_modes.csv
 datasets/raw/
 datasets/avm_ss/
 datasets/drow/

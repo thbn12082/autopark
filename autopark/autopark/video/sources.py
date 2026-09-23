@@ -4,10 +4,10 @@ Cùng một giao diện `FrameSource` cho cả ba, để phần nhận thức v�
 phát lại và trên camera thật (giai đoạn 1). Quy ước `read()`: trả `Frame`; trả `None` CHỈ khi nguồn phát lại
 đã hết; nguồn trực tiếp không bao giờ trả `None` mà ném `FrameReadError` khi một lần đọc hỏng, để vòng lặp
 tiêu thụ không nhầm sự cố USB với hết dữ liệu. Thời gian của nguồn phát lại lấy từ file (một đồng hồ duy nhất
-cho cả file) cộng `t0`; camera thật lấy đồng hồ phiên tại thời điểm `grab()` (trước khi giải mã) và giữ hàng
-đợi driver ở 1 khung để tuổi khung phản ánh đúng độ trễ. `UsbCameraSource` mới chỉ được viết theo API OpenCV,
-chưa chạy với thiết bị nào trên máy này; `mode()` trả về mode thực đọc từ driver và `mode_mismatch` ghi khác
-biệt so với yêu cầu. Một `read()` bị treo vẫn chặn vòng lặp: người dùng cần gọi `FreshnessMonitor.check()`
+cho cả file) cộng `t0`; camera thật lấy đồng hồ phiên ngay sau khi `read()` trả về (đã gồm chờ khung kế và giải
+mã, nên tuổi khung tính được nhỏ hơn tuổi thật một khoảng giải mã/copy, không lớn hơn). Có yêu cầu hàng đợi driver
+1 khung (`CAP_PROP_BUFFERSIZE`); DirectShow có nhận hay không ghi ở `buffer_size_applied`. `mode()` trả về kích
+thước thực đọc từ driver, còn fourcc/fps chỉ là yêu cầu; `mode_mismatch` ghi khác biệt kích thước. Một `read()` bị treo vẫn chặn vòng lặp: người dùng cần gọi `FreshnessMonitor.check()`
 từ một timer riêng (hoặc chạy nguồn trong luồng riêng) để STALE_DATA vẫn được phát khi driver treo.
 """
 from __future__ import annotations
@@ -140,51 +140,64 @@ class VideoFileSource:
 
 
 class UsbCameraSource:
-    """Camera UVC qua OpenCV. CHƯA KIỂM CHỨNG với thiết bị thật.
+    """Camera UVC qua OpenCV (DirectShow trên Windows).
 
-    Stamp lấy ngay sau `grab()` (trước khi giải mã), hàng đợi driver đặt về 1 khung (nếu driver cho phép) và
-    khung trùng byte với khung trước bị coi là lỗi đọc, để tuổi khung không bị che bởi bộ đệm của driver.
+    Ba điều dưới đây đo bằng `autopark.video.camera_bench` trên bốn camera "HD Camera" (Sunplus 1BCF:0B09) ngày
+    23/09/2026, OpenCV 5.0 (hồ sơ: runs/camera_bench/20260923, docs/GIAI_DOAN_1_CAMERA.md mục 3); lớp này viết
+    theo đó và được chạy trên camera thật bằng `camera_bench source` (hồ sơ cùng thư mục):
+    (1) kích thước và MJPG phải đưa vào NGAY LÚC MỞ (`params` của `cv2.VideoCapture`) — đặt sau khi mở thì backend
+    rơi về YUY2, 720p/1080p chỉ còn 10/5 fps; (2) `grab()` không chờ khung mới nên nguồn dùng `read()`, hàm này chặn
+    tới khung kế tiếp; (3) `CAP_PROP_FPS` đọc lại là −1 hoặc tiếng vọng của yêu cầu nên FPS thật phải đo bằng
+    `autopark.video.camera_bench`; `CAP_PROP_FOURCC` đọc lại phản ánh định dạng đã thương lượng (`fourcc_reported`). Khung trùng byte với khung trước là
+    driver trả lại khung cũ: tính là lỗi đọc để tuổi khung không bị che. Stamp lấy ngay sau `read()` (đã gồm giải mã).
     """
 
     def __init__(self, index: int, *, width: int | None = None, height: int | None = None, fps: float | None = None,
-                 fourcc: str | None = "MJPG", source_id: str = "camera_usb", clock=time.monotonic):
+                 fourcc: str | None = "MJPG", exposure: float | None = None, source_id: str = "camera_usb",
+                 clock=time.monotonic):
         backend = cv2.CAP_DSHOW if sys.platform == "win32" else cv2.CAP_ANY
-        self.capture = cv2.VideoCapture(index, backend)
+        params: list = []
+        if fourcc:
+            params += [cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*fourcc)]
+        if width:
+            params += [cv2.CAP_PROP_FRAME_WIDTH, int(width)]
+        if height:
+            params += [cv2.CAP_PROP_FRAME_HEIGHT, int(height)]
+        if fps:
+            params += [cv2.CAP_PROP_FPS, int(round(fps))]     # params chỉ nhận int
+        self.capture = cv2.VideoCapture(index, backend, params) if params else cv2.VideoCapture(index, backend)
         if not self.capture.isOpened():
             raise ValueError(f"Cannot open camera index {index}")
-        self.requested = {"width": width, "height": height, "fps": fps, "fourcc": fourcc}
-        # DirectShow tends to reset the pixel format when the frame size changes: size first, then format.
-        if width:
-            self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        if height:
-            self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        if fourcc:
-            self.capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*fourcc))
-        if fps:
-            self.capture.set(cv2.CAP_PROP_FPS, fps)
+        self.requested = {"width": width, "height": height, "fps": fps, "fourcc": fourcc, "exposure": exposure}
         self.buffer_size_applied = bool(self.capture.set(cv2.CAP_PROP_BUFFERSIZE, 1))
+        if exposure is None:
+            self.exposure_applied = bool(self.capture.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75))
+        else:
+            self.exposure_applied = bool(self.capture.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)) and \
+                bool(self.capture.set(cv2.CAP_PROP_EXPOSURE, float(exposure)))
         self.source_id, self.clock, self.index, self.failures = source_id, clock, 0, 0
         self._last_image: np.ndarray | None = None
         actual = self.mode()
         self.mode_mismatch = {key: (value, actual[key]) for key, value in self.requested.items()
-                              if value is not None and actual[key] != value and not (key == "fps" and actual[key] == 0)}
+                              if key in ("width", "height") and value is not None and actual[key] != value}
 
     def mode(self) -> dict:
+        """Kích thước là thật; `fourcc_reported` là định dạng đã thương lượng (YUY2 nếu rơi về, tin được);
+        `fps` là yêu cầu, `fps_reported` của DirectShow là −1 hoặc tiếng vọng nên FPS thật phải đo."""
         code = int(self.capture.get(cv2.CAP_PROP_FOURCC))
         return {"width": int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
                 "height": int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-                "fps": float(self.capture.get(cv2.CAP_PROP_FPS)),
-                "fourcc": "".join(chr((code >> (8 * i)) & 0xFF) for i in range(4))}
+                "fps": self.requested["fps"], "fourcc": self.requested["fourcc"],
+                "fourcc_reported": "".join(chr((code >> (8 * i)) & 0xFF) for i in range(4)),   # định dạng đã thương lượng
+                "fps_reported": float(self.capture.get(cv2.CAP_PROP_FPS)),
+                "exposure_reported": float(self.capture.get(cv2.CAP_PROP_EXPOSURE))}
 
     def read(self) -> Frame:
-        if not self.capture.grab():
-            self.failures += 1
-            raise FrameReadError(f"{self.source_id}: grab failed ({self.failures} failures so far)")
+        ok, image = self.capture.read()
         t = self.clock()
-        ok, image = self.capture.retrieve()
         if not ok or image is None:
             self.failures += 1
-            raise FrameReadError(f"{self.source_id}: retrieve failed ({self.failures} failures so far)")
+            raise FrameReadError(f"{self.source_id}: read failed ({self.failures} failures so far)")
         if self._last_image is not None and image.shape == self._last_image.shape and np.array_equal(image, self._last_image):
             self.failures += 1
             raise FrameReadError(f"{self.source_id}: driver returned the previous frame again")

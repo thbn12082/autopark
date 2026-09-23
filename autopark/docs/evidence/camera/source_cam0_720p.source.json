@@ -1,0 +1,30 @@
+{
+  "created_utc": "2026-09-23T03:36:44+00:00",
+  "index": 0,
+  "requested": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "fourcc": "MJPG",
+    "exposure": null
+  },
+  "mode": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "fourcc": "MJPG",
+    "fps_reported": -1.0,
+    "exposure_reported": -6.0
+  },
+  "mode_mismatch": {},
+  "buffer_size_applied": false,
+  "exposure_applied": true,
+  "frames_ok": 120,
+  "read_errors": 0,
+  "read_error_samples": [],
+  "stamps_strictly_increasing": true,
+  "stamp_gap_ms_mean": 42.02,
+  "stamp_gap_ms_median": 47.0,
+  "stamp_gap_ms_max": 63.0,
+  "name": "source_cam0_720p"
+}

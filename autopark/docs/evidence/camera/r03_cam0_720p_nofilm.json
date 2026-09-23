@@ -1,0 +1,36 @@
+{
+  "created_utc": "2026-09-23T04:04:31+00:00",
+  "camera_index": 0,
+  "requested": {
+    "width": 1280,
+    "height": 720,
+    "fourcc": "MJPG",
+    "fps": 30.0,
+    "exposure": null
+  },
+  "actual": {
+    "width": 1280,
+    "height": 720
+  },
+  "exposure": {
+    "auto": true,
+    "set_ok": true,
+    "readback": -6.0
+  },
+  "probe_seconds": 2.02,
+  "probe_new_frames": 48,
+  "probe_duplicate_reads": 0,
+  "probe_fps_real": 23.81,
+  "video": "r03_cam0_720p_nofilm.avi",
+  "video_fps": 24.0,
+  "frame_times": "r03_cam0_720p_nofilm.frames.csv",
+  "frames_written": 240,
+  "duplicate_reads": 0,
+  "read_failures": 0,
+  "seconds": 10.0,
+  "fps_real": 23.99,
+  "snapshots": [
+    "r03_cam0_720p_nofilm_000.0s.png",
+    "r03_cam0_720p_nofilm_005.0s.png"
+  ]
+}

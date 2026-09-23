@@ -1,0 +1,185 @@
+# Giai đoạn 1 — nhánh camera: nhận bốn camera USB 130° (theo nhà bán, chưa đo) và hub UGREEN (23/09/2026)
+
+Máy: máy bàn i9-14900, Windows 11, OpenCV 5.0.0 (`.venv`), **chưa phải laptop của xe**. Kế hoạch nói thử một camera
+trước rồi mới nhân bốn; đồ về là bốn chiếc cùng lúc, nên bài thử đơn camera (mục 4.1) làm trước, rồi mới tới bốn
+luồng (mục 4.2). Sơ đồ cổng và danh tính camera: [usb_topology.md](usb_topology.md). Mode camera công bố:
+[camera_modes.csv](camera_modes.csv).
+
+**Mọi con số trong tài liệu này đều có file** trong `runs/camera_bench/20260923/` (git-ignored; bản sao json/báo cáo
+ở [evidence/camera/](evidence/camera/)): `mNN_*.measure.json` (phiên đo, kể cả danh sách khoảng cách từng khung),
+`traps_cam0.traps.json`, `source_cam0_720p.source.json`, `r0N_*.json` + `.avi` + ảnh PNG, `report.md`,
+`usb_topology.json`, `nNN_*_nofilm.measure.json` (sau khi lột phim bảo vệ, mục 4.4). Phiên chính thức chạy lại lúc 10:36–10:44 ngày 23/09 (giờ máy, UTC+7; `created_utc` 03:36:17Z ở `usb_topology.json` tới 03:44:07Z ở `r02_cam2_720p.json`) sau khi công cụ được sửa theo vòng kiểm tra đối kháng (mục 8); các lần thử tay trước đó (10:03–10:09, file đã bị ghi đè) không còn được trích dẫn.
+
+## 1. Tiếp nhận thiết bị
+
+| Mục | Giá trị | Nguồn |
+|---|---|---|
+| Camera | 4 × "HD Camera", VID 1BCF (Sunplus Innovation) PID 0B09, UVC composite (giao diện video MI_00), **không có serial** | `usb_topology.json` (Get-PnpDevice + DirectShow DevicePath) |
+| Hub | UGREEN 4 cổng, chip Genesys Logic: "USB3.1 Hub" 05E3:0626 ở cổng gốc 24 và "USB2.1 Hub" 05E3:0610 ở cổng gốc 5; **cả bốn camera ở nhánh USB 2.0, cổng 1–4** | `usb_topology.json` khóa `hubs`, `pnp` |
+| Mode camera công bố | MJPG 640×480 / 1280×720 / 1920×1080 đều 30 fps; YUY2 640×480 30 fps, 1280×720 **10** fps, 1920×1080 **5** fps | `camera_modes.csv` (media type DirectShow) |
+| Góc nhìn 130°, nhãn/hộp, nguồn hub, dòng tiêu thụ | **chưa ghi / chưa đo** | |
+
+## 2. Đã viết gì
+
+| Việc | Mã | Kiểm |
+|---|---|---|
+| Phiên đo camera: `list` (PnP + hub + DirectShow, ghép index ↔ cổng hub), `modes` (media type → csv), `measure` (1..N camera cùng lúc: FPS thật, khung cũ trả lại, đọc hỏng, khoảng cách khung — trung bình/trung vị/p95/max và từng khoảng, thời gian read(), độ sáng, CPU tiến trình; luồng lỗi được ghi vào kết quả và mã thoát ≠ 0), `record` (AVI MJPG + ảnh tĩnh + thời điểm từng khung), `traps` (hồ sơ ba bẫy mục 3), `source` (chạy `UsbCameraSource` trên camera thật), `report` | `video/camera_bench.py` | 13 test không cần phần cứng (`tests/test_camera_bench.py`) |
+| Sửa nguồn camera trực tiếp theo mục 3; thêm `exposure`; `mode()` ghi kích thước thực và fourcc đọc lại, fps chỉ là yêu cầu | `video/sources.py::UsbCameraSource` | test giả lập VideoCapture; chạy trên camera thật (`source_cam0_720p.source.json`); bộ mô phỏng 300 đạt / 4 bỏ qua |
+| `pygrabber` (DirectShow qua comtypes, chỉ Windows) vào extra `video` và lock; ngoại lệ `.gitignore` cho `docs/camera_modes.csv` | `pyproject.toml`, `requirements-phase0.lock`, `.gitignore` | |
+
+## 3. Ba cái bẫy của OpenCV 5 + DirectShow, có hồ sơ (`traps_cam0.traps.json`, camera index 0, 3 s mỗi phép)
+
+1. **Mode phải đưa vào ngay lúc mở.** Đặt kích thước/`CAP_PROP_FOURCC` *sau* khi mở: 720p còn **9,5 fps**, 1080p còn
+   **4,2 fps**, fourcc đọc lại YUY2 — đúng hai mode YUY2 10/5 fps camera công bố. Đưa cùng các tham số vào
+   `cv2.VideoCapture(index, CAP_DSHOW, [CAP_PROP_FOURCC, …])`: 720p và 1080p đều **23,8 fps**, fourcc đọc lại MJPG.
+   Tham số trong danh sách phải là số nguyên; số thực làm `VideoCapture` ném lỗi.
+2. **`grab()` không chờ khung mới.** Ở mode mặc định 640×480, `grab()` trả về **3.778.017 lần/giây**; đếm FPS bằng
+   `grab()` vô nghĩa và nguồn dùng `grab()+retrieve()` sẽ thấy toàn khung trùng. `read()` thì chặn tới khung kế
+   (m01: thời gian `read()` trung vị 46 ms).
+3. **Readback: fourcc tin được, fps thì không.** `CAP_PROP_FOURCC` đọc lại phản ánh định dạng đã thương lượng (YUY2 khi
+   rơi về, MJPG khi đưa vào lúc mở) nên dùng được để phát hiện rơi về YUY2; `CAP_PROP_FPS` trả về −1 hoặc đúng số
+   vừa đặt, FPS thật phải đo. Backend MSMF của bản OpenCV này **không mở được** camera (`msmf_opened = false`).
+   `CAP_PROP_BUFFERSIZE` DirectShow không nhận (`buffer_size_applied = false` trong `source_cam0_720p.source.json`).
+
+`UsbCameraSource` chạy trên camera 0 ở 720p MJPG (`source_cam0_720p.source.json`): 120 khung, 0 lỗi đọc, stamp tăng
+nghiêm ngặt, khoảng cách stamp trung bình 42,0 ms, trung vị 47,0 ms, max 63,0 ms; `mode_mismatch` rỗng.
+
+## 4. Số đo trên bàn
+
+Báo cáo gộp: [evidence/camera/report_20260923.md](evidence/camera/report_20260923.md). Mọi phiên MJPG, yêu cầu 30 fps,
+phơi sáng tự động trừ khi ghi khác. "Khung cũ" = số lần `read()` trả về đúng khung trước (driver không có khung mới).
+Ánh sáng: phòng làm việc buổi sáng, đèn trần, camera nằm trên bàn (chưa gá). **Các phiên m01–m13, r01, r02 đo khi ống kính còn lớp phim bảo vệ**; mục 4.4 là phiên chạy lại sau khi lột. CPU = lõi CPU của tiến trình đo, gồm
+giải mã MJPG và phép so khung trùng của bench.
+
+### 4.1. Một camera
+
+| Phiên | Mode | FPS thật | Khung cũ | Khoảng cách khung trung bình / trung vị / p95 / max (ms) | Độ sáng TB (0–255) | CPU |
+|---|---|---:|---:|---|---:|---:|
+| m01, 30 s | 720p | 23,9 (716 khung) | 0 | 41,9 / 47,1 / 51 / 55 | 91 | 0,16 lõi |
+| m02, 20 s | 720p, **phơi sáng thủ công −6** (≈ 1/64 s) | **29,3** | 0 | 34,2 / 32,1 / 49 / 52 | **3** (ảnh gần đen) | 0,18 lõi |
+| m11, 10 s × 3 | 720p, phơi sáng −5 / −7 / −8 | 29,3 / 29,3 / 29,3 | 0 | trung vị 32 ở cả ba | 13 / 2 / 2 | 0,15–0,17 lõi |
+| m03, 20 s | 1080p | 23,8 | 0 | 41,9 / 47 / 51 / 55 | 91 | 0,34 lõi |
+| m08, 20 s | 720p, camera cổng 4 (index 2) | 23,8 | 0 | 41,9 / 47 / 50 / 53 | 98 | 0,15 lõi |
+| m13, 20 s | 1080p, camera cổng 4 (index 2) | 23,8 | 0 | 41,9 / 47 / 50 / 53 | 94 | 0,33 lõi |
+
+- **Phơi sáng tự động: 23,85 fps, nhịp khung không đều nhưng có cấu trúc.** m01: 716 khung trong 30,0 s, khoảng cách trung bình 41,9 ms nhưng trung vị 47,1 ms; 272/716 khoảng (38 %) ngắn hơn 40 ms. Phân bố (`gaps_ms` trong json, bin 8 ms): 24–32 ms: 170; 32–40: 102; 40–48: 182; 48–56: 262. Ở bin 1 ms hai đỉnh nằm ở ≈ 31 ms (31 ms: 80; chỉ 45/716 khoảng ngắn hơn 30 ms; nhóm ngắn trung bình 31,4 ms) và ≈ 48 ms (48 ms: 129; nhóm dài trung bình 48,3 ms), tỉ lệ ≈ 2:3 — không phải "mỗi khung 47 ms". Chuỗi khoảng cách không ngẫu nhiên (ngưỡng 40 ms): chuyển tiếp ngắn→dài 272, dài→ngắn 271, dài→dài 172, ngắn→ngắn 0 — một khoảng ngắn luôn được nối bằng một khoảng dài. Cùng dạng ở m03, m04, m05, m08 (trung bình 41,9–42,1 ms, 62–62 % khoảng ≥ 40 ms, ngắn→ngắn = 0 ở mọi luồng đã xem).
+- **Phơi sáng thủ công ≤ −5: 29,3 fps, nhịp gần đều** (trung vị 32 ms, m02/m11) nhưng vẫn còn khoảng ≈ 48 ms rải rác: m02 79/586 khoảng (13,5 %) ≥ 40 ms, trung bình 48,4 ms; m11 −5/−7/−8: 39 / 39 / 39 trên 293 / 294 / 293 khoảng; không có hai khoảng dài liền nhau; 587 khung/20 s so với 600 nếu 30 fps đều. Ảnh tối (độ sáng 13 ở −5, 2–3 từ −6 trở xuống; không chỉnh gain). Khoảng ≈ 48 ms có ở cả hai chế độ; chế độ tự động không sinh ra nó mà làm nó chiếm ≈ 62 % số khoảng thay vì ≈ 13 % — đó là nguyên nhân gần của 24 fps. **Cơ chế chưa xác định**: thời gian phơi sáng dài hơn 33 ms hay chính sách tốc độ khung riêng của chế độ tự động; mọi giải thích phải tạo ra hai độ dài rời rạc ≈ 31 / ≈ 48 ms và không cho hai khoảng ngắn liền nhau. Chưa có phiên nào đổi ánh sáng hay đặt exposure thủ công kèm `CAP_PROP_GAIN`; readback exposure ở chế độ tự động (−6) không tin được. Câu "đủ ánh sáng trên sa bàn thì 30 fps" vì thế là giả thuyết chưa thử. Thiết kế tạm lấy **24 fps, nhịp không đều** làm số vận hành và phải đo lại dưới đèn của sa bàn.
+- Độ trễ đầu-cuối (từ sự kiện thật tới khung về tới Python), thời gian suy luận, tải GPU, nhiệt: **chưa đo** (bước 3
+  "Khi nhận một camera" yêu cầu; cần LED nháy hoặc đồng hồ trên màn hình, và phiên chạy AI).
+
+### 4.2. Bốn camera cùng lúc, mỗi camera một luồng (chỉ số camera là index OpenCV; index 2 = cổng 4 của hub)
+
+| Phiên | Mode | FPS thật index 0 / 1 / 2 / 3 | Khung cũ (max khoảng cách) | Tổng khung/s | CPU |
+|---|---|---|---|---:|---:|
+| m04, 30 s | 640×480 | 23,9 / 23,9 / 23,9 / 23,9 | 0 / 0 / 0 / 0 | 95,4 | 0,26 lõi |
+| m05, 60 s | 1280×720 | 23,8 / 23,8 / 23,8 / 23,8 | 0 / 0 / **4** (96 ms) / 0 | 95,3 | 0,62 lõi |
+| m12a, 10 s | 1280×720 | 23,8 / 23,8 / **18,6** / 23,9 | 0 / 0 / **52** (97 ms) / 0 | 90,2 | 0,60 lõi |
+| m12b, 10 s | 1280×720 | 23,9 / 23,9 / **22,3** / 23,9 | 0 / 0 / **15** (97 ms) / 0 | 93,9 | 0,61 lõi |
+| m12c, 10 s | 1280×720 | 23,9 / 23,8 / **3,9** / 23,9 | 0 / 0 / **200** (1.008 ms) / 0 | 75,4 | 0,52 lõi |
+| m06, 30 s, mở 0-1-2-3 | 1920×1080 | 23,8 / 23,8 / **22,5** / 23,8 | 0 / 0 / **40** (129 ms) / 0 | 94,0 | 1,37 lõi |
+| m09, 20 s, mở 2-0-1-3 | 1920×1080 | 23,9 / **22,3** / **13,1** / 23,8 | 0 / 31 (96) / **214** (304 ms) / 0 | 83,1 | 1,24 lõi |
+| m10, 20 s, mở 3-2-1-0 | 1920×1080 | 23,8 / **22,7** / **18,7** / 23,8 | 0 / 23 (97) / **102** (176 ms) / 0 | 89,1 | 1,31 lõi |
+| m07, 30 s, chỉ 0, 1, 3 | 1920×1080 | 23,9 / **20,0** / — / 23,8 | 0 / **116** (101 ms) / — / 0 | 67,7 | 0,98 lõi |
+
+- **Camera ở cổng 4 của hub (index 2) rớt khung khi chạy chung từ 720p trở lên**: ở cả ba thứ tự mở 1080p đã ghi (m06, m09, m10) và ở 720p (m05, m12a–c); ở 640×480 (m04, 30 s) **không rớt** (0 khung cũ, khoảng cách max 51,4 ms). Mức rớt dao động mạnh giữa các lần: 4 khung cũ trong 60 s (m05) tới 200 khung cũ trong 10 s với khoảng cách 1 s (m12c); quy về mỗi giây, 720p (0,07–20 khung cũ/s) và 1080p (1,3–10,7 khung cũ/s) chồng lấn nhau, nên chỉ nói được "480p không rớt, từ 720p có rớt", chưa nói được rớt tăng đều theo độ phân giải. Một mình nó chạy đủ 23,8 fps ở cả 720p lẫn 1080p (m08, m13), nên không hỏng khi chạy đơn. **Nguyên nhân khi có tranh chấp chưa xác định** — giả thuyết: chia băng thông trên nhánh USB 2.0 chung (cả bốn camera qua cổng gốc 5; việc 480p không rớt hợp với giả thuyết này nhưng chưa đủ để chọn nó); chiếc camera/dây này yếu hơn khi tranh chấp; đường nội bộ cổng 4 của hub; thứ tự SetInterface lúc mở — riêng thứ tự mở không làm hết rớt, kể cả khi cổng 4 được mở đầu tiên (m09: 13,1 fps, 214 khung cũ), nhưng mỗi thứ tự chỉ có một phiên trong khi cùng một thứ tự đã cho 15–200 khung cũ (m12b/c), nên chưa xếp hạng được các thứ tự. Phép thử phân biệt là đổi chỗ cắm (mục 6, việc 1); chưa làm.
+- **720p × 4 chưa đủ bằng chứng để nói ổn định.** Phiên 60 s chỉ rớt 4 khung, nhưng ba phiên 10 s liền sau đó cho
+  18,6 / 22,3 / 3,9 fps ở camera cổng 4. Ba camera còn lại không rớt khung nào trong mọi phiên 720p.
+- **1080p với ba hoặc bốn camera không đạt**: cổng 4 rớt ở mọi phiên bốn camera; cổng 3 (index 1) cũng rớt (22,3–22,7
+  fps) ở hai thứ tự mở và rớt nặng (20,0 fps, 116 khung cũ) khi chỉ chạy ba camera (m07). Với một hub USB 2.0, 1080p
+  chỉ chắc chắn cho một camera (m03, m13); **hai camera 1080p chưa thử**.
+- **Băng thông USB thật chưa đo.** Cỡ khung trong AVI (r01: 45,6 MB / 478 khung ≈ 95 KB; r02: 23,7 MB / 239 khung
+  ≈ 99 KB) là JPEG do OpenCV **mã hóa lại** từ ảnh BGR đã giải mã, không phải số byte camera đẩy qua USB. Payload thật
+  và băng thông đẳng thời mỗi camera đặt trước theo alt-setting của mode cần `CAP_PROP_CONVERT_RGB=0`, USB Device
+  Tree Viewer hoặc USBPcap — chưa làm. Vì thế chưa có cơ sở số để nói nguyên nhân rớt khung.
+- CPU tiến trình: 0,16 lõi (một camera 720p), 0,34 (một camera 1080p), 0,26 (4 × 480p), 0,52–0,62 (4 × 720p),
+  1,24–1,37 (4 × 1080p) trên i9-14900; laptop RTX 3050 Ti chưa đo.
+- Chưa làm ở giai đoạn 2: chạy bốn camera đồng thời với LiDAR và AI (bước 2), kiểm nhận dạng sau rút/cắm và khởi động
+  lại (bước 3), đồng bộ phần mềm và ghi sai lệch thời gian giữa bốn luồng (bước 5); `record` đã ghi thời điểm từng
+  khung (`*.frames.csv`) để phục vụ bước 5 sau này.
+
+### 4.3. Ảnh mẫu
+
+Hai ảnh thu nhỏ trong [evidence/camera/](evidence/camera/) (bản gốc PNG 720p trong thư mục run; r01 20 s và r02 10 s,
+478 và 239 khung, 23,87 fps, 0 khung cũ). Ảnh chụp mặt bàn và ghế ở cự ly gần, không có bia thử, **còn lớp phim bảo vệ** (r03 ở mục 4.4 đã lột): nhận xét bằng mắt là
+ảnh tĩnh không kéo vệt, méo thùng rõ ở mép. **Chưa có ảnh ở độ cao và góc chúc dự kiến trên xe**, nên chưa nói được
+"đủ nét trong vùng làm việc".
+
+### 4.4. Sau khi lột lớp bảo vệ ống kính (phiên n01–n06, r03; `created_utc` 04:02:58Z–04:04:31Z)
+
+**Mọi phiên m01–m13 và r01/r02 ở trên được đo khi ống kính còn dán lớp phim bảo vệ** (người dùng phát hiện và lột
+lúc ≈ 11:15). Chạy lại các phiên chính để xem điều đó đổi gì:
+
+| Phiên (đã lột phim) | Mode | FPS thật | Khung cũ (max khoảng cách) | Tổng khung/s | Độ sáng TB | CPU |
+|---|---|---|---|---:|---:|---:|
+| n01, 30 s, một camera | 720p | 23,9 | 0 | — | 97 (m01 còn phim: 91) | 0,16 lõi |
+| n02, 10 s, một camera, phơi sáng −6 | 720p | 29,3 | 0 | — | **15** (m02 còn phim: 3) | 0,18 lõi |
+| n06, 20 s, bốn camera | 640×480 | 23,9 / 23,8 / 23,8 / 23,8 | 0 / 0 / 0 / 0 | 95,4 | 87–90 | 0,20 lõi |
+| n03, 60 s, bốn camera | 1280×720 | 23,8 / 23,8 / 23,8 / 23,8 | 0 / 0 / 0 / 0 | 95,4 | 92–98 | 0,68 lõi |
+| n04, 30 s, bốn camera | 1920×1080 | 23,8 / 23,9 / 19,0 / 23,9 | 0 / 0 / 147 (129 ms) / 0 | 90,5 | 89–95 | 1,40 lõi |
+| n05, 20 s, ba camera 0, 1, 3 | 1920×1080 | 23,8 / 23,8 / 23,8 | 0 / 0 / 0 | 71,5 | 89–93 | 1,11 lõi |
+
+- **Lớp phim làm tối ảnh rõ rệt**: ở cùng phơi sáng thủ công −6, độ sáng trung bình 3 → 15
+  (≈ 5 lần). Ở chế độ tự động, camera tự bù nên độ sáng chỉ đổi 91 → 97.
+- **Nhịp khung không đổi**: n01 23,9 fps, trung bình 41,9 ms, trung vị 47,8 ms,
+  62 % khoảng ≥ 40 ms, ngắn→ngắn = 0 — y hệt m01. Vậy 24 fps của chế độ tự động **không phải do lớp phim làm
+  tối**; các kết luận ở mục 4.1 giữ nguyên, ảnh mẫu r01/r02 (còn phim) thì phải xem là tối hơn thật.
+- **Bốn camera 720p (n03, 60 s): không rớt khung nào**, kể cả cổng 4. Cùng với m05 (4 khung cũ/60 s) và m12a–c (18,6 / 22,3 / 3,9 fps
+  trong 10 s), điều này khẳng định rớt ở 720p là **thất thường**, không đoán được từ một phiên; chưa có bằng chứng lớp phim liên quan.
+- **1080p**: bốn camera vẫn rớt ở cổng 4 (n04: 19,0 fps, 147 khung cũ); ba camera lần này
+  sạch (n05: 0 khung cũ, khác m07 có 116) — cũng thất thường.
+- r03 (10 s, còn ảnh tĩnh `r03_cam0_720p_nofilm_*.png`): 240 khung, 23,99 fps, 0 khung cũ.
+
+## 5. Đối chiếu với kế hoạch
+
+- Bước 1–2 "Khi nhận một camera": bước 1 xong phần biến thể theo VID/PID (1BCF:0B09) và giao tiếp (UVC qua DirectShow), có hồ sơ; góc nhìn 130° là số nhà bán ghi, chưa đo (mục 1); chiều dài/loại dây camera **chưa ghi** (tiền đề "dùng dây ngắn trước" chưa có hồ sơ; cần ghi vào hardware_inventory.md để bước 9 giai đoạn 2 có cấu hình "ngắn" đối chiếu). Bước 2 (mode thật): xong, có hồ sơ (`camera_modes.csv`). Bước 3 (một phiên đo FPS, thời gian suy luận, độ trễ, mất hình, CPU/GPU, nhiệt): **có** FPS, mất hình (khung cũ), CPU; **chưa** độ trễ, thời gian suy luận, GPU, nhiệt. Bước 4 (ảnh ở độ cao/góc chúc/khoảng cách dự kiến): chưa. Bước 5 (hiệu chuẩn): chưa. Bước 6 (AI trên ảnh thật): chưa.
+- Giai đoạn 2 "Khi đủ bốn camera": bước 1 (bốn camera cùng mode chung) làm xong về phép đo: mốc đề xuất 720p30 MJPEG đạt về mode nhưng thực tế là **720p ≈ 24 fps** với camera cổng 4 rớt thất thường; 1080p × 4 không đạt qua một hub USB 2.0; tiền đề "trên dây ngắn" chưa ghi (dây camera chưa kiểm kê). Bước 3 gồm bốn phần: sơ đồ cổng USB — xong ([usb_topology.md](usb_topology.md)); nguồn hub — **chưa ghi**; cách gán camera vào hướng — chưa (sẽ ghi theo cổng khi có gá); kiểm nhận dạng sau rút/cắm/khởi động lại — chưa. Bước 2, 4, 5, 6, 7, 8, 9: chưa.
+- Danh tính camera = cổng hub (không serial); index OpenCV không theo thứ tự cổng (0→1, 1→3, 2→4, 3→2) → mã vận hành
+  phải chọn theo InstanceId.
+- Điều kiện chuyển bước gate 1 phần camera ghi ở [gate_01.md](gate_01.md): "nhận ổn ở mode đã ghi rõ" đạt trên máy
+  bàn cho một camera 720p MJPG (24 fps, 0 khung cũ trong 30 s); "đủ nét trong vùng làm việc, hiệu chuẩn được, chạy AI
+  trên ảnh thật" chưa; "có số đo" có cho FPS/khung cũ/CPU, chưa cho độ trễ/suy luận/GPU/nhiệt.
+
+## 6. Việc còn lại — cần người
+
+1. **Đổi chỗ cắm camera đang ở cổng 4** (hoặc hoán đổi hai camera) rồi chạy lại m05/m06 để biết rớt khung theo camera
+   hay theo cổng: `camera_bench list` (xem index mới) rồi `measure --index 0 1 2 3 --width 1920 --height 1080 --seconds 30 --name m06b_doi_cong --out runs/camera_bench/<ngày>`.
+2. **Rút/cắm lại và khởi động lại máy**, chạy `list` xem InstanceId và index có đổi (giai đoạn 2, bước 3).
+3. **Đặt camera ở độ cao và góc chúc dự kiến trên xe**, bày hộp/thành/xe mô hình, ghi ảnh bằng `record` — ảnh sa bàn
+   đầu tiên cho nhánh AI (HUAN_LUYEN.md phần III, mục 18).
+4. **In bảng ô vuông** có kích thước đo được để hiệu chuẩn 130°; mã hiệu chuẩn cho ống kính thật chưa có
+   (`perception/calibration.py` hiện chỉ đọc mô hình fisheye của WoodScape).
+5. Xác nhận nguồn hub và dòng camera; ghi chiều dài/loại dây camera vào kiểm kê; thử trên laptop của xe; thử cáp kéo dài — theo thứ tự kế hoạch.
+6. Chạy AI trên ảnh thật và lưu cả lỗi (bước 6 "Khi nhận một camera").
+7. Một phiên đo đủ bước 3 trên laptop của xe: FPS, độ trễ (LED/đồng hồ), mất hình, thời gian suy luận, CPU/GPU, nhiệt.
+8. Bốn camera chạy cùng LiDAR + AI, ghi sai lệch thời gian giữa các luồng (giai đoạn 2, bước 2 và 5).
+9. Thử ánh sáng: cùng camera dưới đèn sa bàn, và phơi sáng thủ công kèm `CAP_PROP_GAIN`, để biết 30 fps có đạt với ảnh
+   đủ sáng không.
+
+## 7. Cách chạy lại
+
+Từ thư mục `autopark`, trong `.venv` (cần `pip install -e .[video]`; `pygrabber` chỉ trên Windows):
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench list --out runs/camera_bench/<ngay>/usb_topology.json
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench modes --out docs/camera_modes.csv
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench traps --index 0 --seconds 3 --name traps_cam0 --out runs/camera_bench/<ngay>
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench source --index 0 --width 1280 --height 720 --frames 120 --name source_cam0_720p --out runs/camera_bench/<ngay>
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench measure --index 0 --width 1280 --height 720 --seconds 30 --name m01_cam0_720p_auto --out runs/camera_bench/<ngay>
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench measure --index 0 1 2 3 --width 1280 --height 720 --seconds 60 --name m05_4cam_720p_auto --out runs/camera_bench/<ngay>
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench measure --index 0 --width 1280 --height 720 --seconds 20 --exposure -6 --name m02_cam0_720p_exp-6 --out runs/camera_bench/<ngay>
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench record --index 0 --width 1280 --height 720 --seconds 20 --name r01_cam0_720p --out runs/camera_bench/<ngay> --snapshot-every 4
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench report runs/camera_bench/<ngay>
+.\.venv\Scripts\python.exe -X utf8 -m pytest tests/test_camera_bench.py tests/test_phase1_sources.py
+```
+
+`measure --index 2 0 1 3` mở camera theo đúng thứ tự đó và ghi vào `requested.indices`. Nguồn camera trong mã vận
+hành: `open_source("usb:0", width=1280, height=720, fourcc="MJPG", fps=30)`; phơi sáng thủ công thêm `exposure=-6`.
+
+## 8. Kiểm tra độc lập
+
+Bản đầu của tài liệu này và công cụ đo qua một vòng review đối kháng 15 agent (3 lăng kính: mã, số liệu, kế hoạch;
+mỗi phát hiện một agent hoài nghi cố bác bỏ). 12 phát hiện được xác nhận và đã sửa: luồng đo chết bị bỏ qua im lặng;
+`record` để lại file hỏng khi camera không có khung mới; docstring `UsbCameraSource` mâu thuẫn; các số "thử nhanh"
+không có hồ sơ (nay đã chạy lại thành phiên có file: `traps`, m09–m13); "mỗi khung 47 ms" sai vì trung bình là 41,9 ms
+(nay có phân bố từng khoảng); 100 KB/khung là JPEG mã hóa lại, không phải payload USB; các bước kế hoạch chưa làm bị
+bỏ sót (độ trễ, suy luận, GPU, nhiệt, đồng bộ, chạy cùng LiDAR/AI); khẳng định danh tính theo cổng chưa có bằng chứng.
