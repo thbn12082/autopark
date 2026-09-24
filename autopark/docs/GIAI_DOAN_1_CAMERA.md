@@ -172,10 +172,52 @@ lại camera cổng 3 lần nữa, cả bốn mở được; (4) chạy lại đ
 **Phép thử nguồn ngoài (chưa làm):** rút cả bốn camera, cắm adapter nguồn cho hub, cắm lại camera, chạy lại bốn camera 1080p 30 s
 và ba phiên 720p 10 s. Nếu muốn tách riêng tác dụng của việc rút/cắm, chạy trước một lượt rút/cắm không đổi gì khác.
 
+### 4.6. Đính chính (23/09 chiều): "sạch" ở mục 4.2–4.5 chỉ có nghĩa là không có khung cũ
+
+Mọi số FPS và chữ "sạch" ở mục 4.2–4.5 chỉ đếm **khung cũ** (driver trả lại đúng khung trước). Lúc đó công cụ chưa
+kiểm được một kiểu hỏng khác: **khung MJPEG bị cắt cụt trên đường USB**. Phần ảnh thiếu được bộ giải mã tô bằng một vân
+khối 8×8 xám lặp lại, thường có vệt xé ngang ở phía trên. Kiểu hỏng này được thấy lần đầu trên ảnh giao diện bàn thử giai
+đoạn 2. Từ nay `camera_bench measure` và `record` đếm nó ở cột `truncated_frames`, nằm trong số khung mới. Bộ dò là
+`video/sources.py::truncated_rows`, và `UsbCameraSource` loại những khung này.
+
+Đo lại chiều 23/09, sau khởi động lại máy, cùng hub bus-powered, camera nằm trên bàn nhìn xuống thảm có hoa văn dày
+(`runs/rig_bench/20260923_v3/raw/`, 8–15 s mỗi phiên, chỉ đọc camera, không AI):
+
+| Camera chạy cùng lúc | Độ phân giải | Khung bị cắt: cổng 1 / 2 / 3 / 4 |
+|---|---|---|
+| cổng 1 một mình (hai lần) | 720p | 0 % / — / — / — |
+| cổng 2 một mình | 720p | — / 0 % / — / — |
+| cổng 1 + 2 | 720p | 1 % / 0 % / — / — |
+| cổng 1 + 2 + 3 | 720p | 97 % / 0 % / 9 % / — |
+| cả bốn (ba lần, hai thứ tự mở) | 720p | 99–100 % / 0 % / 0–70 % / 81–100 % |
+| cổng 2 + 3 + 4 | 720p | — / 0 % / 1 % / 67 % |
+| cả bốn | 1080p | 99 % / 13 % / 100 % / 100 % |
+| cả bốn (phiên 15 s) | 640×480 | 0 % / 0 % / 0 % / 0 % |
+| cả bốn, cộng 18 phiên 15–600 s từ 16:06 tới 16:50 | 640×480 | 4,6 % (1418 / 31142 khung, gần hết trong hai đợt 26 % và 36 %) / 0 % / 0 % / < 0,1 % (6 khung) |
+
+Hệ quả cho mục 4.2–4.5:
+
+- **Khung bị cắt là do chạy chung, không phải do từng camera hỏng.** Chạy một mình thì camera nào cũng nguyên vẹn. Càng
+  nhiều camera ở 720p/1080p thì càng nhiều khung bị cắt. Ở 640×480 thì phần lớn thời gian không khung nào bị cắt, nhưng
+  camera cổng 1 có những đợt 26–36 % khung hỏng, chưa rõ nguyên nhân (GIAI_DOAN_2_BAN_THU.md mục 2.4). Điều này hợp với giả
+  thuyết thiếu băng thông USB 2.0 dùng chung qua hub, nhưng **chưa chứng minh** được. OpenCV/DirectShow trên máy này không
+  trả byte MJPEG thô, dù đã đặt `CAP_PROP_CONVERT_RGB = 0`, nên chưa đo được kích thước khung hay dấu kết thúc ảnh.
+- **Camera cổng 2 chưa từng bị cắt ở 720p**, ở mọi tổ hợp và thứ tự mở. Chưa biết vì sao. Có thể do khung cảnh nó nhìn
+  cho ảnh JPEG nhỏ hơn, hoặc do cách nó được cấp băng thông.
+- **Các chữ "sạch" sau khi rút/cắm lại (mục 4.5) không có nghĩa là ảnh nguyên vẹn.** Các phiên q* không kiểm khung bị cắt,
+  và khung cảnh lúc đó cũng khác (tối hơn). Chiều 23/09, cùng hub, 720p × 4 và 1080p × 4 cho phần lớn khung bị cắt ở hai
+  hoặc ba camera. Kết luận dùng được: **bốn camera qua hub này chỉ dùng được ở 640×480**, và ngay cả ở 480p vẫn phải
+  bật bộ dò để loại khung hỏng.
+- Các ảnh tĩnh r01–r03 (một camera) và `source_cam0_720p` (một camera) không bị ảnh hưởng. Bộ dò chạy lại trên chín ảnh
+  PNG của r01–r03 cho 0 khung bị cắt.
+- Việc cần làm ở mục 6 đổi thứ tự: thử **tách camera ra hai cổng gốc khác nhau** của máy (hai camera qua hub, hai camera
+  cắm thẳng) và thử nguồn ngoài cho hub, với cột khung bị cắt. Chi tiết và phiên chạy chung với LiDAR + AI ở
+  [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md).
+
 ## 5. Đối chiếu với kế hoạch
 
 - Bước 1–2 "Khi nhận một camera": bước 1 xong phần biến thể theo VID/PID (1BCF:0B09) và giao tiếp (UVC qua DirectShow), có hồ sơ; góc nhìn 130° là số nhà bán ghi, chưa đo (mục 1); chiều dài/loại dây camera **chưa ghi** (tiền đề "dùng dây ngắn trước" chưa có hồ sơ; cần ghi vào hardware_inventory.md để bước 9 giai đoạn 2 có cấu hình "ngắn" đối chiếu). Bước 2 (mode thật): xong, có hồ sơ (`camera_modes.csv`). Bước 3 (một phiên đo FPS, thời gian suy luận, độ trễ, mất hình, CPU/GPU, nhiệt): **có** FPS, mất hình (khung cũ), CPU; **chưa** độ trễ, thời gian suy luận, GPU, nhiệt. Bước 4 (ảnh ở độ cao/góc chúc/khoảng cách dự kiến): chưa. Bước 5 (hiệu chuẩn): chưa. Bước 6 (AI trên ảnh thật): chưa.
-- Giai đoạn 2 "Khi đủ bốn camera": bước 1 (bốn camera cùng mode chung) làm xong về phép đo: mốc đề xuất 720p30 MJPEG đạt về mode nhưng thực tế là **720p ≈ 24 fps**; camera cổng 4 rớt thất thường và 1080p × 4 không đạt trước khi rút/cắm lại, **sau khi rút/cắm lại các camera cả 720p × 4 lẫn 1080p × 4 chạy sạch, nguyên nhân chưa rõ** (mục 4.5); tiền đề "trên dây ngắn" chưa ghi (dây camera chưa kiểm kê). Bước 3 gồm bốn phần: sơ đồ cổng USB — xong ([usb_topology.md](usb_topology.md)); nguồn hub — **chưa ghi** (bus-powered, chưa thử adapter); cách gán camera vào hướng — chưa (sẽ ghi theo cổng khi có gá); kiểm nhận dạng sau rút/cắm — **xong** (hai lần, cùng bảng, `usb_topology_replug1/2.json`); sau khởi động lại — **xong**: InstanceId theo cổng giữ nguyên, index OpenCV đổi (cổng 2 và 4 hoán index; `usb_topology_20260923_after_reboot.json`). Bước 2, 4, 5, 6, 7, 8, 9: chưa.
+- Giai đoạn 2 "Khi đủ bốn camera": bước 1 (bốn camera cùng mode chung) làm xong về phép đo: mốc đề xuất 720p30 MJPEG đạt về mode nhưng thực tế là **720p ≈ 24 fps**; camera cổng 4 rớt thất thường và 1080p × 4 không đạt trước khi rút/cắm lại, sau khi rút/cắm lại các camera cả 720p × 4 lẫn 1080p × 4 không còn khung cũ (mục 4.5) — **nhưng đính chính mục 4.6: tính cả khung MJPEG bị cắt cụt thì bốn camera qua hub chỉ dùng được ở 640×480 (vẫn có đợt khung hỏng ở cổng 1); ở 720p hai–ba camera bị cắt phần lớn khung**; tiền đề "trên dây ngắn" chưa ghi (dây camera chưa kiểm kê). Bước 3 gồm bốn phần: sơ đồ cổng USB — xong ([usb_topology.md](usb_topology.md)); nguồn hub — **chưa ghi** (bus-powered, chưa thử adapter); cách gán camera vào hướng — chưa (sẽ ghi theo cổng khi có gá); kiểm nhận dạng sau rút/cắm — **xong** (hai lần, cùng bảng, `usb_topology_replug1/2.json`); sau khởi động lại — **xong**: InstanceId theo cổng giữ nguyên, index OpenCV đổi (cổng 2 và 4 hoán index; `usb_topology_20260923_after_reboot.json`). Bước 2, 4, 5, 6, 7, 8, 9: chưa.
 - Danh tính camera = cổng hub (không serial); index OpenCV không theo thứ tự cổng (0→1, 1→3, 2→4, 3→2) → mã vận hành
   phải chọn theo InstanceId.
 - Điều kiện chuyển bước gate 1 phần camera ghi ở [gate_01.md](gate_01.md): "nhận ổn ở mode đã ghi rõ" đạt trên máy
@@ -184,7 +226,9 @@ và ba phiên 720p 10 s. Nếu muốn tách riêng tác dụng của việc rút
 
 ## 6. Việc còn lại — cần người
 
-1. **Phép thử nguồn ngoài** (chưa làm): rút cả bốn camera, cắm adapter nguồn cho hub, cắm lại camera, mở thử cả bốn, rồi chạy
+0. **Tách camera ra nhiều cổng gốc** (mới, theo mục 4.6): hai camera qua hub, hai camera cắm thẳng vào cổng gốc khác của máy,
+   rồi chạy lại bốn camera 720p và đọc cột khung bị cắt. Nếu hết bị cắt thì nguyên nhân là băng thông dùng chung qua hub.
+1. **Phép thử nguồn ngoài** (chưa làm, nay phải đọc thêm cột khung bị cắt): rút cả bốn camera, cắm adapter nguồn cho hub, cắm lại camera, mở thử cả bốn, rồi chạy
    `measure --index 0 1 2 3 --width 1920 --height 1080 --seconds 30` và ba phiên 720p 10 s. Trước đó nên chạy một lượt rút/cắm không
    đổi gì khác để biết riêng tác dụng của rút/cắm (mục 4.5). Nếu muốn tách "camera hay cổng": đổi chỗ cắm camera cổng 4 rồi chạy lại.
 2. ~~Khởi động lại máy~~ — đã làm 12:35 ngày 23/09: InstanceId giữ nguyên, index đổi. Mã vận hành phải chọn camera theo cổng/InstanceId.
