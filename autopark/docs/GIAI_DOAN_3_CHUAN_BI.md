@@ -28,6 +28,8 @@ Mỗi quy tắc dưới đây được thêm sau một lần xe ảo dừng gi�
 4. **Không chụp bản đồ một lần.** Bản "quét nền" (gộp N vòng rồi giữ nguyên) làm người dùng xoay LiDAR mà sa bàn vẫn là cảnh cũ. Bỏ hẳn: khi đang chỉnh sa bàn, mỗi vòng quét đồng bộ lại các hộp (`sync_incremental`); khi đã lập đường thì bản đồ được chốt, vì planner và bộ bám đường cần một bản đồ đứng yên. Đổi cấu hình LiDAR hay ngắt kết nối trong lúc chạy → yêu cầu dừng, và các ô chỉnh bị khóa khi xe đang chạy.
 5. **Cảm biến cố định thì tư thế cố định.** LiDAR trên bàn không chuyển động theo xe ảo; gán nó vào xe ảo đang chạy làm cả cảnh dịch theo xe và mọi mép vật thành "vật mới". Demo dùng LiDAR như cảm biến cố định tại vị trí xuất phát. Ngoài ra: bỏ 15 vòng đầu (mô-tơ C1 còn tăng tốc, mật độ tia đổi từng vòng), bản đồ nền là hợp của 10 vòng kế tiếp, và xả bộ đệm LiDAR sau khi lập đường (dữ liệu tồn đọng sẽ mang stamp mới dù đã cũ).
 
+*Cập nhật 24/09/2026: đo lại số tia/vòng trên ba bản ghi cùng driver (p07_nen_phong và live_headless ngày 22/09, k01_kiem_suc_khoe ngày 24/09; với k01 đã tính cả 11 vòng bỏ khi làm nóng). Trong chính 10 vòng dùng làm nền (vòng 16–25), số tia/vòng vẫn còn đổi từng vòng: đạt đỉnh 536–552 ở vòng 16–17 (≈ 3,7 s sau lệnh SCAN), rồi mới về khoảng ổn định 500–516 từ vòng 21–22 (≈ 4,2 s). Vậy bỏ 15 vòng chưa phủ hết giai đoạn khởi động của mô-tơ. Chưa đo ảnh hưởng của việc này lên bản đồ nền; nếu cần thì tăng `initial_skip` lên khoảng 22 hoặc chờ theo thời gian (≥ 4,5 s sau SCAN). Chi tiết ở [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 3b.*
+
 ## 3. Kết quả chạy thật trên bàn (22/09/2026, COM4)
 
 | Cấu hình | Kết quả |
@@ -50,10 +52,10 @@ Câu hỏi của người dùng: LiDAR thấy nhiều hơn / số vật cản tr
 | Hình quét vẽ phía trước lên trên, sa bàn vẽ phía trước sang phải: hai hình lệch nhau 90°, không có dấu hiệu hướng | `ScanView(front_up=False)` trong ngăn LiDAR (cùng hướng sa bàn), mũi tên "trước" trên hình quét, mũi tên hướng LiDAR tại điểm xuất phát trên sa bàn |
 | Lề mặt nạ thân xe 10 cm làm vật cách thân xe dưới 10 cm thành "không có phản hồi" thay vì bị chặn; khoảng hở lúc xuất phát là do mặt nạ tạo ra | Lề thành tham số trên giao diện ("cm quanh xe bỏ", mặc định 10 vì bàn thử có adapter sát cảm biến; trên xe thật đặt 3 cm = lề an toàn của planner). Vật thử phải đặt cách LiDAR ≥ 40 cm |
 | Bản đồ nền gộp 10 vòng với "thấy 1 lần là chặn": 29 % ô là nhiễu chớp tắt (6 ô chỉ thấy 1/10 vòng) | `ScanUnion` đếm theo VÒNG (không theo tia) với tham số "lần thấy mới tính", mặc định 2 |
-| Ô "Đảo chiều góc" im lặng khi phát lại bản ghi và không làm mất hiệu lực bản đồ nền đã quét | Báo rõ khi phát lại; khi đổi chiều lúc đang chỉnh sa bàn thì xóa vật LiDAR và yêu cầu quét nền lại |
+| Ô "Đảo chiều góc" im lặng khi phát lại bản ghi và không làm mất hiệu lực bản đồ nền đã quét | Báo rõ khi phát lại; khi đổi chiều lúc đang chỉnh sa bàn thì xóa vật LiDAR và yêu cầu quét nền lại. *Cập nhật 24/09/2026: bản đã commit (`6dba1a6`) không có bước quét nền (quy tắc 4, mục 5). Đổi chiều lúc đang chỉnh sa bàn thì xóa vật LiDAR và bỏ các vòng quét cũ, hộp được dựng lại từ vòng quét sau (`_set_mirror` trong `ui/lidar_dock.py`). Khi xe ảo đang chạy thì ô "Đảo chiều góc" bị khóa; nếu chiều vẫn đổi trong lúc chạy thì xe dừng.* |
 | Sa bàn có cạnh không chia hết cho 5 cm làm `GridSpec` ném lỗi trong timer 50 ms | `_bounds_grid` cắt xuống bội số 5 cm |
 | Bộ đếm id vật cản tăng theo mọi ứng viên nên có thể trùng id ở lần chèn sau | Chỉ đánh số vật thực sự đưa vào sa bàn (`_numbered`), có test id không trùng |
-| Chưa xác minh dấu góc (trái/phải) bằng vật thật; sai dấu sẽ lật trái/phải ở CẢ hai hình nên không tự phát hiện được | Vẫn cần lần đặt hộp bên trái (p04); ghi ở GIAI_DOAN_1_LIDAR.md |
+| Chưa xác minh dấu góc (trái/phải) bằng vật thật; sai dấu sẽ lật trái/phải ở CẢ hai hình nên không tự phát hiện được | Vẫn cần lần đặt hộp bên trái (p04); ghi ở [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 6 và 6b |
 | Chi phí `check_motion` với shapely tăng tuyến tính theo số hình chữ nhật (191 µs với 33 hình, mỗi bước 5 ms) | Chấp nhận ở quy mô bàn thử; khi quét cả phòng cần STRtree/union trong `footprint._evaluate` |
 
 Sau khi sửa, chạy lại demo trên bàn: 28 vật cản nền, planner báo đích (2,0; 1,0) trúng vật thật ở khoảng 1,9–2,05 m trước cảm biến, đúng với đồ trên bàn; trong giao diện chỉ cần kéo đích sang chỗ trống.
@@ -81,6 +83,7 @@ Giao diện (khuyên dùng): cửa sổ đỗ xe giai đoạn 0 có thêm ngăn 
 ## 6. Chưa làm / giới hạn
 
 - Chưa có ESP32, IMU, ToF: `NearFieldLayer` mới chạy với số đo giả; không ghi nhận "ToF thật đã hoạt động".
+- *Cập nhật 24/09/2026:* khung telemetry thật đã được đặc tả ở [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 3 và 8: `tof_valid_mask` + `tof_mm[4]`, số đo không hợp lệ gửi 0; phía laptop là `VehicleTelemetry.tof_m` (4 giá trị `float | None`, stamp là giờ laptop lúc nhận, giờ bo ở `device_time_ms`). Cấu trúc này khác `NearFieldReading` (không có `sensor_id`, `max_range_m`, stamp riêng từng số đo), nên câu "cùng cấu trúc dữ liệu thật" ở bảng mục 1 (viết 22/09, trước khi có giao thức) chỉ đúng về nội dung (nguồn, thời gian, giá trị, hợp lệ), không đúng về kiểu dữ liệu. Chưa có mã chuyển `VehicleTelemetry` → `NearFieldReading`, chưa có bảng gán chỉ số ToF 0–3 → vị trí gá; firmware C++ chưa biên dịch và chưa có mã đọc VL53L1X, nên chưa có số đo ToF thật.
 - `CameraSemanticLayer` mới có phép đặt costmap camera vào bản đồ; chưa có khung hình camera thật đi qua.
 - Chưa có định vị: tư thế xe lấy từ mô phỏng; LiDAR thật đứng yên.
 - Không có bộ nhớ thời gian trong hợp nhất (mỗi lần gọi là ảnh chụp); lớp LiDAR trực tiếp giữ 3 vòng gần nhất.

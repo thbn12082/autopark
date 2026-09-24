@@ -4,7 +4,7 @@ Ngày 20/09/2026. Phạm vi: **phần mềm mô phỏng**. Kết luận sau sử
 
 ## 1. Lỗi đã tái hiện và sửa
 
-Test hồi quy mới ban đầu cho **25 ca thất bại / 3 ca đạt**. Nhiều ca tham số hóa cùng kiểm tra một nhóm lỗi, không diễn giải thành 25 lỗi độc lập. [Báo cáo trước sửa](evidence/robustness_regressions_before.xml). Snapshot code trước sửa và bản diff nằm trong `review_artifacts/phase0_robustness/`.
+Test hồi quy mới ban đầu cho **25 ca thất bại / 3 ca đạt**. Nhiều ca tham số hóa cùng kiểm tra một nhóm lỗi, không diễn giải thành 25 lỗi độc lập. [Báo cáo trước sửa](evidence/robustness_regressions_before.xml). Snapshot code trước sửa (`source_before.zip`) và bản diff (`changes.patch`) nằm trong `review_artifacts/phase0_robustness/`; thư mục này bị `.gitignore` bỏ qua nên chỉ có trên máy làm việc, không có trên GitHub (ghi chú 24/09/2026).
 
 | Nhóm lỗi | Sửa và điều kiện kiểm tra |
 |---|---|
@@ -74,7 +74,7 @@ Các bài đỗ có planner dùng bốn nhóm `parallel_160`, `perp_aisle_170`, 
 
 ## 4. Độ bao phủ và giới hạn của phép đo
 
-[Báo cáo HTML đầy đủ](evidence/coverage_html/index.html), [JSON toàn bộ](evidence/coverage_robustness.json), [phạm vi cốt lõi](evidence/coverage_core.json).
+[Báo cáo HTML đầy đủ](evidence/coverage_html/index.html) (chỉ có trên máy làm việc, không có trên GitHub: coverage.py tự tạo `.gitignore` bỏ qua cả thư mục này; ghi chú 24/09/2026), [JSON toàn bộ](evidence/coverage_robustness.json), [phạm vi cốt lõi](evidence/coverage_core.json).
 
 | Phạm vi | Dòng lệnh đã chạy | Nhánh đã chạy |
 |---|---:|---:|

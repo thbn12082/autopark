@@ -16,7 +16,7 @@ Archive bổ sung nằm trong `raw/full/`; dữ liệu đã kiểm tra và giả
 - Archive: `raw/avm_seg_db.zip`, **252.992.120 byte**, đã kiểm tra ZIP CRC và giải nén tại `avm_ss/`.
 - SHA-256: `b9a8f70fcb9f57bb1c8360034cbf09b06277b2361453edfa5039960cd33c52ef`.
 - Đã đọc toàn bộ **6.763 ảnh và 6.763 mask**, cùng kích thước 320×160, không thiếu cặp. Có polygon YAML gốc.
-- Split gốc: **4.057 train / 2.706 test**; không trùng ID hoặc SHA-256 ảnh giữa hai tập. Chưa kiểm tra ảnh gần trùng/sequence leakage.
+- Split gốc: **4.057 train / 2.706 test**; không trùng ID hoặc SHA-256 ảnh giữa hai tập. Chưa kiểm tra ảnh gần trùng/sequence leakage. *Cập nhật 24/09/2026: đã kiểm ngày 22/09. Split gốc chia ngẫu nhiên theo từng khung: 62,8 % ảnh train có khung liền kề nằm trong test (chiều ngược lại 82,7 %), 6.763 ảnh vỡ thành 3.181 khối liên tục, nên **không dùng split này**. Cache `avm_ss_binary_v1` chia lại theo khối 50 id liên tiếp (4.713 / 1.050 / 1.000). Phash vẫn thấy 3/400 ảnh val và 8/400 ảnh test trùng hash với train. Xem [HUAN_LUYEN.md](../../HUAN_LUYEN.md) mục 15 và `datasets/prepared/avm_ss_binary_v1/manifest.json` (không đưa lên Git).*
 - Manifest từng cặp và split: [avm_pairs.json](avm_pairs.json). Báo cáo: [download_audit.json](download_audit.json).
 
 **Phát hiện cần giữ lại:** ngoài 5 màu ghi trong README, toàn bộ mask có **7.071 pixel RGB (255,255,0)**. Chưa xác minh ý nghĩa lớp màu vàng; bộ chuyển `avm_to_project()` giữ mọi màu lạ ở **255 UNKNOWN/IGNORE**, không biến thành FREE. Không sửa mask gốc. Khi đánh giá mô hình cần công bố số pixel bị ignore.
@@ -93,4 +93,4 @@ labels = avm_to_project(cv2.cvtColor(mask_bgr, cv2.COLOR_BGR2RGB))
 
 Chưa tải toàn bộ 44 nguồn, chưa đăng ký tài khoản dataset, chưa gửi email xin dữ liệu và chưa train model. *Cập nhật 24/09/2026: đã huấn luyện baseline trên WoodScape ngày 21/09 và thử thêm AVM-SS/ACDC ngày 22–23/09, xem [HUAN_LUYEN.md](../../HUAN_LUYEN.md); giấy phép từng bộ ở [GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md).* Một lần thử tải log Intel từ máy chủ Freiburg bị từ chối kết nối; dùng DROW đã tải cho bước đọc scan trước, giữ Intel/IR-MCL trong danh mục.
 
-Độ đúng nhãn chưa được chứng nhận chỉ bằng kiểm tra file/palette. Dữ liệu sa bàn với gá camera MN300 vẫn cần thu và gán nhãn ở giai đoạn sau. Toàn bộ raw/archive được loại khỏi Git; các file metadata và tài liệu được giữ để tái hiện.
+Độ đúng nhãn chưa được chứng nhận chỉ bằng kiểm tra file/palette. Dữ liệu sa bàn với gá camera MN300 vẫn cần thu và gán nhãn ở giai đoạn sau. *Cập nhật 24/09/2026: đã có công cụ nhập bộ ảnh của bàn thử, gán nhãn (nháp từ AI, người sửa và duyệt) và xuất cache huấn luyện, xem [GAN_NHAN_SA_BAN.md](../docs/GAN_NHAN_SA_BAN.md). Chưa gán nhãn ảnh thật nào; hai bộ ảnh ngày 23/09 chụp khi camera nằm trên bàn, không ở độ cao và góc chúc của xe.* Toàn bộ raw/archive được loại khỏi Git; các file metadata và tài liệu được giữ để tái hiện.

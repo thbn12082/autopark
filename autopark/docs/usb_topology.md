@@ -1,6 +1,6 @@
 # Sơ đồ USB — bốn camera qua hub UGREEN (23/09/2026)
 
-Đo trên máy bàn i9-14900 (chưa phải laptop của xe) bằng `python -m autopark.video.camera_bench list --out ...`
+Đo trên máy bàn i9-14900 (chưa phải laptop RTX 3050 Ti mang đi nộp đồ án) bằng `python -m autopark.video.camera_bench list --out ...`
 (Get-PnpDevice cho camera và hub, DirectShow DevicePath để ghép index OpenCV với InstanceId). Bản json:
 [evidence/camera/usb_topology_20260923.json](evidence/camera/usb_topology_20260923.json) — khóa `pnp` (camera),
 `hubs`, `dshow_index_to_port`.
@@ -19,6 +19,16 @@ kể hub có nhánh USB 3. UVC dùng endpoint đẳng thời, giới hạn thự
 alt-setting của mode — **chưa đo** (xem [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.2). Hub có cổng nguồn ngoài (theo người dùng) nhưng **chạy bus-powered trong mọi phiên ngày 23/09**; phép thử nguồn ngoài chưa làm. Bốn camera
 từ 720p trở lên từng rớt khung ở cổng 4; sau khi rút/cắm lại các camera thì 0 khung cũ trong 7 phiên, nguyên nhân chưa rõ — xem [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.5.
 
+**Cập nhật 24/09/2026 (theo đính chính chiều 23/09):** "0 khung cũ" chỉ có nghĩa là không có khung cũ, không có nghĩa là
+ảnh nguyên vẹn: các phiên sau rút/cắm chưa kiểm khung MJPEG bị cắt cụt. Chiều 23/09 đo lại, lần này có đếm khung bị cắt.
+Kết quả: ở 720p/1080p, khi ba hoặc bốn camera chạy chung qua hub, phần lớn khung của hai đến ba camera bị cắt (đáy do bộ
+giải mã tô); chạy một mình thì không. Ở 640×480 thì phần lớn thời gian ảnh nguyên vẹn, nhưng camera cổng 1 có những đợt
+26–36 % khung hỏng, chưa rõ nguyên nhân. Vì vậy bốn camera qua hub này chỉ dùng được ở **640×480** (mặc định của
+`rig.bench` và giao diện từ 23/09), và vẫn phải bật bộ dò `truncated_rows`/`torn_bands`. Kết quả này hợp với giả thuyết
+thiếu băng thông USB 2.0 dùng chung ở đoạn trên nhưng **chưa chứng minh**. Mức cắt còn phụ thuộc cảnh: ngày 24/09, camera
+nhìn vào chỗ tối, 720p × 4 không có khung nào bị cắt, nhưng đó **không** phải bằng chứng 720p đã dùng được. Xem
+[GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.6 và [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2 và 10.
+
 ## Camera
 
 Bốn chiếc cùng loại: "HD Camera", VID 1BCF (Sunplus Innovation) PID 0B09, thiết bị composite, giao diện video MI_00.
@@ -32,13 +42,17 @@ là cổng nó cắm vào.
 | 3 | `USB\VID_1BCF&PID_0B09&MI_00\7&2ADEA245&0&0000` | 1 |
 | 4 | `USB\VID_1BCF&PID_0B09&MI_00\7&1FD88E3&0&0000` | 2 |
 
-**Index OpenCV không theo thứ tự cổng** (0→1, 1→3, 2→4, 3→2). Bản `list` đầu trong ngày (10:06, vòng 1) đã bị ghi đè cùng đường dẫn nên không còn file. Bản `list` thứ hai `usb_topology_2.json` (created_utc 04:06:08Z, sau toàn bộ 23 phiên đo và 3 lần ghi video, tức sau hàng chục lần mở/đóng VideoCapture) cho **cùng** bảng index ↔ cổng ↔ InstanceId với bản 10:36 — tính ổn định của index qua mở/đóng trong cùng phiên máy đã có hai file đối chiếu. **Rút/cắm lại cùng cổng đã kiểm hai lần** (≈ 11:45 các camera, ≈ 12:00 camera cổng 3; `usb_topology_replug1.json` và `usb_topology_replug2.json` cho cùng bảng index ↔ cổng ↔ InstanceId). **Sau khởi động lại máy** (12:35 ngày 23/09; bản `list` lúc 13:07, `usb_topology_20260923_after_reboot.json`): InstanceId của từng cổng **giữ nguyên**, nhưng **index OpenCV đã đổi**: 0→1, 1→3, **2→2, 3→4** (trước là 2→4, 3→2). Đây là bằng chứng trực tiếp rằng index không dùng được làm danh tính. **Chưa thử đổi cổng** (giai đoạn 2, bước 3). Theo cơ chế Windows cấp InstanceId theo vị trí cho thiết bị không serial, đổi cổng sẽ đổi InstanceId — cũng chưa thử. Vì vậy mã vận
+**Index OpenCV không theo thứ tự cổng** (0→1, 1→3, 2→4, 3→2). Bản `list` đầu trong ngày (10:06, vòng 1) đã bị ghi đè cùng đường dẫn nên không còn file. Bản `list` thứ hai `usb_topology_2.json` (created_utc 04:06:08Z, sau toàn bộ 23 phiên đo và 3 lần ghi video, tức sau hàng chục lần mở/đóng VideoCapture) cho **cùng** bảng index ↔ cổng ↔ InstanceId với bản 10:36 — tính ổn định của index qua mở/đóng trong cùng phiên máy đã có hai file đối chiếu. **Rút/cắm lại cùng cổng đã kiểm** (≈ 11:55 rút/cắm các camera, sau đó camera cổng 3 treo; ≈ 12:01–12:04 rút/cắm lại camera cổng 3): `usb_topology_replug2.json` (created_utc 05:04:59Z) và `usb_topology_replug1.json` (05:05:17Z) cho cùng bảng index ↔ cổng ↔ InstanceId với bản 10:36. *Đính chính 24/09/2026:* bản trước ghi "đã kiểm hai lần" (≈ 11:45 và ≈ 12:00). Hai file này chụp cách nhau 18 s, đều **sau** lần rút/cắm thứ hai (tên replug1/2 không theo thứ tự thời gian), nên chỉ là **một** lần kiểm của trạng thái cuối. Bản `list` chụp lúc camera cổng 3 còn treo (≈ 11:58) đã bị ghi đè cùng đường dẫn; bảng lúc đó chỉ còn trong nhật ký console ngoài repo (cũng cùng bảng), không tính là bằng chứng lưu trữ. Giờ rút/cắm lấy theo nhật ký phiên làm việc (xem [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.5). **Sau khởi động lại máy** (12:35 ngày 23/09; bản `list` lúc 13:07, `usb_topology_20260923_after_reboot.json`): InstanceId của từng cổng **giữ nguyên**, nhưng **index OpenCV đã đổi**: 0→1, 1→3, **2→2, 3→4** (trước là 2→4, 3→2). Đây là bằng chứng trực tiếp rằng index không dùng được làm danh tính. **Chưa thử đổi cổng** (giai đoạn 2, bước 3). Theo cơ chế Windows cấp InstanceId theo vị trí cho thiết bị không serial, đổi cổng sẽ đổi InstanceId — cũng chưa thử. Vì vậy mã vận
 hành phải chọn camera theo *InstanceId / cổng* (hàm `join_index_to_port` trong `camera_bench.py` cho bảng này lúc
 chạy), không hard-code index; việc gán hướng trước/sau/trái/phải sẽ ghi theo cổng khi có gá.
 
 ## Điều chưa làm
 
+- **Ưu tiên đầu (thêm 24/09/2026):** tách camera ra nhiều cổng gốc (hai camera qua hub, hai camera cắm thẳng vào cổng gốc
+  khác của máy), chạy lại bốn camera 720p và đọc cột khung bị cắt, với cảnh sáng, nhiều chi tiết (cảnh tối cho 0 khung
+  bị cắt, xem trên). Đổi chỗ camera cổng 1 với cổng 2 để tách lỗi do "camera" hay do "cổng hub"
+  ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 9, việc 1).
 - Đổi cổng camera để kiểm InstanceId (rút/cắm cùng cổng và khởi động lại máy đã kiểm).
-- Thử trên laptop của xe; thử cáp kéo dài.
-- Phép thử nguồn ngoài cho hub; đo dòng tiêu thụ camera (không có đồng hồ đo USB).
+- Thử trên laptop RTX 3050 Ti (máy nộp đồ án); thử cáp kéo dài.
+- Phép thử nguồn ngoài cho hub, đọc thêm cột khung bị cắt; đo dòng tiêu thụ camera (không có đồng hồ đo USB).
 - Đo băng thông đẳng thời mỗi camera đặt trước (USB Device Tree Viewer / USBPcap).

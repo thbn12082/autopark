@@ -1,7 +1,7 @@
 # Giai đoạn 1 — phần làm được khi chưa có đủ thiết bị (22/09/2026)
 
 **Kế hoạch đối chiếu:** [v3.1, mục 5 "Khi đang chờ đồ"](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) và mục 6–7 (BEV, hợp nhất).
-**Mức bằng chứng:** phần mềm chạy trên dữ liệu lưu sẵn (WoodScape, DROW v2, ACDC, RoadObstacle21). Chưa có khung hình camera hay bản quét nào từ thiết bị của dự án đi qua các khối này.
+**Mức bằng chứng:** phần mềm chạy trên dữ liệu lưu sẵn (WoodScape, DROW v2, ACDC, RoadObstacle21). Chưa có khung hình camera hay bản quét nào từ thiết bị của dự án đi qua các khối này. *Cập nhật 24/09/2026:* câu trên không còn đúng cho mọi khối. Bản quét thật của C1 đã đi qua `safety/freshness.py` và `ui/scan_view.py` trong `lidar/live_view.py` (chạy headless 8 s trên COM4 ngày 22/09, [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 4); `UsbCameraSource` chạy trên camera thật từ 23/09 (mục 1 và 4 bên dưới). Calibration, ROI và costmap vẫn chỉ chạy trên ảnh WoodScape.
 **Thiết bị tại thời điểm viết:** RPLIDAR C1 đã cắm (cầu USB–UART CP2102N; sau khi cài driver CP210x cùng ngày thì thành COM4 — xem [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md)). Không có camera USB nào cắm vào. Chưa có ảnh sa bàn.
 
 ## 1. Đã làm gì
@@ -20,6 +20,8 @@
 | Giám sát dữ liệu cũ/mất/không hợp lệ cho mọi nguồn | `safety/freshness.py` | Có test; dùng trong trình phát lại |
 
 Cùng ngày, nhánh LiDAR thật (driver RPLIDAR C1 trên COM4, ghi/phát lại phiên, bench, bản đồ lưới tĩnh) được làm ở [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) và dùng lại các khối ở đây. Chưa làm: hợp nhất nhiều camera, hợp nhất LiDAR–camera, SLAM/định vị, mọi thứ liên quan ESP32.
+
+*Cập nhật 24/09/2026:* danh sách "chưa làm" ở trên là tình trạng ngày 22/09. Sau đó: lớp và quy tắc hợp nhất LiDAR/camera/ToF bằng phần mềm có từ cùng ngày 22/09 ở [GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md), nhưng lớp camera chưa có khung hình camera thật nào đi qua; bàn thử chỉ ghép bộ ảnh bốn camera theo thời gian ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md)), chưa chiếu kết quả AI xuống sàn, chưa ghép bốn camera hay hợp nhất với LiDAR trên dữ liệu thật; giao thức laptop–ESP32-S3, `VehicleIO` và firmware có từ 24/09 ở [GIAO_THUC_XE.md](GIAO_THUC_XE.md) (phần mềm và mô phỏng, mã C++ chưa biên dịch, chưa có bo); SLAM/định vị vẫn chưa làm.
 
 ## 2. Calibration WoodScape — vì sao tin được
 
@@ -50,7 +52,7 @@ Trên ảnh `00007_FV` (lưới 25 × 20 m, 0,1 m, tầm 12 m): 14.511 ô FREE, 
 
 ## 5. ONNX và độ trễ
 
-`python -m autopark.perception.export_onnx`: đồ thị ONNX (opset 17, exporter TorchScript) nhận tensor chuẩn hóa (1, 3, 384, 512), trả logits. Đối chiếu 16 ảnh val bằng onnxruntime CPU: lệch logit tối đa 7·10⁻⁵, trùng argmax 99,9999 %. Độ trễ một ảnh **trên máy này**, GPU rảnh (p50, 200 lượt): onnxruntime CPU fp32 7,6 ms; torch CUDA fp32 4,4 ms; fp16 5,5 ms; đầu-cuối từ ảnh 1280×966 (letterbox → mạng → softmax về CPU) 7,8 ms — lúc GPU bận huấn luyện các số này cao gấp 2–3 lần. Chi tiết ở `runs/ai_woodscape_rtx4000_v1/export/export_report.json`. Script tự sinh ảnh nhiễu khi không có dataset, nên chạy được trên máy khác chỉ với `best.pt`. Laptop RTX 3050 Ti của xe chưa đo; chạy cùng lệnh trên đó.
+`python -m autopark.perception.export_onnx`: đồ thị ONNX (opset 17, exporter TorchScript) nhận tensor chuẩn hóa (1, 3, 384, 512), trả logits. Đối chiếu 16 ảnh val bằng onnxruntime CPU: lệch logit tối đa 7·10⁻⁵, trùng argmax 99,9999 %. Độ trễ một ảnh **trên máy này**, GPU rảnh (p50, 200 lượt): onnxruntime CPU fp32 7,6 ms; torch CUDA fp32 4,4 ms; fp16 5,5 ms; đầu-cuối từ ảnh 1280×966 (letterbox → mạng → softmax về CPU) 7,8 ms — lúc GPU bận huấn luyện các số này cao gấp 2–3 lần. Chi tiết ở `runs/ai_woodscape_rtx4000_v1/export/export_report.json`. Script tự sinh ảnh nhiễu khi không có dataset, nên chạy được trên máy khác chỉ với `best.pt`. Chưa đo trên laptop i7-12700H + RTX 3050 Ti, máy mang đi nộp đồ án; chạy cùng lệnh trên đó. *Cập nhật 24/09/2026, người dùng xác nhận:* máy bàn i9-14900 + RTX 4000 Ada là máy phát triển chính; laptop i7-12700H + RTX 3050 Ti (4 GB VRAM) là máy mang đi nộp và trình diễn đồ án. Mọi số đo đến nay là trên máy bàn; số dùng cho khóa luận phải đo lại trên laptop.
 
 ## 6. Cách chạy
 

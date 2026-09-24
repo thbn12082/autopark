@@ -1,6 +1,6 @@
 # Giai đoạn 2 — bàn thử chạy chung bốn camera, LiDAR và AI (23/09/2026)
 
-Máy bàn i9-14900 + RTX 4000 Ada, Windows 11, **chưa phải laptop của xe**. Bốn camera "HD Camera" qua hub UGREEN
+Máy bàn i9-14900 + RTX 4000 Ada, Windows 11, **chưa phải laptop RTX 3050 Ti mang đi nộp đồ án**. Bốn camera "HD Camera" qua hub UGREEN
 (bus-powered, nhánh USB 2.0), RPLIDAR C1 trên COM4, mô hình AI tham chiếu `runs/ai_woodscape_rtx4000_v1/best.pt`.
 Camera nằm trên bàn, chưa gá, chưa hiệu chuẩn. Kế hoạch v3.1, giai đoạn 2 "Khi đủ bốn camera":
 
@@ -34,7 +34,7 @@ giải mã), **không phải lúc phơi sáng**; stamp LiDAR là lúc byte cuố
 có hai ô camera bị hỏng nửa dưới. Ảnh gốc đã lưu cho thấy từ một dòng trở xuống, ảnh là **một khối 8×8 xám lặp lại**
 (R = B, trung bình ≈ 129), phía trên thường có vài vệt xé ngang. Đây là dấu hiệu của khung MJPEG **bị cắt cụt**: dữ liệu
 khung tới máy không đủ, và bộ giải mã tô phần còn thiếu. Khung như vậy vẫn là "khung mới", nên mọi số FPS trước đó đều
-tính nó như khung tốt, và AI đã chấm cả những khung này.
+tính nó như khung tốt, và AI đã chấm cả những khung này (vùng vân bị gọi gần như toàn bộ là FREE, xem mục 2.4).
 
 ![Khung bị cắt ở cổng 1 cạnh khung nguyên vẹn của cổng 2](evidence/rig/khung_bi_cat_720p.jpg)
 
@@ -139,6 +139,13 @@ cổng 2 0 / 31153, cổng 3 0 / 31158, cổng 4 6 / 31115.
   chỉ bị xé; `torn_bands` bắt được nó.
 - Khi đợt hỏng tới, nguồn camera loại các khung đó, nên **AI không nhận khung hỏng** (trừ khung lọt bộ dò, mục 2.2).
   Nhưng cổng 1 chỉ còn ≈ 15–18 khung tốt/s, và vì bộ ảnh chỉ "mới" khi mọi camera có khung mới, cả chuỗi xử lý chậm theo.
+- *Cập nhật 24/09/2026:* nếu khung hỏng lọt tới AI thì không chỉ là nhiễu. Trên hai khung bị cắt của bộ ảnh 14:57 (720p,
+  `runs/rig_snapshots/20260923_145753_910`, mô hình `ai_woodscape_rtx4000_v1`, chụp trước khi có bộ lọc), mô hình gọi
+  gần như toàn bộ vân khối ở đáy là FREE. Ở ngưỡng 0,5: cổng 1 có 450 551 / 450 560 pixel của 352 dòng đáy, cổng 4 có
+  419 840 / 419 840 pixel của 328 dòng đáy ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md), mục 2, bước 4). Ở ngưỡng 0,15
+  (ngưỡng lúc chụp) cũng vậy: 450 281 / 450 560 và 419 839 / 419 840 (đo lại 24/09 từ `prob_blocked_p1.png`,
+  `prob_blocked_p4.png` của bộ ảnh đó). Tức vùng hỏng thành **vùng trống giả**, theo hướng không an toàn. Mới đo trên
+  hai khung mà bộ dò bắt được; chưa đo trên khung thật sự lọt bộ dò (tô màu phẳng, cắt giữa hàng khối; mục 2.2).
 
 **Hệ quả:** `rig.bench` và giao diện nay **mặc định 640×480**. Mô hình AI vốn thu ảnh về 512×384, nên 480p gần như không
 mất gì cho AI. 720p và 1080p vẫn chạy được bằng `--width/--height`, và cột "cắt" cho biết mất bao nhiêu khung.
@@ -227,7 +234,7 @@ Nhiệt độ CPU không đọc được: Windows không cho khi không có quy�
   24,1 ms (u01). Giữa LiDAR và bộ ảnh, điểm giữa vòng quét sớm hơn mốc bộ ảnh
   80 ms (trung vị), dao động trong khoảng một vòng quét.
   Hợp nhất cảm biến phải bù sai lệch cỡ 100 ms này khi xe chạy; khi xe đứng yên thì không quan trọng.
-- **Chưa đo:** độ trễ từ sự kiện thật tới lúc khung tới máy (cần LED nháy), và mọi số trên laptop RTX 3050 Ti của xe.
+- **Chưa đo:** độ trễ từ sự kiện thật tới lúc khung tới máy (cần LED nháy), và mọi số trên laptop RTX 3050 Ti (máy nộp đồ án) (xem ghi chú cuối mục 9).
 
 ## 5. Loạt v2 (`runs/rig_bench/20260923_v2/`, t01–t09, trước khi có bộ dò khung hỏng) — phần nào còn dùng được
 
@@ -350,14 +357,27 @@ Ngoài hai vòng trên: vòng LiDAR trong ảnh chụp trước đây được l
 
 1. **Tách camera ra nhiều cổng gốc** (hai camera qua hub, hai camera cắm thẳng vào máy) rồi chạy lại bốn camera 720p, đọc
    cột khung bị cắt. Nếu hết bị cắt thì nguyên nhân là băng thông dùng chung qua hub. Thử thêm nguồn ngoài cho hub.
-   Laptop của xe có ít cổng hơn, nên kết quả này quyết định chọn 480p hay đổi cách đi dây. Cùng phép thử đó xem đợt
+   Chưa có sơ đồ cổng USB của laptop RTX 3050 Ti (máy nộp đồ án). Ghi sơ đồ cổng của nó như
+   [usb_topology.md](usb_topology.md) rồi mới dùng kết quả này để chọn 480p hay đổi cách đi dây (sửa 24/09/2026: bản
+   trước khẳng định laptop có ít cổng hơn mà chưa có căn cứ). Cùng phép thử đó xem đợt
    hỏng của cổng 1 ở 480p (mục 2.4) có hết không; đổi chỗ camera cổng 1 với cổng 2 để tách "camera" với "cổng hub".
-2. Đo trên laptop RTX 3050 Ti của xe (cùng lệnh `rig.bench`), và độ trễ từ sự kiện thật tới lúc khung tới máy (LED nháy).
+2. Đo trên laptop RTX 3050 Ti (máy nộp đồ án) bằng cùng lệnh `rig.bench`, ghi cấu hình và số cổng USB gốc. Đo độ trễ từ
+   sự kiện thật tới lúc khung tới máy (LED nháy).
 3. Hiệu chuẩn bốn camera, gá lên rig, rồi mới chiếu kết quả AI xuống sàn và hợp nhất với LiDAR (giai đoạn 2, bước 4–8).
+   *Cập nhật 24/09/2026:* công cụ hiệu chuẩn nội tham cho bước 4 (bảng in sẵn, giao diện chụp, hiệu chuẩn fisheye) đã có,
+   xem [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md). Công cụ mới kiểm trên ảnh tổng hợp; chưa in bảng, chưa hiệu chuẩn
+   camera nào. Ngoại tham (vị trí/hướng camera so với rig) chưa có công cụ, chưa làm (HIEU_CHUAN_CAMERA.md mục 6).
 4. Dùng nút "Chụp bộ ảnh" ở 480p để thu ảnh sa bàn ở độ cao thật, gán nhãn, chấm các mô hình (HUAN_LUYEN.md mục 18).
-   Trước khi gán nhãn, lọc lại ảnh bằng `bottom_repeat_share` trong `meta.json` (khung sạch ≤ 0,13).
+   *Cập nhật 24/09/2026:* chụp, nhập, gán nhãn, split theo phiên và tách tập chấm theo
+   [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md). Lúc nhập, công cụ tự đánh dấu khung hỏng (`truncated_rows`, `torn_bands`,
+   `bottom_repeat_share` > 0,2, khung cũ), thay cho việc lọc tay bằng `bottom_repeat_share` trong `meta.json` (khung
+   sạch ≤ 0,13); lý do "chỉ `bottom_repeat_share`" vẫn nên xem lại bằng mắt (GAN_NHAN_SA_BAN.md mục 9). Ảnh dành để
+   chấm phải chụp vào thư mục riêng (`--snapshots runs/rig_snapshots_cham`), không vào `runs/rig_snapshots`. Chưa gán
+   nhãn ảnh thật nào.
 5. Nếu cần một phép thử độc lập cho bộ dò: đọc byte MJPEG thô (ví dụ qua FFmpeg dshow hoặc Media Foundation) để kiểm dấu
    kết thúc JPEG của từng khung.
+
+*Cập nhật 24/09/2026, người dùng xác nhận:* máy bàn i9-14900 + RTX 4000 Ada là máy phát triển chính; laptop i7-12700H + RTX 3050 Ti (4 GB VRAM) là máy mang đi nộp và trình diễn đồ án. Mọi số đo đến nay là trên máy bàn; số dùng cho khóa luận phải đo lại trên laptop.
 
 ## 10. Không chờ camera chậm (24/09/2026)
 

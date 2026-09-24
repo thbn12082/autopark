@@ -4,9 +4,9 @@
 
 **Ngày thực hiện:** 21/09/2026 (phần I), 22/09/2026 (phần II — đánh giá mở rộng, từ mục 8) và đêm 22 → 23/09/2026 kèm sáng 23/09 (phần III — thêm dữ liệu AVM-SS và ACDC, từ mục 15)
 **Máy:** Intel Core i9-14900, NVIDIA RTX 4000 Ada 20 GB (driver 596.72), Windows 11, RAM 64 GB
-**Mã nguồn:** [autopark/autopark/perception](autopark/autopark/perception/) · **Hồ sơ lượt chạy:** [autopark/runs/ai_woodscape_rtx4000_v1](autopark/runs/ai_woodscape_rtx4000_v1/)
+**Mã nguồn:** [autopark/autopark/perception](autopark/autopark/perception/) · **Hồ sơ lượt chạy:** [autopark/runs/ai_woodscape_rtx4000_v1](autopark/runs/ai_woodscape_rtx4000_v1/) (git-ignored: mọi link tới `autopark/runs/` trong tài liệu này chỉ mở được trên máy có dữ liệu, trên GitHub không có)
 **Mức bằng chứng:** AI trên ảnh lưu sẵn của bộ dữ liệu công khai. Chưa có ảnh sa bàn/MN300, chưa nối vào planner hay phần cứng.  
-*Cập nhật 24/09/2026:* từ 23/09 checkpoint nền chạy trực tiếp trên bốn camera USB của bàn thử giai đoạn 2 ([GIAI_DOAN_2_BAN_THU.md](autopark/docs/GIAI_DOAN_2_BAN_THU.md)): đo được thời gian suy luận, còn lớp tô chỉ để quan sát. Chưa chấm trên ảnh sa bàn có nhãn, chưa nối vào planner.
+*Cập nhật 24/09/2026:* từ 23/09 checkpoint nền chạy trực tiếp trên bốn camera USB của bàn thử giai đoạn 2 ([GIAI_DOAN_2_BAN_THU.md](autopark/docs/GIAI_DOAN_2_BAN_THU.md)): đo được thời gian suy luận, còn lớp tô chỉ để quan sát. Chưa chấm trên ảnh sa bàn có nhãn, chưa nối vào planner. Từ 24/09 có công cụ gán nhãn ảnh sa bàn và quy trình chấm checkpoint trên cache sa bàn (`evaluate --manifest`, tập chấm tô tay `--no-draft`): [GAN_NHAN_SA_BAN.md](autopark/docs/GAN_NHAN_SA_BAN.md) mục 2, bước 7. Đến 24/09 chưa có ảnh sa bàn nào được gán nhãn.
 
 ## 1. Kết quả tóm tắt
 
@@ -113,7 +113,7 @@ Cấu hình: 30 epoch, seed 20260920, batch 16, AdamW (backbone 1e-4, head 1e-3,
 
 ### 2.8. Đánh giá
 
-Lần chạy `evaluate.py` đầu tiên **hỏng trên val** do lỗi của chính mã đánh giá (truyền list thay vì tensor); tập test chưa bị đụng tới nhờ lớp chặn. Đã sửa, thêm test hồi quy, chạy lại val rồi mới chạy test **một lần** ([test_evaluations.jsonl](autopark/runs/ai_woodscape_rtx4000_v1/test_evaluations.jsonl) có đúng một dòng). Sau khi xem test không chỉnh gì thêm ở mô hình.
+Lần chạy `evaluate.py` đầu tiên **hỏng trên val** do lỗi của chính mã đánh giá (truyền list thay vì tensor); tập test chưa bị đụng tới nhờ lớp chặn. Đã sửa, thêm test hồi quy, chạy lại val rồi mới chạy test **một lần** ([test_evaluations.jsonl](autopark/runs/ai_woodscape_rtx4000_v1/test_evaluations.jsonl) có đúng một dòng tại 21/09; dòng thứ hai là lần chấm ở ngưỡng 0,15 ngày 22/09, phần II mục 10). Sau khi xem test không chỉnh gì thêm ở mô hình.
 
 Theo camera trên test:
 
@@ -134,7 +134,9 @@ Lỗi theo từng ảnh trên test: trung vị 1,27%, p90 2,46%, p99 6,56%, **t�
 4. **Camera hông kém hơn** trước/sau khoảng 1,6 điểm mIoU và gấp đôi tỷ lệ vật cản → FREE.
 5. **Rò rỉ bối cảnh chưa loại trừ** (mục 1); chưa đánh giá trên ACDC (điều kiện khó), RoadAnomaly21/RoadObstacle21 (vật lạ) dù dữ liệu đã có sẵn.
 6. Chỉ một seed, một lượt chạy: chưa có khoảng dao động giữa các lần huấn luyện. Huấn luyện có seed nhưng **không tái lập từng bit** trên GPU (kernel AMP tự dò của cuDNN).
-7. Chưa đo độ trễ suy luận đầu-cuối cho bốn luồng camera đồng thời; con số 10–14 ms là một ảnh, một tiến trình.
+7. Chưa đo độ trễ suy luận đầu-cuối cho bốn luồng camera đồng thời; con số 10–14 ms là một ảnh, một tiến trình. *Cập nhật 24/09/2026: ngày 23/09 bàn thử giai đoạn 2 đã đo suy luận theo lô bốn ảnh 640×480 (fp16) từ bốn camera USB, trên chính máy này, chạy chung với LiDAR ([GIAI_DOAN_2_BAN_THU.md](autopark/docs/GIAI_DOAN_2_BAN_THU.md) mục 3.3). Một lô trung vị 16,4 ms (mạng 11,6 ms), 23,8 bộ/s ở phiên 120 s (u01); 15,6 ms, 23,1 bộ/s ở phiên 10 phút (u04). Kết quả có mặt 34,8 ms (u01) và 65,5 ms (u04) trung vị sau khi khung cũ nhất trong bộ tới máy; hai số khác nhau do pha giữa các camera. Vẫn chưa đo độ trễ từ sự kiện thật tới lúc khung tới máy (cần LED nháy), và chưa đo trên máy nào khác.*
+
+*Cập nhật 24/09/2026:* một phần của ý 5 và ý 6 đã được làm ở phần II ngày 22/09. ACDC và RoadObstacle21 đã chấm ở mục 8 (và ở ngưỡng 0,15 trong mục 10). Ba seed đã chạy ở mục 9: val 0,9703 ± 0,0003, test 0,9693 ± 0,0001. Vẫn còn mở: RoadAnomaly21 chưa chấm (dữ liệu có trong `autopark/datasets/training/road_anomaly`, nhưng `evaluate_external` chỉ nhận `acdc` và `road_obstacle`); rò rỉ bối cảnh trong split WoodScape chưa loại trừ; huấn luyện vẫn không tái lập từng bit.
 
 ## 4. Cách chạy lại
 
@@ -218,7 +220,7 @@ Ba lượt cùng cấu hình, chỉ đổi seed (thứ tự batch, augment, kh�
 | 20260921 | 0,9706 (27) | 1,68 % | 0,9693 | 1,79 % |
 | 20260922 | 0,9702 (29) | 1,72 % | 0,9693 | 1,77 % |
 
-Trung bình val 0,9703 ± 0,0003, test 0,9693 ± 0,0001. **Mọi khác biệt dưới 0,001 mIoU giữa các thí nghiệm sau này là nhiễu.** Mỗi checkpoint chấm test đúng một lần, ghi trong `test_evaluations.jsonl` của run tương ứng. Hai lượt thêm chạy song song với việc khác nên chậm hơn (939 s và 1.024 s).
+Trung bình val 0,9703 ± 0,0003, test 0,9693 ± 0,0001. **Mọi khác biệt dưới 0,001 mIoU giữa các thí nghiệm sau này là nhiễu.** Mỗi checkpoint chấm test đúng một lần ở mỗi ngưỡng, ghi trong `test_evaluations.jsonl` của run tương ứng: hai seed thêm chỉ chấm ở 0,50; checkpoint nền có thêm một lần ở ngưỡng 0,15 ngày 22/09 (mục 10), nên file của nó có hai dòng. *(Sửa 24/09/2026: câu cũ ghi "đúng một lần" không tính lần chấm ở 0,15.)* Hai lượt thêm chạy song song với việc khác nên chậm hơn (939 s và 1.024 s).
 
 ## 10. Ngưỡng quyết định thiên về an toàn
 
@@ -268,7 +270,9 @@ Trọng số lớp **chỉ dịch điểm làm việc**, không đổi đường
 | torch CUDA fp16 (autocast) | 5,5 ms — chậm hơn fp32 vì batch 1 bị giới hạn bởi khởi động kernel, không phải tính toán |
 | Đầu-cuối từ ảnh 1280×966: letterbox → mạng fp16 → softmax về CPU | 7,8 ms |
 
-Bốn camera ở 30 FPS cần 120 ảnh/s ≈ 8,3 ms/ảnh: trên máy này đủ, kể cả chỉ dùng CPU. **Laptop RTX 3050 Ti của xe chưa đo** — script chạy được không cần dataset (tự sinh ảnh nhiễu khi thiếu cache), chỉ cần chép `best.pt` và chạy cùng lệnh trên đó. Kết quả lúc GPU đang bận huấn luyện (đo lần đầu) cao gấp 2–3 lần, nên mọi số độ trễ phải kèm điều kiện tải của máy.
+Bốn camera ở 30 FPS cần 120 ảnh/s ≈ 8,3 ms/ảnh: trên máy này đủ, kể cả chỉ dùng CPU. **Chưa đo trên laptop RTX 3050 Ti** (máy mang đi nộp đồ án, người dùng xác nhận 24/09/2026) — script chạy được không cần dataset (tự sinh ảnh nhiễu khi thiếu cache), chỉ cần chép `best.pt` và chạy cùng lệnh trên đó. Kết quả lúc GPU đang bận huấn luyện (đo lần đầu) cao gấp 2–3 lần, nên mọi số độ trễ phải kèm điều kiện tải của máy.
+
+*Cập nhật 24/09/2026:* laptop i7-12700H + RTX 3050 Ti nói trên là máy đã ghi biên bản giai đoạn 0 ([BAO_CAO_GIAI_DOAN_0.md](BAO_CAO_GIAI_DOAN_0.md) mục 10) và là máy mang đi nộp đồ án (người dùng xác nhận 24/09/2026); máy bàn là máy phát triển chính. Độ trễ vẫn chỉ đo trên máy bàn i9-14900. Mốc 30 FPS là mode camera công bố, dùng làm cận trên: camera thật đo được ≈ 23,85 khung/s ở phơi sáng tự động và 29,3 khung/s ở phơi sáng thủ công (một camera, 720p; [GIAI_DOAN_1_CAMERA.md](autopark/docs/GIAI_DOAN_1_CAMERA.md) mục 4.1), nên 120 ảnh/s vẫn là cận trên hợp lệ.
 
 ## 13. Kiểm thử và review độc lập (22/09)
 
@@ -292,7 +296,7 @@ Giấy phép của hai bộ mới ghi ở [GIAY_PHEP_DU_LIEU.md](autopark/docs/G
 | Cache | Nguồn | train / val / test (ảnh) | Pixel FREE : BLOCKED (train, bỏ IGNORE) | Cách chia và điều cần biết |
 |---|---|---:|---:|---|
 | `woodscape_binary_v1` | WoodScape fisheye (phần I) | 5.764 / 1.235 / 1.235 | 60 : 40 | như phần I |
-| `avm_ss_binary_v1` | AVM-SS, ảnh ghép nhìn từ trên xuống trong bãi đỗ | 4.713 / 1.050 / 1.000 | 91 : 9 | **Bỏ split của tác giả** vì chia ngẫu nhiên theo từng khung hình: 62,8 % ảnh train của tác giả có khung liền kề nằm trong test (chiều ngược lại 82,7 %). Chia lại theo khối 50 id liên tiếp (70/15/15), đo rò rỉ bằng phash trước khi dùng. |
+| `avm_ss_binary_v1` | AVM-SS, ảnh ghép nhìn từ trên xuống trong bãi đỗ | 4.713 / 1.050 / 1.000 | 91 : 9 | **Bỏ split của tác giả** vì chia ngẫu nhiên theo từng khung hình: 62,8 % ảnh train của tác giả có khung liền kề nằm trong test (chiều ngược lại 82,7 %). Chia lại theo khối 50 id liên tiếp (70/15/15), đo rò rỉ còn lại bằng phash (22/09; mẫu 400 ảnh mỗi tập, khoảng cách nhỏ nhất tới ảnh train; manifest `grouping.leakage_min_phash_distance_to_train`): val 3/400 trùng hash, 9/400 cách ≤ 2 bit; test 8/400 trùng, 19/400 ≤ 2 bit. Chỉ đo, không lọc bỏ, nên số AVM val có thể hơi lạc quan; ảnh AVM phần lớn là mặt nền đồng màu (91 % pixel có nhãn là FREE) nên trùng hash chưa chắc là cùng cảnh. |
 | `acdc_binary_v1` | ACDC train / val, camera thường, sương–đêm–mưa–tuyết | 1.600 / 406 / 0 | 33 : 67 | Giữ split chính thức để so được với phần II. **Split chính thức để cùng một chuỗi GoPro nằm cả train lẫn val** (ví dụ fog/GOPR0476), nên mọi lượt có ACDC train trong dữ liệu học **không được** chấm trên ACDC val như một phép đo tổng quát hóa. |
 | `ws_avm_v1` | WoodScape + AVM-SS | 10.477 / 2.285 / 2.235 | 75 : 25 | ghép hai cache, nhóm giữ tiền tố tên cache |
 | `ws_avm_acdc_v1` | + ACDC train | 12.077 / 2.691 / 2.235 | 71 : 29 | val của ACDC = ACDC val chính thức → rò rỉ như trên |
@@ -358,7 +362,7 @@ Giá trị từng seed để ai cũng kiểm lại được: WoodScape nền —
 
 - **Không lượt nào trong đêm vượt lượt nền WoodScape trên cả hai tập chưa chạm.** `runs/ai_woodscape_rtx4000_v1/best.pt` vẫn là checkpoint tham chiếu của dự án; ngưỡng vận hành 0,15 vẫn là đòn bẩy rẻ nhất (phần II §10).
 - **Thêm dữ liệu công khai khác miền không phải đường đi tự động tốt.** AVM giúp đúng một việc: nhìn được ảnh từ trên xuống. Nếu camera trên xe thực sự cho góc nhìn đó, dùng `ai_ws_avm` và chấp nhận giá đã đo ở tường, xe lớn, nhà; nếu không, đừng dùng.
-- Câu trả lời cuối cùng vẫn nằm ở ảnh sa bàn tự thu, đúng như kết luận phần II §14: không bộ nào trong số này là camera của xe mô hình. Khi có 100–200 ảnh sa bàn có nhãn, phép chấm đầu tiên là chạy ba checkpoint (nền, trộn, trộn có trọng số — mỗi loại đủ ba seed) ở cả hai ngưỡng 0,50 và 0,15 trên chúng.
+- Câu trả lời cuối cùng vẫn nằm ở ảnh sa bàn tự thu, đúng như kết luận phần II §14: không bộ nào trong số này là camera của xe mô hình. Khi có 100–200 ảnh sa bàn có nhãn, phép chấm đầu tiên là chạy ba checkpoint (nền, trộn, trộn có trọng số — mỗi loại đủ ba seed) ở cả hai ngưỡng 0,50 và 0,15 trên chúng. *Cập nhật 24/09/2026:* quy trình chụp, gán nhãn, xuất cache và chấm ảnh sa bàn ở [GAN_NHAN_SA_BAN.md](autopark/docs/GAN_NHAN_SA_BAN.md). Nhãn nháp ở đó lấy từ chính lượt nền (`ai_woodscape_rtx4000_v1`), nên nhãn sửa từ nháp lạc quan về phía lượt nền (thiên lệch neo, mục 4 của tài liệu đó); phép so ba checkpoint ở trên phải dùng tập tô tay từ đầu (`--no-draft`, dự án riêng, `export --disjoint-from`, bước 7). Quan sát đầu tiên trên ảnh camera thật, một bộ bốn ảnh ngày 23/09 (`runs/rig_snapshots/20260923_165138_661`, camera đặt trên bàn nhìn xuống thảm hoa văn, chưa có nhãn): lượt nền gọi BLOCKED 11 / 31 / 39 / 60 % pixel của cổng 1–4 ở ngưỡng 0,50 và 21 / 56 / 55 / 72 % ở ngưỡng 0,15; nhìn bằng mắt, ở cổng 2–4 phần lớn vùng đó là thảm, tức báo động giả. Đây chưa phải số đo so với nhãn.
 - **Trọng số lớp đã kiểm đủ ba seed và không phải cách gỡ** (17.1). So với lượt trộn cùng seed nó cho nhất quán ba điều: bớt bỏ sót người và ô tô trên ACDC, tăng recall vật lạ RO21 (69,6 ± 3,1 % so với 63,0 ± 1,6 %), và tăng báo động giả (9,7 ± 1,6 % so với 5,6 ± 2,0 %). So với nền thì RO21 recall chưa phân biệt được (67,0 ± 2,3 %), còn lỗi vật cản→FREE trên ACDC không có chiều nhất quán.
 - Chưa làm: seed thứ hai và ba cho lượt ba bộ; chấm chéo WoodScape / AVM cho hai seed trộn sau; ảnh minh họa lỗi theo lớp cho lượt trộn.
 

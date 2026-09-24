@@ -46,5 +46,7 @@ Kiểm nhanh một tệp:
 .\.venv\Scripts\python.exe -X utf8 -m autopark.perception.fisheye_calib check calibration/cam_p1.json
 ```
 
-**Lưu ý:** `perception/calibration.py::CameraCalibration.from_dict` hiện **không** đọc được các tệp này. Hàm đó cần khối
-`extrinsic`, mà ở đây chưa có, và hàm đó bỏ qua `theta_max`. Xem mục 6 của docs/HIEU_CHUAN_CAMERA.md.
+**Lưu ý:** `perception/calibration.py::CameraCalibration.from_dict` hiện **chưa** đọc thẳng được các tệp này. Hàm đó cần
+khối `intrinsic` và khối `extrinsic`, còn tệp ở đây ghi nội tham ở `woodscape_intrinsic` và chưa có ngoại tham
+(`extrinsic` là `null`). Hàm đã đọc `theta_max_deg` khi có (từ 24/09/2026; bản đầu của README ghi hàm bỏ qua
+`theta_max`). Xem mục 6 của [docs/HIEU_CHUAN_CAMERA.md](../docs/HIEU_CHUAN_CAMERA.md).

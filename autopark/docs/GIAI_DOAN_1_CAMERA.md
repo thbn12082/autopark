@@ -1,6 +1,6 @@
 # Giai đoạn 1 — nhánh camera: nhận bốn camera USB 130° (theo nhà bán, chưa đo) và hub UGREEN (23/09/2026)
 
-Máy: máy bàn i9-14900, Windows 11, OpenCV 5.0.0 (`.venv`), **chưa phải laptop của xe**. Kế hoạch nói thử một camera
+Máy: máy bàn i9-14900, Windows 11, OpenCV 5.0.0 (`.venv`), **chưa phải laptop RTX 3050 Ti mang đi nộp đồ án**. Kế hoạch nói thử một camera
 trước rồi mới nhân bốn; đồ về là bốn chiếc cùng lúc, nên bài thử đơn camera (mục 4.1) làm trước, rồi mới tới bốn
 luồng (mục 4.2). Sơ đồ cổng và danh tính camera: [usb_topology.md](usb_topology.md). Mode camera công bố:
 [camera_modes.csv](camera_modes.csv).
@@ -47,7 +47,11 @@ nghiêm ngặt, khoảng cách stamp trung bình 42,0 ms, trung vị 47,0 ms, ma
 
 ## 4. Số đo trên bàn
 
-Báo cáo gộp: [evidence/camera/report_20260923.md](evidence/camera/report_20260923.md). Mọi phiên MJPG, yêu cầu 30 fps,
+Báo cáo gộp: [evidence/camera/report_20260923.md](evidence/camera/report_20260923.md) (bản sao nguyên văn `report.md`
+do công cụ sinh lúc 12:23 ngày 23/09, trước khi có bộ dò khung MJPEG bị cắt cụt. *Ghi chú 24/09/2026:* báo cáo không
+kiểm khung bị cắt, nên cột "FPS thật" đếm mọi khung mới dù có bị cắt hay không, "Đọc hỏng" chỉ đếm `read()` thất bại, và
+các dòng q* 0 khung cũ ở 720p/1080p không có nghĩa là bốn camera dùng được ở các mode đó — xem đính chính mục 4.6).
+Mọi phiên MJPG, yêu cầu 30 fps,
 phơi sáng tự động trừ khi ghi khác. "Khung cũ" = số lần `read()` trả về đúng khung trước (driver không có khung mới).
 Ánh sáng: phòng làm việc buổi sáng, đèn trần, camera nằm trên bàn (chưa gá). **Các phiên m01–m13, r01, r02 đo khi ống kính còn lớp phim bảo vệ**; mục 4.4 là phiên chạy lại sau khi lột. CPU = lõi CPU của tiến trình đo, gồm
 giải mã MJPG và phép so khung trùng của bench.
@@ -66,7 +70,10 @@ giải mã MJPG và phép so khung trùng của bench.
 - **Phơi sáng tự động: 23,85 fps, nhịp khung không đều nhưng có cấu trúc.** m01: 716 khung trong 30,0 s, khoảng cách trung bình 41,9 ms nhưng trung vị 47,1 ms; 272/716 khoảng (38 %) ngắn hơn 40 ms. Phân bố (`gaps_ms` trong json, bin 8 ms): 24–32 ms: 170; 32–40: 102; 40–48: 182; 48–56: 262. Ở bin 1 ms hai đỉnh nằm ở ≈ 31 ms (31 ms: 80; chỉ 45/716 khoảng ngắn hơn 30 ms; nhóm ngắn trung bình 31,4 ms) và ≈ 48 ms (48 ms: 129; nhóm dài trung bình 48,3 ms), tỉ lệ ≈ 2:3 — không phải "mỗi khung 47 ms". Chuỗi khoảng cách không ngẫu nhiên (ngưỡng 40 ms): chuyển tiếp ngắn→dài 272, dài→ngắn 271, dài→dài 172, ngắn→ngắn 0 — một khoảng ngắn luôn được nối bằng một khoảng dài. Cùng dạng ở m03, m04, m05, m08 (trung bình 41,9–42,1 ms, 62–62 % khoảng ≥ 40 ms, ngắn→ngắn = 0 ở mọi luồng đã xem).
 - **Phơi sáng thủ công ≤ −5: 29,3 fps, nhịp gần đều** (trung vị 32 ms, m02/m11) nhưng vẫn còn khoảng ≈ 48 ms rải rác: m02 79/586 khoảng (13,5 %) ≥ 40 ms, trung bình 48,4 ms; m11 −5/−7/−8: 39 / 39 / 39 trên 293 / 294 / 293 khoảng; không có hai khoảng dài liền nhau; 587 khung/20 s so với 600 nếu 30 fps đều. Ảnh tối (độ sáng 13 ở −5, 2–3 từ −6 trở xuống; không chỉnh gain). Khoảng ≈ 48 ms có ở cả hai chế độ; chế độ tự động không sinh ra nó mà làm nó chiếm ≈ 62 % số khoảng thay vì ≈ 13 % — đó là nguyên nhân gần của 24 fps. **Cơ chế chưa xác định**: thời gian phơi sáng dài hơn 33 ms hay chính sách tốc độ khung riêng của chế độ tự động; mọi giải thích phải tạo ra hai độ dài rời rạc ≈ 31 / ≈ 48 ms và không cho hai khoảng ngắn liền nhau. Chưa có phiên nào đổi ánh sáng hay đặt exposure thủ công kèm `CAP_PROP_GAIN`; readback exposure ở chế độ tự động (−6) không tin được. Câu "đủ ánh sáng trên sa bàn thì 30 fps" vì thế là giả thuyết chưa thử. Thiết kế tạm lấy **24 fps, nhịp không đều** làm số vận hành và phải đo lại dưới đèn của sa bàn.
 - Độ trễ đầu-cuối (từ sự kiện thật tới khung về tới Python), thời gian suy luận, tải GPU, nhiệt: **chưa đo** (bước 3
-  "Khi nhận một camera" yêu cầu; cần LED nháy hoặc đồng hồ trên màn hình, và phiên chạy AI).
+  "Khi nhận một camera" yêu cầu; cần LED nháy hoặc đồng hồ trên màn hình, và phiên chạy AI). *Cập nhật 24/09/2026:*
+  thời gian suy luận, độ trễ trong máy, tải GPU và nhiệt GPU đã đo chiều 23/09 ở phiên bốn camera 640×480 + LiDAR + AI
+  trên máy bàn ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 3.3–3.4), không phải ở phiên một camera này; độ trễ
+  từ sự kiện thật và nhiệt CPU vẫn chưa đo.
 
 ### 4.2. Bốn camera cùng lúc, mỗi camera một luồng (chỉ số camera là index OpenCV; index 2 = cổng 4 của hub)
 
@@ -93,10 +100,17 @@ giải mã MJPG và phép so khung trùng của bench.
   và băng thông đẳng thời mỗi camera đặt trước theo alt-setting của mode cần `CAP_PROP_CONVERT_RGB=0`, USB Device
   Tree Viewer hoặc USBPcap — chưa làm. Vì thế chưa có cơ sở số để nói nguyên nhân rớt khung.
 - CPU tiến trình: 0,16 lõi (một camera 720p), 0,34 (một camera 1080p), 0,26 (4 × 480p), 0,52–0,62 (4 × 720p),
-  1,24–1,37 (4 × 1080p) trên i9-14900; laptop RTX 3050 Ti chưa đo.
-- Chưa làm ở giai đoạn 2: chạy bốn camera đồng thời với LiDAR và AI (bước 2), kiểm nhận dạng sau rút/cắm và khởi động
-  lại (bước 3), đồng bộ phần mềm và ghi sai lệch thời gian giữa bốn luồng (bước 5); `record` đã ghi thời điểm từng
-  khung (`*.frames.csv`) để phục vụ bước 5 sau này.
+  1,24–1,37 (4 × 1080p) trên i9-14900; laptop RTX 3050 Ti (máy nộp đồ án) chưa đo (*Cập nhật 24/09/2026, người dùng xác nhận:* máy bàn i9-14900 + RTX 4000 Ada là máy phát triển chính; laptop i7-12700H + RTX 3050 Ti (4 GB VRAM) là máy mang đi nộp và trình diễn đồ án. Mọi số đo đến nay là trên máy bàn; số dùng cho khóa luận phải đo lại trên laptop.)
+- ~~Chưa làm ở giai đoạn 2: chạy bốn camera đồng thời với LiDAR và AI (bước 2), kiểm nhận dạng sau rút/cắm và khởi động
+  lại (bước 3), đồng bộ phần mềm và ghi sai lệch thời gian giữa bốn luồng (bước 5)~~; `record` đã ghi thời điểm từng
+  khung (`*.frames.csv`) để phục vụ bước 5 sau này. **Cập nhật 24/09/2026:** câu gạch ở trên viết sáng 23/09 và đã cũ.
+  - **Bước 2 và 5:** chiều 23/09, trên máy bàn (chưa phải laptop RTX 3050 Ti mang đi nộp đồ án), camera chưa gá, bốn camera 640×480 đã chạy
+    đồng thời với LiDAR và AI (phiên u01 120 s, u04 600 s). Sai lệch thời gian trong bộ ảnh và giữa LiDAR với bộ ảnh đã
+    được ghi lại (bước 5). Chi tiết ở [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 3–4.
+  - **Bước 3:** nhận dạng sau rút/cắm cùng cổng (một lần có hồ sơ, mục 4.5) và sau khởi động lại máy (mục 5,
+    [usb_topology.md](usb_topology.md)) đã kiểm. Đổi cổng, nguồn hub và gán camera vào hướng thì chưa làm.
+  - **Chưa đo:** độ trễ từ sự kiện thật tới lúc khung về máy (phần còn thiếu của bước 2), độ lệch lúc phơi sáng (stamp
+    hiện là lúc khung tới máy), và mọi số trên laptop RTX 3050 Ti (máy nộp đồ án).
 
 ### 4.3. Ảnh mẫu
 
@@ -130,14 +144,16 @@ lúc ≈ 11:15). Chạy lại các phiên chính để xem điều đó đổi g
   sạch (n05: 0 khung cũ, khác m07 có 116) — cũng thất thường.
 - r03 (10 s, còn ảnh tĩnh `r03_cam0_720p_nofilm_*.png`): 240 khung, 23,99 fps, 0 khung cũ.
 
-### 4.5. Rút/cắm lại camera — phép thử vô tình (phiên q*, `created_utc` 05:05:30Z–05:08:19Z, tức ≈ 12:05–12:08 giờ máy)
+### 4.5. Rút/cắm lại camera — phép thử vô tình (phiên q*, `created_utc` 04:59:50Z–05:08:19Z, tức ≈ 11:59–12:08 giờ máy)
 
 **Đính chính:** bản đầu của mục này (commit 849fc5b) gọi đây là phép thử nguồn ngoài cho hub và kết luận "thiếu nguồn là giả
 thuyết được ủng hộ nhất". Sai tiền đề: người dùng **không** cắm adapter nguồn; lúc ≈ 11:45 họ **rút và cắm lại các camera**
 (cùng cổng). Các file đã được đổi tên từ `p*_power` thành `q*_replug`, kết luận về nguồn rút lại. **Hub vẫn chạy bus-powered
 trong mọi phiên của ngày 23/09; phép thử nguồn ngoài chưa làm.**
 
-Điều thực sự đã xảy ra: (1) ≈ 11:45 người dùng rút/cắm lại các camera; (2) sau đó camera **cổng 3** (index 1) từ chối mở
+Điều thực sự đã xảy ra: (1) ≈ 11:55 người dùng rút/cắm lại các camera (*đính chính 24/09/2026:* bản trước, và câu
+"lúc ≈ 11:45" ở đoạn trên, ghi ≈ 11:45; theo nhật ký phiên làm việc (ngoài repo), 11:53 người dùng còn đang hỏi về
+nguồn hub và 11:57 báo đã cắm xong; lần rút/cắm lại camera cổng 3 ở bước (3) rơi vào khoảng 12:01–12:04); (2) sau đó camera **cổng 3** (index 1) từ chối mở
 (`VideoCapture.isOpened() = False`) dù Windows báo OK và DirectShow vẫn liệt kê đủ bốn, ba chiếc kia mở bình thường — bảy lệnh
 đo bốn camera đầu tiên thất bại vì thế; không có quyền admin để khởi động lại thiết bị bằng phần mềm; (3) ≈ 12:00 người dùng rút/cắm
 lại camera cổng 3 lần nữa, cả bốn mở được; (4) chạy lại đúng các cấu hình từng rớt khung:
@@ -161,13 +177,23 @@ lại camera cổng 3 lần nữa, cả bốn mở được; (4) chạy lại đ
   nhau và độ sáng dao động 44–94, tức phơi sáng tự động chưa ổn định — số FPS của ba phiên
   đó không so được với m12a–c, chỉ số khung cũ (0) là so được; từ q05 trở đi nhịp khung trở lại đúng dạng 23,8 fps / 38 % khoảng ngắn.
 - Sau rút/cắm, ba camera gồm cả cổng 4 (q08 1080p, q10 720p) và camera cổng 4 một mình (q13) đều 0 khung cũ; CPU bốn camera 1080p
-  1,40 lõi.
+  1,40 lõi. *(Ghi chú 24/09/2026: q08/q10/q13 ghi lúc 04:59:50Z–05:00:25Z (≈ 12:00), sớm hơn bảy phiên ở bảng
+  (05:05:30Z–05:08:19Z) và sớm hơn `usb_topology_20260923_replug2.json` (05:04:59Z). Cả ba đều không mở index 1 (cổng 3):
+  theo giờ ghi, và theo nhật ký phiên làm việc ngoài repo, chúng chạy lúc camera cổng 3 còn treo, trước lần cắm lại thứ
+  hai. Vì vậy chúng chỉ nói về ba camera sau lần rút/cắm thứ nhất.)*
 - **Bài học vận hành:** rút/cắm camera có thể để lại một camera ở trạng thái "PnP OK, DirectShow liệt kê, nhưng không mở được"; mã vận
   hành phải coi mở thất bại là trạng thái cần người can thiệp, và phiên thử trên xe phải bắt đầu bằng một lượt mở thử cả bốn camera.
 
-**Hồ sơ rút/cắm (giai đoạn 2, bước 3):** hai bản `list` sau hai lần rút/cắm (`usb_topology_replug1.json` lúc camera cổng 3 còn treo,
-`usb_topology_replug2.json` sau khi cắm lại lần hai) đều cho **cùng** bảng index ↔ cổng ↔ InstanceId với bản 10:36 (0→1, 1→3,
-2→4, 3→2): danh tính theo cổng và index DirectShow giữ nguyên qua rút/cắm cùng cổng. Đổi cổng và khởi động lại máy vẫn chưa thử.
+**Hồ sơ rút/cắm (giai đoạn 2, bước 3):** hai bản `list`
+[`usb_topology_20260923_replug2.json`](evidence/camera/usb_topology_20260923_replug2.json) (`created_utc` 05:04:59Z) và
+[`usb_topology_20260923_replug1.json`](evidence/camera/usb_topology_20260923_replug1.json) (05:05:17Z) đều cho **cùng**
+bảng index ↔ cổng ↔ InstanceId với bản 10:36 (0→1, 1→3, 2→4, 3→2): danh tính theo cổng và index DirectShow giữ nguyên
+sau rút/cắm cùng cổng (≈ 11:55 các camera, ≈ 12:01–12:04 camera cổng 3). *Đính chính 24/09/2026:* bản trước ghi
+`replug1` là lúc camera cổng 3 còn treo. Theo `created_utc`, cả hai bản đều ghi sau lần cắm lại cổng 3 (sau q13
+05:00:25Z, ngay trước q12a 05:05:30Z mở đủ bốn camera), cách nhau 18 s, và `replug1` ghi sau `replug2` (tên không theo
+thứ tự thời gian). Bản `list` chụp lúc camera cổng 3 còn treo (≈ 11:58) đã bị ghi đè cùng đường dẫn; bảng lúc đó chỉ còn
+trong nhật ký console ngoài repo (cũng cùng bảng), không tính là bằng chứng lưu trữ. Vì vậy nhận dạng sau rút/cắm mới có
+hồ sơ **một lần**, sau cả hai lần rút/cắm. Đổi cổng vẫn chưa thử; khởi động lại máy đã thử lúc 12:35 (mục 5).
 
 **Phép thử nguồn ngoài (chưa làm):** rút cả bốn camera, cắm adapter nguồn cho hub, cắm lại camera, chạy lại bốn camera 1080p 30 s
 và ba phiên 720p 10 s. Nếu muốn tách riêng tác dụng của việc rút/cắm, chạy trước một lượt rút/cắm không đổi gì khác.
@@ -181,7 +207,8 @@ khối 8×8 xám lặp lại, thường có vệt xé ngang ở phía trên. Ki�
 `video/sources.py::truncated_rows`, và `UsbCameraSource` loại những khung này.
 
 Đo lại chiều 23/09, sau khởi động lại máy, cùng hub bus-powered, camera nằm trên bàn nhìn xuống thảm có hoa văn dày
-(`runs/rig_bench/20260923_v3/raw/`, 8–15 s mỗi phiên, chỉ đọc camera, không AI):
+(mọi dòng trừ dòng cuối: `runs/rig_bench/20260923_v3/raw/`, 8–15 s mỗi phiên, chỉ đọc camera, không AI; dòng cuối gộp
+các phiên khác, xem ghi chú trong dòng):
 
 | Camera chạy cùng lúc | Độ phân giải | Khung bị cắt: cổng 1 / 2 / 3 / 4 |
 |---|---|---|
@@ -193,7 +220,7 @@ khối 8×8 xám lặp lại, thường có vệt xé ngang ở phía trên. Ki�
 | cổng 2 + 3 + 4 | 720p | — / 0 % / 1 % / 67 % |
 | cả bốn | 1080p | 99 % / 13 % / 100 % / 100 % |
 | cả bốn (phiên 15 s) | 640×480 | 0 % / 0 % / 0 % / 0 % |
-| cả bốn, cộng 18 phiên 15–600 s từ 16:06 tới 16:50 | 640×480 | 4,6 % (1418 / 31142 khung, gần hết trong hai đợt 26 % và 36 %) / 0 % / 0 % / < 0,1 % (6 khung) |
+| cả bốn, cộng 18 phiên 15–600 s từ 16:06 tới 16:50 (khác các dòng trên: gồm cả phiên chạy cùng LiDAR + AI (u01, u04), cùng LiDAR (a03, a06) và cùng bốn tiến trình bận CPU (a02, a05); bảng từng phiên ở [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2.4) | 640×480 | 4,6 % (1418 / 31142 khung, gần hết trong hai đợt 26 % và 36 %) / 0 % / 0 % / < 0,1 % (6 khung) |
 
 Hệ quả cho mục 4.2–4.5:
 
@@ -207,7 +234,10 @@ Hệ quả cho mục 4.2–4.5:
 - **Các chữ "sạch" sau khi rút/cắm lại (mục 4.5) không có nghĩa là ảnh nguyên vẹn.** Các phiên q* không kiểm khung bị cắt,
   và khung cảnh lúc đó cũng khác (tối hơn). Chiều 23/09, cùng hub, 720p × 4 và 1080p × 4 cho phần lớn khung bị cắt ở hai
   hoặc ba camera. Kết luận dùng được: **bốn camera qua hub này chỉ dùng được ở 640×480**, và ngay cả ở 480p vẫn phải
-  bật bộ dò để loại khung hỏng.
+  bật bộ dò để loại khung hỏng. *Cập nhật 24/09/2026:* trên bàn thử, hai phiên 4 × 720p 60 s (w03/w04,
+  `runs/rig_bench/20260924_wait/`) cho 0 khung bị cắt/xé ở cả bốn cổng, nhưng lúc đó camera nhìn chỗ tối (cổng 2 gần
+  đen). Đây là thêm một dấu hiệu khung bị cắt phụ thuộc cảnh (kích thước JPEG). Nó không phải bằng chứng 720p đã dùng
+  được, nên kết luận 640×480 giữ nguyên ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 10).
 - Các ảnh tĩnh r01–r03 (một camera) và `source_cam0_720p` (một camera) không bị ảnh hưởng. Bộ dò chạy lại trên chín ảnh
   PNG của r01–r03 cho 0 khung bị cắt.
 - Việc cần làm ở mục 6 đổi thứ tự: thử **tách camera ra hai cổng gốc khác nhau** của máy (hai camera qua hub, hai camera
@@ -216,30 +246,45 @@ Hệ quả cho mục 4.2–4.5:
 
 ## 5. Đối chiếu với kế hoạch
 
-- Bước 1–2 "Khi nhận một camera": bước 1 xong phần biến thể theo VID/PID (1BCF:0B09) và giao tiếp (UVC qua DirectShow), có hồ sơ; góc nhìn 130° là số nhà bán ghi, chưa đo (mục 1); chiều dài/loại dây camera **chưa ghi** (tiền đề "dùng dây ngắn trước" chưa có hồ sơ; cần ghi vào hardware_inventory.md để bước 9 giai đoạn 2 có cấu hình "ngắn" đối chiếu). Bước 2 (mode thật): xong, có hồ sơ (`camera_modes.csv`). Bước 3 (một phiên đo FPS, thời gian suy luận, độ trễ, mất hình, CPU/GPU, nhiệt): **có** FPS, mất hình (khung cũ), CPU; **chưa** độ trễ, thời gian suy luận, GPU, nhiệt. Bước 4 (ảnh ở độ cao/góc chúc/khoảng cách dự kiến): chưa. Bước 5 (hiệu chuẩn): chưa. Bước 6 (AI trên ảnh thật): chưa.
-- Giai đoạn 2 "Khi đủ bốn camera": bước 1 (bốn camera cùng mode chung) làm xong về phép đo: mốc đề xuất 720p30 MJPEG đạt về mode nhưng thực tế là **720p ≈ 24 fps**; camera cổng 4 rớt thất thường và 1080p × 4 không đạt trước khi rút/cắm lại, sau khi rút/cắm lại các camera cả 720p × 4 lẫn 1080p × 4 không còn khung cũ (mục 4.5) — **nhưng đính chính mục 4.6: tính cả khung MJPEG bị cắt cụt thì bốn camera qua hub chỉ dùng được ở 640×480 (vẫn có đợt khung hỏng ở cổng 1); ở 720p hai–ba camera bị cắt phần lớn khung**; tiền đề "trên dây ngắn" chưa ghi (dây camera chưa kiểm kê). Bước 3 gồm bốn phần: sơ đồ cổng USB — xong ([usb_topology.md](usb_topology.md)); nguồn hub — **chưa ghi** (bus-powered, chưa thử adapter); cách gán camera vào hướng — chưa (sẽ ghi theo cổng khi có gá); kiểm nhận dạng sau rút/cắm — **xong** (hai lần, cùng bảng, `usb_topology_replug1/2.json`); sau khởi động lại — **xong**: InstanceId theo cổng giữ nguyên, index OpenCV đổi (cổng 2 và 4 hoán index; `usb_topology_20260923_after_reboot.json`). Bước 2, 4, 5, 6, 7, 8, 9: chưa.
+- Bước 1–2 "Khi nhận một camera": bước 1 xong phần biến thể theo VID/PID (1BCF:0B09) và giao tiếp (UVC qua DirectShow), có hồ sơ; góc nhìn 130° là số nhà bán ghi, chưa đo (mục 1); chiều dài/loại dây camera **chưa ghi** (tiền đề "dùng dây ngắn trước" chưa có hồ sơ; cần ghi vào hardware_inventory.md để bước 9 giai đoạn 2 có cấu hình "ngắn" đối chiếu). Bước 2 (mode thật): xong, có hồ sơ (`camera_modes.csv`). Bước 3 (một phiên đo FPS, thời gian suy luận, độ trễ, mất hình, CPU/GPU, nhiệt): **có** FPS, mất hình (khung cũ), CPU; **chưa** độ trễ, thời gian suy luận, GPU, nhiệt (tính tới sáng 23/09). *Cập nhật 24/09/2026:* thời gian suy luận, độ trễ trong máy (tuổi kết quả AI), tải GPU và nhiệt GPU đã đo chiều 23/09 trên bàn thử bốn camera + LiDAR + AI ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 3.3–3.4); vẫn chưa đo độ trễ từ sự kiện thật tới lúc khung tới máy, nhiệt CPU, và chưa đo trên laptop RTX 3050 Ti (máy nộp đồ án). Bước 4 (ảnh ở độ cao/góc chúc/khoảng cách dự kiến): chưa. Bước 5 (hiệu chuẩn): chưa (từ 24/09 có công cụ, [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md); chưa hiệu chuẩn camera nào). Bước 6 (AI trên ảnh thật): chưa.
+- Giai đoạn 2 "Khi đủ bốn camera": bước 1 (bốn camera cùng mode chung) làm xong về phép đo: mốc đề xuất 720p30 MJPEG đạt về mode nhưng thực tế là **720p ≈ 24 fps**; camera cổng 4 rớt thất thường và 1080p × 4 không đạt trước khi rút/cắm lại, sau khi rút/cắm lại các camera cả 720p × 4 lẫn 1080p × 4 không còn khung cũ (mục 4.5) — **nhưng đính chính mục 4.6: tính cả khung MJPEG bị cắt cụt thì bốn camera qua hub chỉ dùng được ở 640×480 (vẫn có đợt khung hỏng ở cổng 1); ở 720p hai–ba camera bị cắt phần lớn khung**; tiền đề "trên dây ngắn" chưa ghi (dây camera chưa kiểm kê). Bước 3 gồm bốn phần: sơ đồ cổng USB — xong ([usb_topology.md](usb_topology.md)); nguồn hub — **chưa ghi** (bus-powered, chưa thử adapter); cách gán camera vào hướng — chưa (sẽ ghi theo cổng khi có gá); kiểm nhận dạng sau rút/cắm — **xong một lần** (sau cả hai lần rút/cắm; hai bản `list` liền nhau 18 s, cùng bảng, `usb_topology_20260923_replug1/2.json`; đính chính 24/09/2026, trước ghi "hai lần", xem mục 4.5); sau khởi động lại — **xong**: InstanceId theo cổng giữ nguyên, index OpenCV đổi (cổng 2 và 4 hoán index; `usb_topology_20260923_after_reboot.json`). Bước 2, 4, 5, 6, 7, 8, 9: chưa (tình trạng sáng 23/09). **Cập nhật 24/09/2026:** bước 2 và 5 đã làm một phần trên máy bàn chiều 23/09, ở 640×480, camera chưa gá ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 3–4 và 10). Đã ghi khung tốt/s, khung bị cắt/xé và khung cũ riêng từng camera khi chạy đồng thời với LiDAR và AI. Bộ ảnh được ghép theo thời gian; độ lệch trong bộ ở 480p có trung vị 15,0 ms, p95 24,1 ms (u01), và độ lệch giữa LiDAR với bộ ảnh đã ghi. Các độ lệch này tính theo lúc khung tới máy, không phải lúc phơi sáng. Chưa đo độ trễ từ sự kiện thật, chưa chạy trên laptop RTX 3050 Ti (máy nộp đồ án). Bước 4 mới có công cụ nội tham ([HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md), mới kiểm trên ảnh tổng hợp): chưa hiệu chuẩn camera nào, chưa gá rig. Bước 6: AI đã chạy trên từng camera, nhưng quy đổi về cùng hệ tọa độ và hợp nhất thì chưa. Bước 7, 8, 9: chưa.
 - Danh tính camera = cổng hub (không serial); index OpenCV không theo thứ tự cổng (0→1, 1→3, 2→4, 3→2) → mã vận hành
   phải chọn theo InstanceId.
 - Điều kiện chuyển bước gate 1 phần camera ghi ở [gate_01.md](gate_01.md): "nhận ổn ở mode đã ghi rõ" đạt trên máy
   bàn cho một camera 720p MJPG (24 fps, 0 khung cũ trong 30 s); "đủ nét trong vùng làm việc, hiệu chuẩn được, chạy AI
-  trên ảnh thật" chưa; "có số đo" có cho FPS/khung cũ/CPU, chưa cho độ trễ/suy luận/GPU/nhiệt.
+  trên ảnh thật" chưa; "có số đo" có cho FPS/khung cũ/CPU, chưa cho độ trễ/suy luận/GPU/nhiệt (sáng 23/09).
+  *Cập nhật 24/09/2026:* các phiên chạy chung bốn camera 640×480 + LiDAR + AI trên máy bàn chiều 23/09 (u01, u04;
+  [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 3) đã cho thêm khung bị cắt/xé, thời gian suy luận (u01:
+  16,4 ms/lô bốn ảnh), độ trễ trong máy, độ lệch camera–LiDAR, tải GPU (u01: TB 26 %) và nhiệt GPU (u01: 41 → 46 °C),
+  khớp với [gate_01.md](gate_01.md); vẫn chưa đo độ trễ từ sự kiện thật tới lúc khung tới máy, nhiệt CPU, và mọi số trên
+  laptop RTX 3050 Ti (máy nộp đồ án).
 
 ## 6. Việc còn lại — cần người
 
 0. **Tách camera ra nhiều cổng gốc** (mới, theo mục 4.6): hai camera qua hub, hai camera cắm thẳng vào cổng gốc khác của máy,
    rồi chạy lại bốn camera 720p và đọc cột khung bị cắt. Nếu hết bị cắt thì nguyên nhân là băng thông dùng chung qua hub.
+   Phải chạy với cảnh sáng, nhiều chi tiết như chiều 23/09, vì cảnh tối cho 0 khung bị cắt kể cả khi cả bốn camera qua
+   hub (w03/w04, 24/09; mục 4.6).
 1. **Phép thử nguồn ngoài** (chưa làm, nay phải đọc thêm cột khung bị cắt): rút cả bốn camera, cắm adapter nguồn cho hub, cắm lại camera, mở thử cả bốn, rồi chạy
    `measure --index 0 1 2 3 --width 1920 --height 1080 --seconds 30` và ba phiên 720p 10 s. Trước đó nên chạy một lượt rút/cắm không
    đổi gì khác để biết riêng tác dụng của rút/cắm (mục 4.5). Nếu muốn tách "camera hay cổng": đổi chỗ cắm camera cổng 4 rồi chạy lại.
 2. ~~Khởi động lại máy~~ — đã làm 12:35 ngày 23/09: InstanceId giữ nguyên, index đổi. Mã vận hành phải chọn camera theo cổng/InstanceId.
-3. **Đặt camera ở độ cao và góc chúc dự kiến trên xe**, bày hộp/thành/xe mô hình, ghi ảnh bằng `record` — ảnh sa bàn
-   đầu tiên cho nhánh AI (HUAN_LUYEN.md phần III, mục 18).
+3. **Đặt camera ở độ cao và góc chúc dự kiến trên xe**, bày hộp/thành/xe mô hình, chụp bằng nút "Chụp bộ ảnh" của bàn
+   thử (`autopark.ui.rig_app`, 640×480, bật AI để bộ ảnh có xác suất làm nháp) — ảnh sa bàn đầu tiên cho nhánh AI
+   (HUAN_LUYEN.md phần III, mục 18); nhập và gán nhãn theo [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md). *(Sửa 24/09/2026:
+   bản 23/09 ghi "ghi ảnh bằng `record`"; đầu ra của `camera_bench record` (AVI + PNG, không có `meta.json` hay
+   `cam_p<cổng>.png`) không nhập được vào công cụ gán nhãn.)*
 4. **In bảng ô vuông** có kích thước đo được để hiệu chuẩn 130°; mã hiệu chuẩn cho ống kính thật đã có từ 24/09 (`perception/fisheye_calib.py`, giao diện `ui/calib_app.py`, bảng in sẵn trong `calibration/bang_in/`, hướng dẫn [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md)), mới kiểm trên ảnh tổng hợp, chưa hiệu chuẩn camera nào
-   (`perception/calibration.py` hiện chỉ đọc mô hình fisheye của WoodScape).
-5. Xác nhận nguồn hub, đo dòng camera; ghi chiều dài/loại dây camera vào kiểm kê; thử trên laptop của xe; thử cáp kéo dài — theo thứ tự kế hoạch.
+   (nội tham của camera thật nạp bằng `fisheye_calib.load_intrinsics`; `CameraCalibration` trong
+   `perception/calibration.py` còn cần ngoại tham, chưa có — sửa 24/09/2026, trước ghi tệp đó "chỉ đọc mô hình fisheye
+   của WoodScape").
+5. Xác nhận nguồn hub, đo dòng camera; ghi chiều dài/loại dây camera vào kiểm kê; thử trên laptop RTX 3050 Ti (máy nộp đồ án); thử cáp kéo dài — theo thứ tự kế hoạch.
 6. Chạy AI trên ảnh thật và lưu cả lỗi (bước 6 "Khi nhận một camera").
-7. Một phiên đo đủ bước 3 trên laptop của xe: FPS, độ trễ (LED/đồng hồ), mất hình, thời gian suy luận, CPU/GPU, nhiệt.
-8. Bốn camera chạy cùng LiDAR + AI, ghi sai lệch thời gian giữa các luồng (giai đoạn 2, bước 2 và 5).
+7. Một phiên đo đủ bước 3 trên laptop RTX 3050 Ti (máy nộp đồ án): FPS, độ trễ (LED/đồng hồ), mất hình, thời gian suy luận, CPU/GPU, nhiệt.
+8. ~~Bốn camera chạy cùng LiDAR + AI, ghi sai lệch thời gian giữa các luồng (giai đoạn 2, bước 2 và 5)~~ — ghi chú
+   24/09/2026: đã làm trên máy bàn chiều 23/09 ở 640×480 (u01 120 s, u04 600 s; `runs/rig_bench/20260923_v3/`,
+   [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 3–4). Còn lại: độ trễ từ sự kiện thật (LED nháy, việc 7), và
+   chạy lại trên laptop RTX 3050 Ti (máy nộp đồ án).
 9. Thử ánh sáng: cùng camera dưới đèn sa bàn, và phơi sáng thủ công kèm `CAP_PROP_GAIN`, để biết 30 fps có đạt với ảnh
    đủ sáng không.
 
@@ -260,8 +305,12 @@ Từ thư mục `autopark`, trong `.venv` (cần `pip install -e .[video]`; `pyg
 .\.venv\Scripts\python.exe -X utf8 -m pytest tests/test_camera_bench.py tests/test_phase1_sources.py
 ```
 
-`measure --index 2 0 1 3` mở camera theo đúng thứ tự đó và ghi vào `requested.indices`. Nguồn camera trong mã vận
-hành: `open_source("usb:0", width=1280, height=720, fourcc="MJPG", fps=30)`; phơi sáng thủ công thêm `exposure=-6`.
+`measure --index 2 0 1 3` mở camera theo đúng thứ tự đó và ghi vào `requested.indices`. Mở một camera theo index
+OpenCV để thử nhanh (index đổi sau khởi động lại, mục 5):
+`open_source("usb:0", width=1280, height=720, fourcc="MJPG", fps=30)`; phơi sáng thủ công thêm `exposure=-6`. *Cập nhật 24/09/2026:* mã vận hành bốn camera (bàn thử giai đoạn 2,
+`rig.bench`) chọn camera theo cổng hub qua `video/multicam.py::resolve_ports` + `MultiCameraManager`, mặc định 640×480
+MJPG (`rig.bench`, `RigConfig`; lớp `MultiCameraManager` tự nó vẫn để mặc định 1280×720) — theo mục 4.6 và
+[GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2.4.
 
 ## 8. Kiểm tra độc lập
 

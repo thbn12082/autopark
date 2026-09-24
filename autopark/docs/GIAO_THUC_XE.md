@@ -14,7 +14,7 @@ Không số nào dưới đây là số đo trên xe hay trên bo.
 | Bản tham chiếu firmware | `autopark/transport/firmware_model.py` | `tests/test_transport_firmware_model.py` |
 | `VehicleIO`: nhánh mô phỏng + nhánh serial | `autopark/transport/vehicle_io.py`, `loopback.py` | `tests/test_transport_vehicle_io.py` |
 | Vector mẫu chung Python ↔ C++ | `autopark/transport/vectors.py` → `firmware/esp32_vehicle/test/vectors.json` | cả hai file test Python ở trên |
-| Firmware C++ (lõi portable + lớp Arduino) | `firmware/esp32_vehicle/src/` | **chưa biên dịch**; `test/host/test_main.cpp` sẵn sàng khi có trình biên dịch; kiểm tĩnh mã nguồn (không chạy): `tests/test_transport_firmware_source.py` |
+| Firmware C++ (lõi portable + lớp Arduino) | `firmware/esp32_vehicle/src/` (hướng dẫn biên dịch, test host, đo trên bo: [README firmware](../firmware/esp32_vehicle/README.md)) | **chưa biên dịch**; `test/host/test_main.cpp` sẵn sàng khi có trình biên dịch; kiểm tĩnh mã nguồn (không chạy): `tests/test_transport_firmware_source.py` |
 | Cấu hình mô phỏng | `configs/vehicle_io_sim.json` | test nạp file |
 
 ## 0. Đã quyết định và CHƯA CHỐT
@@ -161,11 +161,11 @@ SUPPLY_LOW: mV; STALL: |effort| ‰ lúc chốt; còn lại 0). Gửi một lầ
 
 | Cơ chế | Mặc định | Hậu quả khi hết |
 |---|---|---|
-| Thời hạn mỗi COMMAND (`validity_ms`, kẹp ≤ `max_validity_ms`) | laptop gửi 150 ms (`DriveCommand.valid_for`); kẹp 300 ms | RUNNING → ARMED, `COMMAND_TIMEOUT`, dốc về trung tính |
+| Thời hạn mỗi COMMAND (`validity_ms`, kẹp ≤ `max_validity_ms`) | laptop gửi 150 ms (`VehicleIO.default_validity_s`, hoặc `validity_s` truyền vào `send()`; trùng giá trị với `DriveCommand.valid_for` nhưng hai bên chưa nối với nhau, xem mục 12); kẹp 300 ms | RUNNING → ARMED, `COMMAND_TIMEOUT`, dốc về trung tính |
 | Watchdog liên lạc CỦA BO: không nhận thông điệp hợp lệ nào | 500 ms | ARMED/RUNNING → DISARMED, `LINK_TIMEOUT`; phải ARM lại |
 | `TELEMETRY_STALE` CỦA LAPTOP: không có telemetry hợp lệ (mục 10) | 0,3 s (phải ≥ 3 chu kỳ telemetry) | CHỐT phía laptop: gửi DISARM, `send(enable=True)` bị từ chối tới khi `arm()` hoặc `connect()` |
 | Vòng điều khiển trễ (hai lần `step` cách nhau) | > 100 ms | FAULT `LOOP_OVERRUN` (chốt) |
-| Task watchdog ESP-IDF (chỉ trên bo) | 300 ms (Arduino 3.x) | TWDT: guard đã ép trung tính sau 100 ms; panic → móc kéo chân ESC xuống thấp (mất xung) tới `setup_outputs()`; chip khởi động lại → BOOT → DISARMED (chưa đo) |
+| Task watchdog ESP-IDF (chỉ trên bo) | 300 ms (Arduino 3.x); Arduino 2.x (bản build mặc định theo `platformio.ini`, `platform = espressif32`): 1 s nếu `esp_task_wdt_init(1, true)` thành công, nếu TWDT đã khởi tạo sẵn thì giữ thời hạn cũ (thường 5 s) — CẦN KIỂM TRÊN BO | TWDT: guard đã ép trung tính sau 100 ms; panic → móc kéo chân ESC xuống thấp (mất xung) tới `setup_outputs()`; chip khởi động lại → BOOT → DISARMED (chưa đo) |
 | Bộ hẹn giờ `esp_timer` ép ESC trung tính (chỉ trên bo) | loop im > 100 ms | xung ESC = trung tính |
 | Panic tức thời, interrupt watchdog, `esp_restart()` (chỉ trên bo) | — | chỉ reset CPU, LEDC không dừng; móc panic/shutdown kéo chân ESC xuống thấp tới `setup_outputs()` (chưa biên dịch, chưa đo); bật nguồn/system reset: chân thả nổi → điện trở kéo xuống ngoài |
 
@@ -425,17 +425,25 @@ Firmware C++ **chưa** qua `test/host` vì chưa biên dịch được.
 ## 12. Chưa làm / giới hạn
 
 - C++ chưa biên dịch: lỗi cú pháp/kiểu có thể còn; hàm Arduino-ESP32 (`ledcAttach`/`ledcSetup`, `esp_task_wdt_*`,
-  `Serial.setTxTimeoutMs`) viết cho cả 2.x và 3.x theo tài liệu, chưa thử trên phiên bản nào. Móc reset CPU
+  `Serial.setTxTimeoutMs`) viết cho cả 2.x và 3.x theo hiểu biết, chưa đối chiếu tài liệu của đúng phiên bản core
+  (như `firmware/esp32_vehicle/README.md`), chưa thử trên phiên bản nào. Móc reset CPU
   (`esc_line_low_now`: thanh ghi `GPIO_OUT_W1TC_REG`/`GPIO_ENABLE_W1TS_REG`, `esp_rom_gpio_connect_out_signal`,
   `SIG_GPIO_OUT_IDX`; `__wrap_esp_panic_handler` + `-Wl,--wrap` cho 2.x; `set_arduino_panic_handler` cho 3.x;
   `esp_register_shutdown_handler`) viết theo hiểu biết về ESP-IDF/Arduino-ESP32, không đối chiếu được tài liệu trên máy
   này; tên hàm/thanh ghi/tiêu đề phải kiểm khi biên dịch, và tác dụng phải đo bằng máy hiện sóng
-  (`firmware/esp32_vehicle/README.md`, "Cách kiểm trên bo").
-- `configs/vehicle_io_sim.json` chưa ghi ba khóa `max_effort_permille`, `stall_effort_permille`, `stall_timeout_ms`
-  (lấy mặc định mô phỏng 1000/200/1000); nên ghi rõ vào file.
+  ([firmware/esp32_vehicle/README.md](../firmware/esp32_vehicle/README.md), đoạn "Cách kiểm trên bo" trong mục An toàn).
 - Chưa có mã đọc encoder, AS5600, BNO085, VL53L1X, điện áp; firmware báo mọi số đo là không hợp lệ.
 - Chưa nối `VehicleIO` vào `application/session.py` / `TrajectoryTracker` (phiên giai đoạn 0 vẫn điều khiển `SimVehicle`
   trực tiếp); chưa ghi `commands.csv`/`telemetry.csv` từ `VehicleIO`.
+- *(24/09/2026)* Chưa có mã đổi `VehicleTelemetry.tof_m` sang `NearFieldReading` của `NearFieldLayer`
+  ([giai đoạn 3](GIAI_DOAN_3_CHUAN_BI.md)). Trên dây ToF chỉ là `tof_mm[4]` + mặt nạ theo chỉ số, không có `sensor_id`
+  hay `max_range_m`; cả bốn số đo dùng chung stamp của khung (thời điểm laptop nhận). Ánh xạ chỉ số →
+  `sensor_id`/`max_range_m`/vị trí gắn phải lấy từ cấu hình, hiện chưa có file cấu hình nào ghi; `NearFieldLayer` vẫn
+  chỉ chạy với số đo giả.
 - Mô hình cơ cấu chấp hành đơn giản: vùng chết đối xứng, tốc độ xác lập tuyến tính theo effort, không có ma sát tĩnh
   khác động, không có phanh ESC, không có độ rơ lái; mọi hệ số là giả định.
 - Chưa có xác thực nguồn gửi (một tiến trình khác mở được cổng có thể gửi HELLO); chấp nhận ở mức bàn thử một laptop.
+- Chưa làm việc cuối trong kế hoạch mục 9, "Khi chưa đủ phần cứng": thiết kế nguồn/dừng cho phép thử sắp thực hiện.
+  Repo chưa có bảng tải, `power_budget.md`, sơ đồ nguồn hay sơ đồ dừng (đầu ra của kế hoạch mục 10). Mới chọn cách đấu
+  ngõ vào E-stop an toàn khi hở mạch (tiếp điểm NC nối GND, kéo lên; mục 0, mục 6), chưa lắp, chưa thử; ngõ vào này
+  không thay đường cắt động lực phần cứng.

@@ -573,7 +573,7 @@ def woodscape_intrinsics(K, D, image_size: tuple[int, int], *, max_error_px: flo
 
 
 def intrinsics_from_block(block: dict) -> FisheyeIntrinsics:
-    """Khối "radial_poly" → `FisheyeIntrinsics` (theta_max lấy từ khối; CameraCalibration.from_dict thì bỏ qua nó)."""
+    """Khối "radial_poly" → `FisheyeIntrinsics` (theta_max lấy từ khối; từ 24/09 CameraCalibration.from_dict cũng đọc theta_max_deg khi có)."""
     return FisheyeIntrinsics(int(block["width"]), int(block["height"]),
                              (float(block["k1"]), float(block["k2"]), float(block["k3"]), float(block["k4"])),
                              float(block["cx_offset"]), float(block["cy_offset"]), float(block["aspect_ratio"]),

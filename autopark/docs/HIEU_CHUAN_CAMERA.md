@@ -3,7 +3,8 @@
 **Kế hoạch đối chiếu:** v3.1 mục 6, "Khi đủ bốn camera", bước 4: *"Hiệu chuẩn riêng từng camera; gắn lên rig rồi xác
 định vị trí/hướng của camera so với rig."* Đầu ra cần có: *"bốn tệp calibration, `camera_rig_extrinsics.yaml`"*.
 
-**Mức bằng chứng:** công cụ mới chỉ chạy trên ảnh tổng hợp và trên nguồn camera giả trong test. Chưa có ảnh bảng nào
+**Mức bằng chứng:** công cụ mới chỉ được kiểm trên ảnh tổng hợp và trên nguồn camera giả trong test. Riêng giao diện đã
+mở camera thật cổng 2 một lần, khoảng 6 s, ngày 24/09 (xem cuối mục 5), nhưng không chụp ảnh nào. Chưa có ảnh bảng nào
 chụp từ camera thật, và bảng chưa được in. Con số 130° là số người bán quảng cáo, chưa ai đo. Mọi ngưỡng chấp nhận dưới
 đây là **đề xuất**, chưa được kiểm trên camera thật.
 
@@ -20,7 +21,9 @@ theo cổng hub. Chưa có **ngoại tham**, tức vị trí và hướng của 
 
 Mô hình ống kính là Kannala–Brandt của `cv2.fisheye` với 4 hệ số, skew cố định bằng 0. Mô hình này chỉ biểu diễn được
 tia lệch trục quang dưới 90°. Như vậy là đủ nếu ống kính đúng như quảng cáo là 130° (tức 65° mỗi bên), nhưng chưa ai đo.
-Mã cũ `perception/calibration.py` chỉ đọc hiệu chuẩn của WoodScape; mã mới không sửa gì trong tệp đó.
+Mã cũ `perception/calibration.py` đọc hiệu chuẩn của WoodScape. Mã mới chỉ sửa một chỗ trong tệp đó (24/09/2026):
+`CameraCalibration.from_dict` đọc `theta_max_deg` nếu khối nội tham có khóa này, còn tệp WoodScape không có khóa này nên
+vẫn dùng 100°.
 
 ## 2. In bảng
 
@@ -187,8 +190,16 @@ Trong lúc viết công cụ có hai phát hiện, cả hai đều **trên ảnh
 
 **Các phép kiểm này chưa chứng minh:** ống kính thật khớp tốt với mô hình 4 hệ số (camera tổng hợp dùng đúng mô hình
 đó nên luôn khớp); ảnh nén MJPEG, rolling shutter, phơi sáng tự động và độ mờ thật không làm lệch góc; máy in in đúng tỉ
-lệ; bảng dán đủ phẳng; và công cụ chạy được với camera thật. Giao diện chưa từng mở một camera thật nào. Hàm
-`usb_camera_factory` (gồm `resolve_ports`, `UsbCameraSource` và kiểm `mode_mismatch`) chưa chạy lần nào.
+lệ; bảng dán đủ phẳng; và công cụ chụp, hiệu chuẩn được với camera thật.
+
+*Đính chính 24/09/2026:* bản đầu của mục này ghi giao diện chưa từng mở camera thật và `usb_camera_factory` chưa chạy lần
+nào. Thực ra sáng 24/09 (khoảng 10:55, trước khi commit), giao diện đã mở camera thật một lần: cổng 2, 640×480, khoảng
+6 s, qua `usb_camera_factory` (tức `resolve_ports`, `UsbCameraSource` và kiểm `mode_mismatch` đã chạy, không báo lệch
+mode). Lần này chạy bằng một script thử tạm gọi thẳng `CalibWindow`, không phải lệnh `python -m autopark.ui.calib_app`.
+Ảnh sống hiện lên; dòng trạng thái ghi 20,7 khung dò/s, 0 khung hỏng (cắt 0, xé 0), 0 khung cũ, 0 lỗi đọc. Không có bảng
+trước camera (chưa in bảng) nên không dò được góc, và không chụp ảnh nào. Lần chạy chỉ để lại ảnh chụp màn hình trong thư
+mục tạm của phiên làm việc, không lưu vào `runs/` (không có `runs/calib/`). Chưa hiệu chuẩn camera nào; ba cổng còn lại
+chưa mở bằng công cụ này.
 
 ## 6. Chưa làm
 
@@ -196,11 +207,15 @@ lệ; bảng dán đủ phẳng; và công cụ chạy được với camera th�
   cứng và một cách đo, chẳng hạn đặt bảng trên sàn ở vị trí đo được rồi dùng `cv2.fisheye.solvePnP` với nội tham ở đây,
   hoặc đo tay rồi kiểm lại bằng vật mẫu trên BEV. Chưa chọn cách nào, chưa làm. Mỗi tệp nội tham có
   `"extrinsic": null`, `"rig": null` và một câu ghi chú nói rõ điều này.
-- **Nối vào costmap.** `CameraCalibration.from_dict` (trong `perception/calibration.py`) bắt buộc có khối `extrinsic` và
-  bỏ qua `theta_max`: nó luôn dùng 100°, trong khi đa thức khớp ở đây chỉ bảo đảm tăng đơn điệu tới θ ở góc ảnh (khoảng
-  68° trên camera tổng hợp). Hiện chỉ nạp được nội tham bằng `fisheye_calib.load_intrinsics(...)`, trả về
-  `FisheyeIntrinsics` với `theta_max` đúng. Muốn đưa vào `CameraCalibration` thì cần ngoại tham, và `from_dict` phải đọc
-  được `theta_max_deg`. Tệp `calibration.py` không thuộc phần việc này nên chưa sửa.
+- **Nối vào costmap.** `CameraCalibration.from_dict` (trong `perception/calibration.py`) đọc `theta_max_deg` khi khối
+  nội tham có khóa này (sửa trong cùng commit 014dcdd, 24/09/2026; tệp WoodScape không có khóa này nên vẫn dùng 100°).
+  Điều này cần vì đa thức khớp ở đây chỉ bảo đảm tăng đơn điệu tới θ ở góc ảnh (khoảng 68° trên camera tổng hợp). Nhưng
+  hàm vẫn chưa nạp thẳng được `calibration/cam_p*.json`: nó đọc nội tham ở khóa `intrinsic` và bắt buộc có khối
+  `extrinsic`, còn các tệp này ghi nội tham ở khóa `woodscape_intrinsic` và có `"extrinsic": null`. Hiện chỉ nạp được
+  nội tham bằng `fisheye_calib.load_intrinsics(...)`, trả về `FisheyeIntrinsics` với `theta_max` đúng. Muốn đưa vào
+  `CameraCalibration` thì cần ngoại tham, và một bước ghép khối `woodscape_intrinsic` với ngoại tham thành dạng
+  `from_dict` đọc được. Cả hai việc này chưa làm. *(Sửa 24/09/2026: bản đầu ghi `from_dict` bỏ qua `theta_max` và
+  `calibration.py` chưa sửa; thực ra chính commit thêm công cụ này đã sửa.)*
 - **Mặt nạ ROI** cho camera của dự án (thân xe, viền ống kính) chưa dựng.
 - **Kiểm trên ảnh thật:** RMS trên các ảnh để riêng không dùng để hiệu chuẩn, độ thẳng của đường thẳng thật sau khi nắn,
   so sánh bốn camera với nhau, và độ ổn định khi rút/cắm lại hoặc khi camera nóng lên. Tất cả đều chưa làm.

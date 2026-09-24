@@ -1,0 +1,2025 @@
+{
+ "created": "2026-09-24",
+ "method": "Sáu agent đọc kế hoạch KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md, đối chiếu từng hạng mục (gạch đầu dòng, bước, đầu ra, điều kiện chuyển bước) với mã, test, số đo và git ở commit 356752e; chỉ đọc, không chạm thiết bị. Trạng thái: done (có bằng chứng), partial, not_started, not_applicable_yet (chờ thiết bị chưa mua).",
+ "repo_commit": "356752e",
+ "totals": {
+  "done": 56,
+  "partial": 92,
+  "not_started": 27,
+  "not_applicable_yet": 100
+ },
+ "n_items": 275,
+ "phases": [
+  {
+   "phase": "Giai đoạn 0 — Phần mềm thuần và mô phỏng (mục 4)",
+   "verdict": "ĐẠT ở mức phần mềm/mô phỏng. Tất cả mục đều có bằng chứng; giai đoạn này không có bước nào đòi phần cứng.",
+   "gate_passed": true,
+   "summary": "Sáu điều kiện chuyển bước có bằng chứng trong autopark/docs/GIAI_DOAN_0.md, KIEM_THU_DO_BEN_GIAI_DOAN_0.md, BAO_CAO_GIAI_DOAN_0.md và thư mục runs/phase0_final_2026-09-20, runs/phase0_after_robustness (runs/ bị git bỏ qua, chỉ có trên máy này). Kiểm lại ngày 24/09 trên máy bàn i9-14900: 145 test liên quan giai đoạn 0 đều đạt (test_phase0, vehicle_model, tracker, planning, reeds_shepp, session, runtime_safety, geometry, ui_smoke chạy offscreen, scenario_store, session_run; bỏ các test gắn nhãn planner_budget). Replay 5/5 phiên sau kiểm thử độ bền đều OK (parking/reverse/noisy COMPLETED, obstacle/data_loss STOPPED); các phiên này được ghi trên laptop i7-12700H, nên chạy lại được trên máy khác. 5 video mở được (223/142/143/34/35 khung, 960×680). Giới hạn: mọi thứ mới là mô phỏng. Thông số xe là giả định, chưa phải số đo MN300. Việc 'xem trước không phát lệnh phần cứng' mới đúng vì Session chưa nối với VehicleIO; phải kiểm lại khi nối xe thật. Có một chỗ lệch cần người dùng xác nhận: manifest giai đoạn 0 ghi máy i7-12700H + RTX 3050 Ti Laptop GPU, còn tài liệu sau gọi máy này là 'laptop RTX 3050 Ti của xe', trong khi thông tin hiện tại nói chưa nhận laptop của xe."
+  },
+  {
+   "phase": "Mục 17.3 — Năm công việc đầu tiên",
+   "verdict": "Xong 3 trên 5 việc (việc 2, 3, 5), bằng phần mềm và tài liệu. Việc 1 và 4 mới xong một phần: chưa chốt ngưỡng nghiệm thu V1; phương án nguồn và dây bench chưa xong; đã mua bốn camera trước khi thử mẫu, lệch kế hoạch.",
+   "gate_passed": false,
+   "summary": "Mục này không có cổng chuyển bước; gate_passed=false chỉ có nghĩa là chưa xong đủ 5 việc. Đã có repository Git (21 commit, remote GitHub), ghi cấu hình máy, xe ảo + bản đồ + giao diện + log, pipeline dữ liệu AI có kiểm nhãn free-space/vật cản, phiếu gate_01.md và bảng 17.4. Còn thiếu: (a) ngưỡng nghiệm thu V1 ở mục 16.2 vẫn 'cần chốt' và chính sách sau vật cản (17.2) chưa quyết; (b) hub camera chưa thử nguồn ngoài, chưa ghi dây camera, chưa chụp nhãn và ảnh bộ LiDAR thực giao; (c) bốn camera đã mua trước khi thử mẫu, bài thử đơn camera mới đạt về mode/FPS, chưa đạt về vùng làm việc và hiệu chuẩn."
+  },
+  {
+   "phase": "Giai đoạn 1 — LiDAR và một camera mẫu (mục 5 kế hoạch v3.1, docs/gate_01.md)",
+   "verdict": "ĐANG LÀM — cổng 1 CHƯA ĐẠT: 0/5 điều kiện chuyển bước đạt trọn (cả 5 ở mức một phần). Bảng tiến độ 17.4 và gate_01.md mô tả đúng, không thấy thổi phồng; chỉ thiếu phiên kiểm LiDAR k01 ngày 24/09 chưa được ghi vào tài liệu.",
+   "gate_passed": false,
+   "summary": "Đếm theo 26 mục: 9 xong, 15 một phần, 2 chưa bắt đầu, 0 bị chặn hẳn vì thiếu phần cứng. Phần 'khi đang chờ đồ' (phần mềm): 3/5 xong, 2 một phần (bảng hiệu chuẩn, vật mẫu và lưới sàn chưa in hay chuẩn bị ngoài đời; chưa chọn phương án SLAM nên chưa có danh sách đầu vào bắt buộc). Nhánh LiDAR: đã đọc scan trên thiết bị thật (máy bàn, COM4: p07 22/09 10,09 Hz, 508 tia/vòng, 0 byte lệch; k01 24/09 9,98 Hz; chạy 10 phút trong bàn thử u04 mất 0 vòng); có bản đồ lưới tĩnh từ một vị trí và phép thử lưu/nạp. CHƯA: đo sai số khoảng cách và chốt dấu góc trái/phải (thiếu 7 lần đặt hộp p01–p06, p08), gá và chuyển động chậm, SLAM, định vị lại. Nhánh camera: đã liệt kê mode thật và đo FPS/khung cũ/khung bị cắt/CPU; đo thời gian suy luận, tải GPU và nhiệt GPU trong bàn thử 4 camera (tất cả trên máy bàn). CHƯA: đặt camera ở độ cao và góc chúc thật, hiệu chuẩn (có mã và bảng PDF nhưng chưa in, chưa chụp, không có tệp calibration nào), chấm AI trên ảnh thật có nhãn, đo độ trễ từ sự kiện thật tới máy, đo nhiệt CPU. Chưa thử gì trên laptop của xe. 86 test phần mềm của giai đoạn 1 chạy lại đạt 86/86 ngày 24/09. Mọi số đo phần cứng đều trên máy bàn i9, không phải laptop của xe. Phần còn lại chủ yếu CẦN NGƯỜI THAO TÁC với thiết bị đã có: đặt hộp, in bảng và hiệu chuẩn, dựng giá camera và chụp sa bàn, gán nhãn, thử LED. Cần NGƯỜI DÙNG QUYẾT ĐỊNH: chọn phương án SLAM, chốt độ cao/góc chúc camera, có cho bản đồ lưới tĩnh tính là đạt điều kiện 2 không. Chỉ riêng việc thử trên laptop của xe là CẦN NHẬN PHẦN CỨNG."
+  },
+  {
+   "phase": "2 — Bốn camera USB và BEV cục bộ (mục 6)",
+   "verdict": "ĐANG LÀM — CHƯA ĐẠT. Không điều kiện chuyển bước nào trong 6 điều kiện đạt (4 làm dở, 2 chưa làm hoặc chưa thể làm).",
+   "gate_passed": false,
+   "summary": "Kiểm 32 mục: 6 xong, 14 làm dở, 10 chưa làm, 2 chưa thể làm vì thiếu đồ. Phần luồng dữ liệu gần xong, có bằng chứng phần cứng trên MÁY BÀN i9 + RTX 4000. Bốn camera, LiDAR COM4 và AI đã chạy chung: u01 120 s, u04 600 s, w01–w05 ngày 24/09. Đã đo FPS, khung hỏng, khung cũ từng camera, độ lệch trong bộ ảnh, độ lệch LiDAR so với bộ ảnh, tải CPU/GPU và nhiệt GPU. Danh tính camera theo cổng hub giữ được sau một lần khởi động lại. Tôi đã kiểm lại các tệp runs/rig_bench/*.rig.json và số khớp với tài liệu. 132 + 14 test liên quan chạy lại hôm nay đều đạt (chỉ dùng nguồn giả). Phần hình học chưa làm trên phần cứng: chưa in bảng, chưa có tệp hiệu chuẩn nào, chưa có gá, ngoại tham, BEV bốn camera, vật mẫu, sơ đồ vùng quan sát hay báo cáo sai số BEV. Vướng lớn: 720p × 4 qua hub bus-powered bị cắt khung gần hết ở cổng 1 và 4. Bàn thử đang tạm dùng 640×480, nhưng người dùng chưa chốt, và cổng 1 vẫn có đợt 26–36 % khung hỏng chưa rõ nguyên nhân. Chưa thử nguồn ngoài cho hub hay tách camera ra cổng gốc. Chưa có laptop của xe, chưa có cáp kéo dài. Dòng giai đoạn 2 trong bảng 17.4 nói đúng, không thổi phồng, nhưng bỏ sót bốn điều: chưa định nghĩa trước/sau/trái/phải và chưa có bản vẽ gá; dự đoán thiếu tin cậy chưa được chuyển thành UNKNOWN; chưa ghi chiều dài dây camera; bốn camera đã mua trước khi cổng đơn camera của giai đoạn 1 đạt (gate_01 CHƯA ĐẠT)."
+  },
+  {
+   "phase": "Giai đoạn 3 — Hợp nhất cảm biến trên bàn thử (mục 7)",
+   "verdict": "ĐANG LÀM — CHƯA ĐẠT cổng chuyển bước (0/5 điều kiện đạt: 4 làm được một phần, 1 chưa thể làm vì thiếu phần cứng)",
+   "gate_passed": false,
+   "summary": "Kiểm 24 mục: 5 xong, 11 làm dở, 2 chưa làm, 6 chưa thể làm vì thiếu phần cứng. Phần 'Khi chưa có IMU, ToF hoặc ESP32' gần xong ở mức phần mềm: 4/5 xong, riêng telemetry giả mới làm dở. Có bốn lớp bản đồ, quy tắc hợp nhất, phép biến đổi rig–map và cầu nối vào phiên giai đoạn 0 (fusion/layers.py, fuse.py, bridge.py). Ngày 24/09 đã chạy lại tests/test_fusion.py, test_fusion_demo.py và test_lidar_dock_ui.py: 22 test đều đạt. Đầu vào thật duy nhất là RPLIDAR C1 đứng yên: bản dòng lệnh fusion/demo.py chạy trên COM4 ngày 22/09 với cảnh tĩnh, xe ảo đỗ xong (COMPLETED), nhưng không có tệp kết quả nào trong runs/, chỉ có lời ghi trong GIAI_DOAN_3_CHUAN_BI.md. Bước 1–5 của phần 'Khi nhận đủ phần cứng' chưa thể bắt đầu vì chưa có BNO085, VL53L1X, ESP32-S3. Firmware chưa có mã đọc cảm biến và chưa từng được biên dịch. Chưa có sơ đồ dây bench. Bước 6–7 làm được với thiết bị đã có nhưng mới làm một phần: chưa có BEV, camera chưa hiệu chuẩn/gá, chưa đưa tay hoặc hộp vào trước LiDAR, chưa rút cáp khi xe ảo đang chạy. Về đầu ra: 1/6 xong (telemetry_schema, mới ở mức đặc tả); log đồng bộ, màn hình map/BEV và bộ bài thử vật cản làm dở; firmware đọc cảm biến và sơ đồ dây chưa làm. Bảng 17.4 ghi giai đoạn 3 là 'ĐANG LÀM (phần mềm…)'. Ghi như vậy đúng, không thấy lạc quan, nhưng bảng không nói rằng kết quả chạy LiDAR thật ngày 22/09 không có tệp log. Việc có thể làm ngay mà không cần mua thêm: (người) đưa tay/hộp và rút cáp với LiDAR thật; (Claude) cho demo/ngăn LiDAR ghi log ra runs/, thêm ToF giả vào VehicleIO mô phỏng và nối telemetry → NearFieldLayer, hiển thị vùng đo ToF, thêm test ca vật chiếm đích qua cầu nối fusion."
+  },
+  {
+   "phase": "Giai đoạn 4 — Tiếp nhận và đo đặc tính MN300 (mục 8)",
+   "verdict": "CHƯA LÀM (chưa có xe). Chỉ có một phần chuẩn bị bằng phần mềm. Bảng 17.4 ghi 'Chưa cập nhật', đúng về thực chất.",
+   "gate_passed": false,
+   "summary": "23 mục: 0 xong, 2 làm dở, 2 chưa bắt đầu, 19 chưa thể làm vì thiếu xe. Đã có: configs/vehicle_default.json ghi rõ mọi thông số là giả định, không phải số đo MN300; chiến dịch độ bền giai đoạn 0 (docs/KIEM_THU_DO_BEN_GIAI_DOAN_0.md) cho kích thước xe dao động 0,7–1,4 lần ở phần kiểm hình học và 0,85–1,15 lần ở phần planner, 40/40 bài planner hợp lệ, 0 vi phạm. Phép này chỉ kiểm bất biến an toàn, chưa phải phân tích độ nhạy. Chưa có phiếu kiểm kê xe, chưa có bảng đo tốc độ/góc lái/bán kính quay/dừng, chưa có phương án gá. hardware_inventory.md ghi MN300 'Chưa nhận / chưa kiểm kê'. Toàn bộ 7 bước 'Khi nhận xe', 6 đầu ra và 5 điều kiện chuyển bước đều cần xe. Việc Claude làm được ngay: mẫu mn300_inventory.md, bảng đo, báo cáo độ nhạy planner, phác thảo gá điều chỉnh được."
+  },
+  {
+   "phase": "Giai đoạn 5 — ESP32-S3 và điều khiển có phản hồi (mục 9)",
+   "verdict": "ĐANG LÀM, mới xong phần 'Khi chưa đủ phần cứng' ở mức phần mềm/mô phỏng. Chưa có bước phần cứng nào. Bảng 17.4 mô tả đúng.",
+   "gate_passed": false,
+   "summary": "25 mục: 3 xong (phần mềm/mô phỏng), 7 làm dở, 0 chưa bắt đầu, 15 chưa thể làm vì thiếu phần cứng. Đã chạy lại ngày 24/09: pytest trên test_transport_protocol/firmware_model/vehicle_io/firmware_source cho 184 passed (52+73+48+11), 'vectors --check' báo vectors.json đã cập nhật. Máy không có gcc/g++/clang/cl/cmake/pio (đã kiểm), nên firmware C++ (firmware/esp32_vehicle) CHƯA biên dịch lần nào, test/host chưa chạy. Chân ESC/servo/E-stop vẫn là -1. Firmware chưa có mã đọc encoder, AS5600, BNO085, VL53L1X hay điện áp; read_inputs trả mọi cờ không hợp lệ. VehicleIO chưa nối vào application/session.py hay TrajectoryTracker, chưa ghi commands.csv/telemetry.csv. Mọi số của vòng tốc độ (vọt lố 26–57 %) và số dừng 0,39 s / 3,9 cm đều là số của mô hình giả định. Ghi chú nhỏ: GIAO_THUC_XE.md mục 12 ghi vehicle_io_sim.json 'chưa ghi ba khóa' trần effort/STALL, nhưng file hiện đã có đủ ba khóa nên câu này đã lỗi thời. Việc làm được ngay khi người dùng cho phép cài PlatformIO/g++: biên dịch, chạy test/host với vectors.json. Mọi bước còn lại cần ESP32-S3, MN300, encoder, AS5600."
+  },
+  {
+   "phase": "Giai đoạn 6 — Nguồn và kiểm chứng dừng an toàn (mục 10)",
+   "verdict": "CHƯA LÀM phần chính. Chỉ có vài mảnh rời: cách đấu ngõ vào E-stop, sơ đồ USB, kịch bản lỗi phía liên lạc. Bảng 17.4 ghi 'Chưa cập nhật'.",
+   "gate_passed": false,
+   "summary": "24 mục: 0 xong, 5 làm dở, 4 chưa bắt đầu, 15 chưa thể làm vì thiếu phần cứng. Không có power_budget.md, sơ đồ nguồn, sơ đồ dừng dạng hình hay bảng định mức. Đã có: firmware/esp32_vehicle/README.md chọn cách đấu E-stop an toàn khi hở mạch (tiếp điểm NC nối GND, điện trở kéo lên), điện trở kéo xuống trên dây ESC, trần effort 250 ‰ và quy trình đo bằng máy hiện sóng (chưa làm); usb_topology.md cho thấy hub chạy bus-powered, bốn camera chung một nhánh USB 2.0, chưa thử nguồn ngoài, chưa đo dòng camera; các tình huống mất liên lạc/reset/rút cáp/treo đã viết và thử ở mức Python/mô phỏng. Chưa xác định LA38 cắt phần tử động lực nào, chưa chọn cầu chì/dây/đầu nối/phần tử ngắt, chưa đo điện áp/dòng/sụt áp/nhiệt của nguồn. Toàn bộ 6 bước 'Khi có phần cứng nguồn/dừng' và 5 điều kiện chuyển bước cần MN300 và đồ đợt 6. Claude làm ngay được: bản nháp power_budget.md và bảng định mức có cột 'chưa rõ', gom kịch bản lỗi thành một kế hoạch thử. Người dùng làm được với đồ đã có: thử adapter nguồn ngoài cho hub. Người dùng cần quyết định phương án phần tử ngắt động lực."
+  },
+  {
+   "phase": "Giai đoạn 7 — Chuyển cụm cảm biến lên xe (mục 11)",
+   "verdict": "CHƯA BẮT ĐẦU, bị chặn vì chưa có xe MN300 và gá. 0 mục xong, 1 dở dang, 1 chưa bắt đầu, 12 chờ phần cứng.",
+   "gate_passed": false,
+   "summary": "Trong repo chưa có bản vẽ gá, footprint thực, vehicle_sensor_extrinsics.yaml hay camera_rig_extrinsics.yaml. Camera cũng chưa hiệu chuẩn nội tham (calibration/ chưa có tệp cam_p*.json nào). Phần mềm mới có quy ước hệ tọa độ cảm biến (x, y, yaw trong hệ xe, gốc ở tâm trục sau) và công cụ phát lại phiên LiDAR/mô phỏng, nhưng chưa có cơ chế đánh phiên bản cấu hình rig. Bảng 17.4 ghi 'Chưa cập nhật', khớp với thực tế."
+  },
+  {
+   "phase": "Giai đoạn 8 — Hợp nhất toàn cục/cục bộ trên xe chuyển động (mục 12)",
+   "verdict": "CHƯA ĐẠT. Chỉ phần 'khi chưa thể chạy trên xe' có tiến triển bằng phần mềm (thừa hưởng từ giai đoạn 0 và 3). 1 mục xong (chỉ phần mềm), 7 dở dang, 1 chưa bắt đầu, 7 chờ phần cứng.",
+   "gate_passed": false,
+   "summary": "Đã có trong phần mềm: quy tắc hợp nhất 'lớp tươi nào báo có vật thì ô đó bị chiếm', lớp bắt buộc quá tuổi làm bản đồ không hợp lệ, phép đổi tọa độ kiểm bằng điểm tổng hợp, và Session bỏ kết quả lập đường cũ theo plan_version. Ngày 24/09 đã chạy lại 5 tệp test (test_fusion, test_runtime_safety, test_transport_*): 227 test đạt. Chưa có định vị/odometry (thư mục autopark/estimation chỉ có __init__.py), chưa có BEV, chưa có phép đo tham chiếu độc lập, chưa phát lại bản ghi bench thật có chèn lỗi. Có một lỗ hổng chính sách: lớp bản đồ tĩnh không bao giờ hết hạn, nên ô FREE của nó vẫn được coi là trống khi dữ liệu trực tiếp nói UNKNOWN."
+  },
+  {
+   "phase": "Giai đoạn 9 — Tự đỗ thật và xử lý vật cản (mục 13)",
+   "verdict": "CHƯA ĐẠT. Chỉ có phần chuẩn bị trong mô phỏng, chạy thật thì không thể vì chưa có xe. 0 mục xong, 3 dở dang, 2 chưa bắt đầu, 14 chờ phần cứng.",
+   "gate_passed": false,
+   "summary": "Mô phỏng đã có toàn phiên đỗ (vuông góc, song song, tiến/lùi, vật cản mới, mất dữ liệu, ca không có đường) nhưng dùng thông số xe giả định, không phải số đo MN300. Chưa có chế độ quan sát, chưa có sa bàn thật có số đo và vật cản mềm. VehicleIO (ARM/DISARM/chốt mất liên lạc) chưa được nối vào Session/UI. Chính sách tự chạy tiếp sau vật cản chưa chốt (mục 17.2 yêu cầu chốt trước giai đoạn 9)."
+  },
+  {
+   "phase": "Giai đoạn 10 — Đánh giá và hoàn thiện khóa luận (mục 14)",
+   "verdict": "CHƯA ĐẠT. Có nhiều tư liệu kỹ thuật nhưng chưa viết chương luận văn nào. 0 mục xong, 10 dở dang, 3 chưa bắt đầu, 7 chờ hệ thống tích hợp.",
+   "gate_passed": false,
+   "summary": "Đã có tư liệu: báo cáo giai đoạn 0, HUAN_LUYEN.md (AI trên dữ liệu công khai, ba seed, đánh giá ngoài miền), tài liệu từng nhánh trong autopark/docs ghi rõ 'mức bằng chứng'. Chưa có: văn bản luận văn, ngưỡng nghiệm thu 16.2 (mọi dòng còn 'cần chốt'), phương pháp đo tham chiếu độc lập, ảnh sa bàn có nhãn, mọi kết quả trên xe. Toàn bộ runs/ nằm ngoài git nên bằng chứng chỉ mở được trên máy này."
+  },
+  {
+   "phase": "16.3 — Bộ kịch bản nghiệm thu",
+   "verdict": "CHƯA NGHIỆM THU nhóm nào. Cả 5 nhóm chỉ được phủ một phần bằng mô phỏng, dữ liệu công khai hoặc test nguồn giả.",
+   "gate_passed": false,
+   "summary": "Đỗ cơ sở, vật cản mới và dừng/reset có trong mô phỏng. Nhận thức mới chấm trên ACDC/RoadObstacle21, chưa chấm trên ảnh sa bàn. Liên lạc/cảm biến có test với nguồn giả; trên phần cứng chỉ mới rút/cắm lại camera trên máy bàn để kiểm danh tính. Chưa rút cáp LiDAR thật, chưa có ToF/ESP32/E-stop/nguồn."
+  },
+  {
+   "phase": "16.4 — V1 hoàn thành khi",
+   "verdict": "0/10 mục đạt. 7 mục dở dang, 3 mục không thể làm khi chưa có phần cứng.",
+   "gate_passed": false,
+   "summary": "Các mục gần nhất: giao diện chọn đích/xem trước/bắt đầu, quỹ đạo xét giới hạn lái và toàn thân xe (cả hai chỉ trong mô phỏng, thông số giả định), và phản ứng vật cản (mô phỏng + xe ảo với LiDAR thật đứng yên). Không thể làm khi chưa có phần cứng: thực thi có phản hồi, bài đỗ theo tiêu chí, kiểm chứng nguồn/watchdog/E-stop. Mục AI/CV còn vướng giấy phép WoodScape (cách hiểu ngày 22/09 chưa được Valeo xác nhận)."
+  }
+ ],
+ "items": [
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Đồ cần có: laptop có môi trường lập trình; ghi CPU/GPU/RAM/hệ điều hành để các lần đo sau so sánh được",
+   "status": "done",
+   "evidence": "Phần mềm. autopark/docs/evidence/environment.json và manifest.json từng phiên (runs/phase0_final_2026-09-20/*/manifest.json) ghi Windows 11 26200, Python 3.12.10, CPU i7-12700H, GPU RTX 3050 Ti Laptop + Iris Xe, RAM 68.409.155.584 byte, danh sách package. Máy bàn i9-14900 + RTX 4000 Ada dùng từ giai đoạn 1 được ghi trong GIAI_DOAN_1_LIDAR.md, GIAI_DOAN_2_BAN_THU.md và usb_topology.md. Lưu ý: tài liệu gọi máy i7-12700H/RTX 3050 Ti là 'laptop của xe'; điều này mâu thuẫn với thông tin 'chưa nhận laptop của xe'.",
+   "unblock": "Không cần cho giai đoạn 0. Người dùng nên xác nhận máy i7-12700H/RTX 3050 Ti có phải laptop của xe không (cần người dùng quyết định)."
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Bước 1: tạo repository và cấu hình dự án (Python, OpenCV, NumPy, PyTorch, Shapely, PySide6, Git, pytest, công cụ đọc video); ghi phiên bản đã cài",
+   "status": "done",
+   "evidence": "Phần mềm. Git ở D:/ap: 21 commit, commit đầu bef5695 ngày 21/09, remote origin github.com/thbn12082/autopark. autopark/pyproject.toml có các nhóm phụ thuộc dev/video/perception/lidar/rig. Khóa phiên bản trong requirements-phase0.lock (numpy 2.5.2, opencv 5.0.0.93, shapely 2.1.2, PySide6 6.11.2, pytest 9.1.1, pygrabber) và requirements-train.lock (torch 2.11.0+cu128 trong .venv-train, cài 23/09). Lúc chốt giai đoạn 0 (20/09) chưa cài PyTorch, cài sau.",
+   "unblock": "Không cần (đã xong)"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Bước 2: định nghĩa VehicleState, GoalPose, CameraFrame, LidarScan, Telemetry, Costmap, Trajectory, SafetyEvent; mỗi nguồn có nhận dạng, thời gian, trạng thái hợp lệ",
+   "status": "done",
+   "evidence": "Phần mềm. autopark/autopark/domain/sensors.py (SourceStamp có source_id/t/valid/frame_id và hàm fresh(); GoalPose, CameraFrame, LidarScan, Telemetry, Costmap, SafetyEvent), domain/types.py:423 VehicleState (source_id, t, valid, usable()), planning/trajectory.py:27 Trajectory. Đây là hợp đồng dữ liệu. LidarScan về sau được driver C1 thật dùng (giai đoạn 1), còn CameraFrame chưa đi qua pipeline camera thật.",
+   "unblock": "Không cần (đã xong)"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Bước 3: xe ảo x, y, theta, v, delta; hình học xe trong file cấu hình, không coi là số đo MN300 (mô hình x_dot/y_dot/theta_dot)",
+   "status": "done",
+   "evidence": "Mô phỏng. autopark/autopark/simulation/vehicle.py tích phân chính xác mô hình xe đạp có giới hạn góc lái, tốc độ đổi lái, gia tốc và phanh. configs/vehicle_default.json (wheelbase 0,19 m, lái tối đa 30°) có ghi chú 'TOÀN BỘ thông số là giả định… KHÔNG phải số đo… MN300'. test_vehicle_model.py đạt (chạy lại 24/09).",
+   "unblock": "Không cần cho giai đoạn 0. Thay bằng số đo thật ở giai đoạn 4 (cần mua/nhận phần cứng: MN300)."
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Bước 4: bản đồ 2D có tường, vật cản, vùng chưa biết, vị trí đỗ tự chọn",
+   "status": "done",
+   "evidence": "Mô phỏng. autopark/scenarios/giai_doan_0_unknown.json (wall + unknown), bai_do_xe.json và bai_do_xe_lon_xon.json (car/box + ô đỗ), sa_ban_3x2_hai_hop.json. Vùng unknown bị planner/collision chặn (test_phase0::test_unknown_region_is_blocked_and_roundtrips đạt).",
+   "unblock": "Không cần (đã xong)"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Bước 5: giao diện kéo/xoay đích, xem xe, đường dự kiến, nút lập đường, xem trước, chạy, dừng",
+   "status": "done",
+   "evidence": "Phần mềm. autopark/autopark/ui/main_window.py có các nút 'Tìm đường đỗ', 'Xem trước', 'Bắt đầu đỗ', 'Dừng xe', xoay ±15°, 'Vật cản giả', 'Mất dữ liệu', 'Lưu phiên…'; ui/items.py có RotationHandle để kéo/xoay. Ảnh chụp giao diện: docs/evidence/ui_running.png, ui_stopped.png. test_ui_smoke.py đạt (offscreen, 24/09).",
+   "unblock": "Không cần (đã xong)"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Bước 6: planner Hybrid A* + Reeds–Shepp; kiểm tra thân xe và vùng thân xe quét qua",
+   "status": "done",
+   "evidence": "Mô phỏng. planning/hybrid_astar.py (nối đích bằng Reeds–Shepp khi gần), reeds_shepp.py và reeds_shepp_full.py, geometry/footprint.py swept_polygon (bao lồi, có nới theo độ võng cung), test_phase0::test_rotating_corner_sweep_detected. test_planning.py và test_reeds_shepp.py đạt. Chiến dịch 2.880 trường hợp và 40/40 bài planner (KIEM_THU_DO_BEN_GIAI_DOAN_0.md).",
+   "unblock": "Không cần (đã xong)"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Bước 7: điều khiển xe ảo tiến/lùi, giảm tốc khi đổi chiều; thêm trễ, nhiễu, mất dữ liệu giả",
+   "status": "done",
+   "evidence": "Mô phỏng. control/tracker.py có pha STOP_AT_CUSP (dừng hẳn rồi mới đổi chiều); vehicle.py phanh về 0 trước khi đổi chiều; simulation/feedback.py FeedbackConfig có delay_s, nhiễu vị trí/yaw, drop_probability, stale_after_s, seed. Phiên noisy (trễ 40 ms, σ 2 mm/0,2°, mất mẫu 2%) COMPLETED; data_loss STOPPED. Profile trễ/nhiễu là giả định, chưa đo trên xe.",
+   "unblock": "Không cần cho giai đoạn 0"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Bước 8: chèn vật cản giả khi đang chạy: STOP → cập nhật → đánh giá lại → lập lại đường/chờ",
+   "status": "done",
+   "evidence": "Mô phỏng. test_phase0::test_new_obstacle_brakes_invalidates_and_replans_from_stopped_pose (cả tiến và lùi) đạt. Phiên runs/phase0_after_robustness/obstacle ra STOPPED, sự kiện MAP_CHANGED → WAIT_REPLAN; replay khớp 24/09.",
+   "unblock": "Không cần (đã xong)"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Bước 9: tải/xem dữ liệu công khai; kiểm tra nhãn có đúng free-space/vật cản trước khi huấn luyện",
+   "status": "done",
+   "evidence": "Phần mềm/dữ liệu. autopark/datasets/DANH_MUC_DATASET.md (44 bộ/nhánh), TAI_VA_KIEM_TRA.md (AVM-SS 6.763 cặp: tìm thấy màu lạ (255,255,0) và giữ là IGNORE; DROW v2 452 cột; WoodScape, ACDC, RoadObstacle21 đã giải nén), TRANG_THAI_TAI_DAY_DU.md ghi 'Hoàn tất… CÓ'. Tài liệu nói rõ nhãn ô đỗ không phải nhãn vật cản. Rủi ro còn mở: giấy phép WoodScape cấm dùng mô hình huấn luyện trên nó để vận hành phương tiện; người làm khóa luận chọn cách hiểu riêng ngày 22/09, Valeo chưa xác nhận (docs/GIAY_PHEP_DU_LIEU.md).",
+   "unblock": "Không cần cho bước này. Rủi ro giấy phép WoodScape: cần người dùng quyết định (hỏi Valeo hoặc huấn luyện lại bằng dữ liệu sa bàn/ACDC trước khi nối AI vào vòng điều khiển)."
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Nếu linh kiện về khi giai đoạn 0 chưa xong: kiểm tra tiếp nhận song song, giữ nguồn dữ liệu giả để tái hiện lỗi",
+   "status": "done",
+   "evidence": "Giai đoạn 0 xong ngày 20/09, trước khi nhận LiDAR (22/09) và camera (23/09), nên trường hợp này không xảy ra. Nguồn giả và replay vẫn được giữ: evaluation/replay.py, storage/run_store.py replay_run, test_phase1_sources.py; tiếp nhận thiết bị được ghi riêng ở giai đoạn 1.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Đầu ra: README.md",
+   "status": "done",
+   "evidence": "Phần mềm. D:/ap/README.md và D:/ap/autopark/README.md (cách cài, cách thử giai đoạn 0, replay, dữ liệu, huấn luyện).",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Đầu ra: cấu trúc mã nguồn",
+   "status": "done",
+   "evidence": "Phần mềm. autopark/autopark/ có application, control, domain, estimation, evaluation, fusion, geometry, lidar, perception, planning, rig, safety, simulation, storage, transport, ui, video; tests/ có khoảng 50 file test.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Đầu ra: cấu hình xe giả định",
+   "status": "done",
+   "evidence": "Phần mềm. autopark/configs/vehicle_default.json, ghi rõ toàn bộ là giả định, không phải MN300.",
+   "unblock": "Không cần (thay bằng số đo ở giai đoạn 4)"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Đầu ra: bản đồ mẫu",
+   "status": "done",
+   "evidence": "Phần mềm. 4 kịch bản trong autopark/scenarios/*.json.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Đầu ra: video mô phỏng",
+   "status": "done",
+   "evidence": "Mô phỏng. runs/phase0_final_2026-09-20/*/simulation.mp4 và runs/phase0_after_robustness/*/simulation.mp4. Kiểm 24/09: mở được 5 video, 223/142/143/34/35 khung, 960×680. Lưu ý: runs/ bị git bỏ qua nên video chỉ có trên máy này, repo không có bản sao.",
+   "unblock": "Không cần. Nên sao lưu runs/ ra ngoài git (người dùng tự làm)."
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Đầu ra: bài thử va chạm / đổi chiều / mất dữ liệu",
+   "status": "done",
+   "evidence": "Phần mềm/mô phỏng. tests/test_phase0.py (mất phản hồi dừng trong hạn, vật cản mới, vùng quét khi xoay), test_collision_oracle.py, test_fast_collision.py, test_vehicle_model.py, test_tracker.py, test_runtime_safety.py; docs/evidence/pytest.xml (169 test), robustness_pytest.xml (220/220). Chạy lại 24/09: 145 test liên quan đều đạt.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Đầu ra: log một phiên chạy",
+   "status": "done",
+   "evidence": "Mô phỏng. Mỗi phiên trong runs/phase0_after_robustness/<ca>/ có manifest.json, config_snapshot/run.json, telemetry.csv, events.jsonl, safety_events.json, result.json, source.zip.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Điều kiện: kéo và xoay đích được; đích trong vật cản bị từ chối",
+   "status": "done",
+   "evidence": "Mô phỏng/phần mềm. Có test UI kéo/xoay và GOAL_INVALID (GIAI_DOAN_0.md bảng điều kiện); test_ui_smoke.py và test_vehicle_editing_ui.py có trong bộ test; test_ui_smoke đạt lại 24/09.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Điều kiện: xe ảo chạy tiến/lùi; đường tuân thủ giới hạn lái trong cấu hình",
+   "status": "done",
+   "evidence": "Mô phỏng. Phiên parking/reverse COMPLETED (sai số cuối 8,9 mm và 8,5 mm, chỉ là số của từng ca); test_planning, test_tracker, test_vehicle_model đạt 24/09.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Điều kiện: kiểm tra va chạm xét toàn thân xe",
+   "status": "done",
+   "evidence": "Mô phỏng. geometry/footprint.py (thân xe có nhô đầu/đuôi, vùng quét, nới theo độ võng cung); test_phase0::test_rotating_corner_sweep_detected; collision oracle trong chiến dịch 2.880 trường hợp.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Điều kiện: vật cản mới làm đường cũ mất hiệu lực; xe ảo dừng trước khi thử đường mới",
+   "status": "done",
+   "evidence": "Mô phỏng. MAP_CHANGED → STOPPING → STOPPED → WAIT_REPLAN, không cho lập đường/reset khi đang phanh. Test tiến/lùi đạt; phiên obstacle replay khớp trên máy bàn 24/09.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Điều kiện: xem trước không phát lệnh đến phần cứng",
+   "status": "done",
+   "evidence": "Phần mềm. simulation/rollout.py tách riêng, test_phase0::test_preview_isolated_from_runtime_and_faults đạt. Kiểm 24/09: application/ và ui/main_window.py không import transport/VehicleIO, nên hiện chưa có đường nào ra phần cứng. Điều kiện này chưa được kiểm khi Session đã nối VehicleIO serial (giai đoạn 5 trở đi).",
+   "unblock": "Không cần cho giai đoạn 0. Khi nối Session với VehicleIO: phần mềm (Claude làm được ngay) — thêm test hồi quy khẳng định xem trước không gửi Command."
+  },
+  {
+   "phase": "Giai đoạn 0",
+   "item": "Điều kiện: ghi đủ cấu hình và log để chạy lại cùng kịch bản",
+   "status": "done",
+   "evidence": "Mô phỏng. Snapshot scenario/vehicle/planner/tracker/fault/quỹ đạo, seed, môi trường, SHA-256 source. Kiểm 24/09: python -m autopark.evaluation.replay chạy trên máy bàn i9-14900 cho 5 phiên runs/phase0_after_robustness đều 'Replay OK' (run_store.replay_run báo lỗi nếu trạng thái, vị trí cuối, va chạm hay quãng đường khác bản ghi). Các phiên này được ghi trên laptop i7-12700H, nên tái hiện được trên máy khác.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Mục 17.3",
+   "item": "Việc 1a: tạo repository",
+   "status": "done",
+   "evidence": "Phần mềm. Git D:/ap, 21 commit từ bef5695 (21/09) đến 356752e (24/09), remote origin GitHub, cây làm việc sạch.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Mục 17.3",
+   "item": "Việc 1b: ghi cấu hình laptop",
+   "status": "done",
+   "evidence": "Phần mềm. environment.json và manifest ghi cấu hình máy i7-12700H/RTX 3050 Ti; máy bàn i9-14900/RTX 4000 Ada ghi trong tài liệu giai đoạn 1–2. Sơ đồ cổng USB (mục 17.2) mới có cho máy bàn (usb_topology.md), chưa có cho laptop của xe.",
+   "unblock": "Sơ đồ cổng USB và số đo trên laptop của xe: cần người thao tác với thiết bị. Nếu laptop chưa có trong tay thì cần mua/nhận phần cứng."
+  },
+  {
+   "phase": "Mục 17.3",
+   "item": "Việc 1c: danh sách yêu cầu V1",
+   "status": "partial",
+   "evidence": "Tài liệu. Yêu cầu chức năng V1 có trong kế hoạch (mục 1.2, 16.1, 16.3, 16.4), không có tài liệu yêu cầu riêng trong repo. Toàn bộ ngưỡng nghiệm thu ở mục 16.2 (camera, hình học, AI, định vị, điều khiển, tự đỗ, phản ứng lỗi) vẫn 'cần chốt'. Chính sách tự tiếp tục hay cần xác nhận sau vật cản (17.2) chưa quyết. Định nghĩa UNKNOWN (16.2) mới có trong code, chưa chốt ở cấp yêu cầu.",
+   "unblock": "Cần người dùng quyết định: ngưỡng, chính sách sau vật cản. Nhiều ngưỡng còn cần số đo trên xe thật (cần mua/nhận phần cứng). Claude có thể soạn ngay bản nháp danh sách yêu cầu/ngưỡng đề xuất (phần mềm)."
+  },
+  {
+   "phase": "Mục 17.3",
+   "item": "Việc 2: xe ảo + map + giao diện đặt/xoay đích + cơ chế ghi log",
+   "status": "done",
+   "evidence": "Mô phỏng/phần mềm. Giống giai đoạn 0 bước 3–5 và đầu ra log: simulation/vehicle.py, scenarios/*.json, ui/main_window.py, storage/run_store.py. Test và replay chạy lại 24/09 đều đạt.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "Mục 17.3",
+   "item": "Việc 3: pipeline dữ liệu AI phù hợp free-space/vật cản, không mặc định dataset ô đỗ có đủ nhãn",
+   "status": "done",
+   "evidence": "Phần mềm/dữ liệu. Đã kiểm nhãn pixel (TAI_VA_KIEM_TRA.md), có bộ chuyển nhãn configs/woodscape_binary_v1.json và acdc_cityscapes_to_binary_v1.json, cache huấn luyện, baseline L-RASPP huấn luyện 21/09 trên RTX 4000 Ada (HUAN_LUYEN.md, runs/ai_woodscape_rtx4000_v1*), công cụ gán nhãn sa bàn (docs/GAN_NHAN_SA_BAN.md). Chưa có ảnh sa bàn nào được gán nhãn (mới có hai bộ ảnh chụp khi camera nằm trên bàn), AI chưa được chấm trên ảnh thật; phần này thuộc giai đoạn 1. Rủi ro giấy phép WoodScape vẫn mở.",
+   "unblock": "Pipeline xong. Dữ liệu sa bàn: cần người thao tác với thiết bị đã có (gá camera ở độ cao thật, chụp, tô nhãn). Giấy phép: cần người dùng quyết định."
+  },
+  {
+   "phase": "Mục 17.3",
+   "item": "Việc 4a: xác nhận gói LiDAR",
+   "status": "done",
+   "evidence": "Phần cứng (máy bàn). docs/hardware_inventory.md: GET_INFO model 0x41 C1, firmware 1.2, serial, health OK, adapter CP2102N (10C4:EA60), driver CP210x, COM4 460800 8N1, nguồn 5 V qua USB. Còn thiếu model in trên nhãn/hộp và ảnh bộ thực giao ('chưa ghi').",
+   "unblock": "Phần còn thiếu nhỏ (chụp nhãn/hộp): cần người thao tác với thiết bị đã có."
+  },
+  {
+   "phase": "Mục 17.3",
+   "item": "Việc 4b: chọn một camera mẫu; chưa mua đồng loạt bốn camera",
+   "status": "partial",
+   "evidence": "Phần cứng (máy bàn). Lệch kế hoạch: bốn camera đã mua trước khi thử mẫu (gate_01.md ghi 'đã mua đủ bốn trước khi thử'). Bài thử đơn camera ngày 23/09 đạt về mode/FPS (MJPG 720p khoảng 23,9 fps, GIAI_DOAN_1_CAMERA.md mục 4.1). Chưa đạt về vùng làm việc, độ nét, góc nhìn thực và hiệu chuẩn, vì camera mới nằm trên bàn. Phần 'chưa mua đồng loạt' không còn làm lại được.",
+   "unblock": "Cần người thao tác với thiết bị đã có: gá camera ở độ cao/góc chúc dự kiến, in bảng ô vuông, chụp và hiệu chuẩn (mã đã có: perception/fisheye_calib.py, ui/calib_app.py)."
+  },
+  {
+   "phase": "Mục 17.3",
+   "item": "Việc 4c: phương án nguồn/dây bench",
+   "status": "partial",
+   "evidence": "Phần cứng (máy bàn). LiDAR: 5 V qua cổng USB máy tính, chạy ổn. Hub UGREEN: mọi phiên đều chạy bằng nguồn cổng USB; phép thử nguồn ngoài chưa từng làm (commit fc3c2b7 đính chính); dòng camera chưa đo; chiều dài/loại dây camera 'chưa ghi'. Bốn camera qua hub chỉ dùng được ở 640×480; ở 720p/1080p khung bị cắt. Nguồn bench cho ESP32/IMU/ToF chưa cần vì chưa có linh kiện.",
+   "unblock": "Cần người thao tác với thiết bị đã có: thử adapter nguồn cho hub, tách camera ra nhiều cổng gốc, ghi dây và đo dòng. Nếu chưa có adapter đúng cho hub thì cần mua/nhận phần cứng."
+  },
+  {
+   "phase": "Mục 17.3",
+   "item": "Việc 5: phiếu kiểm thử mẫu camera/LiDAR và bảng theo dõi các giai đoạn",
+   "status": "done",
+   "evidence": "Tài liệu. autopark/docs/gate_01.md (bảng kết quả LiDAR tách ba mục, điều kiện chuyển bước, đầu ra), quy trình phiên đặt hộp ở GIAI_DOAN_1_LIDAR.md mục 6, việc còn lại của camera ở GIAI_DOAN_1_CAMERA.md mục 6, bảng tiến độ 17.4 trong kế hoạch (cập nhật 24/09). Không có mẫu phiếu trống riêng; gate_01.md đóng vai trò này. Các dòng 4, 6–10 của bảng 17.4 ghi 'Chưa cập nhật', không dùng trạng thái chuẩn CHƯA LÀM/ĐANG LÀM/CHƯA ĐẠT/ĐẠT của mục 2.3.",
+   "unblock": "Không cần. Sửa nhỏ nếu muốn: đổi 'Chưa cập nhật' thành 'CHƯA LÀM' (phần mềm, Claude làm được ngay nếu người dùng cho phép sửa)."
+  },
+  {
+   "phase": "1",
+   "item": "Đồ cần có (đợt 1): LiDAR + bộ nối, một camera USB, dây ngắn, nguồn đúng thiết bị, hub nếu cần",
+   "status": "done",
+   "evidence": "Phần cứng đã có: RPLIDAR C1 (model 0x41, fw 1.2) + cầu CP2102N trên COM4; 4 camera 1BCF:0B09 + hub UGREEN (docs/hardware_inventory.md). Lưu ý: mua 4 camera ngay, không mua 1 mẫu trước; chiều dài và loại dây camera chưa ghi; hub luôn chạy bus-powered, adapter nguồn của hub chưa từng cắm.",
+   "unblock": "Không cần để coi là 'đã có đồ'. Việc ghi dây và thử nguồn hub: cần người thao tác với thiết bị đã có."
+  },
+  {
+   "phase": "1",
+   "item": "Chờ đồ 1: nguồn camera đọc video lưu sẵn; nguồn LiDAR đọc bản quét lưu sẵn hoặc mô phỏng",
+   "status": "done",
+   "evidence": "Phần mềm: video/sources.py (ImageSequenceSource, VideoFileSource), lidar/drow.py (phát lại DROW v2), lidar/recording.py (phát lại .npz tự ghi). tests/test_phase1_sources.py, test_lidar_recording.py đạt (chạy lại 24/09: 86/86 test giai đoạn 1 đạt).",
+   "unblock": "—"
+  },
+  {
+   "phase": "1",
+   "item": "Chờ đồ 2: màn hình scan, bộ lưu phiên đo, kiểm tra dữ liệu cũ",
+   "status": "done",
+   "evidence": "Phần mềm: ui/scan_view.py, lidar/viewer.py, lidar/live_view.py, lidar/recording.py, safety/freshness.py; test offscreen đạt. Đã chạy trên LiDAR thật: live_view headless 8 s, trạng thái OK (runs/lidar_bench/20260922/live_headless.*). Chưa thử rút cáp thật để xem có báo STALE_DATA không (GIAI_DOAN_1_LIDAR.md mục 4).",
+   "unblock": "Phép thử rút cáp: cần người thao tác với thiết bị đã có."
+  },
+  {
+   "phase": "1",
+   "item": "Chờ đồ 3: pipeline AI trên ảnh có sẵn (nạp mô hình → suy luận → lưu kết quả)",
+   "status": "done",
+   "evidence": "Phần mềm, trên dữ liệu công khai: HUAN_LUYEN.md phần I–III; runs/ai_woodscape_rtx4000_v1 (best.pt, export ONNX khớp 99,9999 % pixel); perception/costmap.py chạy trên ảnh WoodScape 00007_FV (GIAI_DOAN_1_CHUAN_BI.md mục 3, 5).",
+   "unblock": "—"
+  },
+  {
+   "phase": "1",
+   "item": "Chờ đồ 4: chuẩn bị bảng hiệu chuẩn có kích thước đo được, vật cản mẫu, lưới tọa độ trên sàn",
+   "status": "partial",
+   "evidence": "Đã sinh tệp in bảng ô vuông 9×6 (calibration/bang_in/ban_co_9x6_20mm_A4.pdf và 30mm_A3.pdf, perception/calib_board.py). CHƯA in, chưa dán lên tấm phẳng, chưa đo lại bằng thước. Không có tài liệu nào về vật cản mẫu có tọa độ đo hay lưới tọa độ kẻ trên sàn; hộp cho phiên đặt LiDAR mới chỉ được mô tả, chưa làm.",
+   "unblock": "Cần người thao tác với thiết bị đã có: in bảng 100 %, dán lên tấm phẳng, đo cỡ ô; chuẩn bị hộp mặt trắng mờ và hộp đen; kẻ lưới trên sàn."
+  },
+  {
+   "phase": "1",
+   "item": "Chờ đồ 5: kiểm tra đầu vào bắt buộc của phương án SLAM dự kiến; không gán odometry = 0",
+   "status": "partial",
+   "evidence": "Nguyên tắc được giữ: bản đồ tĩnh ghi rõ 'không phải SLAM, không ước lượng tư thế'; gate_01 báo riêng 'Định vị lại được: CHƯA'. Có thử ghép bản đồ bằng odometry .odom2 của DROW (lidar/drow_odom.py, phần mềm). Nhưng không tài liệu nào chọn phương án/thư viện SLAM cụ thể hay liệt kê đầu vào bắt buộc của nó (grep SLAM trong autopark: không có).",
+   "unblock": "Cần người dùng quyết định (chọn phương án SLAM: chỉ scan-matching hay có odometry/IMU); sau đó phần mềm (Claude làm được ngay: bảng đầu vào của các ứng viên, thử trên DROW và các phiên đã ghi)."
+  },
+  {
+   "phase": "1",
+   "item": "LiDAR bước 1: kiểm kê model, adapter, dây, đầu nối, hướng dẫn nguồn; chụp bộ thực giao",
+   "status": "partial",
+   "evidence": "Phần cứng: GET_INFO/HEALTH/LIDAR_CONF, CP2102N 10C4:EA60, driver CP210x 11.6.0.420, COM4, đầu nối và nguồn theo datasheet (docs/hardware_inventory.md). Thiếu: ảnh bộ thực giao, model in trên nhãn/hộp, cổng USB của máy đang dùng.",
+   "unblock": "Cần người thao tác với thiết bị đã có (chụp ảnh, đọc nhãn, ghi cổng USB)."
+  },
+  {
+   "phase": "1",
+   "item": "LiDAR bước 2: đọc scan qua đường nối laptop đã xác nhận; ghi khoảng cách, góc, thời gian, trạng thái, tốc độ cập nhật thực",
+   "status": "done",
+   "evidence": "Phần cứng, máy bàn (không phải laptop của xe): p07 22/09, 181 vòng/17,8 s, 10,09 Hz, trung vị 508 tia, 0 byte lệch trong 91.507 node (docs/evidence/lidar/p07_nen_phong.analysis.json). Phiên k01 24/09 (runs/lidar_bench/20260924_kiem, chưa ghi vào tài liệu): 9,98 Hz, 512 tia, health OK, 0 lỗi đọc. Bàn thử u04: LiDAR 6006 vòng/10 phút, mất 0 vòng. Việc chạy trên laptop của xe được xét ở điều kiện chuyển bước 1.",
+   "unblock": "— (phần laptop của xe: xem điều kiện chuyển bước 1)"
+  },
+  {
+   "phase": "1",
+   "item": "LiDAR bước 3: đặt cố định, dùng vật ở vị trí đã đo để kiểm tra hình hiển thị và đơn vị",
+   "status": "partial",
+   "evidence": "Đã quét nền với cảm biến cố định (p07, k01), nhưng không có vật ở khoảng cách đo bằng thước. runs/lidar_bench không có tệp p01–p06, p08. Sai số khoảng cách CHƯA đo, dấu góc trái/phải CHƯA chốt (GIAI_DOAN_1_LIDAR.md mục 6, 6b). Công cụ lidar/bench.py (--expected-distance/--expected-angle) đã sẵn, mới chạy trên dữ liệu tổng hợp.",
+   "unblock": "Cần người thao tác với thiết bị đã có: 7 lần đặt hộp theo GIAI_DOAN_1_LIDAR.md mục 6, sau đó chạy 'bench report' (Claude làm được)."
+  },
+  {
+   "phase": "1",
+   "item": "LiDAR bước 4: gắn lên gá ổn định; khảo sát chuyển động chậm có kiểm soát trong mặt phẳng",
+   "status": "not_started",
+   "evidence": "Không có gá, không có phiên ghi nào lúc LiDAR chuyển động; mọi phiên đều ở vị trí cố định trên bàn.",
+   "unblock": "Cần người thao tác với thiết bị đã có: gá tạm (tấm phẳng trên xe đẩy) và đẩy chậm theo đường có đo. Không bắt buộc phải có MN300."
+  },
+  {
+   "phase": "1",
+   "item": "LiDAR bước 5: tích hợp mapping khi đủ đầu vào; lưu bản đồ và tệp trạng thái",
+   "status": "partial",
+   "evidence": "Có bản đồ lưới tĩnh bằng ray casting từ một vị trí (lidar/occupancy.py → runs/lidar_bench/20260922/map_p07/costmap.json, 5.657 FREE / 230 OCCUPIED; docs/evidence/lidar/map_p07.png). Có ghép bản đồ theo odometry trên DROW (phần mềm). Không có SLAM, không ước lượng tư thế, không có tệp trạng thái của thuật toán SLAM.",
+   "unblock": "Cần người dùng quyết định phương án SLAM → phần mềm (Claude làm được) → cần người thao tác (ghi phiên LiDAR di chuyển). Nếu chọn SLAM có odometry: cần nhận phần cứng (encoder/IMU/MN300)."
+  },
+  {
+   "phase": "1",
+   "item": "LiDAR bước 6: nạp lại bản đồ, thử định vị tại vị trí có tham chiếu độc lập; tách ba kết quả đọc scan / tạo map / định vị lại",
+   "status": "partial",
+   "evidence": "Đã tách ba kết quả trong gate_01.md (ĐẠT / MỘT PHẦN / CHƯA). Đã có phép thử lưu/nạp: tests/test_fusion.py::test_static_layer_round_trips_through_costmap_json đạt (chạy lại 24/09); gate_01 ghi đã nạp lại costmap.json thật của p07 ngày 24/09. Chưa có thuật toán định vị, chưa có vị trí tham chiếu đo độc lập.",
+   "unblock": "Phần mềm (Claude làm được ngay: định vị bằng khớp scan với bản đồ tĩnh, thử trên phiên đã ghi) + cần người thao tác (đặt LiDAR ở vài vị trí đo bằng thước). Có thể cần người dùng quyết định phương án SLAM trước."
+  },
+  {
+   "phase": "1",
+   "item": "Camera bước 1: xác nhận biến thể và giao tiếp; dùng dây ngắn trước",
+   "status": "partial",
+   "evidence": "Phần cứng: VID/PID 1BCF:0B09, UVC composite, DirectShow, không có serial nên danh tính theo cổng hub (GIAI_DOAN_1_CAMERA.md mục 1; usb_topology*.json). Thiếu: chiều dài/loại dây camera chưa ghi (nên tiền đề 'dây ngắn trước' không có hồ sơ); nhãn/hộp chưa ghi; góc 130° mới là số nhà bán ghi, chưa đo.",
+   "unblock": "Cần người thao tác với thiết bị đã có (ghi dây, chụp nhãn; đo góc nhìn sau khi hiệu chuẩn)."
+  },
+  {
+   "phase": "1",
+   "item": "Camera bước 2: liệt kê mode độ phân giải/FPS/format thực",
+   "status": "done",
+   "evidence": "Phần cứng, máy bàn: docs/camera_modes.csv (MJPG 480p/720p/1080p @30; YUY2 30/10/5). FPS thật đo được ≈23,85 khi phơi sáng tự động, 29,3 khi phơi sáng thủ công ≤ −5 (m01, m02, m11, n01; docs/evidence/camera/).",
+   "unblock": "—"
+  },
+  {
+   "phase": "1",
+   "item": "Camera bước 3: đo FPS, thời gian suy luận, độ trễ, mất hình, CPU/GPU, nhiệt trong một phiên",
+   "status": "partial",
+   "evidence": "Đã có trên máy bàn: FPS, khung cũ, khung MJPEG bị cắt, CPU cho một camera (m01, n01). Thời gian suy luận (lô 15,6–16,4 ms), tuổi kết quả trong máy, tải/nhiệt GPU (41→49 °C) đo trong bàn thử 4 camera u01/u04 (GIAI_DOAN_2_BAN_THU.md mục 3). Thiếu: độ trễ từ sự kiện thật tới máy (cần LED/đồng hồ), nhiệt CPU (không có quyền admin), một phiên đơn camera có chạy AI, và mọi số trên laptop của xe.",
+   "unblock": "Cần người thao tác với thiết bị đã có (thử LED nháy, chạy bằng quyền admin để đọc nhiệt CPU); cần nhận phần cứng (laptop của xe) cho số đo trên máy thật."
+  },
+  {
+   "phase": "1",
+   "item": "Camera bước 4: kiểm tra ảnh ở độ cao, góc chúc, khoảng cách dự kiến gần xe; ghi góc nhìn thực",
+   "status": "not_started",
+   "evidence": "Camera chỉ nằm trên bàn. Không có ảnh nào ở độ cao thật (GIAI_DOAN_1_CAMERA.md mục 4.3; GAN_NHAN_SA_BAN.md). Không tệp cấu hình hay tài liệu nào chốt độ cao/góc chúc dự kiến (grep configs: không có).",
+   "unblock": "Cần người dùng quyết định (chốt độ cao/góc chúc dự kiến khi chưa có MN300), rồi cần người thao tác (dựng giá tạm, bày sa bàn, ghi ảnh bằng camera_bench record hoặc rig_app)."
+  },
+  {
+   "phase": "1",
+   "item": "Camera bước 5: hiệu chuẩn, lưu nội tại và méo kèm mode ảnh",
+   "status": "partial",
+   "evidence": "Mới có mã: perception/fisheye_calib.py, ui/calib_app.py, bảng in (docs/HIEU_CHUAN_CAMERA.md); test chỉ trên ảnh tổng hợp và camera giả (tests/test_fisheye_calib.py đạt). Không có calibration/cam_p*.json, không có runs/calib/. Chưa hiệu chuẩn camera thật nào; ngưỡng chấp nhận mới là đề xuất.",
+   "unblock": "Cần người thao tác với thiết bị đã có: in bảng, chụp 20–30 ảnh mỗi camera bằng calib_app (ít nhất camera 1 cho cổng 1). Sau đó Claude đọc kết quả."
+  },
+  {
+   "phase": "1",
+   "item": "Camera bước 6: chạy AI trên ảnh thật, lưu cả lỗi (nhất là vật cản bị gọi thành vùng trống)",
+   "status": "partial",
+   "evidence": "Mô hình đã chạy trực tiếp trên khung của 4 camera thật đặt trên bàn (bàn thử u01/u04), nhưng chỉ đo thời gian và xem lớp tô. Có 2 bộ chụp (runs/rig_snapshots/20260923_*, 8 ảnh, camera nằm trên bàn) đã nhập thử vào công cụ gán nhãn (perception/labels.py, ui/label_app.py). Chưa gán nhãn ảnh nào, chưa đo lỗi vật cản → FREE trên ảnh thật.",
+   "unblock": "Cần người thao tác với thiết bị đã có (chụp sa bàn ở độ cao thật, gán nhãn bằng label_app); sau đó phần mềm (Claude chấm ba checkpoint ở ngưỡng 0,50 và 0,15)."
+  },
+  {
+   "phase": "1",
+   "item": "Đầu ra: hardware_inventory.md",
+   "status": "partial",
+   "evidence": "Có docs/hardware_inventory.md (LiDAR, camera, hub). Thiếu: ảnh bộ thực giao, model trên nhãn, cổng USB của LiDAR, dây camera, dòng camera, thử nguồn ngoài cho hub.",
+   "unblock": "Cần người thao tác với thiết bị đã có."
+  },
+  {
+   "phase": "1",
+   "item": "Đầu ra: camera_modes.csv",
+   "status": "done",
+   "evidence": "Phần cứng: docs/camera_modes.csv (24 dòng, 4 camera × 6 mode).",
+   "unblock": "—"
+  },
+  {
+   "phase": "1",
+   "item": "Đầu ra: camera_01_calibration.yaml",
+   "status": "partial",
+   "evidence": "Tệp chưa có. Mới có công cụ; khi chạy sẽ ra calibration/cam_p<cổng>.json (JSON riêng của dự án, chỉ có nội tham), không phải YAML như kế hoạch ghi.",
+   "unblock": "Cần người thao tác (hiệu chuẩn camera thật). Cần người dùng quyết định có chấp nhận JSON thay YAML không; nếu không, Claude viết bộ chuyển đổi được ngay."
+  },
+  {
+   "phase": "1",
+   "item": "Đầu ra: bản quét / bản đồ thử",
+   "status": "done",
+   "evidence": "Phần cứng: runs/lidar_bench/20260922/p07_nen_phong.*, map_p07/costmap.json; runs/lidar_bench/20260924_kiem/k01_*; bản sao nhỏ ở docs/evidence/lidar/. Lưu ý: bản đồ là lưới tĩnh từ một vị trí, không phải bản đồ SLAM.",
+   "unblock": "—"
+  },
+  {
+   "phase": "1",
+   "item": "Đầu ra: log nhận ảnh",
+   "status": "done",
+   "evidence": "Phần cứng: runs/camera_bench/20260923/*.measure.json, *.frames.csv (các phiên m, n, q) và runs/rig_bench/20260923_v3; bản sao ở docs/evidence/camera/.",
+   "unblock": "—"
+  },
+  {
+   "phase": "1",
+   "item": "Đầu ra: video mẫu",
+   "status": "done",
+   "evidence": "Phần cứng: runs/camera_bench/20260923/r01_cam0_720p.avi, r02_cam2_720p.avi, r03_cam0_720p_nofilm.avi kèm ảnh PNG. Chỉ là cảnh mặt bàn: r01/r02 còn phim bảo vệ ống kính, không ở độ cao thật.",
+   "unblock": "— (video ở độ cao thật thuộc camera bước 4)"
+  },
+  {
+   "phase": "1",
+   "item": "Đầu ra: biên bản gate_01.md",
+   "status": "done",
+   "evidence": "Có docs/gate_01.md (cập nhật 23–24/09, trạng thái CHƯA ĐẠT, tách ba kết quả LiDAR, bảng đầu ra). Nội dung khớp với bằng chứng đã kiểm; chỉ chưa ghi phiên k01 ngày 24/09.",
+   "unblock": "Phần mềm (Claude làm được ngay): bổ sung k01 khi được phép sửa tài liệu."
+  },
+  {
+   "phase": "1",
+   "item": "Điều kiện 1: laptop nhận LiDAR và camera ổn ở mode đã ghi rõ",
+   "status": "partial",
+   "evidence": "Trên máy bàn: LiDAR mode Standard 460800 bps ổn (p07, k01, u04 mất 0 vòng); một camera MJPG 720p ≈24 fps, 0 khung cũ (m01/n01), không khung bị cắt. Bốn camera qua hub chỉ dùng được ở 640×480, và ở mode này camera cổng 1 vẫn có đợt 26–36 % khung hỏng. Chưa thử trên laptop của xe.",
+   "unblock": "Cần mua/nhận phần cứng (laptop của xe) để đạt trọn; phần máy bàn coi như đã có."
+  },
+  {
+   "phase": "1",
+   "item": "Điều kiện 2: có dữ liệu và phép thử lưu/nạp bản đồ; định vị chưa đạt thì báo riêng",
+   "status": "partial",
+   "evidence": "Có phép thử lưu/nạp bản đồ lưới tĩnh (test_fusion round-trip đạt; nạp lại costmap.json thật của p07); định vị được báo riêng là CHƯA. gate_01 để trống vì bản đồ chưa phải của phương án SLAM (không có chuyển động, không có tư thế).",
+   "unblock": "Cần người dùng quyết định: bản đồ lưới tĩnh có đủ cho điều kiện này không. Nếu không đủ: chọn SLAM, rồi phần mềm (Claude), rồi người thao tác ghi phiên di chuyển."
+  },
+  {
+   "phase": "1",
+   "item": "Điều kiện 3: camera đủ nét trong vùng làm việc; hiệu chuẩn được; chạy AI trên ảnh thật",
+   "status": "partial",
+   "evidence": "Chỉ có AI chạy trực tiếp trên khung thật (không chấm, không nhãn). Độ nét trong vùng làm việc chưa kiểm (chưa đặt ở độ cao thật). Chưa hiệu chuẩn camera nào.",
+   "unblock": "Cần người dùng quyết định độ cao/góc chúc; cần người thao tác với thiết bị đã có (giá tạm, in bảng, hiệu chuẩn, chụp và gán nhãn)."
+  },
+  {
+   "phase": "1",
+   "item": "Điều kiện 4: có số đo, không chỉ nhận xét video 'mượt'",
+   "status": "partial",
+   "evidence": "Có nhiều số đo có tệp: LiDAR (tần số, tia/vòng, khoảng trống, tỉ lệ không phản hồi); camera (FPS, khung cũ, khung bị cắt, CPU); AI (thời gian lô, tuổi kết quả, GPU, nhiệt GPU). Thiếu: sai số khoảng cách LiDAR so với thước, độ trễ từ sự kiện thật tới máy, nhiệt CPU, mọi số trên laptop của xe.",
+   "unblock": "Cần người thao tác với thiết bị đã có (7 lần đặt hộp, thử LED); cần nhận laptop của xe cho phần số đo trên xe."
+  },
+  {
+   "phase": "1",
+   "item": "Điều kiện 5: chỉ quyết định mua thêm ba camera sau khi mẫu vượt kiểm tra đơn camera",
+   "status": "partial",
+   "evidence": "Trình tự không được giữ: đã mua đủ 4 camera trước khi thử. Bài thử đơn camera 23/09 đạt về mode/FPS, chưa đạt về vùng làm việc, hiệu chuẩn và AI. Giờ điều kiện chỉ còn nghĩa là: giữ loại camera này hay đổi loại khác.",
+   "unblock": "Cần người dùng quyết định (ghi nhận sai lệch trình tự; chốt giữ hay đổi loại camera sau khi kiểm vùng làm việc và hiệu chuẩn)."
+  },
+  {
+   "phase": "2",
+   "item": "Đồ cần có: bốn camera cùng cấu hình",
+   "status": "done",
+   "evidence": "PHẦN CỨNG: nhận 23/09, bốn camera cùng loại \"HD Camera\" VID 1BCF PID 0B09, không có serial (autopark/docs/hardware_inventory.md, autopark/docs/usb_topology.md). Tổng cộng bốn chiếc, đúng như kế hoạch.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "2",
+   "item": "Đồ cần có: hub/cổng USB và nguồn đã đối chiếu",
+   "status": "partial",
+   "evidence": "PHẦN CỨNG: đã ghi sơ đồ hub UGREEN (05E3:0610 nhánh USB 2.0 ở cổng gốc 5, cả bốn camera đi qua nhánh này) trong usb_topology.md và evidence/camera/usb_topology_*.json. Còn thiếu: hub chạy bus-powered trong mọi phiên, chưa thử adapter nguồn ngoài; chưa đo dòng camera; chưa thử tách camera ra cổng gốc của máy.",
+   "unblock": "Cần người thao tác với thiết bị đã có: cắm adapter nguồn cho hub, cắm hai camera thẳng vào máy rồi chạy lại rig.bench. Muốn đo dòng thì cần mua đồng hồ đo USB."
+  },
+  {
+   "phase": "2",
+   "item": "Đồ cần có: gá cứng",
+   "status": "not_started",
+   "evidence": "Không có gá, không có bản vẽ gá. Tài liệu nhiều lần ghi \"camera nằm trên bàn, chưa gá\" (GIAI_DOAN_2_BAN_THU.md, HIEU_CHUAN_CAMERA.md mục 6).",
+   "unblock": "Cần người dùng quyết định vị trí và kích thước gá (MN300 chưa về, nên chỉ có kích thước giả định). Sau đó cần người tự chế, hoặc mua/nhận vật liệu làm gá bàn thử. Claude có thể phác bản vẽ sơ bộ."
+  },
+  {
+   "phase": "2",
+   "item": "Đồ cần có: dây ngắn",
+   "status": "partial",
+   "evidence": "Camera đã chạy qua hub bằng dây của chính camera, nhưng hardware_inventory.md ghi \"Dây camera (chiều dài, loại): chưa ghi\".",
+   "unblock": "Cần người thao tác với thiết bị đã có: đo và ghi chiều dài, loại dây vào kiểm kê."
+  },
+  {
+   "phase": "2",
+   "item": "Khi chưa đủ bốn camera: viết MultiCameraManager nhận bốn nguồn phát lại",
+   "status": "partial",
+   "evidence": "PHẦN MỀM: autopark/video/multicam.py::MultiCameraManager nhận nguồn tùy ý qua open_source, đã test với FakeCamera (tests/test_multicam_rig.py, tests/rig_fakes.py). Đã có VideoFileSource và nguồn thư mục ảnh (video/sources.py), nhưng chưa nối vào manager hay dòng lệnh. Chưa có công cụ ghi và phát lại một phiên bốn camera: runs/camera_bench chỉ có .avi của một camera (r01–r03), runs/rig_snapshots chỉ có 2 ảnh chụp bộ.",
+   "unblock": "Phần mềm (Claude làm được ngay): thêm ghi/phát lại phiên bốn camera để kiểm thử hồi quy."
+  },
+  {
+   "phase": "2",
+   "item": "Khi chưa đủ bốn camera: tách hiệu chuẩn, thu ảnh, suy luận, hiển thị thành phần đo riêng",
+   "status": "done",
+   "evidence": "PHẦN MỀM, có số đo trên phần cứng máy bàn: thu ảnh ở video/multicam.py và sources.py; suy luận theo lô ở perception/live.py, đo riêng tiền xử lý/mạng/hậu xử lý; điều phối và tài nguyên ở rig/core.py; đo không giao diện bằng rig/bench.py; hiển thị ở ui/rig_app.py; hiệu chuẩn tách riêng ở perception/fisheye_calib.py và ui/calib_app.py. Riêng chi phí của giao diện chưa đo.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "2",
+   "item": "Khi chưa đủ bốn camera: định nghĩa front/rear/left/right; bản vẽ gá và vùng sàn cần quan sát",
+   "status": "not_started",
+   "evidence": "Chỉ có trường CameraSpec.name (multicam.py dòng 137), ghi \"rỗng khi chưa có gá\". configs/vehicle_default.json không có tư thế camera. Không có bản vẽ gá, không có tính vùng phủ sàn. Góc 130° là số người bán quảng cáo, chưa đo.",
+   "unblock": "Phần mềm (Claude làm được ngay): cấu hình tư thế camera giả định và tính vùng phủ sàn từ trường nhìn mô hình. Cần người dùng quyết định vị trí gá và cách gán cổng hub vào hướng."
+  },
+  {
+   "phase": "2",
+   "item": "Khi chưa đủ bốn camera: hàng đợi giới hạn và bỏ bộ ảnh lệch thời gian",
+   "status": "done",
+   "evidence": "PHẦN MỀM, đã chạy trên phần cứng máy bàn: vòng đệm 3 khung, bỏ bộ lệch hơn 60 ms, chờ camera chậm có giới hạn (multicam.py). Phiên u04 (600 s) bỏ 1 trong 13887 bộ, số khớp runs/rig_bench/20260923_v3/u04_*.rig.json. Chạy lại test_multicam_rig.py cùng các test liên quan hôm nay: 132 đạt, dùng nguồn giả.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "2",
+   "item": "Khi chưa đủ bốn camera: video giả chỉ dùng kiểm thử giao diện và luồng, không công bố hiệu chuẩn đa camera",
+   "status": "done",
+   "evidence": "Đã tuân thủ: HIEU_CHUAN_CAMERA.md mục 5 ghi rõ chỉ kiểm trên ảnh tổng hợp và \"chưa chứng minh\". Không có tuyên bố nào về hiệu chuẩn đa camera.",
+   "unblock": "Không cần"
+  },
+  {
+   "phase": "2",
+   "item": "Bước 1: thử cả bốn camera trên dây ngắn, mode chung (mốc 720p30 MJPEG, sau đó 1080p)",
+   "status": "partial",
+   "evidence": "PHẦN CỨNG máy bàn, GIAI_DOAN_2_BAN_THU.md mục 2.3–2.4, runs/rig_bench/20260923_v3/raw. Ở 720p bốn camera: cổng 1 và 4 bị cắt khung 99–100 % (r04, r11, u02). Ở 1080p: ba trong bốn camera bị cắt gần hết khung (r09). Ở 480p: phần lớn thời gian sạch, nhưng cổng 1 có đợt 26–36 % khung hỏng (u03, f02). Bàn thử tạm chạy mặc định 640×480, lệch mốc 720p của kế hoạch và chưa được người dùng chốt. Chưa thử nguồn ngoài hay cổng gốc; chiều dài dây chưa ghi. Phiên w03 (720p, 0 khung bị cắt) quay vào chỗ tối nên không chứng minh 720p dùng được.",
+   "unblock": "Cần người thao tác với thiết bị đã có: nguồn ngoài cho hub, tách cổng gốc, đổi chỗ camera cổng 1 và cổng 2. Cần người dùng quyết định chốt mode (480p, hay đổi cách đi dây để dùng 720p)."
+  },
+  {
+   "phase": "2",
+   "item": "Bước 2: ghi FPS/độ trễ/mất hình từng camera, chạy đồng thời với LiDAR và AI",
+   "status": "partial",
+   "evidence": "PHẦN CỨNG máy bàn: u01 (120 s), u04 (600 s), w01–w05. Mỗi camera ≈ 23,85 khung tốt/s; có đếm khung cắt/xé/cũ và khoảng cách khung lớn nhất. LiDAR 6006 vòng, mất 0. AI 23,1–23,8 bộ/s, tuổi kết quả trung vị 34,8 ms. Còn thiếu: độ trễ thật từ sự kiện tới máy (cần LED nháy); nguyên nhân đợt hỏng của cổng 1; số đo trên laptop RTX 3050 Ti của xe.",
+   "unblock": "Cần người thao tác với thiết bị đã có: phép thử LED nháy hoặc đồng hồ quay. Cần mua/nhận phần cứng: laptop của xe."
+  },
+  {
+   "phase": "2",
+   "item": "Bước 3: sơ đồ cổng USB, nguồn hub, gán camera vào hướng; kiểm nhận dạng sau rút/cắm và khởi động lại",
+   "status": "partial",
+   "evidence": "PHẦN CỨNG: usb_topology.md cùng các tệp usb_topology_20260923{,_2,_replug1,_replug2,_after_reboot}.json. Rút/cắm cùng cổng hai lần; khởi động lại lúc 12:35 ngày 23/09 thì InstanceId theo cổng giữ nguyên, index OpenCV đổi. Mã chọn camera theo cổng (resolve_ports). Còn thiếu: phép thử nguồn hub, gán hướng (chưa gá), phép thử đổi cổng; mới khởi động lại một lần.",
+   "unblock": "Cần người thao tác với thiết bị đã có: nguồn hub, đổi cổng, khởi động lại thêm. Gán hướng thì cần có gá."
+  },
+  {
+   "phase": "2",
+   "item": "Bước 4: hiệu chuẩn riêng từng camera; gắn lên rig, xác định vị trí/hướng so với rig",
+   "status": "partial",
+   "evidence": "CHỈ PHẦN MỀM: đã có perception/fisheye_calib.py, ui/calib_app.py và bảng in calibration/bang_in/*.pdf. Mới kiểm trên ảnh tổng hợp (test_fisheye_calib.py đạt). Chưa in bảng, chưa có calibration/cam_p*.json nào, chưa có runs/calib/. calib_app chưa từng mở camera thật. Ngoại tham chưa chọn phương pháp. CameraCalibration.from_dict chưa đọc được tệp mới.",
+   "unblock": "Cần người thao tác với thiết bị đã có: in bảng A3/A4, đo cỡ ô, chụp 20–30 ảnh mỗi camera. Ngoại tham cần gá. Phần mềm (Claude làm được ngay): công cụ ngoại tham (solvePnP với bảng đặt trên sàn) và sửa from_dict đọc theta_max_deg."
+  },
+  {
+   "phase": "2",
+   "item": "Bước 5: đồng bộ phần mềm, ghi sai lệch thời gian còn lại",
+   "status": "done",
+   "evidence": "PHẦN CỨNG máy bàn: mọi luồng dùng chung đồng hồ perf_counter. Độ lệch trong bộ ảnh (trung vị / p95): u01 15,0 / 24,1 ms, u04 33,9 / 34,2 ms, w01 23,0 / 23,3 ms. Điểm giữa vòng LiDAR sớm hơn mốc bộ ảnh ≈ 68–80 ms. Tài liệu ghi rõ đây là stamp lúc khung tới máy, không phải lúc phơi sáng, và không có đồng bộ phần cứng. Chưa đo lại trên laptop của xe.",
+   "unblock": "Không cần ở mức bàn thử. Đo lại khi có laptop của xe (cần mua/nhận phần cứng)."
+  },
+  {
+   "phase": "2",
+   "item": "Bước 6: chạy AI từng camera, quy đổi hình học về cùng hệ tọa độ, hợp nhất vùng chồng lấn",
+   "status": "partial",
+   "evidence": "PHẦN CỨNG máy bàn: AI chấm lô bốn ảnh trực tiếp trên GPU (u01, u04; giao diện rig_app có lớp tô). Chưa quy đổi về hệ tọa độ chung, chưa hợp nhất vùng chồng lấn, vì chưa có hiệu chuẩn và ngoại tham. fusion/fuse.py (OCCUPIED nếu có lớp nào báo OCCUPIED) mới chạy trong phần mềm (test_fusion.py đạt). AI chưa được chấm trên ảnh sa bàn.",
+   "unblock": "Cần người thao tác với thiết bị đã có (hiệu chuẩn), cần gá, sau đó phần mềm (Claude)."
+  },
+  {
+   "phase": "2",
+   "item": "Bước 7: tạo BEV cho thuật toán, tách ảnh ghép cho giao diện",
+   "status": "partial",
+   "evidence": "CHỈ PHẦN MỀM: perception/costmap.py chiếu mặt nạ của MỘT camera xuống lưới mặt sàn, có UNKNOWN và phép quét che khuất. Mới chạy trên ảnh WoodScape (runs/perception_integration/costmap_00007_FV, ipm_check_*). Chưa có BEV bốn camera trên rig thật, chưa có ảnh ghép hiển thị.",
+   "unblock": "Phần mềm (Claude làm được ngay): BEV đa camera và ảnh ghép, kiểm trên dữ liệu tổng hợp hoặc WoodScape. Kết quả thật cần hiệu chuẩn và gá."
+  },
+  {
+   "phase": "2",
+   "item": "Bước 8: đặt vật cản trước/sau/hông và vùng giáp ranh, đo vùng quan sát, che khuất, sai lệch giữa camera",
+   "status": "not_started",
+   "evidence": "Không có phiên đo nào; phải có gá, hiệu chuẩn và BEV trước.",
+   "unblock": "Cần người thao tác với thiết bị đã có, sau khi có gá, hiệu chuẩn và BEV."
+  },
+  {
+   "phase": "2",
+   "item": "Bước 9: chỉ thêm cáp kéo dài sau khi cấu hình ngắn đạt; phép thử A/B ngắn–dài",
+   "status": "not_applicable_yet",
+   "evidence": "Cáp UGREEN 90722 chưa có trong danh sách đã nhận, và cấu hình dây ngắn chưa đạt (bước 1).",
+   "unblock": "Cần mua/nhận phần cứng (cáp kéo dài), và cấu hình dây ngắn phải đạt trước."
+  },
+  {
+   "phase": "2",
+   "item": "Lưu ý: chiếu mặt sàn chỉ đúng cho điểm thuộc mặt sàn; cần chọn phương pháp biên tiếp xúc/độ sâu/vùng không chắc chắn",
+   "status": "partial",
+   "evidence": "CHỈ PHẦN MỀM: costmap.py có phép quét che khuất (sau ô OCCUPIED đầu tiên là UNKNOWN). Chưa chọn và chưa đánh giá phương pháp biên tiếp xúc; xác suất AI được cắt ngưỡng nhị phân, chưa có dải \"không chắc chắn\"; chưa kiểm trên ảnh thật.",
+   "unblock": "Cần người dùng quyết định phương pháp. Phần mềm (Claude) làm được, rồi đánh giá bằng dữ liệu thật do người thao tác thu."
+  },
+  {
+   "phase": "2",
+   "item": "Đầu ra: bản vẽ rig",
+   "status": "not_started",
+   "evidence": "Không có tệp nào.",
+   "unblock": "Cần người dùng quyết định vị trí và kích thước gá. Claude có thể phác bản vẽ sơ bộ."
+  },
+  {
+   "phase": "2",
+   "item": "Đầu ra: bốn tệp calibration",
+   "status": "not_started",
+   "evidence": "Chưa có calibration/cam_p1..4.json (calibration/README.md ghi rõ chưa có). Công cụ đã sẵn nhưng chưa chạy với camera thật.",
+   "unblock": "Cần người thao tác với thiết bị đã có: in bảng, chụp ảnh, chạy calib_app."
+  },
+  {
+   "phase": "2",
+   "item": "Đầu ra: camera_rig_extrinsics.yaml",
+   "status": "not_started",
+   "evidence": "Không có. Mỗi tệp nội tham sẽ ghi \"extrinsic\": null. Chưa chọn cách đo.",
+   "unblock": "Cần gá (người tự chế hoặc mua), cần người thao tác đo. Phần mềm (Claude) viết được công cụ ngoại tham."
+  },
+  {
+   "phase": "2",
+   "item": "Đầu ra: usb_topology.md",
+   "status": "partial",
+   "evidence": "Có autopark/docs/usb_topology.md kèm các tệp json (hub, cổng, InstanceId, rút/cắm, khởi động lại). Thiếu: phép thử nguồn hub, gán hướng, đổi cổng, số liệu trên laptop của xe.",
+   "unblock": "Cần người thao tác với thiết bị đã có. Phần laptop của xe cần mua/nhận phần cứng."
+  },
+  {
+   "phase": "2",
+   "item": "Đầu ra: log bốn luồng",
+   "status": "done",
+   "evidence": "PHẦN CỨNG máy bàn: runs/rig_bench/20260923_v3/u01–u04 (*.rig.json, *.log) và runs/rig_bench/20260924_wait/w01–w05, không có trong git. Tóm tắt nằm trong GIAI_DOAN_2_BAN_THU.md mục 3 và 10. Chưa có log trên laptop của xe.",
+   "unblock": "Không cần. Đo lại khi có laptop của xe."
+  },
+  {
+   "phase": "2",
+   "item": "Đầu ra: sơ đồ vùng quan sát",
+   "status": "not_started",
+   "evidence": "Không có.",
+   "unblock": "Phần mềm (Claude) làm được bản dự kiến từ tư thế giả định. Bản đo thật cần gá, hiệu chuẩn và người thao tác."
+  },
+  {
+   "phase": "2",
+   "item": "Đầu ra: báo cáo sai số BEV",
+   "status": "not_started",
+   "evidence": "Không có. Chưa có BEV thật.",
+   "unblock": "Cần người thao tác, sau khi có gá, hiệu chuẩn và BEV."
+  },
+  {
+   "phase": "2",
+   "item": "Điều kiện: bốn camera chạy đồng thời ở mode đã thống nhất; có báo cáo tải và mất hình",
+   "status": "partial",
+   "evidence": "PHẦN CỨNG máy bàn: có báo cáo tải và mất hình ở 480p (u01, u04, w01–w05; CPU/GPU/nhiệt ở mục 3.4). Mode chưa được thống nhất: 720p × 4 không dùng được qua hub này; 480p là mặc định tạm thời, cổng 1 vẫn có đợt hỏng chưa rõ nguyên nhân; chưa đo trên laptop của xe.",
+   "unblock": "Cần người thao tác với thiết bị đã có (nguồn hub, cổng gốc). Cần người dùng quyết định chốt mode. Cần mua/nhận phần cứng (laptop của xe)."
+  },
+  {
+   "phase": "2",
+   "item": "Điều kiện: đọc đúng camera theo đúng hướng sau khởi động lại",
+   "status": "partial",
+   "evidence": "PHẦN CỨNG: danh tính theo cổng giữ nguyên sau một lần khởi động lại (usb_topology_20260923_after_reboot.json); mã chọn camera theo cổng. Phần \"đúng hướng\" chưa có vì chưa gá, chưa gán trước/sau/trái/phải; chưa thử đổi cổng.",
+   "unblock": "Cần gá và người thao tác: gán hướng, khởi động lại, kiểm bằng vật đặt theo hướng."
+  },
+  {
+   "phase": "2",
+   "item": "Điều kiện: có bộ hiệu chuẩn đa camera gắn với gá thực",
+   "status": "not_started",
+   "evidence": "Không có tệp nội tham hay ngoại tham nào, không có gá. Chỉ có công cụ nội tham đã kiểm trên ảnh tổng hợp.",
+   "unblock": "Cần người thao tác với thiết bị đã có (nội tham) và cần gá (ngoại tham)."
+  },
+  {
+   "phase": "2",
+   "item": "Điều kiện: vật mẫu xuất hiện tại vị trí đối chiếu được trên BEV",
+   "status": "not_started",
+   "evidence": "Chưa có BEV từ camera thật.",
+   "unblock": "Cần gá, hiệu chuẩn, BEV (phần mềm), rồi người thao tác đặt vật."
+  },
+  {
+   "phase": "2",
+   "item": "Điều kiện: vùng chưa quan sát/thiếu tin cậy giữ là UNKNOWN, không mặc định FREE",
+   "status": "partial",
+   "evidence": "PHẦN MỀM/MÔ PHỎNG: costmap.py đặt UNKNOWN cho ô ngoài ảnh, ngoài ROI, bị che khuất hoặc quá tầm. fusion/fuse.py mặc định UNKNOWN, lớp bắt buộc quá cũ thì bản đồ không hợp lệ (test_fusion.py và test_perception_calibration.py đạt). Còn thiếu: dự đoán thiếu tin cậy chưa thành UNKNOWN (ngưỡng nhị phân); chưa kiểm trên BEV bốn camera thật.",
+   "unblock": "Phần mềm (Claude làm được ngay): dải xác suất không chắc chắn chuyển thành UNKNOWN. Kiểm thật cần hiệu chuẩn và gá."
+  },
+  {
+   "phase": "2",
+   "item": "Điều kiện: có thử riêng dây kéo dài trước khi đưa vào vận hành xe",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có cáp kéo dài, và cấu hình ngắn chưa đạt.",
+   "unblock": "Cần mua/nhận phần cứng (cáp UGREEN 90722 hoặc tương đương), sau khi cấu hình ngắn đạt."
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Đồ cần có: rig LiDAR + camera, BNO085, hai VL53L1X, dây/nguồn, bo đọc cảm biến (đề xuất ESP32-S3)",
+   "status": "partial",
+   "evidence": "Đã có RPLIDAR C1 (COM4) và bốn camera + hub (hardware_inventory.md), nhưng camera 'nằm trên bàn, chưa gá, chưa hiệu chuẩn' (GIAI_DOAN_2_BAN_THU.md dòng 5), nên chưa có rig. hardware_inventory.md, mục 'ESP32-S3, IMU BNO085, ToF VL53L1X…': 'Chưa nhận / chưa kiểm kê'.",
+   "unblock": "cần mua/nhận phần cứng (BNO085, 2 VL53L1X, ESP32-S3, dây/nguồn bench); gá rig LiDAR+camera: cần người thao tác với thiết bị đã có"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Khi chưa có: tạo telemetry giả cùng cấu trúc với dữ liệu thật",
+   "status": "partial",
+   "evidence": "Chỉ phần mềm. ToF giả là NearFieldReading(stamp, sensor_id, range_m, max_range_m, valid) trong fusion/layers.py, được test ở test_fusion.py::test_near_field_layer_marks_arc_only_when_valid. Cấu trúc telemetry thật là TelemetryMsg (gyro_z, accel_x/y, tof_valid_mask, tof_mm[4]) trong transport/protocol.py. VehicleIO mô phỏng sinh IMU giả (vehicle_io.py::_sensor_inputs) nhưng không sinh ToF. Không có mã chuyển VehicleTelemetry.tof_m → NearFieldReading (grep chỉ thấy NearFieldReading trong layers.py và test), nên ToF giả chưa đi qua đúng đường telemetry sẽ dùng cho dữ liệu thật.",
+   "unblock": "phần mềm (Claude làm được ngay): thêm ToF giả vào VehicleIO mô phỏng và bộ chuyển telemetry → NearFieldLayer"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Khi chưa có: viết các lớp StaticMap, LiveLidar, CameraSemantic, NearField và trạng thái hợp lệ/cũ",
+   "status": "done",
+   "evidence": "Chỉ phần mềm. fusion/layers.py có StaticMapLayer, LiveLidarLayer, CameraSemanticLayer, NearFieldLayer, mỗi lớp có SourcePolicy tuổi tối đa, fresh() và status(). fusion/fuse.py: lớp bắt buộc không tươi thì valid=False và chặn mọi ô. 14 test trong test_fusion.py đạt (chạy lại 24/09). Giới hạn: CameraSemanticLayer.set_vehicle_frame không có test trực tiếp (chỉ resample được test) và chưa có khung camera thật nào đi qua lớp này.",
+   "unblock": "—"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Khi chưa có: viết phép biến đổi rig–map, thử bằng vị trí biết trước",
+   "status": "done",
+   "evidence": "Chỉ phần mềm, thử bằng dữ liệu tổng hợp. sensor_pose_in_map và resample(pose) trong layers.py. test_rig_map_transform_with_known_positions: xe ở (1; 0,5), quay 90°, cảm biến lệch 0,1 m, vật cách 0,98 m rơi đúng ô (1; 1,58). Có thêm test_resample_between_grids_and_frames. Chưa đối chiếu bằng vật thật đặt ở tọa độ đo được: 7 lần đặt hộp của giai đoạn 1 vẫn còn thiếu.",
+   "unblock": "—"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Khi chưa có: logic đường hợp lệ → thêm vật cản → hủy hợp lệ → phát cờ dừng → lập lại đường hoặc chờ",
+   "status": "done",
+   "evidence": "Phần mềm, cộng một lần chạy LiDAR thật với cảnh tĩnh. bridge.inject gọi Session.inject_obstacle → MAP_CHANGED → STOPPING → STOPPED → WAIT_REPLAN → reset → plan_sync lại được (test_live_lidar_obstacle_stops_the_running_session_then_replans). Vật ngoài hành lang được ghi nhớ nhưng không làm dừng xe. Bản đồ hợp nhất không hợp lệ thì dừng. test_fusion_demo.py (3 test) và test_lidar_dock_ui.py (5 test) dùng nguồn quét kịch bản; cả 22 test đạt ngày 24/09. Trên COM4 ngày 22/09: cảnh tĩnh, COMPLETED, 0 lần dừng giả (chỉ ghi trong tài liệu).",
+   "unblock": "—"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Khi chưa có: không ghi nhận 'ToF thật đã hoạt động' khi mới dùng dữ liệu giả",
+   "status": "done",
+   "evidence": "Đã tuân thủ. GIAI_DOAN_3_CHUAN_BI.md dòng 4 ('không có số đo ToF/IMU thật nào') và mục 6. Docstring của layers.py: 'chưa có ToF thật nào được đọc'. Bảng 17.4 ghi 'ToF chỉ có số đo giả'.",
+   "unblock": "—"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Khi nhận đủ phần cứng, bước 1: kiểm tra sơ đồ chân/nguồn từng breakout; đọc từng cảm biến riêng trước",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có BNO085, VL53L1X, ESP32-S3. Grep pinout/I2C/SDA/XSHUT trong docs/firmware không thấy tài liệu chân nào.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Bước 2: ESP32 gửi telemetry (mã nguồn, timestamp, giá trị, cờ hợp lệ) lên laptop; chưa nối chấp hành",
+   "status": "not_applicable_yet",
+   "evidence": "Phần chuẩn bị chỉ ở mức phần mềm: giao thức (protocol.py, GIAO_THUC_XE.md), bản tham chiếu firmware bằng Python và VehicleIO serial/mô phỏng đã có test. Firmware C++ CHƯA TỪNG BIÊN DỊCH vì máy không có trình biên dịch/PlatformIO. main.cpp dòng 250: 'CHƯA CÓ cảm biến'; firmware báo mọi số đo là không hợp lệ. AP_ENABLE_PWM_OUTPUTS=0, tức chưa nối chấp hành. Chưa có bo.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3); trước đó biên dịch firmware: phần mềm (Claude làm được nếu người dùng cho cài PlatformIO/trình biên dịch)"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Bước 3: BNO085 — ghi chế độ dữ liệu, kiểm tra dấu/trục/hướng, độ ổn định khi rig đứng yên/di chuyển chậm",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có BNO085. GIAO_THUC_XE.md mục 0: 'Chế độ báo cáo BNO085' CHƯA CHỐT. Telemetry chỉ có gyro_z, accel_x/y, chưa có trường quaternion.",
+   "unblock": "cần mua/nhận phần cứng; chọn chế độ báo cáo: cần người dùng quyết định khi có cảm biến"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Bước 4: ToF — khoảng cách, vật liệu/màu, điểm không đo được, timeout; phương án địa chỉ khi thêm cảm biến thứ hai",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có VL53L1X. GIAO_THUC_XE.md mục 0: 'địa chỉ nhiều VL53L1X' CHƯA CHỐT. Đã quy ước tof_mm = 0 kèm bit hợp lệ, không dùng số lớn để báo 'không thấy'.",
+   "unblock": "cần mua/nhận phần cứng; phương án địa chỉ (XSHUT/đổi địa chỉ I2C): cần người dùng quyết định"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Bước 5: đưa số đo về hệ tọa độ rig và hiển thị vùng đo; không coi mỗi số đo là bao phủ cả đầu/hông xe",
+   "status": "not_applicable_yet",
+   "evidence": "Không có số đo thật. Mới có phép đặt vào tọa độ trong phần mềm: NearFieldLayer chỉ đánh dấu cung FOV 25° tại khoảng đo theo NearFieldMount, không bao giờ sinh FREE (có test). Chưa có hiển thị vùng đo ToF trên giao diện (không có NearField trong ui/).",
+   "unblock": "cần mua/nhận phần cứng; phần hiển thị vùng đo: phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Bước 6: hợp nhất bản đồ toàn cục, vị trí rig và BEV cục bộ; đối chiếu vật mẫu có tọa độ đo được",
+   "status": "partial",
+   "evidence": "Phần cứng, chỉ với LiDAR. Có bản đồ tĩnh LiDAR trên bàn (runs/lidar_bench/20260922/map_p07/costmap.json). LiDAR cố định nên vị trí rig coi như đã biết. Ngày 22/09 planner báo đích (2,0; 1,0) trúng vật thật ở khoảng 1,9–2,05 m; đây chỉ là so sánh định tính. Còn thiếu: BEV (giai đoạn 2 chưa hiệu chuẩn, chưa gá, chưa có BEV), camera chưa đi qua CameraSemanticLayer, chưa có định vị, chưa có vật mẫu đo tọa độ độc lập (7 lần đặt hộp).",
+   "unblock": "cần người thao tác với thiết bị đã có (in bảng + hiệu chuẩn camera, gá rig, đặt hộp đo tọa độ); sau đó phần mềm BEV/nối camera vào CameraSemanticLayer (Claude)"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Bước 7: đặt vật nhẹ vào vùng thử khi rig đứng yên; ghi thời điểm nhận biết, cờ dừng, cập nhật bản đồ, kết quả lập lại đường",
+   "status": "partial",
+   "evidence": "Công cụ fusion/demo.py và ngăn LiDAR (ui/lidar_dock.py) đã chạy với LiDAR thật trên COM4 ngày 22/09, nhưng chỉ với cảnh tĩnh (COMPLETED, 202 vòng, 0 lỗi, 0 dừng giả). CHƯA đưa tay/hộp vào lúc xe ảo chạy, CHƯA rút cáp (GIAI_DOAN_3_CHUAN_BI.md mục 3). demo.py chỉ in ra màn hình; ngăn LiDAR chỉ ghi vào QListWidget. Không có tệp log nào trong runs/ cho lần chạy này. Hành vi dừng mới được kiểm bằng nguồn quét kịch bản.",
+   "unblock": "cần người thao tác với thiết bị đã có (LiDAR có sẵn, không cần IMU/ToF); ghi log sự kiện ra runs/: phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Đầu ra: firmware đọc cảm biến",
+   "status": "not_started",
+   "evidence": "firmware/esp32_vehicle chỉ có giao thức, watchdog và điều khiển. main.cpp:250 và README dòng 64 ghi 'chưa có mã đọc' BNO085/VL53L1X. Mã C++ chưa từng biên dịch.",
+   "unblock": "cần mua/nhận phần cứng; có thể viết nháp mã đọc trước (Claude) nhưng không kiểm được khi chưa có bo và cảm biến"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Đầu ra: sơ đồ dây bench",
+   "status": "not_started",
+   "evidence": "Không có tài liệu sơ đồ dây/chân nào cho IMU/ToF/ESP32. Chân GPIO và loại bo ESP32-S3 ghi 'CHƯA CHỐT' (GIAO_THUC_XE.md mục 0).",
+   "unblock": "cần mua/nhận phần cứng (đối chiếu breakout thực giao); chọn bo/chân: cần người dùng quyết định"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Đầu ra: telemetry_schema",
+   "status": "done",
+   "evidence": "Mới ở mức đặc tả phần mềm, chưa kiểm trên bo. GIAO_THUC_XE.md có bảng TELEMETRY (offset/kiểu/đơn vị, cờ IMU_VALID, tof_valid_mask) và mục 8. Cài đặt ở transport/protocol.py (TelemetryMsg). Vector mẫu ở firmware/esp32_vehicle/test/vectors.json. Test ở tests/test_transport_protocol.py. Giới hạn: không có tệp riêng tên telemetry_schema; IMU chỉ có gyro_z/accel_x,y.",
+   "unblock": "—"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Đầu ra: log đồng bộ",
+   "status": "partial",
+   "evidence": "Có log độ lệch LiDAR − bộ ảnh đo trên phần cứng (bốn camera + LiDAR + AI trên máy bàn): runs/rig_bench/20260923_v3/u0*.rig.json, từ rig/core.py. Đây là bàn thử giai đoạn 2. Chưa có telemetry IMU/ToF để đồng bộ. Độ trễ từ sự kiện thật tới máy chưa đo (rig/core.py docstring).",
+   "unblock": "cần mua/nhận phần cứng (ESP32/IMU/ToF); đo độ trễ sự kiện thật (LED/đồng hồ): cần người thao tác với thiết bị đã có"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Đầu ra: màn hình map/BEV",
+   "status": "partial",
+   "evidence": "Có màn hình map: ngăn LiDAR trong cửa sổ đỗ xe (ui/lidar_dock.py, ui/lidar_app.py) hiển thị bản đồ thời gian thực từ LiDAR thật và điểm quét thô. Đã chạy trên COM4, có test giao diện chạy ẩn. Chưa có BEV: giai đoạn 2 chưa hiệu chuẩn/gá camera.",
+   "unblock": "cần người thao tác với thiết bị đã có (hiệu chuẩn + gá camera); sau đó phần mềm BEV (Claude)"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Đầu ra: bộ bài thử vật cản có kết quả",
+   "status": "partial",
+   "evidence": "Có 22 test tự động về fusion (chạy lại 24/09: 22 đạt) và bộ robustness mô phỏng runs/robustness_final_2026-09-20 (gồm 30 ca vật chiếm đích). Trên phần cứng chỉ có lần chạy cảnh tĩnh 22/09, được ghi trong bảng ở GIAI_DOAN_3_CHUAN_BI.md mục 3, không có tệp kết quả. Chưa có bài thử đặt vật thật (trước/hông/đích) với LiDAR.",
+   "unblock": "cần người thao tác với thiết bị đã có; lưu kết quả ra runs/: phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Điều kiện: IMU/ToF thật được đọc qua một đường giao tiếp đã xác định",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có IMU, ToF hay ESP32. Firmware chưa có mã đọc cảm biến.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Điều kiện: mỗi số đo có thời gian và trạng thái; lỗi sensor không bị biến thành khoảng cách 'an toàn'",
+   "status": "partial",
+   "evidence": "Phần mềm đạt. Mọi nguồn mang SourceStamp. Tia LiDAR không phản hồi hoặc bị mặt nạ thành NaN, không bao giờ FREE. tof_mm = 0 kèm bit hợp lệ. NearFieldLayer không sinh FREE, và số đo không hợp lệ làm lớp không hợp lệ (có test). LiDAR thật có stamp/valid (runs/lidar_bench/*.json). IMU/ToF thật chưa có nên chưa kiểm trên phần cứng.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Điều kiện: global map và local BEV đặt được vào cùng phép mô tả tọa độ",
+   "status": "partial",
+   "evidence": "Đã có quy ước hệ map/hệ xe (GIAI_DOAN_3_CHUAN_BI.md mục 4) và resample costmap hệ xe → hệ map theo tư thế, có test tổng hợp. Chưa có BEV thật từ camera, chưa có camera_rig_extrinsics.yaml. Camera chỉ mới chạy costmap trên ảnh WoodScape (runs/perception_integration).",
+   "unblock": "cần người thao tác với thiết bị đã có (hiệu chuẩn + gá camera); sau đó phần mềm (Claude)"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Điều kiện: vật mới làm đường mất hiệu lực; phần mềm phát dừng và phân biệt đường bị chắn với đích bị chiếm",
+   "status": "partial",
+   "evidence": "Mô phỏng và nguồn LiDAR kịch bản đạt: hủy đường, dừng, WAIT_REPLAN (test_fusion.py, test_fusion_demo.py). runs/robustness_final_2026-09-20 có 30 ca 'goal', 0 vi phạm occupied_goal_accepted. Việc phân biệt chỉ xuất hiện khi lập lại đường (goal_check/GOAL_INVALID so với không tìm được đường). Thông điệp lúc dừng giống nhau cho cả hai ca. Chưa có test ca vật chiếm đích đi qua cầu nối fusion. Chưa thử với vật thật trước LiDAR.",
+   "unblock": "cần người thao tác với thiết bị đã có (đặt vật trên đường và tại đích); test + nhãn phân biệt qua cầu nối: phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "Giai đoạn 3",
+   "item": "Điều kiện: có log cho STOP → quan sát lại → cập nhật → replan/chờ",
+   "status": "partial",
+   "evidence": "Mô phỏng: runs/phase0_after_robustness/obstacle/events.jsonl; các test khẳng định chuỗi sự kiện MAP_CHANGED → WAIT_REPLAN → lập lại đường. Với LiDAR thật chưa có lần dừng thật nào được ghi: demo không ghi runs/, và không có bundle export_run nào chứa vật 'lidar_'. Bước 'quan sát lại' sau khi dừng là thao tác tay trong giao diện (reset → sync_incremental → lập đường), không được ghi log tự động.",
+   "unblock": "cần người thao tác với thiết bị đã có (đưa vật trước LiDAR); ghi log tự động toàn chuỗi: phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "4",
+   "item": "Đồ cần có: MN300 đúng gói, pin/sạc, dụng cụ đo hình học/điện, vùng thử kiểm soát",
+   "status": "not_applicable_yet",
+   "evidence": "autopark/docs/hardware_inventory.md mục 'ESP32-S3, IMU BNO085, ToF VL53L1X, encoder, xe MN300': 'Chưa nhận / chưa kiểm kê'.",
+   "unblock": "cần mua/nhận phần cứng (MN300 + pin/sạc)"
+  },
+  {
+   "phase": "4",
+   "item": "Khi chưa có xe: tiếp tục perception, AI, map và planner trên rig",
+   "status": "partial",
+   "evidence": "Đang làm ở giai đoạn 1–3, có bằng chứng phần cứng trên máy bàn: driver LiDAR C1, bản đồ lưới tĩnh (docs/GIAI_DOAN_1_LIDAR.md); bốn camera + LiDAR + AI chạy chung (docs/GIAI_DOAN_2_BAN_THU.md); các lớp hợp nhất (docs/GIAI_DOAN_3_CHUAN_BI.md); AI baseline (HUAN_LUYEN.md). Còn thiếu: hiệu chuẩn camera, BEV, định vị, 7 lần đặt hộp đo sai số LiDAR, chấm AI trên ảnh sa bàn có nhãn.",
+   "unblock": "cần người thao tác với thiết bị đã có (in bảng ô vuông, chụp ảnh hiệu chuẩn, đặt hộp) + phần mềm (Claude làm được ngay) cho các bước xử lý sau"
+  },
+  {
+   "phase": "4",
+   "item": "Khi chưa có xe: viết phiếu kiểm kê xe; chuẩn bị bảng đo tốc độ, góc lái, bán kính quay và dừng",
+   "status": "not_started",
+   "evidence": "Không tìm thấy phiếu kiểm kê hay bảng đo nào (grep 'kiểm kê xe', 'bảng đo', 'bán kính quay' trong docs chỉ khớp chính file kế hoạch và mã planner). hardware_inventory.md chỉ có một dòng 'Chưa nhận / chưa kiểm kê'.",
+   "unblock": "phần mềm (Claude làm được ngay): soạn mẫu mn300_inventory.md và các bảng đo trống"
+  },
+  {
+   "phase": "4",
+   "item": "Khi chưa có xe: để hình học xe trong cấu hình với nhãn CHƯA ĐO; thử độ nhạy planner theo kích thước giả định",
+   "status": "partial",
+   "evidence": "Nhãn: configs/vehicle_default.json có 'notes' ghi TOÀN BỘ là giả định, không phải số đo MN300 (một ghi chú cho cả file, không gắn nhãn/nguồn cho từng trường). Độ nhạy: autopark/evaluation/robustness.py (varied_config 0,7–1,4 lần; planner_case 0,85–1,15 lần) và docs/KIEM_THU_DO_BEN_GIAI_DOAN_0.md mục 3: 40/40 bài planner hợp lệ, 0 vi phạm (mô phỏng). Phép này kiểm bất biến an toàn, chưa có báo cáo độ nhạy (tỷ lệ tìm được đường, thời gian, khoảng hở thay đổi thế nào theo kích thước), và chưa biết miền quét có phủ kích thước thật của MN300 hay không.",
+   "unblock": "phần mềm (Claude làm được ngay): thêm nhãn/nguồn cho từng tham số, chạy quét độ nhạy có báo cáo"
+  },
+  {
+   "phase": "4",
+   "item": "Khi chưa có xe: lên phương án gá điều chỉnh được, chưa đặt gia công phần phụ thuộc kích thước chưa biết",
+   "status": "not_started",
+   "evidence": "docs/GIAI_DOAN_2_BAN_THU.md: 'Camera nằm trên bàn, chưa gá'. docs/HIEU_CHUAN_CAMERA.md mục giới hạn: chưa có camera_rig_extrinsics.yaml, chưa có vị trí/hướng camera so với xe. Không có tài liệu phương án gá.",
+   "unblock": "phần mềm (Claude làm được ngay): phác thảo phương án; cần người dùng quyết định vật liệu và cách gia công"
+  },
+  {
+   "phase": "4",
+   "item": "Khi nhận xe, bước 1: kiểm kê và chạy bằng điều khiển nguyên bản trong vùng thử",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có MN300.",
+   "unblock": "cần mua/nhận phần cứng; sau đó cần người thao tác"
+  },
+  {
+   "phase": "4",
+   "item": "Khi nhận xe, bước 2: ghi hành vi tiến/lùi, vùng ga không phản ứng, tốc độ thấp nhất giữ được, đổi chiều, dừng/thả trôi",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe. Vùng chết 150 ‰ và các số khác trong configs/vehicle_io_sim.json đều là giả định.",
+   "unblock": "cần mua/nhận phần cứng (MN300); sau đó cần người thao tác"
+  },
+  {
+   "phase": "4",
+   "item": "Khi nhận xe, bước 3: đo chiều dài cơ sở, bề rộng, phần nhô, góc lái/bán kính quay thực, kích thước footprint",
+   "status": "not_applicable_yet",
+   "evidence": "vehicle_default.json vẫn dùng số giả định (wheelbase 0,19 m, rộng 0,14 m, nhô 0,06 m, lái 30°).",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "4",
+   "item": "Khi nhận xe, bước 4: mở vỏ chụp motor, servo, ESC/bộ thu, pin, đầu nối, trục truyền động",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "4",
+   "item": "Khi nhận xe, bước 5: xác định bộ thu/ESC có tách không, servo giao tiếp thế nào, cách đưa lệnh từ ESP32",
+   "status": "not_applicable_yet",
+   "evidence": "GIAO_THUC_XE.md mục 0 và firmware README: xung ESC/servo, hành vi phanh–lùi, trung tính lúc bật đều CHƯA CHỐT.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "4",
+   "item": "Khi nhận xe, bước 6: chọn vị trí đo góc lái, chuyển động quay, gá sensor rig; kiểm tra vướng lái/hệ treo",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe, AS5600 hay encoder.",
+   "unblock": "cần mua/nhận phần cứng (MN300; AS5600/encoder mua sau khi chốt vị trí)"
+  },
+  {
+   "phase": "4",
+   "item": "Khi nhận xe, bước 7: cập nhật mô hình mô phỏng bằng thông số đã đo, lưu nguồn của từng tham số",
+   "status": "not_applicable_yet",
+   "evidence": "Đã có sẵn cơ chế nạp cấu hình (storage/scenario_store.load_vehicle_config, test_scenario_store), nhưng chưa có số đo nào để nạp.",
+   "unblock": "cần mua/nhận phần cứng (MN300); phần nạp số liệu Claude làm được ngay khi có số đo"
+  },
+  {
+   "phase": "4",
+   "item": "Đầu ra: mn300_inventory.md",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có file. Mẫu trống soạn được ngay (xem mục phiếu kiểm kê).",
+   "unblock": "cần mua/nhận phần cứng (nội dung thật); mẫu thì phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "4",
+   "item": "Đầu ra: ảnh bộ điện/giắc",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe.",
+   "unblock": "cần mua/nhận phần cứng; sau đó cần người thao tác"
+  },
+  {
+   "phase": "4",
+   "item": "Đầu ra: vehicle_measured.yaml",
+   "status": "not_applicable_yet",
+   "evidence": "Không có file. Chỉ có configs/vehicle_default.json (giả định).",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "4",
+   "item": "Đầu ra: đường cong lệnh–chuyển động ban đầu",
+   "status": "not_applicable_yet",
+   "evidence": "Không có. Feedforward của firmware (ff 2000 ‰/(m/s), bù vùng chết 100 ‰) là giả định. GIAO_THUC_XE.md mục 10 nêu phải lấy từ phép đo giai đoạn 4.",
+   "unblock": "cần mua/nhận phần cứng (MN300 + cách đo tốc độ)"
+  },
+  {
+   "phase": "4",
+   "item": "Đầu ra: bảng dừng",
+   "status": "not_applicable_yet",
+   "evidence": "Chỉ có số của mô hình (dừng 0,39 s, trôi 3,9 cm trong GIAO_THUC_XE.md mục 10), không phải số đo.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "4",
+   "item": "Đầu ra: thiết kế gá dự kiến",
+   "status": "not_applicable_yet",
+   "evidence": "Không có. Cần kích thước thật của xe.",
+   "unblock": "cần mua/nhận phần cứng (MN300); cần người dùng quyết định vật liệu/gia công"
+  },
+  {
+   "phase": "4",
+   "item": "Điều kiện: hiểu hoạt động xe nguyên bản, có dữ liệu chạy chậm",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "4",
+   "item": "Điều kiện: có kích thước thực dùng cho planner",
+   "status": "not_applicable_yet",
+   "evidence": "Planner đang dùng kích thước giả định.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "4",
+   "item": "Điều kiện: có phương án can thiệp ESC/servo được xác minh hoặc danh sách thông tin còn thiếu",
+   "status": "not_applicable_yet",
+   "evidence": "Đã có danh sách CHƯA CHỐT phía firmware (firmware README), nhưng đó chưa phải danh sách lập từ xe thật.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "4",
+   "item": "Điều kiện: xác định phương án gá encoder/góc lái đủ cơ sở để đặt linh kiện",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe. AS5600/MT6701 chưa đặt mua.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "4",
+   "item": "Điều kiện: nếu đổi cụm điện/cơ khí thì quyết định dựa trên phép thử",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có phép thử nào trên xe. Chưa có quyết định đổi cụm nào.",
+   "unblock": "cần mua/nhận phần cứng (MN300); sau đó cần người dùng quyết định"
+  },
+  {
+   "phase": "5",
+   "item": "Đồ cần có: một ESP32-S3, cảm biến/gá góc lái, encoder/gá chuyển động, bộ dây ESC/servo đã đối chiếu, nguồn và đường dừng sẵn sàng",
+   "status": "not_applicable_yet",
+   "evidence": "hardware_inventory.md: ESP32-S3, encoder, MN300 chưa nhận. AS5600/MT6701 chưa có.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "5",
+   "item": "Khi chưa đủ phần cứng: viết firmware nhận lệnh, giới hạn lệnh, watchdog, telemetry, trạng thái cho phép chạy",
+   "status": "partial",
+   "evidence": "Bản tham chiếu Python autopark/transport/firmware_model.py có 73 test đạt (chạy lại 24/09). Mã C++ firmware/esp32_vehicle/src (vehicle_core, protocol, main.cpp) đã viết nhưng CHƯA BIÊN DỊCH: máy không có gcc/g++/clang/cl/cmake/pio (đã kiểm 24/09); test/host/test_main.cpp chưa chạy; phía C++ chỉ được kiểm tĩnh bằng tests/test_transport_firmware_source.py (11 test). Chưa có mã đọc encoder/AS5600/BNO085/VL53L1X/điện áp. Chân ESC/servo/E-stop = -1.",
+   "unblock": "phần mềm (Claude làm được ngay nếu người dùng cho phép cài PlatformIO/g++): biên dịch, chạy test/host với vectors.json; chạy thật cần mua/nhận ESP32-S3"
+  },
+  {
+   "phase": "5",
+   "item": "Khi chưa đủ phần cứng: viết VehicleIO hai nhánh mô phỏng/phần cứng, cùng đơn vị, không mặc định cùng độ trễ",
+   "status": "done",
+   "evidence": "autopark/transport/vehicle_io.py (SimVehicleIO, SerialVehicleIO), loopback.py; tests/test_transport_vehicle_io.py 48 test đạt (chạy lại 24/09), trong đó test_same_command_gives_identical_wire_bytes_on_both_branches và test_sim_latency_is_measured_not_assumed. Mức bằng chứng: phần mềm/mô phỏng; nhánh serial chỉ thử qua cổng giả FirmwareSerialLoopback. Chưa nối vào session.py/TrajectoryTracker (GIAO_THUC_XE.md mục 12).",
+   "unblock": "không cần cho mục này; việc nối vào phiên là phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "5",
+   "item": "Khi chưa đủ phần cứng: kiểm thử parser với gói thiếu/sai/cũ, reset phiên, mất liên lạc, reconnect",
+   "status": "partial",
+   "evidence": "Phía laptop (Python) xong: tests/test_transport_protocol.py 52 test (fuzz 12 seed, khung cụt, CRC, quá dài); test_transport_vehicle_io.py (test_serial_ignores_duplicate_old_and_foreign_frames, test_serial_unplug_raises_link_error_and_reconnect_stays_disarmed, test_reconnect_uses_new_session..., test_sim_firmware_reset_is_detected_and_never_resumes). Phía bo chỉ được kiểm qua bản tham chiếu Python; FrameParser C++ chưa chạy lần nào.",
+   "unblock": "phần mềm (Claude làm được ngay nếu người dùng cho phép cài trình biên dịch để chạy test/host)"
+  },
+  {
+   "phase": "5",
+   "item": "Khi chưa đủ phần cứng: thử bộ điều khiển trong mô phỏng có vùng chết, độ trễ, phản hồi nhiễu",
+   "status": "done",
+   "evidence": "GIAO_THUC_XE.md mục 10: bảng sai số ở 0,05/0,10/0,15 m/s, 3 seed; vọt lố 26–57 %; đối chứng không encoder. Có test test_sim_closed_loop_follows_speed_step_despite_deadzone_latency_noise. Mức bằng chứng: chỉ mô phỏng, mọi hệ số giả định. Chỉ có vòng tốc độ; góc lái chạy mạch hở.",
+   "unblock": "không cần ở mức mô phỏng"
+  },
+  {
+   "phase": "5",
+   "item": "Khi chưa đủ phần cứng: hoàn thiện thiết kế nguồn/dừng cho phép thử sắp thực hiện",
+   "status": "partial",
+   "evidence": "firmware/esp32_vehicle/README.md: đã chọn E-stop an toàn khi hở mạch (NC nối GND, kéo lên, nên thêm 4,7–10 kΩ), điện trở kéo xuống ≈ 10 kΩ trên dây ESC, trần effort 250 ‰, quy trình 'Cách kiểm trên bo' và 'Trình tự thử trên bo' (xe kê cao, E-stop phần cứng sẵn sàng). Còn thiếu: thiết kế nguồn, phần tử cắt động lực, cầu chì, sơ đồ.",
+   "unblock": "cần người dùng quyết định phương án cắt động lực; cần mua/nhận phần cứng (MN300 để biết pin/ESC); bản nháp thì phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "5",
+   "item": "Đặc tả tối thiểu gói Command/Telemetry",
+   "status": "done",
+   "evidence": "GIAO_THUC_XE.md mục 2–3 (bố cục byte) và mục 8 (ánh xạ từng trường của hợp đồng kế hoạch sang trường giao thức). vectors.json đồng bộ ('vectors --check' báo đã cập nhật, 24/09). GPIO/mức tín hiệu vẫn CHƯA CHỐT, đúng như kế hoạch cho phép.",
+   "unblock": "không cần"
+  },
+  {
+   "phase": "5",
+   "item": "Khi đủ phần cứng, bước 1: đọc cảm biến và thử giao tiếp khi chưa nối động lực; khởi động không tự vào trạng thái chạy",
+   "status": "not_applicable_yet",
+   "evidence": "Hành vi BOOT→DISARMED mới kiểm trên Python (test_boot_is_neutral_silent_without_session_then_disarmed); chưa có bo. Firmware chưa có mã đọc cảm biến.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3, cảm biến); viết mã đọc cảm biến là phần mềm"
+  },
+  {
+   "phase": "5",
+   "item": "Khi đủ phần cứng, bước 2: nối từng cơ cấu theo sơ đồ đã đối chiếu, thử khi xe kê cố định",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có bo, xe, sơ đồ dây.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3, MN300)"
+  },
+  {
+   "phase": "5",
+   "item": "Khi đủ phần cứng, bước 3: hiệu chuẩn góc đo với góc lái mô hình (giữa, hai giới hạn, độ rơ)",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có AS5600, chưa có steering_calibration.yaml.",
+   "unblock": "cần mua/nhận phần cứng (AS5600 + MN300)"
+  },
+  {
+   "phase": "5",
+   "item": "Khi đủ phần cứng, bước 4: kiểm tra encoder, chiều quay, độ phân giải, quy đổi quãng đường",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có encoder/MT6701, chưa có mã đọc.",
+   "unblock": "cần mua/nhận phần cứng (encoder)"
+  },
+  {
+   "phase": "5",
+   "item": "Khi đủ phần cứng, bước 5: điều khiển tốc độ thấp có phản hồi, giới hạn gia tốc/góc/tốc độ đổi lái",
+   "status": "not_applicable_yet",
+   "evidence": "Vòng PI và các giới hạn chỉ chạy trong mô phỏng; hệ số chọn trên mô hình giả định.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3, MN300, encoder)"
+  },
+  {
+   "phase": "5",
+   "item": "Khi đủ phần cứng, bước 6: trình tự giảm tốc → xác nhận dừng → đổi chiều trên ESC thật",
+   "status": "not_applicable_yet",
+   "evidence": "Khóa đổi chiều direction_change_hold_ms 300 ms đã có trong logic, CHƯA CHỐT; hành vi phanh–lùi của ESC chưa biết.",
+   "unblock": "cần mua/nhận phần cứng (MN300, ESP32-S3)"
+  },
+  {
+   "phase": "5",
+   "item": "Khi đủ phần cứng, bước 7: thử mất lệnh/reset, đo phản ứng; chỉ thử có tải sau khi nguồn/dừng giai đoạn 6 đạt",
+   "status": "not_applicable_yet",
+   "evidence": "Chỉ có thử mô phỏng. Giai đoạn 6 chưa làm.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3, MN300, đồ nguồn/dừng)"
+  },
+  {
+   "phase": "5",
+   "item": "Đầu ra: firmware phiên bản",
+   "status": "partial",
+   "evidence": "Mã có fw_major=1, fw_minor=0 (vehicle_core.h), commit e6c77c1. Chưa biên dịch, chưa có bản build, chưa nạp.",
+   "unblock": "phần mềm (Claude làm được ngay nếu người dùng cho phép cài PlatformIO); nạp thử cần mua/nhận ESP32-S3"
+  },
+  {
+   "phase": "5",
+   "item": "Đầu ra: sơ đồ dây đúng bo",
+   "status": "not_applicable_yet",
+   "evidence": "kPinEsc/kPinServo/kPinEstop = -1 trong main.cpp. Loại bo cụ thể chưa chốt.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3 thực giao, MN300)"
+  },
+  {
+   "phase": "5",
+   "item": "Đầu ra: steering_calibration.yaml",
+   "status": "not_applicable_yet",
+   "evidence": "Không có file.",
+   "unblock": "cần mua/nhận phần cứng (AS5600, MN300)"
+  },
+  {
+   "phase": "5",
+   "item": "Đầu ra: speed_conversion.yaml",
+   "status": "not_applicable_yet",
+   "evidence": "Không có file.",
+   "unblock": "cần mua/nhận phần cứng (encoder, MN300)"
+  },
+  {
+   "phase": "5",
+   "item": "Đầu ra: log điều khiển",
+   "status": "not_applicable_yet",
+   "evidence": "Không có log trên xe. Ngay cả trong mô phỏng, VehicleIO chưa ghi commands.csv/telemetry.csv (GIAO_THUC_XE.md mục 12). runs/ không có thư mục nào của transport/xe.",
+   "unblock": "phần ghi log: phần mềm (Claude làm được ngay); log thật cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "5",
+   "item": "Đầu ra: báo cáo watchdog/khởi động/reset",
+   "status": "partial",
+   "evidence": "Báo cáo mức Python/mô phỏng: GIAO_THUC_XE.md mục 5, 6, 11. Quy trình đo trên bo bằng máy hiện sóng đã viết (firmware README 'Cách kiểm trên bo', bước 1–5), ghi rõ 'chưa làm'. Các cơ chế chỉ có trên bo (output_guard, TWDT, móc panic) chưa biên dịch và chưa thử ở đâu.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3); cần người thao tác với máy hiện sóng/logic analyzer (chưa rõ đã có hay chưa)"
+  },
+  {
+   "phase": "5",
+   "item": "Điều kiện: nhận lệnh đúng đơn vị và chỉ chạy khi được cho phép",
+   "status": "partial",
+   "evidence": "Mới đạt trên Python/mô phỏng: test_units_are_shared_and_out_of_range_is_rejected, test_sim_does_not_move_when_not_armed, các vector ARM/COMMAND. Chưa chạy trên bo.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3); biên dịch trước là phần mềm"
+  },
+  {
+   "phase": "5",
+   "item": "Điều kiện: đo được tốc độ/góc lái; đã kiểm dấu và hệ số quy đổi",
+   "status": "not_applicable_yet",
+   "evidence": "Không có encoder/AS5600, không có mã đọc; telemetry báo SPEED_VALID/STEER_VALID = 0.",
+   "unblock": "cần mua/nhận phần cứng (encoder, AS5600, MN300)"
+  },
+  {
+   "phase": "5",
+   "item": "Điều kiện: có số đo sai số bám tốc độ/góc ở miền thử nghiệm",
+   "status": "not_applicable_yet",
+   "evidence": "Chỉ có số mô phỏng cho tốc độ (GIAO_THUC_XE.md mục 10). Chưa có số bám góc, kể cả trong mô phỏng.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "5",
+   "item": "Điều kiện: đổi tiến/lùi theo trình tự đã kiểm chứng trên bộ điện thực",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có ESC thật.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "5",
+   "item": "Điều kiện: mất lệnh/reset về trạng thái thiết kế; reconnect không tự chạy tiếp",
+   "status": "partial",
+   "evidence": "Đạt ở mức mô phỏng/Python: test_sim_link_loss_stops_car_and_reconnect_requires_rearm, test_sim_link_gap_shorter_than_board_watchdog_still_requires_rearm, test_sim_firmware_reset_is_detected_and_never_resumes. Chưa thử trên bo hay xe.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3, MN300)"
+  },
+  {
+   "phase": "6",
+   "item": "Phần cứng đợt 6: bộ nguồn theo tải, LA38 + phần ngắt, cầu chì/đầu nối, dây final, gá final",
+   "status": "not_applicable_yet",
+   "evidence": "Theo danh sách đã nhận: chưa có đồ nguồn/E-stop nào.",
+   "unblock": "cần mua/nhận phần cứng (sau khi có bảng tải); cần người dùng quyết định"
+  },
+  {
+   "phase": "6",
+   "item": "Thiết kế nguồn bench từ đợt 1 (phần 'Vị trí trong kế hoạch')",
+   "status": "partial",
+   "evidence": "Hiện LiDAR và camera cắm USB máy bàn; hub UGREEN chạy bus-powered trong mọi phiên, chưa thử nguồn ngoài, chưa đo dòng camera vì không có đồng hồ USB (docs/usb_topology.md, GIAI_DOAN_1_CAMERA.md). Không có tài liệu thiết kế nguồn bench.",
+   "unblock": "cần người thao tác với thiết bị đã có (cắm adapter nguồn cho hub, chạy lại phiên bốn camera); đồng hồ đo dòng USB thì cần mua"
+  },
+  {
+   "phase": "6",
+   "item": "Khi chưa có nguồn final: lập bảng điện áp, dòng tải, nguồn vào/ra, đầu nối và phần chưa rõ",
+   "status": "not_started",
+   "evidence": "Không có power_budget.md hay bảng tải nào (đã grep toàn repo).",
+   "unblock": "phần mềm (Claude làm được ngay): bản nháp từ datasheet, có cột 'chưa rõ'; số thật cần mua/nhận phần cứng (MN300, pin)"
+  },
+  {
+   "phase": "6",
+   "item": "Khi chưa có nguồn final: tách đường nguồn động lực/servo/logic-camera-LiDAR; kiểm tra đường nguồn USB của laptop/hub",
+   "status": "partial",
+   "evidence": "Chỉ có phần USB: usb_topology.md cho thấy bốn camera chung một nhánh USB 2.0 qua hub bus-powered, trên máy bàn chứ chưa phải laptop của xe. Chưa có thiết kế tách nguồn động lực/servo/logic.",
+   "unblock": "cần người thao tác với thiết bị đã có (thử nguồn ngoài hub, thử trên laptop của xe khi có); phần tách động lực cần mua/nhận MN300"
+  },
+  {
+   "phase": "6",
+   "item": "Khi chưa có nguồn final: xác định nút LA38 tác động tới phần tử nào",
+   "status": "partial",
+   "evidence": "Mới chốt ngõ vào E-stop báo cho ESP32 (NC nối GND, hở mạch = đang nhấn; firmware README). README ghi rõ E-stop firmware không thay đường cắt động lực phần cứng; phần tử cắt động lực (relay/MOSFET/công tắc ngắt) chưa xác định.",
+   "unblock": "cần người dùng quyết định phần tử ngắt; cần mua/nhận phần cứng (MN300 để biết dòng/điện áp động lực)"
+  },
+  {
+   "phase": "6",
+   "item": "Khi chưa có nguồn final: chọn cầu chì, dây, đầu nối, phần tử ngắt theo cấu hình đã kiểm tra",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có số tải thực; kế hoạch mục 1.1 và 18 cấm khóa 15 A/30 A theo danh sách bán hàng.",
+   "unblock": "cần mua/nhận phần cứng (MN300 để đo tải); sau đó cần người dùng quyết định"
+  },
+  {
+   "phase": "6",
+   "item": "Khi chưa có nguồn final: viết trước tình huống mất nguồn logic, mất cáp, mất cảm biến, treo chương trình, khởi động lại",
+   "status": "partial",
+   "evidence": "Đã viết và thử ở mức phần mềm cho liên lạc/firmware: GIAO_THUC_XE.md mục 5, 11 (rút cáp → LINK_ERROR, bo treo → STALE, reset, E-stop); firmware README 'Cách kiểm trên bo' bước 1–5; dữ liệu cũ/mất cảm biến qua FreshnessMonitor ở giai đoạn 0–3. Còn thiếu: kịch bản mất nguồn logic/sụt áp (chỉ ghi 'CẦN ĐO', SUPPLY_LOW đang tắt), mất nguồn LiDAR/camera, và một kế hoạch thử lỗi gộp cho giai đoạn 6. Rút cáp LiDAR thật chưa thử.",
+   "unblock": "phần mềm (Claude làm được ngay): gộp thành kế hoạch thử; rút cáp LiDAR: cần người thao tác với thiết bị đã có"
+  },
+  {
+   "phase": "6",
+   "item": "Khi có phần cứng nguồn/dừng, bước 1: đo điện áp trước khi nối từng tải, kiểm cực",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có phần cứng nguồn.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "6",
+   "item": "Khi có phần cứng nguồn/dừng, bước 2: bật lần lượt logic, LiDAR, một rồi bốn camera, rồi chấp hành có kiểm soát",
+   "status": "not_applicable_yet",
+   "evidence": "Bốn camera + LiDAR đã chạy chung trên USB máy bàn (GIAI_DOAN_2_BAN_THU.md), nhưng không phải trên nguồn của xe và không đo điện.",
+   "unblock": "cần mua/nhận phần cứng (nguồn, MN300, laptop của xe)"
+  },
+  {
+   "phase": "6",
+   "item": "Khi có phần cứng nguồn/dừng, bước 3: đo tải đồng thời, sụt áp, reset, nhiệt",
+   "status": "not_applicable_yet",
+   "evidence": "Chỉ có nhiệt/công suất GPU máy bàn khi chạy chung (GIAI_DOAN_2_BAN_THU.md bảng t01–t09: GPU 46→48 °C, 27–35 W). Đó là tải tính toán, không phải phép đo nguồn.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "6",
+   "item": "Khi có phần cứng nguồn/dừng, bước 4: thử tải và động cơ theo tài liệu thiết bị, không khóa cứng motor/servo",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe/động cơ.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "6",
+   "item": "Khi có phần cứng nguồn/dừng, bước 5: thử nút dừng, lệnh dừng phần mềm, mất lệnh, rút cáp, reset; đo thời gian/quãng đường phản ứng thực",
+   "status": "not_applicable_yet",
+   "evidence": "Chỉ có số mô hình (dừng 0,39 s / 3,9 cm, GIAO_THUC_XE.md mục 10) và test mô phỏng.",
+   "unblock": "cần mua/nhận phần cứng (MN300, ESP32-S3, E-stop)"
+  },
+  {
+   "phase": "6",
+   "item": "Khi có phần cứng nguồn/dừng, bước 6: không tự chạy lại sau khi nhả nút dừng hoặc nối lại cáp",
+   "status": "not_applicable_yet",
+   "evidence": "Logic đã kiểm trong mô phỏng (test_sim_estop_latches_and_requires_clear_arm_and_new_command, test_serial_unplug_raises_link_error_and_reconnect_stays_disarmed), chưa kiểm trên phần cứng.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "6",
+   "item": "Đầu ra: power_budget.md",
+   "status": "not_started",
+   "evidence": "Không có file.",
+   "unblock": "phần mềm (Claude làm được ngay) cho bản nháp; số thật cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "6",
+   "item": "Đầu ra: sơ đồ nguồn",
+   "status": "not_started",
+   "evidence": "Không có.",
+   "unblock": "phần mềm (Claude làm được ngay) cho bản nháp phần logic/USB; phần động lực cần mua/nhận MN300; cần người dùng quyết định phương án nguồn"
+  },
+  {
+   "phase": "6",
+   "item": "Đầu ra: sơ đồ dừng",
+   "status": "partial",
+   "evidence": "Chỉ có mô tả chữ về ngõ vào E-stop và dây ESC trong firmware/esp32_vehicle/README.md. Không có sơ đồ đường cắt động lực.",
+   "unblock": "cần người dùng quyết định phần tử ngắt; sau đó phần mềm (Claude vẽ sơ đồ)"
+  },
+  {
+   "phase": "6",
+   "item": "Đầu ra: bảng định mức còn cần kiểm tra",
+   "status": "not_started",
+   "evidence": "Không có. Kế hoạch mục 1.1 và 18 mới liệt kê ứng viên (UBEC, XL4015, LA38, cầu chì, XT60) kèm ghi chú 'không chốt'.",
+   "unblock": "phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "6",
+   "item": "Đầu ra: log tải, nhiệt",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có phần cứng nguồn.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "6",
+   "item": "Đầu ra: kết quả thử các tình huống lỗi",
+   "status": "not_applicable_yet",
+   "evidence": "Mới có kết quả mô phỏng/Python (184 test transport). Chưa có kết quả trên phần cứng.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "6",
+   "item": "Điều kiện: có sơ đồ cấp điện và ngắt động lực khớp thiết bị thực",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có sơ đồ, chưa có thiết bị.",
+   "unblock": "cần mua/nhận phần cứng; cần người dùng quyết định"
+  },
+  {
+   "phase": "6",
+   "item": "Điều kiện: không reset/disconnect ngoài dự kiến trong bộ thử tải đã định",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có bộ thử tải. (Phiên 10 phút trên máy bàn: LiDAR 6005 vòng không mất vòng nào; đó không phải thử tải nguồn.)",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "6",
+   "item": "Điều kiện: các đường dừng đã thử, không chỉ tồn tại trên sơ đồ",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có E-stop phần cứng; đường dừng phần mềm mới thử trong mô phỏng.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "6",
+   "item": "Điều kiện: đo được khoảng dừng trong điều kiện thử",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "6",
+   "item": "Điều kiện: phần nguồn/dừng được xác nhận trước tự đỗ thật",
+   "status": "not_applicable_yet",
+   "evidence": "Phụ thuộc toàn bộ các mục trên.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Khi chưa có gá: thiết kế sàn/gá trên số đo MN300; giữ bản vẽ vị trí và hệ tọa độ cảm biến",
+   "status": "not_applicable_yet",
+   "evidence": "Repo không có bản vẽ hay CAD nào. configs/vehicle_default.json ghi rõ toàn bộ thông số là giả định, 'KHÔNG phải số đo ... MN300'. Mới có quy ước hệ tọa độ trong phần mềm: tư thế cảm biến (x, y, yaw) trong hệ xe, gốc tâm trục sau (GIAI_DOAN_3_CHUAN_BI.md mục 4; fusion/layers.py sensor_pose_in_map).",
+   "unblock": "cần mua/nhận phần cứng (MN300 để đo). Nếu người dùng muốn, có thể phác thảo sơ bộ từ kích thước nhà bán."
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Kiểm tra vùng nhìn camera, mặt phẳng quét LiDAR, vị trí ToF và đường đi dây trên mô hình bố trí",
+   "status": "not_started",
+   "evidence": "Chưa có công cụ hay mô hình tính vùng phủ. Góc nhìn thực của camera ghi 'chưa đo' (hardware_inventory.md). Chưa có nội tham camera (không có calibration/cam_p*.json). Chưa có ToF.",
+   "unblock": "phần mềm (Claude làm được ngay): công cụ vùng phủ với kích thước giả định. Số chốt cần người thao tác hiệu chuẩn camera đã có và cần nhận MN300/ToF."
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Replay với cấu hình rig hiện tại; thay đổi vị trí ghi thành phiên bản mới, không sửa hiệu chuẩn cũ như đã đo lại",
+   "status": "partial",
+   "evidence": "Đã có phát lại phiên LiDAR (lidar_app --recording, runs/lidar_bench/), replay mô phỏng giai đoạn 0 và ảnh chụp bàn thử (runs/rig_bench, runs/rig_snapshots). Chưa có tệp cấu hình rig hay ngoại tham có phiên bản: calibration/README.md ghi khối 'extrinsic', 'rig' luôn null, chưa có camera_rig_extrinsics.yaml.",
+   "unblock": "phần mềm (Claude làm được ngay): lược đồ phiên bản rig/ngoại tham. Nội dung cần hiệu chuẩn camera thật (cần người thao tác với thiết bị đã có)."
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Bước 1: gắn cảm biến chắc chắn, không cản lái/treo/bánh",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có MN300 và gá.",
+   "unblock": "cần mua/nhận phần cứng (MN300, vật liệu gá)"
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Bước 2: đi dây, chống tuột, bảo vệ dây USB; thử tiến/lùi/rẽ",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe. Chiều dài và loại dây camera còn ghi 'chưa ghi' (hardware_inventory.md).",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Bước 3: ghi footprint sau khi thêm phụ kiện",
+   "status": "not_applicable_yet",
+   "evidence": "Footprint hiện là giả định (vehicle_default.json: wheelbase 0,19 m, rộng 0,14 m, nhô 0,06 m).",
+   "unblock": "cần mua/nhận phần cứng (MN300 + gá)"
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Bước 4: đo lại biến đổi vehicle↔rig, camera, LiDAR, IMU, ToF theo lắp thực",
+   "status": "not_applicable_yet",
+   "evidence": "Không có vehicle_sensor_extrinsics.yaml. Chưa có IMU/ToF.",
+   "unblock": "cần mua/nhận phần cứng (MN300, BNO085, VL53L1X, ESP32-S3)"
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Bước 5: kiểm tra lại hiệu chuẩn trên vật tham chiếu; cập nhật khi gá/camera/mode đổi",
+   "status": "not_applicable_yet",
+   "evidence": "Điều kiện tiên quyết từ giai đoạn 1–2 cũng chưa có: chưa in bảng, chưa chụp ảnh, chưa có cam_p*.json. Sai số khoảng cách LiDAR chưa đo (thiếu 7 lần đặt hộp).",
+   "unblock": "cần mua/nhận phần cứng (xe + gá). Trước đó cần người thao tác hiệu chuẩn camera và đặt hộp LiDAR với thiết bị đã có."
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Bước 6: thử cảm biến khi xe đứng yên rồi di chuyển chậm; đo rung, nghiêng, dây kéo",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "GĐ7",
+   "item": "Đầu ra: bản vẽ gá final, ảnh lắp, vehicle_sensor_extrinsics.yaml, footprint thực, báo cáo kiểm tra lại camera/LiDAR và đường đi dây",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có đầu ra nào trong repo.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ7",
+   "item": "[ ] Sensor và dây không cản chuyển động",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa lắp lên xe.",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "GĐ7",
+   "item": "[ ] Vùng bị che đã ghi lại; không tự khẳng định bốn camera phủ kín",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa gá camera, chưa có phân tích vùng che.",
+   "unblock": "cần mua/nhận phần cứng (MN300 + gá). Phân tích sơ bộ bằng phần mềm làm được sau khi có nội tham camera."
+  },
+  {
+   "phase": "GĐ7",
+   "item": "[ ] Bộ hiệu chuẩn đúng phiên bản gá và mode ảnh",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có hiệu chuẩn nào. Chưa có phiên bản gá.",
+   "unblock": "cần mua/nhận phần cứng. Việc hiệu chuẩn nội tham thì cần người thao tác với camera đã có."
+  },
+  {
+   "phase": "GĐ7",
+   "item": "[ ] Sai lệch khi xe chuyển động nằm trong giới hạn đã chọn",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe. Giới hạn cho bước tích hợp cũng chưa chọn.",
+   "unblock": "cần mua/nhận phần cứng; cần người dùng quyết định giới hạn"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Khi chưa thể chạy trên xe: chạy lại dữ liệu bench với độ trễ, sai lệch timestamp, mất nguồn giả lập",
+   "status": "partial",
+   "evidence": "Chỉ có phần mềm/mô phỏng. Giai đoạn 0 chèn trễ 40/80 ms, nhiễu và mất mẫu vào phản hồi tư thế mô phỏng (240 phiên runtime, runs/robustness_final_2026-09-20). FreshnessMonitor từ chối stamp tương lai, lùi thời gian hoặc quá cũ (safety/freshness.py). test_multicam_rig.py có mất khung/jitter tổng hợp. Mất LiDAR được thử bằng nguồn quét kịch bản (test_fusion_demo.py, test_lidar_dock_ui.py). Còn thiếu: phát lại bản ghi bench THẬT (runs/lidar_bench/*.npz, rig_bench) có chèn trễ/lệch stamp/mất nguồn; chưa rút cáp LiDAR thật khi xe ảo đang chạy (GIAI_DOAN_3_CHUAN_BI.md mục 3).",
+   "unblock": "phần mềm (Claude làm được ngay) cho phát lại có chèn lỗi. Phép rút cáp thật cần người thao tác với thiết bị đã có."
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Kiểm tra phép đổi tọa độ bằng điểm biết trước",
+   "status": "partial",
+   "evidence": "Có test tổng hợp test_fusion.py::test_rig_map_transform_with_known_positions và test_resample_between_grids_and_frames, chạy lại đạt ngày 24/09. Chưa có điểm đo bằng thước với cảm biến thật: 7 lần đặt hộp LiDAR còn thiếu, dấu góc trái/phải chưa xác minh (GIAI_DOAN_1_LIDAR.md mục 6, 6b).",
+   "unblock": "cần người thao tác với thiết bị đã có (đặt hộp trước LiDAR C1)"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Chính sách khi global map nói trống nhưng quan sát hiện tại báo có vật cản",
+   "status": "done",
+   "evidence": "Chỉ phần mềm/tổng hợp. fusion/fuse.py: ô bị chiếm nếu BẤT KỲ lớp tươi nào báo chiếm. test_fusion_rules_and_validity kiểm trường hợp lớp tĩnh báo FREE, LiDAR trực tiếp báo OCCUPIED thì ra OCCUPIED. Ngày 24/09 chạy lại 5 tệp test_fusion/test_runtime_safety/test_transport_*: 227 đạt. Chưa kiểm trên xe.",
+   "unblock": "không cần cho mục này; kiểm lại trên xe ở bước 3 (cần mua/nhận phần cứng)"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Kiểm tra dữ liệu cũ không tự tồn tại mãi như bằng chứng vùng trống an toàn",
+   "status": "partial",
+   "evidence": "Phần mềm: lớp trực tiếp có tuổi tối đa. Lớp bắt buộc quá tuổi làm bản đồ không hợp lệ và chặn mọi ô (có test). LiveLidar chỉ giữ 3 vòng. Còn hở: lớp StaticMap KHÔNG bao giờ hết hạn, nên ô FREE của nó vẫn là FREE khi lớp trực tiếp báo UNKNOWN (chính test_fusion_rules_and_validity khẳng định ô [1][1] = FREE chỉ dựa vào lớp tĩnh). Ngoài ra bản đồ bị chốt lúc lập đường, nên vật xuất hiện giữa lúc lập đường và lúc bấm chạy chỉ được phát hiện khi xe đã chạy (GIAI_DOAN_3_CHUAN_BI.md mục 6).",
+   "unblock": "cần người dùng quyết định chính sách cho ô chỉ có bằng chứng tĩnh; sau đó phần mềm (Claude làm được ngay)"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Bước 1: kết hợp vị trí toàn cục, odometry/IMU và cảm biến theo thời điểm",
+   "status": "not_applicable_yet",
+   "evidence": "Không có định vị/odometry: autopark/estimation/ chỉ có __init__.py. Không có IMU. Tư thế xe hiện lấy từ mô phỏng.",
+   "unblock": "cần mua/nhận phần cứng (MN300, BNO085, encoder, ESP32-S3). Phần định vị LiDAR trên bản ghi thì phần mềm bắt đầu được."
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Bước 2: đưa BEV cục bộ về map; theo dõi vật tĩnh khi xe tiến/lùi/rẽ",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có BEV từ camera thật (GIAI_DOAN_2_BAN_THU.md). CameraSemanticLayer chưa nhận khung thật nào. Chưa có xe.",
+   "unblock": "cần mua/nhận phần cứng; trước đó cần người thao tác hiệu chuẩn camera"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Bước 3: hợp nhất bản đồ tĩnh, LiDAR trực tiếp, camera, khoảng cách gần, độ không chắc chắn",
+   "status": "not_applicable_yet",
+   "evidence": "Khung hợp nhất 4 lớp đã có trong phần mềm (fusion/layers.py, fuse.py). ToF chỉ có số đo giả, camera chưa qua lớp này. Không có biểu diễn độ không chắc chắn ngoài UNKNOWN.",
+   "unblock": "cần mua/nhận phần cứng (ToF, ESP32, xe)"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Bước 4: chạy dưới điều khiển tay/giám sát; planner chỉ đề xuất",
+   "status": "not_applicable_yet",
+   "evidence": "Không có chế độ quan sát. VehicleIO chưa nối vào Session/UI.",
+   "unblock": "cần mua/nhận phần cứng (MN300, ESP32-S3)"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Bước 5: làm mới/từ chối kết quả planner theo phiên bản map và đích",
+   "status": "partial",
+   "evidence": "Chỉ mô phỏng: Session.plan_version bỏ kết quả tính cho sa bàn đã sửa (_apply_plan), _safety_stop tăng version, có test giai đoạn 0. Chưa gắn với phiên bản bản đồ thật trên xe. Bản đồ chốt lúc lập đường như đã nói ở trên.",
+   "unblock": "cần mua/nhận phần cứng để kiểm trên xe"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Bước 6: kiểm tra dữ liệu còn mới, vùng quan sát, khoảng hở trước mỗi đoạn chuyển động",
+   "status": "not_applicable_yet",
+   "evidence": "Session.start_run chỉ kiểm tư thế xuất phát, KHÔNG kiểm độ tươi dữ liệu hay vùng quan sát trước mỗi đoạn. FreshnessMonitor có nhưng chưa nối vào bước này.",
+   "unblock": "phần mềm (Claude làm được ngay) cho bảng kiểm trước đoạn; kiểm thật cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "Đầu ra: log cảm biến đồng bộ, phép biến đổi tọa độ, video map/BEV trên xe chạy, bảng lỗi hệ tọa độ/độ trễ, bộ bài thử độ hợp lệ quỹ đạo",
+   "status": "not_applicable_yet",
+   "evidence": "Trên máy bàn đã có log bốn camera + LiDAR dùng chung một đồng hồ (runs/rig_bench, test_build_rig_passes_one_clock...) nhưng cảm biến đứng yên, không có xe. Không có video map/BEV trên xe.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "[ ] Vật mẫu có vị trí hợp lý trên map khi xe đổi tư thế",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe và định vị.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "[ ] Phát hiện được mâu thuẫn giữa cảm biến hoặc mất độ tin cậy",
+   "status": "partial",
+   "evidence": "Phần mềm: phát hiện được mất tin cậy (lớp bắt buộc cũ hoặc không hợp lệ → bản đồ không hợp lệ, có lý do). Chưa có cơ chế PHÁT HIỆN mâu thuẫn giữa cảm biến: hợp nhất chỉ lấy OR thận trọng, không báo khi hai nguồn trái nhau. Chưa chạy trên xe.",
+   "unblock": "phần mềm (Claude làm được ngay) cho phát hiện mâu thuẫn; kiểm thật cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "[ ] Dữ liệu cần thiết bị cũ/mất thì không cho tiếp tục mù",
+   "status": "partial",
+   "evidence": "Mô phỏng và xe ảo: phiên data_loss dừng (runs/phase0_final_2026-09-20). Mất LiDAR → dừng với nguồn giả (test_lidar_dock_ui). VehicleIO chốt TELEMETRY_STALE, phải arm() lại mới chạy (test_transport_vehicle_io, đạt ngày 24/09). Chưa rút cáp LiDAR thật, chưa có xe.",
+   "unblock": "cần người thao tác với thiết bị đã có (rút cáp LiDAR khi xe ảo chạy); phần trên xe cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "[ ] Planner nhận môi trường hiện hành và kết quả cũ bị loại đúng",
+   "status": "partial",
+   "evidence": "Chỉ mô phỏng (plan_version, MAP_CHANGED → WAIT_REPLAN). Còn khoảng hở vì bản đồ bị chốt từ lúc lập đường đến lúc bấm chạy.",
+   "unblock": "phần mềm (Claude làm được ngay) để kiểm lại bản đồ trước START; trên xe cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ8",
+   "item": "[ ] Đánh giá định vị/BEV bằng tham chiếu độc lập",
+   "status": "not_started",
+   "evidence": "Chưa có định vị, chưa có BEV. GIAI_DOAN_1_CHUAN_BI.md ghi 'cách đo sai số BEV bằng tham chiếu độc lập thì chưa có'.",
+   "unblock": "cần người dùng quyết định phương pháp tham chiếu (thước/mốc sàn/camera trên cao); sau đó cần phần cứng"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Khi chưa sẵn sàng: chạy toàn phiên đỗ trong mô phỏng bằng kích thước/giới hạn đã đo trên MN300",
+   "status": "partial",
+   "evidence": "Toàn phiên đỗ mô phỏng đã có: parking/reverse/noisy COMPLETED, obstacle/data_loss STOPPED (runs/phase0_final_2026-09-20), 2.880 ca theo seed, hard_cases có đỗ song song/vuông góc. Nhưng thông số xe là GIẢ ĐỊNH (vehicle_default.json), chưa phải số đo MN300.",
+   "unblock": "cần mua/nhận phần cứng (MN300 để đo, giai đoạn 4); sau đó chạy lại bằng phần mềm ngay"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Chế độ quan sát: người lái, phần mềm tính đường/lệnh nhưng không gửi chấp hành",
+   "status": "not_started",
+   "evidence": "Không có mã cho chế độ này (tìm 'shadow/quan sát' không có kết quả). VehicleIO chưa nối vào Session/UI. Chế độ MANUAL hiện có chỉ là lái tay xe ảo.",
+   "unblock": "phần mềm (Claude làm được ngay) cho khung chế độ quan sát; chạy thật cần mua/nhận phần cứng (MN300, định vị)"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Hoàn thiện quy trình bắt đầu, dừng, xác nhận lại và báo lỗi trên UI",
+   "status": "partial",
+   "evidence": "UI mô phỏng đã có Tìm đường/Xem trước/Bắt đầu/Dừng/Đặt lại, hộp báo lỗi, WAIT_REPLAN sau dừng bảo vệ (ui/main_window.py, application/session.py). VehicleIO có ARM/DISARM/CLEAR_FAULT và chốt rearm_required (đã test). Còn thiếu: UI chưa có ARM, xác nhận lại sau lỗi hay E-stop, trạng thái bo, bảng kiểm trước ARM; VehicleIO chưa nối vào UI.",
+   "unblock": "phần mềm (Claude làm được ngay); kiểm với bo thật cần mua/nhận ESP32-S3"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Chuẩn bị sa bàn có số đo và vật cản mềm",
+   "status": "not_started",
+   "evidence": "Chỉ có sa bàn ảo (scenarios/*.json, ghi 'Kích thước chỉ là ví dụ'). Demo LiDAR dùng đồ vật trên bàn làm việc.",
+   "unblock": "cần người thao tác (dựng sa bàn, đo, chuẩn bị vật cản mềm); kích thước nên chốt sau khi có MN300"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Bước 1: kiểm tra nguồn/dừng, dữ liệu, hiệu chuẩn, vị trí, vùng quan sát, đích trước ARM",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có nguồn, E-stop, hiệu chuẩn hay định vị. Chưa có bảng kiểm trước ARM.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Bước 2: vùng rộng, tốc độ thấp trong miền đã thử, có người giám sát",
+   "status": "not_applicable_yet",
+   "evidence": "Miền tốc độ chưa đo (giai đoạn 4 chưa làm).",
+   "unblock": "cần mua/nhận phần cứng (MN300)"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Bước 3: người dùng kéo/xoay đích; kiểm tra footprint đích, tìm quỹ đạo hợp lệ",
+   "status": "not_applicable_yet",
+   "evidence": "Đã có trong mô phỏng (GOAL_INVALID, test UI kéo/xoay; gate giai đoạn 0) nhưng chưa trên xe thật.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Bước 4: xem trước chỉ là mô phỏng; trước START kiểm tra lại trạng thái thực",
+   "status": "not_applicable_yet",
+   "evidence": "Xem trước đã tách khỏi phần chạy trong mô phỏng. Chưa có bước kiểm lại trạng thái THỰC trước START.",
+   "unblock": "cần mua/nhận phần cứng (và phần mềm cho bước kiểm lại)"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Bước 5: chạy quỹ đạo tiến/lùi có phản hồi; đổi chiều theo trình tự đã kiểm chứng",
+   "status": "not_applicable_yet",
+   "evidence": "Mô phỏng: tracker chờ tốc độ 0 mới đổi chiều. Firmware có khóa đổi chiều nhưng chỉ bản Python được test; C++ CHƯA biên dịch (GIAO_THUC_XE.md).",
+   "unblock": "cần mua/nhận phần cứng (MN300, ESP32-S3, encoder)"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Bước 6: gần đích giảm tốc, kiểm sai số vị trí/hướng/tốc độ; không giả định trượt ngang/quay tại chỗ",
+   "status": "not_applicable_yet",
+   "evidence": "Mới có trong mô phỏng (dung sai đích, tách path_finished khỏi completed).",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Bước 7: đỗ vuông góc vùng rộng trước, rồi mở rộng xuất phát và đỗ song song",
+   "status": "not_applicable_yet",
+   "evidence": "Mới có ca mô phỏng (hard_cases: parallel_160/135/122/115, perp_aisle).",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Bước 8: đưa vật nhẹ vào vùng thử từ khoảng cách an toàn",
+   "status": "not_applicable_yet",
+   "evidence": "Ngay cả phép thử tương đương trên bàn (đưa tay hoặc hộp vào trước LiDAR thật khi xe ảo chạy) cũng CHƯA làm (GIAI_DOAN_3_CHUAN_BI.md mục 3).",
+   "unblock": "cần mua/nhận phần cứng. Riêng phép thử trên bàn thì cần người thao tác với LiDAR đã có."
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Luồng phản ứng vật cản và chính sách tự chạy tiếp sau vật cản thông thường",
+   "status": "partial",
+   "evidence": "Luồng có trong mô phỏng: phát hiện → STOPPING → STOPPED → cập nhật → WAIT_REPLAN; đích bị chiếm thì GOAL_INVALID; ca không có đường thì giữ (hard_cases expected='infeasible'). Mất liên lạc bị chốt, không tự về RUN (VehicleIO). Chính sách tự chạy tiếp CHƯA CHỐT (kế hoạch 17.2); mô phỏng hiện luôn chờ người bấm lập lại đường.",
+   "unblock": "cần người dùng quyết định chính sách"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "Đầu ra: log từng phiên tự đỗ, quỹ đạo đặt/thực, sai số cuối, thời gian, số đổi chiều, lý do dừng, video, biên bản vật cản",
+   "status": "not_applicable_yet",
+   "evidence": "Định dạng log mô phỏng đã có phần lớn các trường (run_store: telemetry.csv, events.jsonl, result.json, simulation.mp4; số cusp có trong evaluation/bench.py) nhưng chưa có phiên thật nào.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "[ ] Tự đỗ từ nhiều tư thế xuất phát, không chỉ phát chuỗi lệnh theo thời gian",
+   "status": "not_applicable_yet",
+   "evidence": "Chỉ có mô phỏng kín vòng.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "[ ] Có kết quả đỗ vuông góc và song song; mọi thất bại được ghi",
+   "status": "not_applicable_yet",
+   "evidence": "Chỉ có ca mô phỏng.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "[ ] Kiểm cả sai số cuối vị trí, hướng và khoảng hở",
+   "status": "not_applicable_yet",
+   "evidence": "Mô phỏng có pose_error. Chưa có tham chiếu độc lập trên sa bàn thật.",
+   "unblock": "cần mua/nhận phần cứng; cần người dùng quyết định cách đo"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "[ ] Vật cản chắn đường vs chiếm đích tạo hành vi khác nhau đúng thiết kế",
+   "status": "not_applicable_yet",
+   "evidence": "Có trong mô phỏng (test_occupied_goal_remains_invalid_after_safety_reset, chiến dịch robustness 'goal'/'side').",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ9",
+   "item": "[ ] Không có đường phù hợp thì giữ dừng",
+   "status": "not_applicable_yet",
+   "evidence": "Có trong mô phỏng (các ca hard_cases 'infeasible' trả về không có đường).",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Khi chưa đủ: viết tổng quan, yêu cầu, thiết kế hệ thống, quy trình dữ liệu, phương pháp đánh giá",
+   "status": "not_started",
+   "evidence": "Chưa có chương luận văn nào: tìm .md/.docx/.tex không thấy văn bản luận văn. Chỉ có tư liệu kỹ thuật dùng được: BAO_CAO_GIAI_DOAN_0.md, HUAN_LUYEN.md, autopark/docs/*.md.",
+   "unblock": "cần người dùng quyết định (mẫu trình bày của trường, đề cương, phần nào Claude được soạn nháp)"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Hoàn thành kết quả riêng AI/CV, mô phỏng, bench; ghi rõ mức",
+   "status": "partial",
+   "evidence": "Mô phỏng: xong (giai đoạn 0). AI/CV: xong trên dữ liệu công khai (HUAN_LUYEN.md phần I–III) nhưng CHƯA chấm trên ảnh sa bàn. Bench: LiDAR mới có bản đồ tĩnh, sai số khoảng cách chưa đo; bốn camera chạy trên máy bàn nhưng chưa hiệu chuẩn, chưa có BEV. Các tài liệu đều ghi 'Mức bằng chứng'.",
+   "unblock": "cần người thao tác với thiết bị đã có (đặt hộp LiDAR, in bảng và hiệu chuẩn camera, chụp/gán nhãn ảnh sa bàn)"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Chuẩn bị bảng kịch bản, cách đo độc lập, định nghĩa thành công/thất bại trước khi thu kết quả cuối",
+   "status": "partial",
+   "evidence": "Mới có nhóm kịch bản ở mục 16.3 (mức nhóm). Mọi ngưỡng ở 16.2 còn 'cần chốt'. Chưa có phương pháp đo độc lập. Mô phỏng đã định nghĩa COMPLETED (trong dung sai, oracle không báo va chạm).",
+   "unblock": "cần người dùng quyết định ngưỡng; Claude soạn nháp bảng được ngay"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Tách train/val/test theo phiên hoặc bối cảnh, tránh ảnh gần trùng",
+   "status": "partial",
+   "evidence": "WoodScape: chia theo nhóm timestamp + gần trùng, KHÔNG có recording ID nên chưa loại trừ trùng tuyến phố. AVM-SS: chia lại theo khối và kiểm rò rỉ bằng phash. ACDC: split chính thức bị rò (đã ghi). Sa bàn: công cụ đóng băng split theo phiên cách 60 s (perception/labels.py, test_labels.py) nhưng chưa có ảnh sa bàn nào được gán nhãn (HUAN_LUYEN.md mục 1, 15; GAN_NHAN_SA_BAN.md).",
+   "unblock": "cần người thao tác với thiết bị đã có (chụp ảnh sa bàn ở độ cao thật và gán nhãn)"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Bước 1: đóng phiên bản code, model, map, calibration, sơ đồ dây, cấu hình trước bộ thử cuối",
+   "status": "not_applicable_yet",
+   "evidence": "Hạ tầng đã có: manifest có SHA-256, source.zip, lockfile, hash checkpoint/mapping. Chưa có hệ tích hợp để đóng phiên bản.",
+   "unblock": "cần mua/nhận phần cứng (hệ tích hợp)"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Bước 2: lặp các kiểu đỗ, tư thế, khoảng hở, ánh sáng, vật cản",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Bước 3: đánh giá riêng AI/CV và toàn xe",
+   "status": "not_applicable_yet",
+   "evidence": "AI/CV mới được đánh giá riêng trên dữ liệu công khai. Chưa có đánh giá toàn xe.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Bước 4: ghi dừng bảo vệ, lỗi liên lạc, can thiệp người giám sát",
+   "status": "not_applicable_yet",
+   "evidence": "Mô phỏng đã tách COMPLETED/STOPPED/FAULT (chiến dịch 240 phiên: 25/185/30).",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Bước 5: thử dữ liệu cũ, mất camera, mất LiDAR, mất lệnh trong môi trường có kiểm soát",
+   "status": "not_applicable_yet",
+   "evidence": "Mới có test phần mềm với nguồn giả.",
+   "unblock": "cần mua/nhận phần cứng. Riêng mất LiDAR/camera trên bàn thì làm được ngay với thiết bị đã có (cần người thao tác)."
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Bước 6: phân loại nguyên nhân lỗi (ảnh/AI, định vị, hình học, planner, control, cơ khí, nguồn, liên lạc, đích)",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có lỗi của hệ tích hợp để phân loại.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Bước 7: tổng hợp báo cáo, video, mã nguồn, hướng dẫn lắp/chạy/dừng, giới hạn",
+   "status": "not_applicable_yet",
+   "evidence": "Đã có báo cáo theo nhánh và README chạy phần mềm/bàn thử. Chưa có hướng dẫn lắp/chạy/dừng xe.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Đầu ra: luận văn",
+   "status": "not_started",
+   "evidence": "Chưa có văn bản.",
+   "unblock": "cần người dùng quyết định (mẫu, đề cương, vai trò của Claude)"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Đầu ra: dữ liệu đánh giá, bảng thống kê, đồ thị, video",
+   "status": "partial",
+   "evidence": "Có số liệu AI (runs/ai_*, HUAN_LUYEN.md), số liệu mô phỏng và video mô phỏng (runs/phase0_final_2026-09-20/*/simulation.mp4), số đo bench camera/LiDAR (docs/evidence). Chưa có dữ liệu hay video trên xe. runs/ không nằm trong git.",
+   "unblock": "cần mua/nhận phần cứng; phần bench còn thiếu cần người thao tác"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Đầu ra: hướng dẫn vận hành và hồ sơ tái lập thí nghiệm",
+   "status": "partial",
+   "evidence": "autopark/README.md, cai_dat.cmd, requirements-*.lock, replay giai đoạn 0 khớp log, lệnh chạy lại AI trong HUAN_LUYEN.md mục 4/19. Chưa có hướng dẫn vận hành xe/E-stop. Chưa có ai khác thử tái lập.",
+   "unblock": "phần mềm (Claude làm được ngay) cho phần tài liệu hiện có; phần xe cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "Đầu ra: BOM đã mua thực",
+   "status": "partial",
+   "evidence": "hardware_inventory.md ghi LiDAR C1, bốn camera và hub (không có giá). ESP32, IMU, ToF, encoder, MN300 'chưa nhận / chưa kiểm kê'. Mục 18 của kế hoạch chỉ là link, ghi rõ không phải giỏ hàng đã chốt.",
+   "unblock": "cần mua/nhận phần cứng; người dùng cung cấp giá/hóa đơn thực"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "[ ] Có chỉ số định lượng và định nghĩa cách đo",
+   "status": "partial",
+   "evidence": "Có chỉ số cho AI (mIoU, recall vật lạ, tỷ lệ BLOCKED bị gọi FREE), mô phỏng (sai số cuối, thời gian) và camera (FPS, khung hỏng, lệch thời gian). Chưa có chỉ số toàn xe. Ngưỡng 16.2 chưa chốt.",
+   "unblock": "cần người dùng quyết định ngưỡng"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "[ ] Có tham chiếu độc lập cho sai số vị trí/hướng/khoảng cách",
+   "status": "not_started",
+   "evidence": "Chưa có phương pháp. Sai số khoảng cách LiDAR so với thước chưa đo. Oracle độc lập hiện có chỉ dành cho va chạm hình học trong mô phỏng.",
+   "unblock": "cần người dùng quyết định phương pháp; bước đặt hộp LiDAR cần người thao tác với thiết bị đã có"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "[ ] Không chỉ chọn các lần demo thành công",
+   "status": "partial",
+   "evidence": "Tài liệu hiện báo cả thất bại: 185 STOPPED / 30 FAULT trong chiến dịch, các lượt AI không vượt baseline, khung MJPEG bị cắt, dừng giả khi chạy với LiDAR thật. Bộ thử cuối chưa có.",
+   "unblock": "cần mua/nhận phần cứng (bộ thử cuối)"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "[ ] Phân biệt bài toán đã giải quyết với phần chưa đạt/ngoài phạm vi",
+   "status": "partial",
+   "evidence": "Mọi tài liệu nhánh đều có mục 'Chưa làm / giới hạn'. Chưa tổng hợp thành chương kết luận.",
+   "unblock": "cần người dùng quyết định (viết luận văn)"
+  },
+  {
+   "phase": "GĐ10",
+   "item": "[ ] Người khác đọc hướng dẫn có thể tái lập một phiên thử",
+   "status": "partial",
+   "evidence": "Có README, lockfile, replay mô phỏng khớp. Nhưng runs/, dataset và checkpoint nằm ngoài git (README gốc). Chưa có người khác thử. Chưa có phiên thử trên xe.",
+   "unblock": "cần người thao tác (một người khác thử theo hướng dẫn); cần quyết định cách lưu trữ runs/"
+  },
+  {
+   "phase": "16.3",
+   "item": "Đỗ cơ sở: vuông góc, song song; tư thế xuất phát đã ghi; ô rộng rồi thu hẹp",
+   "status": "partial",
+   "evidence": "Chỉ mô phỏng: hard_cases có parallel_160/135/122/115, perp_aisle, cả ca kỳ vọng không giải được. Chiến dịch 40/40 ca planner. Thông số xe giả định. Chưa có trên xe.",
+   "unblock": "cần mua/nhận phần cứng (MN300 và toàn bộ chuỗi điều khiển)"
+  },
+  {
+   "phase": "16.3",
+   "item": "Nhận thức: ánh sáng khác, vật ở mép ảnh/overlap, vật thấp, vật ngoài tập huấn luyện",
+   "status": "partial",
+   "evidence": "Chỉ trên dữ liệu công khai: ACDC (sương, đêm, mưa, tuyết), RoadObstacle21 (vật lạ) trong HUAN_LUYEN.md phần II–III. Chưa chấm trên ảnh sa bàn từ camera gá. Chưa có phép thử mép ảnh/overlap vì chưa gá và chưa có BEV.",
+   "unblock": "cần người thao tác với thiết bị đã có (ảnh sa bàn có nhãn); phần overlap cần gá (cần mua/nhận phần cứng)"
+  },
+  {
+   "phase": "16.3",
+   "item": "Vật cản mới: chặn trước, chặn sau khi lùi, bên hông vùng quét, chiếm đích, chắn đường nhưng đích trống",
+   "status": "partial",
+   "evidence": "Mô phỏng: chiến dịch robustness có vật ở trước, hông, chiếm đích, tiến và lùi. Với LiDAR thật + xe ảo: phát hiện vật mới nằm ngoài đường đã chạy thật trên bàn; vật đưa vào ĐÚNG đường khi xe ảo đang chạy thì chưa thử.",
+   "unblock": "cần người thao tác với thiết bị đã có (đưa tay/hộp trước LiDAR); trên xe cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "16.3",
+   "item": "Liên lạc/cảm biến: mất một camera, ảnh cũ, mất scan, ToF không hợp lệ, mất telemetry/lệnh",
+   "status": "partial",
+   "evidence": "Test phần mềm: manager đa camera loại camera im lặng, phát hiện khung cũ/hỏng; mất LiDAR với nguồn giả; NearField không hợp lệ với số đo giả; TELEMETRY_STALE và watchdog trong bản Python của firmware. Phần cứng: mới rút/cắm lại camera trên máy bàn để kiểm danh tính, chưa rút cáp LiDAR thật. Không có ToF/ESP32.",
+   "unblock": "cần người thao tác (rút cáp LiDAR/camera khi chạy); ToF/telemetry cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "16.3",
+   "item": "Điều khiển/an toàn: đổi chiều, dừng phần mềm, E-stop, reset, reconnect, nguồn yếu",
+   "status": "partial",
+   "evidence": "Mô phỏng có đổi chiều, dừng, reset. Bản Python của firmware có logic E-stop/reconnect/sụt áp và đã test, nhưng C++ chưa biên dịch. Không có E-stop, nguồn hay bo thật.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3, nguồn, LA38, MN300)"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] Bản đồ/định vị LiDAR hoạt động trong khu vực thử đã định",
+   "status": "partial",
+   "evidence": "Có bản đồ lưới tĩnh từ LiDAR C1 đứng yên trên bàn (docs/evidence/lidar/map_p07.png) và thử ghép odometry DROW offline. KHÔNG có SLAM/định vị ('Bản đồ tĩnh không phải SLAM', GIAI_DOAN_1_LIDAR.md). Sai số khoảng cách chưa đo. Khu vực thử chưa định.",
+   "unblock": "phần mềm (định vị trên bản ghi); cần người thao tác (đặt hộp, ghi phiên di chuyển LiDAR); cuối cùng cần xe"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] Bốn camera USB cùng hoạt động và có hiệu chuẩn đúng gá",
+   "status": "partial",
+   "evidence": "Phần cứng trên máy bàn: 4 × ≈23,9 fps ở 640×480 (m04, u01). 720p × 4 qua hub không dùng được. Cổng 1 có đợt 26–36 % khung hỏng. Chưa hiệu chuẩn (không có cam_p*.json), chưa gá, chưa thử trên laptop của xe.",
+   "unblock": "cần người thao tác với thiết bị đã có (in bảng, hiệu chuẩn, thử nguồn ngoài hub); gá cần mua/nhận MN300"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] AI/CV cung cấp thông tin cục bộ cho planner, có đo sai số/nhầm lẫn",
+   "status": "partial",
+   "evidence": "AI đã huấn luyện và chấm trên dữ liệu công khai. CameraSemanticLayer có nhưng chưa có khung thật nào đi qua. Chưa có BEV. Chưa chấm trên ảnh sa bàn. Giấy phép WoodScape cấm dùng mô hình để vận hành phương tiện; cách hiểu ngày 22/09 chưa được Valeo xác nhận.",
+   "unblock": "cần người thao tác (ảnh sa bàn có nhãn, hiệu chuẩn); cần người dùng quyết định về giấy phép; phần nối camera → BEV → lớp là phần mềm"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] Người dùng chọn vị trí/hướng, xem trước và ra lệnh bắt đầu",
+   "status": "partial",
+   "evidence": "Đạt trong UI mô phỏng (gate giai đoạn 0, có test UI). Chưa nối với xe thật: VehicleIO không được dùng trong Session/UI.",
+   "unblock": "phần mềm cho phần nối; kiểm thật cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] Quỹ đạo xét giới hạn lái và toàn thân xe",
+   "status": "partial",
+   "evidence": "Đạt trong phần mềm: Hybrid A*/Reeds–Shepp, footprint có nhô đầu/đuôi, 2.880 ca đối chiếu oracle, 40/40 ca planner. Nhưng thông số giả định, chưa phải số đo MN300.",
+   "unblock": "cần mua/nhận phần cứng (đo MN300, giai đoạn 4)"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] Xe thực thi có phản hồi tốc độ/góc, không chỉ theo thời gian",
+   "status": "not_applicable_yet",
+   "evidence": "Mới có tracker mô phỏng và vòng PI trong bản Python của firmware. Firmware C++ chưa biên dịch. Không có ESP32, encoder, AS5600, xe.",
+   "unblock": "cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] Hoàn thành các bài đỗ theo tiêu chí đã chốt",
+   "status": "not_applicable_yet",
+   "evidence": "Chưa có xe. Tiêu chí 16.2 chưa chốt.",
+   "unblock": "cần mua/nhận phần cứng; cần người dùng quyết định tiêu chí"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] Vật cản/dữ liệu không hợp lệ làm dừng hoặc từ chối chạy đúng thiết kế",
+   "status": "partial",
+   "evidence": "Mô phỏng: dừng khi có vật cản mới hoặc mất dữ liệu. Xe ảo với LiDAR thật đứng yên: đã chạy thật ngày 22/09. Chưa thử đưa tay vào hay rút cáp thật. Chưa có trên xe.",
+   "unblock": "cần người thao tác với thiết bị đã có; sau đó cần mua/nhận phần cứng"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] Nguồn, watchdog và E-stop đã kiểm chứng",
+   "status": "not_applicable_yet",
+   "evidence": "Watchdog và E-stop mới có trong logic firmware bản Python (đã test). C++ chưa biên dịch. Không có phần cứng nguồn/dừng.",
+   "unblock": "cần mua/nhận phần cứng (ESP32-S3, UBEC, LA38, cầu chì, MN300)"
+  },
+  {
+   "phase": "16.4",
+   "item": "[ ] Có dữ liệu, cấu hình và hướng dẫn để tái hiện kết quả",
+   "status": "partial",
+   "evidence": "Có cho mô phỏng (replay khớp), AI (lệnh, hash) và bench (lệnh trong docs). runs/, dataset và checkpoint nằm ngoài git. Chưa có gì cho xe.",
+   "unblock": "cần người dùng quyết định cách lưu trữ bằng chứng; phần xe cần mua/nhận phần cứng"
+  }
+ ]
+}

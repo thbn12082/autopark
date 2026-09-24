@@ -12,7 +12,7 @@ và góc chúc của xe.
 |---|---|---|
 | Dự án gán nhãn trên đĩa: nhập bộ ảnh (chép nguyên byte ảnh gốc, sha256), nhãn nháp từ xác suất, dò khung hỏng và khung cũ, lưu/đọc an toàn (file tạm + `fsync` + `os.replace`; sidecar hỏng thì báo đúng tên file), trạng thái nháp / đã duyệt / loại, thống kê, export ra cache huấn luyện với split đóng băng theo phiên, kiểm tách rời khỏi cache khác (`--disjoint-from`), tự kiểm cache không cần torch | `perception/labels.py` | `tests/test_labels.py`: 35 hàm test (48 trường hợp khi tính tham số hóa); một test cần torch (`PreparedCache.open`) nên chỉ chạy trong `.venv-train`, một test đọc bộ ảnh thật `runs/rig_snapshots/20260923_145753_910` (bỏ qua nếu không có). Gồm: split giữ nguyên qua các lần export, phiên cũ vẫn giữ split khi mọi ảnh đóng băng của nó đã về nháp/bị loại (15 seed × 3 cách), phiên bị nối chỉ dời về train, chuỗi phiên đi qua bộ ảnh nháp/loại/bị bỏ, khung cũ xếp phiên theo giờ khung, duyệt/export khung hỏng đòi vùng hỏng là IGNORE, tập chấm trùng ảnh/bộ ảnh/phiên với cache huấn luyện bị từ chối, sidecar hỏng, nhập lại sau khi mất sidecar không đè nhãn, ghi có `fsync` và không để file tạm, đồng bộ lại sidecar lệch, export dừng khi dự án bị ghi giữa chừng, dọn thư mục dở, `--overwrite` khi cache cũ đang mở, tham số dòng lệnh sai |
 | Sửa nhãn không phụ thuộc Qt: cọ, đa giác, tô theo mặt nạ (vùng hỏng), tô lại theo AI (giữ hoặc bỏ phần đã tô), hoàn tác/làm lại theo từng thao tác | `perception/labels.py::LabelEditor` | như trên |
-| Giao diện gán nhãn | `ui/label_app.py` | `tests/test_label_app_ui.py`: 14 hàm test offscreen (19 trường hợp) — nét cọ bằng sự kiện chuột, đa giác bằng nhấp/nhấp đúp, phím tắt, lăn chuột (Ctrl + lăn theo nấc, không theo số sự kiện), duyệt rồi đọc lại file trên đĩa, tự lưu khi chuyển ảnh, khung hỏng phải xác nhận và tô IGNORE vùng hỏng, khung cũ có cảnh báo riêng, duyệt bị từ chối khi đa giác chưa đóng, nhấp đúp ở chế độ cọ vẫn bắt đầu nét, tọa độ con trỏ không đè thông báo, lưu hỏng thì hỏi trước khi đóng, cửa sổ co vừa màn hình nhỏ, sidecar hỏng báo tên file, đi Trước/Sau khi tự lưu đưa ảnh đã duyệt về nháp, Ctrl+Z/Ctrl+Y/Tô lại giữa lúc kéo cọ |
+| Giao diện gán nhãn | `ui/label_app.py` | `tests/test_label_app_ui.py`: 15 hàm test offscreen (20 trường hợp) — nét cọ bằng sự kiện chuột, đa giác bằng nhấp/nhấp đúp, phím tắt, lăn chuột (Ctrl + lăn theo nấc, không theo số sự kiện), duyệt rồi đọc lại file trên đĩa, tự lưu khi chuyển ảnh, khung hỏng phải xác nhận và tô IGNORE vùng hỏng, khung cũ có cảnh báo riêng, duyệt bị từ chối khi đa giác chưa đóng, nhấp đúp ở chế độ cọ vẫn bắt đầu nét, tọa độ con trỏ không đè thông báo, lưu hỏng thì hỏi trước khi đóng, cửa sổ co vừa màn hình nhỏ, sidecar hỏng báo tên file, đi Trước/Sau khi tự lưu đưa ảnh đã duyệt về nháp, Ctrl+Z/Ctrl+Y/Tô lại giữa lúc kéo cọ, màu chữ trạng thái đã duyệt/loại đọc được trên cả nền danh sách sáng và tối (nháp giữ màu chữ mặc định) |
 
 Đã thử trên hai bộ ảnh thật trong `runs/rig_snapshots/` (chỉ đọc, dự án thử nằm ngoài repo): 8 ảnh vào dự án, **hai
 khung 720p bị cắt cụt (cổng 1 và 4 của bộ 14:57) bị đánh dấu hỏng** — `truncated_rows` 352 và 328 trên 720 dòng,
@@ -165,7 +165,10 @@ hỏng không đóng băng gì (file chỉ được ghi sau khi cache đã vào 
   `train --config ... --set prepared_manifest=datasets/prepared/<cache>/manifest.json`. Về giấy phép: khởi tạo từ checkpoint
   WoodScape, hay ghép với cache WoodScape, thì mô hình ra là mô hình *"trained on or refined using the Dataset"* theo
   điều khoản Valeo (docs/GIAY_PHEP_DU_LIEU.md). Hướng 2 của tài liệu đó (mô hình không dính WoodScape) nghĩa là chỉ huấn
-  luyện trên cache sa bàn, có thể ghép ACDC, từ trọng số ImageNet.
+  luyện trên cache sa bàn, có thể ghép ACDC, khởi tạo từ trọng số pretrained chính thức của torchvision (L-RASPP
+  `COCO_WITH_VOC_LABELS_V1`, `initialization` mặc định, như lượt nền) chứ không từ checkpoint WoodScape (sửa
+  24/09/2026: bản trước ghi nhầm "trọng số ImageNet"; trainer không có tùy chọn khởi tạo chỉ từ ImageNet, xem
+  `autopark/perception/model.py`).
 
 ## 3. Quy tắc gán nhãn
 

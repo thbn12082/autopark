@@ -90,7 +90,7 @@ Lượt test hồi quy mới đầu tiên có **25 trường hợp thất bại 
 | Preview báo hoàn thành ngoài dung sai | Phân biệt `path_finished` với `completed`; planner kiểm chứng theo đúng dung sai được đặt. |
 | Tốc độ mục tiêu vượt cấu hình nhỏ | Chặn cả hồ sơ quỹ đạo và đầu ra controller, kể cả creep speed. |
 
-Bằng chứng: [test trước sửa](autopark/docs/evidence/robustness_regressions_before.xml), [test sau sửa](autopark/docs/evidence/robustness_pytest.xml), [bản diff](autopark/review_artifacts/phase0_robustness/changes.patch).
+Bằng chứng: [test trước sửa](autopark/docs/evidence/robustness_regressions_before.xml), [test sau sửa](autopark/docs/evidence/robustness_pytest.xml), [bản diff](autopark/review_artifacts/phase0_robustness/changes.patch) (chỉ có trên máy làm việc, không có trong repo; ghi chú 24/09/2026).
 
 ## 6. Kết quả kiểm thử và mức độ bao phủ
 
@@ -133,7 +133,7 @@ Liên kết bằng chứng:
 
 - [Báo cáo kiểm thử độ bền chi tiết](autopark/docs/KIEM_THU_DO_BEN_GIAI_DOAN_0.md).
 - [JUnit 220 test](autopark/docs/evidence/robustness_pytest.xml).
-- [Coverage HTML](autopark/docs/evidence/coverage_html/index.html), [phạm vi cốt lõi](autopark/docs/evidence/coverage_core.json).
+- [Coverage HTML](autopark/docs/evidence/coverage_html/index.html) (chỉ có trên máy làm việc, không có trong repo), [JSON toàn bộ](autopark/docs/evidence/coverage_robustness.json), [phạm vi cốt lõi](autopark/docs/evidence/coverage_core.json).
 - [Tóm tắt chiến dịch](autopark/runs/robustness_final_2026-09-20/summary.json), [từng trường hợp và seed](autopark/runs/robustness_final_2026-09-20/cases.jsonl), [danh sách vi phạm](autopark/runs/robustness_final_2026-09-20/failures.json).
 
 ## 7. Video, log và khả năng tái hiện
@@ -191,7 +191,7 @@ Tài liệu: [danh mục](autopark/datasets/DANH_MUC_DATASET.md), [tải và ki�
 - Tại phép kiểm tra đã thực hiện, không có nhóm trùng đã phát hiện nằm ở nhiều tập. Tuy nhiên metadata không cung cấp recording ID được xác nhận; **chưa loại trừ hoàn toàn rò rỉ cùng bối cảnh**. Đây không phải split test benchmark chính thức của tác giả.
 - **Chưa có module trainer hoàn chỉnh, chưa chạy lượt train cơ sở, chưa có checkpoint hoặc kết quả độ chính xác của mô hình đã huấn luyện.** Không coi việc tải dữ liệu/cài PyTorch là huấn luyện xong.
 
-File liên quan: [mapping nhãn](autopark/configs/woodscape_binary_v1.json), [mã xử lý dữ liệu](autopark/autopark/perception/data.py), [mã chuẩn bị cache](autopark/autopark/perception/prepare.py), [audit bộ dữ liệu đã chuẩn bị](autopark/datasets/prepared/woodscape_binary_v1/audit.json).
+File liên quan: [mapping nhãn](autopark/configs/woodscape_binary_v1.json), [mã xử lý dữ liệu](autopark/autopark/perception/data.py), [mã chuẩn bị cache](autopark/autopark/perception/prepare.py), [audit bộ dữ liệu đã chuẩn bị](autopark/datasets/prepared/woodscape_binary_v1/audit.json) (chỉ có trên máy làm việc, không có trong repo).
 
 *Cập nhật 24/09/2026:* gạch đầu dòng cuối ở trên không còn đúng. Trainer đã hoàn thiện và lượt huấn luyện cơ sở chạy ngày 21/09/2026 trên RTX 4000 Ada, có checkpoint `runs/ai_woodscape_rtx4000_v1/best.pt` và kết quả trên tập test giữ riêng (chấm một lần); ngày 22–23/09 có thêm đánh giá ngoài miền, ba seed và các lượt thêm AVM-SS/ACDC. Tất cả ở [HUAN_LUYEN.md](HUAN_LUYEN.md), phần I–III. Nghiên cứu này dùng **Valeo WoodScape Dataset** (<https://woodscape.valeo.com>); giấy phép WoodScape cấm dùng mô hình huấn luyện trên nó để vận hành hoặc hỗ trợ vận hành phương tiện, xem [GIAY_PHEP_DU_LIEU.md](autopark/docs/GIAY_PHEP_DU_LIEU.md).
 
@@ -230,7 +230,7 @@ Trong thư mục `autopark`, chạy `chay_app.cmd`:
 
 ### Lệnh PowerShell
 
-Mở PowerShell tại thư mục `xe tự lái`:
+Mở PowerShell tại thư mục gốc của repo, tức thư mục chứa `README.md` và thư mục con `autopark` (*cập nhật 24/09/2026:* bản 20/09 gọi thư mục này là `xe tự lái`; tên đó không còn dùng, bản clone từ GitHub mặc định có tên `autopark`):
 
 ```powershell
 Set-Location ".\autopark"

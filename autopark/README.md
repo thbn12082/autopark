@@ -2,7 +2,7 @@
 
 > **Ghi công bắt buộc theo giấy phép dữ liệu:** nghiên cứu nhận thức trong dự án này được thực hiện với **Valeo WoodScape Dataset** (<https://woodscape.valeo.com>, [repo](https://github.com/valeoai/WoodScape)). Điều khoản Valeo yêu cầu hiển thị rõ ghi công này trong mọi tài liệu công bố có nhắc tới nghiên cứu dùng bộ dữ liệu. Bảng giấy phép đầy đủ và vấn đề cần xử lý: [docs/GIAY_PHEP_DU_LIEU.md](docs/GIAY_PHEP_DU_LIEU.md).
 
-Mô phỏng xe đạp động học, đặt/xoay đích, Hybrid A*/Reeds–Shepp, bám quỹ đạo tiến/lùi và dừng khi bản đồ/phản hồi không còn hợp lệ. Đây là phần mềm mô phỏng; thông số trong `configs/vehicle_default.json` **chưa phải số đo MN300**. Các mục từ **Huấn luyện nhận thức** trở xuống là phần làm sau giai đoạn 0: AI, LiDAR và camera thật trên máy bàn, bàn thử giai đoạn 2, hợp nhất cảm biến.
+Mô phỏng xe đạp động học, đặt/xoay đích, Hybrid A*/Reeds–Shepp, bám quỹ đạo tiến/lùi và dừng khi bản đồ/phản hồi không còn hợp lệ. Đây là phần mềm mô phỏng; thông số trong `configs/vehicle_default.json` **chưa phải số đo MN300**. Các mục từ **Huấn luyện nhận thức** trở xuống là phần làm sau giai đoạn 0: AI, LiDAR và camera thật trên máy bàn, bàn thử giai đoạn 2, hợp nhất cảm biến; từ 24/09/2026 thêm công cụ hiệu chuẩn camera, gán nhãn ảnh sa bàn và giao thức xe (firmware C++ chưa biên dịch).
 
 ## Chạy trên Windows
 
@@ -74,14 +74,14 @@ Chi tiết và giới hạn ở [docs/GIAI_DOAN_1_CHUAN_BI.md](docs/GIAI_DOAN_1_
 
 Nhánh LiDAR thật (driver RPLIDAR C1 qua COM, ghi/phát lại phiên, phiên đo tĩnh, bản đồ lưới tĩnh, màn hình trực tiếp): [docs/GIAI_DOAN_1_LIDAR.md](docs/GIAI_DOAN_1_LIDAR.md); cổng chuyển bước giai đoạn 1: [docs/gate_01.md](docs/gate_01.md); kiểm kê thiết bị: [docs/hardware_inventory.md](docs/hardware_inventory.md). Cần `pip install -e .[lidar]` (pyserial). Nhánh camera thật (bốn camera USB 130° theo nhà bán qua hub UGREEN: liệt kê mode, ghép index với cổng hub, đo FPS/mất hình một và bốn luồng, ghi mẫu): [docs/GIAI_DOAN_1_CAMERA.md](docs/GIAI_DOAN_1_CAMERA.md), sơ đồ cổng [docs/usb_topology.md](docs/usb_topology.md); cần `pip install -e .[video]` (pygrabber trên Windows). Bàn thử giai đoạn 2 (bốn camera + LiDAR + AI chạy chung, giao diện trực tiếp có lớp tô AI, đo suy luận/độ trễ/đồng bộ, phát hiện khung MJPEG bị cắt khi chạy chung qua hub): [docs/GIAI_DOAN_2_BAN_THU.md](docs/GIAI_DOAN_2_BAN_THU.md); chạy trong `.venv-train` (`pip install -e .[rig]`).
 
-Hợp nhất cảm biến chuẩn bị cho giai đoạn 3 (lớp bản đồ, hợp nhất, cầu nối vật cản vào phiên, demo LiDAR thật dừng xe ảo): [docs/GIAI_DOAN_3_CHUAN_BI.md](docs/GIAI_DOAN_3_CHUAN_BI.md).
+Hợp nhất cảm biến chuẩn bị cho giai đoạn 3 (lớp bản đồ, hợp nhất, cầu nối vật cản vào phiên, demo với LiDAR thật đứng yên: xe ảo lập đường quanh đồ trên bàn và đỗ xong): [docs/GIAI_DOAN_3_CHUAN_BI.md](docs/GIAI_DOAN_3_CHUAN_BI.md).
 Giao diện bàn thử LiDAR: `python -m autopark.ui.lidar_app --port COM4` (cửa sổ đỗ xe + ngăn LiDAR).
 
 Việc làm được khi chưa đủ thiết bị (24/09/2026), mỗi việc một tài liệu:
 
 - Hiệu chuẩn camera thật: [docs/HIEU_CHUAN_CAMERA.md](docs/HIEU_CHUAN_CAMERA.md). In `calibration/bang_in/ban_co_9x6_20mm_A4.pdf` đúng 100 %, đo ô bằng thước, rồi `python -m autopark.ui.calib_app --port 1`. Tệp ra: `calibration/cam_p<cổng>.json`.
 - Gán nhãn ảnh sa bàn: [docs/GAN_NHAN_SA_BAN.md](docs/GAN_NHAN_SA_BAN.md). `python -m autopark.perception.labels import runs/rig_snapshots`, rồi `python -m autopark.ui.label_app`, rồi `python -m autopark.perception.labels export --out datasets/prepared/sa_ban_v1`.
-- Giao thức xe và firmware ESP32-S3: [docs/GIAO_THUC_XE.md](docs/GIAO_THUC_XE.md), mã `autopark/transport/`, firmware `firmware/esp32_vehicle/` (máy này không có trình biên dịch C/C++: phần C++ CHƯA biên dịch lần nào).
+- Giao thức xe và firmware ESP32-S3: [docs/GIAO_THUC_XE.md](docs/GIAO_THUC_XE.md), mã `autopark/transport/`, firmware `firmware/esp32_vehicle/`, hướng dẫn và các mục CHƯA CHỐT ở [firmware/esp32_vehicle/README.md](firmware/esp32_vehicle/README.md) (máy này không có trình biên dịch C/C++: phần C++ CHƯA biên dịch lần nào).
 - Bàn thử không chờ camera chậm: `--max-wait-ms` của `rig.bench`/`rig_app` ([docs/GIAI_DOAN_2_BAN_THU.md](docs/GIAI_DOAN_2_BAN_THU.md) mục 10).
 
 ```powershell
@@ -95,7 +95,7 @@ Việc làm được khi chưa đủ thiết bị (24/09/2026), mỗi việc m�
 .\.venv\Scripts\python.exe -X utf8 -m autopark.lidar.viewer datasets/drow/DROWv2-data/val/run_2015-11-25-10-34-20-a.bag.csv --labels wp
 ```
 
-Các khối `lidar/`, `video/`, `safety/`, `perception/calibration.py`, `perception/costmap.py` không cần torch và được test trong cả hai môi trường. Chạy toàn bộ bộ test bằng `.venv` (`pytest`; các test cần torch tự bỏ qua) và các test nhận thức bằng `.venv-train` (`pytest tests/test_perception_*.py tests/test_phase1_sources.py`); `.venv-train` không có Shapely nên không chạy được test mô phỏng (từ 23/09 nó có PySide6 và pyserial cho bàn thử giai đoạn 2). Driver RPLIDAR C1 (`lidar/rplidar_c1.py`) đã chạy với thiết bị thật trên COM4 ngày 22/09, và `UsbCameraSource` với bốn camera USB ngày 23/09, cả hai trên máy bàn, chưa trên laptop của xe.
+Các khối `lidar/`, `video/`, `safety/`, `perception/calibration.py`, `perception/costmap.py` không cần torch và được test trong cả hai môi trường. Chạy toàn bộ bộ test bằng `.venv` (`pytest`; các test cần torch tự bỏ qua) và các test nhận thức bằng `.venv-train` (`pytest tests/test_perception_*.py tests/test_phase1_sources.py tests/test_labels.py`; từ 24/09 `test_labels.py` có một test mở cache sa bàn bằng `PreparedCache.open`, cần torch); `.venv-train` không có Shapely nên không chạy được test mô phỏng (từ 23/09 nó có PySide6 và pyserial cho bàn thử giai đoạn 2). Driver RPLIDAR C1 (`lidar/rplidar_c1.py`) đã chạy với thiết bị thật trên COM4 ngày 22/09, và `UsbCameraSource` với bốn camera USB ngày 23/09, cả hai trên máy bàn, chưa trên laptop RTX 3050 Ti (máy nộp đồ án).
 
 ## Cấu trúc chính
 
@@ -106,11 +106,11 @@ Các khối `lidar/`, `video/`, `safety/`, `perception/calibration.py`, `percept
 | `autopark/geometry/`, `simulation/` | Thân xe/vùng quét, động học, phản hồi có lỗi |
 | `autopark/application/`, `ui/` | Máy trạng thái phiên và giao diện PySide6 |
 | `autopark/storage/`, `evaluation/` | Kịch bản, log/snapshot/replay, nghiệm thu/video/audit nhãn |
-| `autopark/perception/` | Chuẩn bị/xác minh cache WoodScape (và AVM-SS/ACDC qua `prepare_extra.py`), trainer, benchmark, đánh giá (kể cả ACDC/RoadObstacle21), suy luận (kể cả theo lô trực tiếp, `live.py`), calibration fisheye WoodScape, hiệu chuẩn nội tham camera thật bằng bảng ô vuông (`fisheye_calib.py`, bảng in `calib_board.py`, giao diện chụp `ui/calib_app.py`; mã có từ 24/09, mới kiểm trên ảnh tổng hợp, chưa hiệu chuẩn camera nào), ROI, costmap, xuất ONNX |
+| `autopark/perception/` | Chuẩn bị/xác minh cache WoodScape (và AVM-SS/ACDC qua `prepare_extra.py`), trainer, benchmark, đánh giá (kể cả ACDC/RoadObstacle21), suy luận (kể cả theo lô trực tiếp, `live.py`), calibration fisheye WoodScape, hiệu chuẩn nội tham camera thật bằng bảng ô vuông (`fisheye_calib.py`, bảng in `calib_board.py`, giao diện chụp `ui/calib_app.py`; mã có từ 24/09, mới kiểm trên ảnh tổng hợp, chưa hiệu chuẩn camera nào), gán nhãn ảnh sa bàn (`labels.py`, giao diện `ui/label_app.py`; mã có từ 24/09, mới nhập thử hai bộ ảnh chụp ngày 23/09, chưa gán nhãn ảnh thật nào), ROI, costmap, xuất ONNX |
 | `autopark/lidar/`, `video/`, `safety/` | Driver RPLIDAR C1, ghi/phát lại phiên, phiên đo tĩnh, bản đồ lưới tĩnh, phát lại DROW v2 và hiển thị; nguồn ảnh (thư mục/video/USB, loại khung MJPEG hỏng), phiên đo camera, nhiều camera theo cổng hub; giám sát dữ liệu cũ |
 | `autopark/fusion/`, `rig/` | Lớp bản đồ và hợp nhất, cầu nối vật cản vào phiên mô phỏng; bàn thử bốn camera + LiDAR + AI |
 | `autopark/transport/`, `firmware/` | Giao thức laptop–ESP32-S3 (khung COBS + CRC), bản tham chiếu Python của firmware, VehicleIO mô phỏng/serial; firmware C++ cho ESP32-S3 (chưa biên dịch) |
-| `calibration/` | Bảng ô vuông để in và tệp hiệu chuẩn từng camera (theo cổng hub) |
+| [`calibration/`](calibration/README.md) | Bảng ô vuông để in và tệp hiệu chuẩn từng camera (theo cổng hub) |
 | `configs/`, `scenarios/`, `tests/` | Tham số giả định, bản đồ và kiểm thử |
 | `datasets/`, `docs/`, `runs/` | Dữ liệu, biên bản và bằng chứng từng phiên |
 
