@@ -81,6 +81,7 @@ Việc làm được khi chưa đủ thiết bị (24/09/2026), mỗi việc m�
 
 - Hiệu chuẩn camera thật: [docs/HIEU_CHUAN_CAMERA.md](docs/HIEU_CHUAN_CAMERA.md). In `calibration/bang_in/ban_co_9x6_20mm_A4.pdf` đúng 100 %, đo ô bằng thước, rồi `python -m autopark.ui.calib_app --port 1`. Tệp ra: `calibration/cam_p<cổng>.json`.
 - Gán nhãn ảnh sa bàn: [docs/GAN_NHAN_SA_BAN.md](docs/GAN_NHAN_SA_BAN.md). `python -m autopark.perception.labels import runs/rig_snapshots`, rồi `python -m autopark.ui.label_app`, rồi `python -m autopark.perception.labels export --out datasets/prepared/sa_ban_v1`.
+- Laptop RTX 3050 Ti mang đi nộp đồ án: [docs/MAY_NOP_DO_AN.md](docs/MAY_NOP_DO_AN.md). Chạy `cai_dat_train.cmd` rồi `do_may_moi.cmd` trên laptop; kết quả so với tham chiếu máy bàn ở `docs/evidence/may_ban/`.
 - Giao thức xe và firmware ESP32-S3: [docs/GIAO_THUC_XE.md](docs/GIAO_THUC_XE.md), mã `autopark/transport/`, firmware `firmware/esp32_vehicle/`, hướng dẫn và các mục CHƯA CHỐT ở [firmware/esp32_vehicle/README.md](firmware/esp32_vehicle/README.md) (máy này không có trình biên dịch C/C++: phần C++ CHƯA biên dịch lần nào).
 - Bàn thử không chờ camera chậm: `--max-wait-ms` của `rig.bench`/`rig_app` ([docs/GIAI_DOAN_2_BAN_THU.md](docs/GIAI_DOAN_2_BAN_THU.md) mục 10).
 

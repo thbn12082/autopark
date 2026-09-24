@@ -294,7 +294,7 @@ Mỗi mảng có: trạng thái hiện hành, số liệu chính (kèm ngày), g
 - **Camera:** tách camera ra nhiều cổng gốc; thử nguồn ngoài cho hub; đổi chỗ camera cổng 1 và 2; chạy một phiên có camera chậm; thử ánh sáng sa bàn và `CAP_PROP_GAIN`; đo độ trễ bằng LED nháy. Ghi thêm dây camera, model hub, nhãn LiDAR, ảnh bộ thực giao.
 - **Hiệu chuẩn:** in bảng, đo cỡ ô, hiệu chuẩn bốn camera.
 - **Ảnh sa bàn:** dựng giá ở độ cao và góc chúc dự kiến, chụp, gán nhãn, chấm AI.
-- **Laptop RTX 3050 Ti (máy nộp đồ án):** cài hai môi trường theo `requirements-phase0.lock` và `requirements-train.lock`, chép checkpoint `best.pt` (không có trên GitHub), rồi chạy lại `rig.bench` và `export_onnx` trên máy đó; ghi sơ đồ cổng USB như [usb_topology.md](autopark/docs/usb_topology.md).
+- **Laptop RTX 3050 Ti (máy nộp đồ án):** làm theo [MAY_NOP_DO_AN.md](autopark/docs/MAY_NOP_DO_AN.md): chép checkpoint từ `D:\CHUYEN_SANG_LAPTOP\` (có mã SHA-256), chạy `cai_dat.cmd` và `cai_dat_train.cmd`, rồi `do_may_moi.cmd`. Lệnh này đo cấu hình, cổng USB, LiDAR, thời gian AI, bàn thử 480p và 720p, rồi so với tham chiếu máy bàn.
 
 ### 5.3. Thiết bị cần mua để mở khóa (kế hoạch mục 3)
 
