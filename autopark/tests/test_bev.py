@@ -6,6 +6,7 @@ quanh một xe 0,40 × 0,20 m nhìn mặt sàn phẳng có hai hộp và một d
 Phép kiểm tầm nhìn dưới đây (`visible_from`) là tính độc lập: đoạn thẳng camera → điểm sàn có cắt hộp không, không dùng
 `project_labels`. Không cần dataset, torch hay thiết bị (trừ bài WoodScape: bỏ qua nếu thiếu dữ liệu).
 """
+from functools import lru_cache
 import json
 import math
 from pathlib import Path
@@ -285,6 +286,47 @@ def test_blocked_pixel_footprint_straddling_a_subcell_removes_its_free(rig):
     assert (view.state_fine == FREE).sum() >= (before == FREE).sum() - 5    # tâm + 4 góc: gỡ tối đa 5 ô con
 
 
+def test_blocked_pixel_just_beyond_range_still_removes_free_of_a_cell_inside_range(rig):
+    # ô con có TÂM trong tầm nhưng mép xa nằm ngoài tầm: pixel BLOCKED mà tâm và bốn góc đều rơi vào phần ngoài tầm
+    # của ô con đó vẫn phải gỡ FREE của nó (bảng pixel → ô con nới tầm thêm một cạnh ô con). Không nới thì ô vẫn FREE dù
+    # camera thấy vật trong ô (kiểm đột biến tối 24/09: phép so ngẫu nhiên không gặp trường hợp này).
+    from autopark.perception.costmap import project_labels
+    cameras, _ = rig
+    cam = cameras["p1"]
+    calib, intr = cam.calibration, cam.calibration.intrinsics
+    fine = bev.fine_grid(GRID, 2)
+    reach = 0.6                                                              # ~0,3 m trước camera: pixel ≈ 1 cm < ô con
+    cx, cy = calib.extrinsics.translation[:2]
+    u, v = (a.ravel() for a in np.meshgrid(np.arange(intr.width, dtype=np.float64),
+                                            np.arange(intr.height, dtype=np.float64)))
+
+    def ground(du, dv):
+        xy, ok = calib.pixel_to_ground(u + du, v + dv)
+        return xy, np.where(ok, np.hypot(xy[:, 0] - cx, xy[:, 1] - cy), np.inf)
+
+    centre, d_centre = ground(0.0, 0.0)
+    beyond = np.isfinite(d_centre) & (d_centre > reach)                    # tia của tâm pixel chạm sàn, ngoài tầm
+    for du in (-0.5, 0.5):
+        for dv in (-0.5, 0.5):
+            beyond &= ground(du, dv)[1] > reach                              # cả bốn góc cũng ngoài tầm
+    row = np.floor((centre[:, 1] - fine.y_min) / fine.resolution)
+    col = np.floor((centre[:, 0] - fine.x_min) / fine.resolution)
+    gx, gy = fine.x_min + (col + 0.5) * fine.resolution, fine.y_min + (row + 0.5) * fine.resolution
+    candidates = np.flatnonzero(beyond & (np.hypot(gx - cx, gy - cy) <= reach))  # ...nhưng trong ô con có tâm trong tầm
+    assert len(candidates)
+    checked = 0
+    for i in candidates[:: max(1, len(candidates) // 10)]:
+        prob = np.zeros((intr.height, intr.width), np.float32)
+        prob[int(v[i]), int(u[i])] = 1.0                                     # một pixel BLOCKED duy nhất
+        target = (int(row[i]), int(col[i]))
+        before = project_labels(evidence_labels(prob)[0], calib, fine, max_range=reach)
+        if before[target] != FREE:                                           # pixel đó là pixel tâm của chính ô con
+            continue
+        assert bev.project_camera(prob, cam, GRID, max_range=reach).state_fine[target] == UNKNOWN, target
+        checked += 1
+    assert checked >= 5
+
+
 def test_thin_obstacle_between_subcell_centres_does_not_leave_its_cell_free(rig):
     cameras, ego = rig
     front = {"p1": cameras["p1"]}
@@ -463,6 +505,428 @@ def test_build_bev_rejects_probability_without_calibration(rig, probs):
     cameras, _ = rig
     with pytest.raises(ValueError, match="không có hiệu chuẩn"):
         build_bev({**probs, "p9": probs["p1"]}, cameras, GRID)
+
+
+# ---- tăng tốc (tối 24/09/2026): đường nhanh phải trùng TỪNG BIT với bản cũ -------------------------------------------
+# Bản THAM CHIẾU dưới đây chép nguyên văn từ bev.py ở commit 9bcc30c (trước khi tăng tốc): mỗi khung, mỗi camera gọi
+# costmap.project_labels HAI lượt (tính lại tâm ô → pixel, khoảng cách, phương vị) và tính vùng nhìn riêng; chỉ bảng
+# pixel → ô con của lượt gỡ FREE được nhớ (lru_cache). Nó gọi thẳng costmap.project_labels, nên nếu ai sửa
+# project_labels mà không sửa bảng dựng sẵn của bev.py thì test so sánh dưới đây hỏng. Dùng để (1) so kết quả trên đầu
+# vào ngẫu nhiên, (2) đo tỉ lệ tăng tốc trên cùng máy, cùng tiến trình.
+def _ref_as_probability(prob):
+    a = np.asarray(prob)
+    if a.ndim != 2:
+        raise ValueError(f"bản đồ xác suất phải là ảnh một kênh (H, W), được {a.shape}")
+    if a.dtype == np.uint8:
+        return a.astype(np.float32) / 255.0
+    a = a.astype(np.float32)
+    finite = a[np.isfinite(a)]
+    if finite.size and (finite.min() < 0.0 or finite.max() > 1.0):
+        raise ValueError("xác suất số thực phải nằm trong [0, 1]")
+    return a
+
+
+def _ref_resize_probability(prob, width, height, *, aspect_tolerance=0.01):
+    h, w = prob.shape
+    if (w, h) == (width, height):
+        return prob
+    if abs((w / h) / (width / height) - 1.0) > aspect_tolerance:
+        raise ValueError(f"bản đồ xác suất {w}×{h} khác tỉ lệ khung của hiệu chuẩn {width}×{height}: "
+                         f"nhiều khả năng là mode camera khác, không dùng nội tham này được")
+    interpolation = cv2.INTER_AREA if w > width else cv2.INTER_LINEAR
+    return cv2.resize(prob.astype(np.float32), (width, height), interpolation=interpolation)
+
+
+def _ref_evidence_labels(prob, t_free=bev.DEFAULT_T_FREE, t_blocked=bev.DEFAULT_T_BLOCKED, roi=None):
+    bev.check_thresholds(t_free, t_blocked)
+    p = _ref_as_probability(prob)
+    finite = np.isfinite(p)
+    free = finite & (p <= t_free)
+    blocked = finite & (p >= t_blocked)
+    uncertain = finite & ~free & ~blocked
+    if roi is not None:
+        if roi.shape != p.shape:
+            raise ValueError(f"ROI {roi.shape} khác cỡ bản đồ xác suất {p.shape}")
+        inside = roi > 0
+        free &= inside
+        blocked &= inside
+        uncertain &= inside
+    labels = np.full(p.shape, bev.LABEL_NONE, np.uint8)
+    labels[free] = bev.LABEL_FREE
+    labels[blocked] = bev.LABEL_BLOCKED
+    return labels, uncertain
+
+
+def _ref_any(a, k):
+    return a.reshape(a.shape[0] // k, k, a.shape[1] // k, k).any(axis=(1, 3))
+
+
+def _ref_all(a, k):
+    return a.reshape(a.shape[0] // k, k, a.shape[1] // k, k).all(axis=(1, 3))
+
+
+@lru_cache(maxsize=16)
+def _ref_pixel_ground_cells(calib, fine, range_limit):
+    intr = calib.intrinsics
+    rows, cols = fine.shape
+
+    def cells(u, v):
+        xy, ok = calib.pixel_to_ground(u.ravel(), v.ravel(), max_range=range_limit)
+        with np.errstate(invalid="ignore"):
+            ci = np.floor((xy[:, 0] - fine.x_min) / fine.resolution)
+            ri = np.floor((xy[:, 1] - fine.y_min) / fine.resolution)
+            inside_ = ok & (ci >= 0) & (ci < cols) & (ri >= 0) & (ri < rows)
+        index = np.full(u.size, -1, np.int32)
+        index[inside_] = (ri[inside_] * cols + ci[inside_]).astype(np.int32)
+        index = index.reshape(u.shape)
+        index.flags.writeable = False
+        return index
+
+    center = cells(*np.meshgrid(np.arange(intr.width, dtype=np.float64), np.arange(intr.height, dtype=np.float64)))
+    corner = cells(*np.meshgrid(np.arange(intr.width + 1, dtype=np.float64) - 0.5,
+                                np.arange(intr.height + 1, dtype=np.float64) - 0.5))
+    return center, corner
+
+
+def _ref_not_free_hits(labels, uncertain, calib, fine, max_range):
+    mask = (labels == bev.LABEL_BLOCKED) | uncertain
+    rows, cols = fine.shape
+    hit = np.zeros(rows * cols, bool)
+    if mask.any():
+        limit = None if max_range is None else float(max_range) + fine.resolution
+        center, corner = _ref_pixel_ground_cells(calib, fine, limit)
+        touched = np.zeros(corner.shape, bool)
+        touched[:-1, :-1] |= mask
+        touched[:-1, 1:] |= mask
+        touched[1:, :-1] |= mask
+        touched[1:, 1:] |= mask
+        index = np.concatenate([center[mask], corner[touched]])
+        hit[index[index >= 0]] = True
+    return hit.reshape(rows, cols)
+
+
+def _ref_project_camera(prob, camera, grid, *, t_free, t_blocked, max_range, supersample, azimuth_bin_deg):
+    from autopark.perception.costmap import project_labels
+    calib = camera.calibration
+    intr = calib.intrinsics
+    raw = _ref_as_probability(prob)
+    p = _ref_resize_probability(raw, intr.width, intr.height)
+    labels, uncertain = _ref_evidence_labels(p, t_free, t_blocked, camera.roi)
+    fine = bev.fine_grid(grid, supersample)
+    state_f = project_labels(labels, calib, fine, max_range=max_range, azimuth_bin_deg=azimuth_bin_deg)
+    state_f[_ref_not_free_hits(labels, uncertain, calib, fine, max_range) & (state_f == FREE)] = UNKNOWN
+    seen_labels = labels.copy()
+    seen_labels[uncertain] = bev.LABEL_FREE
+    seen_f = project_labels(seen_labels, calib, fine, max_range=max_range, azimuth_bin_deg=azimuth_bin_deg) != UNKNOWN
+    gx, gy = fine.centers()
+    u, v, valid = calib.ground_to_pixel(np.column_stack([gx.ravel(), gy.ravel()]))
+    usable_px = (labels != bev.LABEL_NONE) | uncertain
+    in_view_f = valid.copy()
+    in_view_f[valid] = usable_px[np.rint(v[valid]).astype(np.int64), np.rint(u[valid]).astype(np.int64)]
+    if max_range is not None:
+        cx, cy = calib.extrinsics.translation[:2]
+        in_view_f &= np.hypot(gx.ravel() - cx, gy.ravel() - cy) <= max_range
+    in_view_f = in_view_f.reshape(fine.shape)
+    k = int(supersample)
+    state = np.full(grid.shape, UNKNOWN, np.int8)
+    state[_ref_all(state_f == FREE, k)] = FREE
+    state[_ref_any(state_f == OCCUPIED, k)] = OCCUPIED
+    total = labels.size
+    fractions = {"free": float((labels == bev.LABEL_FREE).sum() / total),
+                 "uncertain": float(uncertain.sum() / total),
+                 "blocked": float((labels == bev.LABEL_BLOCKED).sum() / total),
+                 "no_evidence": float(((labels == bev.LABEL_NONE) & ~uncertain).sum() / total)}
+    return bev.CameraView(camera.name, state_f, seen_f, in_view_f, state, fractions,
+                          (int(raw.shape[1]), int(raw.shape[0])), 0.0)
+
+
+def _ref_merge_views(views, grid, names, supersample, ego=None):
+    k = int(supersample)
+    rows, cols = grid.shape
+    fine_shape = (rows * k, cols * k)
+    seen_by, free_by, occupied_by, in_view_by = (np.zeros((rows, cols), np.uint16) for _ in range(4))
+    occupied_f = np.zeros(fine_shape, bool)
+    free_f = np.zeros(fine_shape, bool)
+    for view in views:
+        bit = np.uint16(1 << names.index(view.name))
+        occ, fr = view.state_fine == OCCUPIED, view.state_fine == FREE
+        occupied_by[_ref_any(occ, k)] |= bit
+        free_by[_ref_any(fr, k)] |= bit
+        seen_by[_ref_any(view.seen_fine, k)] |= bit
+        in_view_by[_ref_any(view.in_view_fine, k)] |= bit
+        occupied_f |= occ
+        free_f |= fr
+    conflict_f = np.zeros(fine_shape, bool)
+    pairs = {}
+    for a in views:
+        for b in views:
+            if a is not b:
+                both = (a.state_fine == OCCUPIED) & (b.state_fine == FREE)
+                if both.any():
+                    conflict_f |= both
+                    pairs[f"{a.name} OCCUPIED / {b.name} FREE"] = int(_ref_any(both, k).sum())
+    states = np.full((rows, cols), UNKNOWN, np.int8)
+    states[_ref_all(free_f & ~occupied_f, k)] = FREE
+    states[_ref_any(occupied_f, k)] = OCCUPIED
+    category = np.full((rows, cols), CAT_UNSEEN, np.uint8)
+    category[in_view_by != 0] = CAT_OCCLUDED
+    category[seen_by != 0] = CAT_UNCERTAIN
+    under = None
+    if ego is not None:
+        gx, gy = grid.centers()
+        under = ego.contains(gx, gy)
+        states[under] = UNKNOWN
+    category[states == FREE] = bev.CAT_FREE
+    category[states == OCCUPIED] = bev.CAT_OCCUPIED
+    if under is not None:
+        category[under] = CAT_EGO
+    return {"states": states, "category": category, "seen_by": seen_by, "free_by": free_by,
+            "occupied_by": occupied_by, "in_view_by": in_view_by, "conflict": _ref_any(conflict_f, k),
+            "conflict_pairs": pairs}
+
+
+def _ref_build_bev(probs, cameras, grid, *, t_free=bev.DEFAULT_T_FREE, t_blocked=bev.DEFAULT_T_BLOCKED,
+                   max_range=bev.RIG_MAX_RANGE, supersample=bev.DEFAULT_SUPERSAMPLE,
+                   azimuth_bin_deg=bev.DEFAULT_AZIMUTH_BIN_DEG, ego=None):
+    names = list(cameras)
+    views = [_ref_project_camera(probs[n], cameras[n], grid, t_free=t_free, t_blocked=t_blocked, max_range=max_range,
+                                 supersample=supersample, azimuth_bin_deg=azimuth_bin_deg)
+             for n in names if probs.get(n) is not None]
+    return views, _ref_merge_views(views, grid, names, supersample, ego)
+
+
+def _outcome(fn):
+    try:
+        return "ok", fn()
+    except ValueError as exc:
+        return "ValueError", str(exc)
+
+
+def _assert_same_as_reference(probs, cameras, grid, ego=None, **kw):
+    """Chạy build_bev (đường nhanh) và bản tham chiếu; mọi mảng phải trùng dtype, cỡ và từng phần tử. Trả True nếu chạy
+    được, False nếu cả hai cùng từ chối với cùng thông báo."""
+    fast = _outcome(lambda: build_bev(probs, cameras, grid, ego=ego, **kw))
+    ref = _outcome(lambda: _ref_build_bev(probs, cameras, grid, ego=ego, **kw))
+    assert fast[0] == ref[0], (fast, ref)
+    if fast[0] != "ok":
+        assert fast[1] == ref[1]
+        return False
+    result, (ref_views, ref_merged) = fast[1], ref[1]
+    for key, expected in ref_merged.items():
+        got = getattr(result, key)
+        if isinstance(expected, np.ndarray):
+            assert got.dtype == expected.dtype and got.shape == expected.shape and np.array_equal(got, expected), key
+        else:
+            assert got == expected and list(got) == list(expected), key          # cùng cả thứ tự cặp xung đột
+    assert list(result.views) == [v.name for v in ref_views]
+    for ref_view in ref_views:
+        view = result.views[ref_view.name]
+        for key in ("state_fine", "seen_fine", "in_view_fine", "state"):
+            got, expected = getattr(view, key), getattr(ref_view, key)
+            assert got.dtype == expected.dtype and got.shape == expected.shape, (ref_view.name, key)
+            assert np.array_equal(got, expected), (ref_view.name, key, int((got != expected).sum()))
+        assert view.pixel_fractions == ref_view.pixel_fractions and view.prob_size == ref_view.prob_size
+    return True
+
+
+def _random_camera(rng, name, size):
+    from autopark.perception.calibration import CameraCalibration, Extrinsics, FisheyeIntrinsics
+    w, h = size
+    base = nominal_intrinsics(w, h, float(rng.uniform(100.0, 200.0)))
+    k1 = base.k[0]
+    k = (k1, float(k1 * rng.uniform(-0.05, 0.05)), float(k1 * rng.uniform(-0.02, 0.02)),
+         float(k1 * rng.uniform(-0.005, 0.005)))
+    try:
+        intr = FisheyeIntrinsics(w, h, k, float(rng.uniform(-3, 3)), float(rng.uniform(-3, 3)),
+                                 float(rng.uniform(0.999, 1.001)), math.radians(float(rng.uniform(80.0, 100.0))))
+    except ValueError:                                                      # đa thức không đơn điệu tới theta_max
+        intr = base
+    rotation = rig_rotation(float(rng.uniform(-180, 180)), float(rng.uniform(5, 88)), float(rng.uniform(-15, 15)))
+    position = (float(rng.uniform(-0.5, 0.5)), float(rng.uniform(-0.5, 0.5)), float(rng.uniform(0.05, 0.4)))
+    roi = None if rng.random() < 0.7 else (rng.random((h, w)) < 0.8).astype(np.uint8) * 255
+    return bev.BevCamera(name, CameraCalibration(name, intr, Extrinsics.from_matrix(rotation, position)), roi)
+
+
+def _random_probability(rng, calibration, out_size):
+    """Bản đồ xác suất đủ kiểu: nhiễu đều (nhiều ô OCCUPIED lẻ, che khuất dày), cảnh hộp tổng hợp, khối có NaN, P×255
+    quanh hai ngưỡng; thêm giá trị đúng bằng ngưỡng và +inf; cỡ khác cỡ hiệu chuẩn (phóng to / thu nhỏ)."""
+    w, h = out_size
+    kind = int(rng.integers(0, 4))
+    if kind == 0:
+        p = rng.random((h, w)).astype(np.float32)
+    elif kind == 1:
+        boxes = tuple(SyntheticBox(x, x + rng.uniform(0.01, 0.3), y, y + rng.uniform(0.01, 0.3), rng.uniform(0.0, 0.3))
+                      for x, y in rng.uniform(-1.5, 1.5, (int(rng.integers(0, 5)), 2)))
+        patches = tuple(SyntheticPatch(x, x + 0.3, y, y + 0.3, float(rng.choice([0.3, 0.15, 0.5, 0.98])))
+                        for x, y in rng.uniform(-1.5, 1.5, (int(rng.integers(0, 3)), 2)))
+        p = synthetic_prob_map(calibration, SyntheticScene(boxes, patches), out_size=(w, h))
+    elif kind == 2:
+        p = np.kron(rng.random((h // 8 + 1, w // 8 + 1)), np.ones((8, 8)))[:h, :w]      # float64
+        p[rng.random((h, w)) < 0.05] = np.nan
+    else:
+        return rng.choice(np.array([0, 38, 39, 127, 128, 200, 255, 10], np.uint8), (h, w))
+    if rng.random() < 0.3:
+        p[rng.random((h, w)) < 0.02] = 0.15
+        p[rng.random((h, w)) < 0.02] = 0.5
+    if rng.random() < 0.15:
+        p[rng.random((h, w)) < 0.01] = np.inf                                # không hữu hạn: không có bằng chứng
+    return p
+
+
+def test_fast_path_matches_reference_bit_for_bit_on_random_inputs(rig):
+    rng = np.random.default_rng(20260925)
+    ran = 0
+    # (1) camera ngẫu nhiên (ảnh nhỏ cho nhanh): nội tham, tư thế, ROI, ngưỡng, lưới, supersample, tầm, bin phương vị,
+    # hộp thân xe, camera thiếu dữ liệu — đều ngẫu nhiên
+    for trial in range(45):
+        cameras = {f"c{i}": _random_camera(rng, f"c{i}", [(160, 120), (97, 73), (120, 90)][int(rng.integers(0, 3))])
+                   for i in range(int(rng.integers(1, 5)))}
+        probs = {}
+        for name, cam in cameras.items():
+            intr = cam.calibration.intrinsics
+            scale = float(rng.choice([1.0, 0.75, 0.5, 1.5]))
+            size = (max(2, round(intr.width * scale)), max(2, round(intr.height * scale)))
+            probs[name] = None if rng.random() < 0.1 else _random_probability(rng, cam.calibration, size)
+        res = float(rng.choice([0.05, 0.1, 0.04]))
+        half = res * int(rng.integers(10, 30))
+        grid = GridSpec(-half, half + res * int(rng.integers(0, 8)), -half, half, res)
+        kw = dict(t_free=float(rng.choice([0.15, 0.1, 0.3, 0.0])), t_blocked=float(rng.choice([0.5, 0.6, 1.0])),
+                  max_range=[None, 2.0, 1.0, 3.5][int(rng.integers(0, 4))], supersample=int(rng.integers(1, 4)),
+                  azimuth_bin_deg=float(rng.choice([0.5, 1.0, 0.25, 2.0])))
+        ego = None if rng.random() < 0.5 else bev.EgoBox(-0.1, 0.3, -0.1, 0.1)
+        ran += _assert_same_as_reference(probs, cameras, grid, ego, **kw)
+    assert ran >= 35                                                        # phần lớn chạy được, không chỉ cùng từ chối
+    # (2) rig tổng hợp 640×480, bản đồ cỡ hiển thị 480×360 của các cảnh ngẫu nhiên (supersample 3 đã có ở phần (1);
+    # ở rig nó chỉ làm test chậm vì phải dựng bảng mới cho cả hai bản)
+    cameras, ego = rig
+    for supersample, max_range in ((2, MAX_RANGE), (2, MAX_RANGE), (1, None)):
+        probs = {n: _random_probability(rng, c.calibration, DISPLAY) for n, c in cameras.items()}
+        assert _assert_same_as_reference(probs, cameras, GRID, ego, max_range=max_range, supersample=supersample)
+    # (3) camera nhìn gần thẳng xuống từ đúng tâm một ô con, mọi pixel BLOCKED: ô chứa camera che MỌI phương vị
+    from autopark.perception.calibration import CameraCalibration, Extrinsics
+    grid = GridSpec(-1.0, 1.0, -1.0, 1.0, 0.05)
+    down = bev.BevCamera("down", CameraCalibration("down", nominal_intrinsics(120, 90), Extrinsics.from_matrix(
+        rig_rotation(0.0, 89.0), (0.0125, 0.0125, 0.2))))
+    blocked = {"down": np.ones((90, 120), np.float32)}
+    assert _assert_same_as_reference(blocked, {"down": down}, grid, max_range=None)
+    view = build_bev(blocked, {"down": down}, grid, max_range=None).views["down"]
+    assert (view.state_fine == OCCUPIED).sum() == 1 and view.seen_fine.sum() == 1 and view.in_view_fine.sum() > 100
+    # (4) từ chối như bản cũ, cùng thông báo: xác suất ngoài [0, 1], ROI sai cỡ
+    cam = _random_camera(rng, "e", (120, 90))
+    bad = np.full((90, 120), 0.2, np.float32)
+    bad[3, 4] = 1.5
+    assert not _assert_same_as_reference({"e": bad}, {"e": cam}, grid)
+    wrong_roi = bev.BevCamera("r", cam.calibration, np.full((45, 60), 255, np.uint8))
+    assert not _assert_same_as_reference({"r": np.zeros((90, 120), np.float32)}, {"r": wrong_roi}, grid)
+    # (5) as_probability vẫn trả mảng MỚI (không trùng bộ nhớ đầu vào) và cùng giá trị với bản cũ ở cả 256 mức P×255
+    src = np.zeros((2, 3), np.float32)
+    out = bev.as_probability(src)
+    out[0, 0] = 1.0
+    assert src[0, 0] == 0.0
+    levels = np.arange(256, dtype=np.uint8).reshape(16, 16)
+    assert np.array_equal(bev.as_probability(levels), _ref_as_probability(levels))
+    # (6) hai ngưỡng trùng nhau sau khi làm tròn về float32: pixel p = 0,5 vừa ≤ t_free vừa ≥ t_blocked, bản cũ gọi là
+    # BLOCKED (không phải "không chắc"); đường nhanh phải cho cùng kết quả
+    edge = np.array([[0.5, 0.4, 0.6, 0.5000001]], np.float32)
+    for t_free, t_blocked in ((0.5, 0.5 + 1e-9), (0.4, 0.4 + 1e-12), (0.15, 0.5)):
+        fast, ref = evidence_labels(edge, t_free, t_blocked), _ref_evidence_labels(edge, t_free, t_blocked)
+        assert np.array_equal(fast[0], ref[0]) and np.array_equal(fast[1], ref[1]), (t_free, t_blocked)
+    assert evidence_labels(edge, 0.5, 0.5 + 1e-9)[0][0, 0] == bev.LABEL_BLOCKED
+
+
+def test_geometry_tables_are_built_once_and_read_only(rig, probs):
+    cameras, ego = rig
+    build_bev(probs, cameras, GRID, max_range=MAX_RANGE, ego=ego)         # dựng (hoặc đã có) bảng của bốn camera
+    before = bev.view_geometry.cache_info()
+    build_bev(probs, cameras, GRID, max_range=MAX_RANGE, ego=ego)
+    after = bev.view_geometry.cache_info()
+    assert after.misses == before.misses and after.hits == before.hits + 4   # khung sau: không dựng lại gì
+    fine = bev.fine_grid(GRID, bev.DEFAULT_SUPERSAMPLE)
+    geometry = bev.view_geometry(cameras["p1"].calibration, fine, MAX_RANGE, bev.DEFAULT_AZIMUTH_BIN_DEG)
+    # khóa gồm tầm và bin phương vị (và hiệu chuẩn, lưới): đổi một thứ là bảng khác
+    assert bev.view_geometry(cameras["p1"].calibration, fine, 1.0, bev.DEFAULT_AZIMUTH_BIN_DEG) is not geometry
+    assert bev.view_geometry(cameras["p1"].calibration, fine, MAX_RANGE, 1.0) is not geometry
+    with pytest.raises(ValueError):
+        geometry.cells[0] = 0                                               # bảng dùng chung giữa các khung: chỉ đọc
+    assert geometry.nbytes() < 8e6                                          # tối 24/09: ≈ 2,9 MB (640×480, tầm 2 m)
+
+
+def test_invalid_max_range_is_rejected_at_every_entry_point(rig, probs, tmp_path, capsys):
+    # (25/09/2026) max_range NaN từng chạy qua: bỏ giới hạn tầm, tắt lượt gỡ FREE vật mảnh (pixel_to_ground loại mọi
+    # pixel) và vùng nhìn khác bản cũ 9bcc30c (in_view_fine khác 11 431–16 428 ô con mỗi camera của rig) — nay bị từ chối
+    # ở mọi lối vào công khai, cùng ≤ 0 (vùng nhìn rỗng) và giá trị không phải số
+    cameras, ego = rig
+    cam = cameras["p1"]
+    fine = bev.fine_grid(GRID, bev.DEFAULT_SUPERSAMPLE)
+    for bad in (float("nan"), math.nan, np.float32("nan"), 0.0, -1.0, "abc"):
+        with pytest.raises(ValueError, match="max_range"):
+            build_bev(probs, cameras, GRID, max_range=bad, ego=ego)
+        with pytest.raises(ValueError, match="max_range"):
+            build_bev({}, cameras, GRID, max_range=bad, ego=ego)       # kiểm trước mọi camera, kể cả khi không chiếu gì
+        with pytest.raises(ValueError, match="max_range"):
+            bev.project_camera(probs["p1"], cam, GRID, max_range=bad)
+        with pytest.raises(ValueError, match="max_range"):                  # kiểm tầm trước cả bản đồ xác suất
+            bev.project_camera(np.zeros((2, 2, 3), np.float32), cam, GRID, max_range=bad)
+        for _ in range(2):          # lỗi không được lru_cache nhớ; math.nan là cùng một đối tượng nên khóa trùng nhau
+            with pytest.raises(ValueError, match="max_range"):
+                bev.view_geometry(cam.calibration, fine, bad, bev.DEFAULT_AZIMUTH_BIN_DEG)
+    # bộ ảnh: từ chối trước khi đọc thư mục (thư mục không tồn tại vẫn ra lỗi tầm, không phải lỗi thiếu tệp)
+    with pytest.raises(ValueError, match="max_range"):
+        bev.bev_from_snapshot(tmp_path / "khong_co", max_range=math.nan)
+    # None và +inf vẫn nhận, +inf cho đúng kết quả như None (không giới hạn tầm)
+    front = {"p1": cam}
+    unlimited = build_bev({"p1": probs["p1"]}, front, GRID, max_range=None, ego=ego)
+    infinite = build_bev({"p1": probs["p1"]}, front, GRID, max_range=math.inf, ego=ego)
+    for key in ("states", "category", "seen_by", "free_by", "occupied_by", "in_view_by", "conflict"):
+        assert np.array_equal(getattr(infinite, key), getattr(unlimited, key)), key
+    assert np.array_equal(infinite.views["p1"].in_view_fine, unlimited.views["p1"].in_view_fine)
+    assert infinite.views["p1"].in_view_fine.sum() > build_bev({"p1": probs["p1"]}, front, GRID, max_range=MAX_RANGE,
+                                                               ego=ego).views["p1"].in_view_fine.sum()
+    # dòng lệnh: từ chối lúc đọc tham số (mã 2), trước khi tính — kể cả ±inf vì stats.json không ghi được inf
+    for command, value in (("bench", "nan"), ("synthetic", "nan"), ("bench", "inf"), ("bench", "-inf"),
+                           ("bench", "0"), ("bench", "-2"), ("bench", "hai")):
+        out = tmp_path / f"cli_{command}_{value}"
+        with pytest.raises(SystemExit) as stop:
+            bev.main([command, "--max-range", value, "--out", str(out)])
+        assert stop.value.code == 2 and not out.exists(), (command, value)
+        assert "--max-range" in capsys.readouterr().err, (command, value)
+
+
+def test_bench_cli_writes_timing_report(tmp_path, capsys):
+    out = tmp_path / "bench"
+    assert bev.main(["bench", "--repeat", "2", "--out", str(out)]) == 0
+    report = json.loads((out / "bench.json").read_text(encoding="utf-8"))
+    assert report["kind"] == "autopark_bev_bench_v0" and report["warm_ms"]["repeat"] == 2
+    assert 0 < report["warm_ms"]["best"] <= report["warm_ms"]["median"] <= report["warm_ms"]["max"]
+    assert report["first_call_ms"] > 0 and sorted(report["warm_best_per_camera_ms"]) == ["p1", "p2", "p3", "p4"]
+    assert report["params"]["grid"]["shape_rows_cols"] == [120, 120] and report["params"]["supersample"] == 2
+    assert all(n > 0 for n in report["geometry_table_bytes"].values())
+    assert "KHÔNG phải ảnh thật" in report["input"]["kind"]
+    assert "bench.json" in capsys.readouterr().out
+    bad = tmp_path / "bad"
+    assert bev.main(["bench", "--repeat", "0", "--out", str(bad)]) == 2 and not bad.exists()
+    assert "--repeat" in capsys.readouterr().err
+
+
+@pytest.mark.planner_budget           # đo thời gian thật: chạy ngoài lượt coverage, như các test ngân sách thời gian
+def test_fast_path_speedup_over_reference(rig, probs):
+    # tỉ lệ đo trên CÙNG máy, cùng tiến trình, xen kẽ hai bản, lấy lần nhanh nhất: bền hơn một cận tuyệt đối khi máy
+    # chậm hay bận. Máy bàn tối 24/09 (tác tử khác chạy song song), lần nhanh nhất: bản cũ ≈ 60–104 ms, đường nhanh
+    # ≈ 7–9 ms (≈ 8–12 lần; docs/BEV.md mục 6).
+    cameras, ego = rig
+    kw = dict(max_range=MAX_RANGE, supersample=2, ego=ego)
+    _ref_build_bev(probs, cameras, GRID, **kw)                              # làm nóng bộ nhớ đệm của cả hai bản
+    build_bev(probs, cameras, GRID, **kw)
+    best_ref = best_fast = math.inf
+    for _ in range(5):
+        t0 = time.perf_counter()
+        _ref_build_bev(probs, cameras, GRID, **kw)
+        t1 = time.perf_counter()
+        build_bev(probs, cameras, GRID, **kw)
+        t2 = time.perf_counter()
+        best_ref, best_fast = min(best_ref, t1 - t0), min(best_fast, t2 - t1)
+    assert best_ref / best_fast >= 3.0, f"bản cũ {1000 * best_ref:.1f} ms, đường nhanh {1000 * best_fast:.1f} ms"
+    assert best_fast < 0.25, f"4 camera, lưới 6×6 m ô 5 cm: {1000 * best_fast:.1f} ms"
 
 
 # ---- dòng lệnh: bộ ảnh bàn thử ---------------------------------------------------------------------------------------

@@ -24,8 +24,10 @@ Việc của mô-đun (không cần Qt, không mở camera):
   chính `FisheyeIntrinsics.project` / `unproject`;
 - ghi một tệp JSON cho mỗi camera, khóa theo CỔNG HUB (index OpenCV đổi sau khởi động lại).
 
-Tệp hiệu chuẩn chỉ có NỘI THAM: camera chưa gắn lên rig, chưa có ngoại tham (vị trí/hướng so với xe) — việc đó là
-`camera_rig_extrinsics.yaml`, chưa làm. Các ngưỡng chấp nhận ở dưới là ĐỀ XUẤT, chưa kiểm trên camera thật.
+Tệp hiệu chuẩn chỉ có NỘI THAM: không có ngoại tham (vị trí/hướng so với xe). Ngoại tham đo bằng
+`perception/extrinsics_calib.py` (giao diện `ui/roi_app.py`, từ 24/09/2026) và ghi vào
+`configs/rig/camera_rig_extrinsics_v1.json`, xem docs/NGOAI_THAM_VA_ROI.md; công cụ đó cần tệp nội tham này trước.
+Các ngưỡng chấp nhận ở dưới là ĐỀ XUẤT, chưa kiểm trên camera thật.
 """
 from __future__ import annotations
 
@@ -75,7 +77,8 @@ MIN_POSE_DISTANCE = 0.12     # ... và tư thế bảng khác mọi ảnh đã c
 MIN_CAPTURE_INTERVAL_S = 1.0
 
 NOT_ON_RIG_NOTE = ("Chưa gắn lên rig: tệp này chỉ có nội tham (K, D) của một camera, KHÔNG có ngoại tham (vị trí/hướng "
-                   "camera so với xe). Ngoại tham sẽ nằm ở camera_rig_extrinsics.yaml khi gá xong; chưa làm.")
+                   "camera so với xe). Ngoại tham đo riêng bằng perception/extrinsics_calib.py sau khi gá camera, ghi "
+                   "vào configs/rig/camera_rig_extrinsics_v1.json (docs/NGOAI_THAM_VA_ROI.md).")
 
 
 def _flag(name: str) -> int:

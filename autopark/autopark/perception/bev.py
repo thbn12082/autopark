@@ -3,6 +3,7 @@
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.bev synthetic
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.bev snapshot runs/rig_snapshots/<ngày_giờ>
     .\\.venv-train\\Scripts\\python.exe -X utf8 -m autopark.perception.bev woodscape --image datasets/training/woodscape/rgb_images/00000_FV.png --checkpoint runs/ai_woodscape_rtx4000_v1/best.pt
+    .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.bev bench
 
 Hướng dẫn, quy tắc và giới hạn: docs/BEV.md. Mỗi lệnh viết trên một dòng để dán được vào PowerShell.
 
@@ -14,8 +15,11 @@ hệ xe: x trước, y trái, z lên, gốc trên mặt sàn dưới tâm trục
 1. Xác suất → bằng chứng theo HAI ngưỡng: p ≤ t_free → FREE; p ≥ t_blocked → OCCUPIED; ở giữa → không chắc chắn
    (UNKNOWN). Pixel ngoài ROI hoặc NaN → không có bằng chứng. Xác suất được phóng về cỡ ảnh đã hiệu chuẩn TRƯỚC khi
    so ngưỡng (nội suy tuyến tính khi phóng to, INTER_AREA khi thu nhỏ); tệp PNG lưu P×255 nên lệch ≤ 1/510 quanh ngưỡng.
-2. Chiếu xuống mặt sàn bằng `costmap.project_labels` (không sửa mô-đun đó): tâm ô → pixel; theo từng phương vị nhìn từ
-   camera, mọi ô sau ô OCCUPIED đầu tiên là UNKNOWN (che khuất); ô xa hơn `max_range` là UNKNOWN. Chiếu trên lưới mịn
+2. Chiếu xuống mặt sàn đúng phép tính của `costmap.project_labels` (không sửa mô-đun đó): tâm ô → pixel; theo từng
+   phương vị nhìn từ camera, mọi ô sau ô OCCUPIED đầu tiên là UNKNOWN (che khuất); ô xa hơn `max_range` là UNKNOWN. Từ
+   tối 24/09/2026 phần chỉ phụ thuộc hình học (tâm ô → pixel, khoảng cách, bóng che, bảng pixel → ô con) được dựng một
+   lần cho mỗi hiệu chuẩn + lưới + tầm rồi nhớ (`view_geometry`); kết quả trùng từng bit với bản gọi `project_labels`
+   mỗi khung (tests/test_bev.py so trên đầu vào ngẫu nhiên). Chiếu trên lưới mịn
    hơn `supersample` lần rồi gộp BẢO THỦ: ô là OCCUPIED nếu có ô con OCCUPIED, FREE chỉ khi MỌI ô con FREE.
    `project_labels` chỉ đọc pixel ở tâm ô con, nên thêm một lượt ngược (pixel → sàn): ô con có tâm hoặc góc của một pixel
    BLOCKED/không chắc rơi vào thì KHÔNG được FREE ở camera đó (thành UNKNOWN, không thành OCCUPIED) — vật mảnh nằm giữa
@@ -46,7 +50,10 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 import json
 import math
+import os
 from pathlib import Path
+import platform
+import statistics
 import sys
 import time
 import unicodedata
@@ -59,7 +66,8 @@ from autopark.domain.sensors import Costmap, SourceStamp
 from autopark.video.sources import bottom_repeat_share, torn_bands, truncated_rows
 
 from .calibration import CameraCalibration, Extrinsics, FisheyeIntrinsics, load_woodscape_calibration
-from .costmap import FREE, OCCUPIED, UNKNOWN, GridSpec, costmap_to_dict, project_labels, to_costmap
+# _ranges: cùng hàm trải dải bin của project_labels, để phép che khuất tính trên bảng dựng sẵn trùng từng bit với nó
+from .costmap import FREE, OCCUPIED, UNKNOWN, GridSpec, _ranges, costmap_to_dict, to_costmap
 from .paths import PROJECT, atomic_write_json, utc_now
 
 # ---- tham số mặc định ------------------------------------------------------------------------------------------------
@@ -147,18 +155,54 @@ def check_thresholds(t_free: float, t_blocked: float) -> None:
         raise ValueError(f"cần 0 ≤ t_free < t_blocked ≤ 1 (được t_free={t_free}, t_blocked={t_blocked})")
 
 
-def as_probability(prob) -> np.ndarray:
-    """uint8 (P×255, như prob_blocked_p*.png) hoặc số thực trong [0, 1] → float32 (H, W); NaN giữ nguyên."""
+def check_max_range(max_range: float | None) -> None:
+    """None = không giới hạn tầm; ngoài ra phải là số > 0 (+inf được nhận, cho kết quả như None). NaN và ≤ 0 bị từ chối
+    (từ 25/09/2026). Trước đó, với NaN cả bản cũ 9bcc30c lẫn bản tăng tốc đều bỏ giới hạn tầm (FREE tới chân trời) và
+    tắt lượt gỡ FREE vật mảnh (pixel_to_ground loại mọi pixel khi tầm NaN), còn vùng nhìn của hai bản khác nhau
+    (`hypot <= nan` toàn False, `~(distance > nan)` toàn True). Với ≤ 0, vùng nhìn rỗng, không có nghĩa dùng."""
+    if max_range is None:
+        return
+    try:
+        value = float(max_range)
+    except (TypeError, ValueError):
+        raise ValueError(f"max_range phải là None hoặc số > 0 (nhận {max_range!r})") from None
+    if math.isnan(value) or value <= 0:
+        raise ValueError(f"max_range phải là None hoặc số > 0 (nhận {max_range!r})")
+
+
+# P×255 → P: cùng phép tính từng phần tử với uint8.astype(float32) / 255 (bảng 256 giá trị; cv2.LUT nhanh hơn ≈ 4 lần)
+_PROB_OF_U8 = np.arange(256, dtype=np.uint8).astype(np.float32) / 255.0
+_PROB_OF_U8.flags.writeable = False
+# mã bằng chứng (p > t_free) + (p ≥ t_blocked) + 4·(ngoài ROI) → nhãn: 0 FREE, 1 không chắc, 2 BLOCKED, ≥ 3 không có
+_LABEL_OF_CODE = np.full(256, LABEL_NONE, np.uint8)
+_LABEL_OF_CODE[0], _LABEL_OF_CODE[2] = LABEL_FREE, LABEL_BLOCKED
+_LABEL_OF_CODE.flags.writeable = False
+
+
+def _probability(prob, *, copy: bool) -> tuple[np.ndarray, bool]:
+    """→ (float32 (H, W), `clean`). clean = không NaN, không ±inf, mọi giá trị trong [0, 1] (biết chắc; False khi chưa
+    rõ). copy=False: đầu vào float32 được dùng thẳng, không chép (chỉ dùng khi không ghi vào kết quả)."""
     a = np.asarray(prob)
     if a.ndim != 2:
         raise ValueError(f"bản đồ xác suất phải là ảnh một kênh (H, W), được {a.shape}")
     if a.dtype == np.uint8:
-        return a.astype(np.float32) / 255.0
-    a = a.astype(np.float32)
-    finite = a[np.isfinite(a)]
-    if finite.size and (finite.min() < 0.0 or finite.max() > 1.0):
-        raise ValueError("xác suất số thực phải nằm trong [0, 1]")
-    return a
+        if not a.size:
+            return a.astype(np.float32) / 255.0, False
+        return cv2.LUT(np.ascontiguousarray(a), _PROB_OF_U8), True
+    a = a.astype(np.float32, copy=copy)
+    # min/max lan NaN: cả hai trong [0, 1] ⇒ không NaN, không ±inf. Còn lại: fmin/fmax bỏ qua NaN; nếu vẫn chưa chắc thì
+    # xét đúng như bản đầu (chỉ giá trị hữu hạn phải trong [0, 1]; NaN, ±inf được giữ)
+    clean = bool(a.size) and bool(a.min() >= 0.0) and bool(a.max() <= 1.0)
+    if a.size and not clean and not (np.fmin.reduce(a, axis=None) >= 0.0 and np.fmax.reduce(a, axis=None) <= 1.0):
+        finite = a[np.isfinite(a)]
+        if finite.size and (finite.min() < 0.0 or finite.max() > 1.0):
+            raise ValueError("xác suất số thực phải nằm trong [0, 1]")
+    return a, clean
+
+
+def as_probability(prob) -> np.ndarray:
+    """uint8 (P×255, như prob_blocked_p*.png) hoặc số thực trong [0, 1] → float32 (H, W) mới; NaN giữ nguyên."""
+    return _probability(prob, copy=True)[0]
 
 
 def resize_probability(prob: np.ndarray, width: int, height: int, *, aspect_tolerance: float = 0.01) -> np.ndarray:
@@ -170,7 +214,7 @@ def resize_probability(prob: np.ndarray, width: int, height: int, *, aspect_tole
         raise ValueError(f"bản đồ xác suất {w}×{h} khác tỉ lệ khung của hiệu chuẩn {width}×{height}: "
                          f"nhiều khả năng là mode camera khác, không dùng nội tham này được")
     interpolation = cv2.INTER_AREA if w > width else cv2.INTER_LINEAR
-    return cv2.resize(prob.astype(np.float32), (width, height), interpolation=interpolation)
+    return cv2.resize(np.ascontiguousarray(prob, dtype=np.float32), (width, height), interpolation=interpolation)
 
 
 def evidence_labels(prob, t_free: float = DEFAULT_T_FREE, t_blocked: float = DEFAULT_T_BLOCKED,
@@ -180,14 +224,23 @@ def evidence_labels(prob, t_free: float = DEFAULT_T_FREE, t_blocked: float = DEF
     Bằng ngưỡng: p == t_free là FREE, p == t_blocked là BLOCKED. Pixel ngoài ROI (roi == 0) hay NaN không thuộc loại nào.
     """
     check_thresholds(t_free, t_blocked)
-    p = as_probability(prob)
+    p, clean = _probability(prob, copy=False)
+    if roi is not None and roi.shape != p.shape:
+        raise ValueError(f"ROI {roi.shape} khác cỡ bản đồ xác suất {p.shape}")
+    # hai ngưỡng làm tròn về float32 trùng nhau (ví dụ 0,5 và 0,5 + 1e-9) thì một pixel có thể vừa ≤ t_free vừa
+    # ≥ t_blocked: bản đầu gọi nó BLOCKED; mã một lượt bên dưới sẽ gọi sai là "không chắc" → dùng nhánh công thức đầy đủ
+    if clean and np.float32(t_free) < np.float32(t_blocked):
+        # không NaN/±inf: p ≤ t_free ⇔ không (p > t_free); t_free < t_blocked nên p ≥ t_blocked kéo theo p > t_free. Mã
+        # 0 FREE, 1 không chắc, 2 BLOCKED; +4 ngoài ROI. Cùng phép so sánh float32 như nhánh dưới, nên cùng kết quả.
+        code = (p > t_free).view(np.uint8) + (p >= t_blocked).view(np.uint8)
+        if roi is not None:
+            code |= (~(roi > 0)).view(np.uint8) << 2
+        return cv2.LUT(code, _LABEL_OF_CODE), code == 1
     finite = np.isfinite(p)
     free = finite & (p <= t_free)
     blocked = finite & (p >= t_blocked)
     uncertain = finite & ~free & ~blocked
     if roi is not None:
-        if roi.shape != p.shape:
-            raise ValueError(f"ROI {roi.shape} khác cỡ bản đồ xác suất {p.shape}")
         inside = roi > 0
         free &= inside
         blocked &= inside
@@ -225,10 +278,14 @@ class BevCamera:
     intrinsics_source: str = ""
     roi_source: str | None = None
     acceptance_all_pass: bool | None = None      # tiêu chí ĐỀ XUẤT của fisheye_calib; None = không áp dụng
+    # phần nào là dữ liệu TỔNG HỢP (camera ảo của lệnh synthetic/test), ví dụ ("ngoại tham", "nội tham"); có thì BEV
+    # "không dùng được" dù tệp ghi measured: true (thêm 25/09/2026)
+    synthetic: tuple = ()
 
     def describe(self) -> dict:
         e = self.calibration.extrinsics
         return {"direction": self.direction, "extrinsics_measured": self.extrinsics_measured,
+                "synthetic": list(self.synthetic),
                 "position_m": [round(float(t), 4) for t in e.translation],
                 "quaternion_xyzw": [round(float(q), 6) for q in e.quaternion_xyzw],
                 "optical_axis_vehicle": [round(float(a), 4) for a in e.rotation[:, 2]],
@@ -259,6 +316,7 @@ class RigCameraPose:
     extrinsics: Extrinsics
     measured: bool
     basis: str = ""
+    synthetic: bool = False       # tệp hay camera ghi "synthetic": true (extrinsics_calib --allow-synthetic)
 
 
 @dataclass(frozen=True)
@@ -272,7 +330,8 @@ class RigExtrinsics:
 
 def load_rig_extrinsics(path=DEFAULT_EXTRINSICS) -> RigExtrinsics:
     """Đọc configs/rig/camera_rig_extrinsics_*.json. Camera ghi `quaternion_xyzw` thì dùng thẳng, không thì dựng từ
-    yaw/pitch/roll. `measured` phải ghi rõ true mới được tính là đã đo."""
+    yaw/pitch/roll. `measured` phải ghi rõ true mới được tính là đã đo. `"synthetic": true` (ở camera hay cả tệp) được
+    giữ trong `RigCameraPose.synthetic`; BEV coi camera đó "không dùng được" dù `measured` là true (25/09/2026)."""
     path = Path(path)
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -302,7 +361,8 @@ def load_rig_extrinsics(path=DEFAULT_EXTRINSICS) -> RigExtrinsics:
         except (KeyError, TypeError, ValueError) as exc:
             raise RigConfigError(f"{path}: camera {key!r} sai định dạng: {exc}") from exc
         cameras[port] = RigCameraPose(port, str(c.get("direction", "")), extrinsics, c.get("measured") is True,
-                                      str(c.get("basis", "")))
+                                      str(c.get("basis", "")),
+                                      c.get("synthetic") is True or data.get("synthetic") is True)
     if not cameras:
         raise RigConfigError(f"{path}: không có camera nào")
     ego = None
@@ -352,7 +412,8 @@ def load_rig(extrinsics_path=DEFAULT_EXTRINSICS, calibration_dir=DEFAULT_CALIBRA
             continue
         try:
             intrinsics = load_intrinsics(intr_path, width=width, height=height)
-            acceptance = (load_calibration(intr_path).get("acceptance") or {}).get("all_pass")
+            record = load_calibration(intr_path)
+            acceptance = (record.get("acceptance") or {}).get("all_pass")
         except (OSError, ValueError, KeyError) as exc:
             errors.append((name, f"không nạp được nội tham {intr_path}: {exc}"))
             continue
@@ -365,9 +426,12 @@ def load_rig(extrinsics_path=DEFAULT_EXTRINSICS, calibration_dir=DEFAULT_CALIBRA
                     errors.append((name, f"ROI {roi_path} cỡ {roi.shape[1]}×{roi.shape[0]}, cần {width}×{height}"))
                     continue
                 roi_source = str(roi_path)
+        from .extrinsics_calib import intrinsics_is_synthetic   # nhập muộn: extrinsics_calib nhập bev
+        synthetic = tuple(part for part, flag in (("ngoại tham", pose.synthetic),
+                                                  ("nội tham", intrinsics_is_synthetic(record))) if flag)
         cameras[name] = BevCamera(name, CameraCalibration(name, intrinsics, pose.extrinsics), roi, pose.measured,
                                   pose.direction, str(intr_path), roi_source,
-                                  None if acceptance is None else bool(acceptance))
+                                  None if acceptance is None else bool(acceptance), synthetic)
     if errors and not skip_uncalibrated:
         raise RigConfigError("không dựng được rig camera:\n" + "\n".join(f"  - {msg}" for _, msg in errors))
     skipped.update({name: msg for name, msg in errors})
@@ -395,25 +459,40 @@ def fine_grid(grid: GridSpec, supersample: int) -> GridSpec:
     return GridSpec(grid.x_min, grid.x_max, grid.y_min, grid.y_max, grid.resolution / supersample)
 
 
-def _blocks(a: np.ndarray, k: int) -> np.ndarray:
+def _block_shape(a: np.ndarray, k: int) -> tuple[int, int]:
     rows, cols = a.shape[0] // k, a.shape[1] // k
-    return a.reshape(rows, k, cols, k)
+    if k < 1 or a.shape != (rows * k, cols * k):
+        raise ValueError(f"mảng {a.shape} không chia được thành khối {k} × {k}")
+    return rows, cols
 
 
 def _any(a: np.ndarray, k: int) -> np.ndarray:
-    return _blocks(a, k).any(axis=(1, 3))
+    """Gộp khối k × k: True nếu có ô con True. Mảng bool mới. OR k² lát cắt bước k — cùng kết quả với
+    reshape(rows, k, cols, k).any(axis=(1, 3)) nhưng nhanh hơn ≈ 10 lần ở k = 2 (đo 24/09, mảng 240 × 240)."""
+    _block_shape(a, k)
+    out = np.array(a[0::k, 0::k], dtype=bool)
+    for i in range(k):
+        for j in range(k):
+            if i or j:
+                out |= a[i::k, j::k]
+    return out
 
 
 def _all(a: np.ndarray, k: int) -> np.ndarray:
-    return _blocks(a, k).all(axis=(1, 3))
+    """Gộp khối k × k: True chỉ khi MỌI ô con True. Mảng bool mới."""
+    _block_shape(a, k)
+    out = np.array(a[0::k, 0::k], dtype=bool)
+    for i in range(k):
+        for j in range(k):
+            if i or j:
+                out &= a[i::k, j::k]
+    return out
 
 
-@lru_cache(maxsize=8)
 def _pixel_ground_cells(calib: CameraCalibration, fine: GridSpec, range_limit: float | None) -> tuple:
     """(tâm (H, W), góc (H+1, W+1)): chỉ số phẳng hàng·số_cột + cột của ô con lưới mịn mà tâm pixel (u, v) và góc pixel
     (u ± 0,5, v ± 0,5) rơi xuống mặt sàn; −1 khi tia không chạm sàn, quá `range_limit`, ra ngoài lưới hay ngoài vùng hiệu
-    chuẩn (θ > theta_max: `unproject` trả NaN, không ngoại suy). Chỉ phụ thuộc hiệu chuẩn + lưới + tầm nên được nhớ giữa
-    các khung (mảng chỉ đọc; 640×480 ≈ 2,5 MB mỗi camera)."""
+    chuẩn (θ > theta_max: `unproject` trả NaN, không ngoại suy)."""
     intr = calib.intrinsics
     rows, cols = fine.shape
 
@@ -425,9 +504,7 @@ def _pixel_ground_cells(calib: CameraCalibration, fine: GridSpec, range_limit: f
             inside = ok & (ci >= 0) & (ci < cols) & (ri >= 0) & (ri < rows)
         index = np.full(u.size, -1, np.int32)
         index[inside] = (ri[inside] * cols + ci[inside]).astype(np.int32)
-        index = index.reshape(u.shape)
-        index.flags.writeable = False
-        return index
+        return index.reshape(u.shape)
 
     center = cells(*np.meshgrid(np.arange(intr.width, dtype=np.float64), np.arange(intr.height, dtype=np.float64)))
     corner = cells(*np.meshgrid(np.arange(intr.width + 1, dtype=np.float64) - 0.5,
@@ -435,74 +512,185 @@ def _pixel_ground_cells(calib: CameraCalibration, fine: GridSpec, range_limit: f
     return center, corner
 
 
-def not_free_hits(labels: np.ndarray, uncertain: np.ndarray, calib: CameraCalibration, fine: GridSpec,
-                  max_range: float | None) -> np.ndarray:
-    """bool (lưới mịn): ô con có tâm hoặc một góc của pixel BLOCKED/không chắc (trong ROI, không NaN) rơi vào.
+# nhãn pixel (0 FREE, 1 BLOCKED, 255 không có bằng chứng) → trạng thái ô, như project_labels: 0 → FREE, 1 → OCCUPIED,
+# mọi giá trị khác → UNKNOWN
+_STATE_OF_LABEL = np.full(256, UNKNOWN, np.int8)
+_STATE_OF_LABEL[LABEL_FREE] = FREE
+_STATE_OF_LABEL[LABEL_BLOCKED] = OCCUPIED
+_STATE_OF_LABEL.flags.writeable = False
 
-    Điểm sàn của một pixel là điểm XA NHẤT tia của nó có thể chạm, nên pixel BLOCKED không chứng minh được mặt sàn ở đó
-    trống: gỡ FREE ở đó luôn an toàn. Không dùng để đặt OCCUPIED (pixel mặt bên vật cao sẽ kéo vệt theo tia)."""
-    mask = (labels == LABEL_BLOCKED) | uncertain
+
+@dataclass(frozen=True, eq=False)
+class ViewGeometry:
+    """Phần của phép chiếu một camera CHỈ phụ thuộc hiệu chuẩn (gồm cỡ ảnh) + lưới mịn + tầm + bin phương vị — tính
+    một lần rồi nhớ giữa các khung (`view_geometry`). Chỉ giữ ô con "trong vùng": tâm chiếu hợp lệ vào ảnh
+    (θ ≤ theta_max, trong khung) và trong tầm; mọi ô con khác luôn UNKNOWN, không được thấy, ngoài vùng hình học.
+    Mảng chỉ đọc. Bảng của lượt gỡ FREE xếp theo ô con (kiểu CSR): mỗi ô con trong vùng có danh sách pixel mà tâm hoặc
+    một góc rơi vào nó, không lặp; ô con không pixel nào chạm thì không có mặt."""
+    fine_shape: tuple
+    cells: np.ndarray           # intp (M,): chỉ số phẳng hàng·số_cột + cột của ô con trong vùng, tăng dần
+    pixels: np.ndarray          # intp (M,): pixel rint(v)·W + rint(u) mà tâm ô con chiếu vào (như project_labels)
+    distance: np.ndarray        # float64 (M,): khoảng cách trên sàn từ camera tới tâm ô con
+    azimuth_bin: np.ndarray     # int64 (M,): bin phương vị của tâm ô con nhìn từ camera
+    shadow_lo: np.ndarray       # int64 (M,): bin đầu của bóng che nếu ô con là OCCUPIED
+    shadow_count: np.ndarray    # int64 (M,): số bin của bóng che
+    n_bins: int
+    touch_pixels: np.ndarray    # intp (P,): pixel chạm ô con, xếp liền nhau theo ô con
+    touch_starts: np.ndarray    # intp (S,): đầu đoạn của từng ô con trong touch_pixels
+    touch_cells: np.ndarray     # intp (S,): vị trí (trong `cells`) của ô con của từng đoạn
+
+    def nbytes(self) -> int:
+        return sum(getattr(self, name).nbytes for name in _GEOMETRY_ARRAYS)
+
+
+_GEOMETRY_ARRAYS = ("cells", "pixels", "distance", "azimuth_bin", "shadow_lo", "shadow_count", "touch_pixels",
+                    "touch_starts", "touch_cells")
+
+
+@lru_cache(maxsize=8)
+def view_geometry(calib: CameraCalibration, fine: GridSpec, max_range: float | None,
+                  azimuth_bin_deg: float) -> ViewGeometry:
+    """Dựng ViewGeometry. Các biểu thức, kiểu dữ liệu và thứ tự phép tính chép từ costmap.project_labels (tâm ô → pixel,
+    khoảng cách, bin phương vị, bóng che theo bốn góc ô) và từ lượt gỡ FREE (tâm + bốn góc pixel → ô con, tầm nới một
+    cạnh ô con), chỉ khác là tính cho mọi ô con trong vùng một lần thay vì mỗi khung — nên kết quả trùng từng bit
+    (tests/test_bev.py so với project_labels và bản cũ trên đầu vào ngẫu nhiên). Khóa nhớ: hiệu chuẩn (nội tham gồm cỡ
+    ảnh, ngoại tham, tên), lưới mịn, tầm, bin phương vị; 8 mục. Tầm NaN/≤ 0 bị từ chối (`check_max_range`); lỗi không
+    được nhớ nên mọi lần gọi đều bị kiểm."""
+    check_max_range(max_range)
     rows, cols = fine.shape
-    hit = np.zeros(rows * cols, bool)
-    if mask.any():
-        # ô con có tâm trong max_range có thể có góc xa hơn tới 0,71 × cạnh ô con: nới tầm một cạnh để không sót pixel
-        limit = None if max_range is None else float(max_range) + fine.resolution
-        center, corner = _pixel_ground_cells(calib, fine, limit)
-        touched = np.zeros(corner.shape, bool)             # góc (i, j) thuộc các pixel (i-1..i, j-1..j)
-        touched[:-1, :-1] |= mask
-        touched[:-1, 1:] |= mask
-        touched[1:, :-1] |= mask
-        touched[1:, 1:] |= mask
-        index = np.concatenate([center[mask], corner[touched]])
-        hit[index[index >= 0]] = True
-    return hit.reshape(rows, cols)
+    gx, gy = fine.centers()
+    u, v, valid = calib.ground_to_pixel(np.column_stack([gx.ravel(), gy.ravel()]))
+    cam_x, cam_y = calib.extrinsics.translation[:2]
+    dx, dy = gx.ravel() - cam_x, gy.ravel() - cam_y
+    distance = np.hypot(dx, dy)
+    inside = valid.copy()
+    if max_range is not None:
+        inside &= ~(distance > max_range)                       # project_labels: distance > max_range → UNKNOWN
+    cells = np.flatnonzero(inside)
+    pixels = np.rint(v[cells]).astype(np.int64) * calib.intrinsics.width + np.rint(u[cells]).astype(np.int64)
+
+    n_bins = int(round(360.0 / azimuth_bin_deg))
+    bin_size = 2 * np.pi / n_bins
+    azimuth = np.arctan2(dy, dx)
+    azimuth_bin = np.floor((azimuth + np.pi) / bin_size).astype(np.int64) % n_bins
+    # bóng che của ô con nếu nó là OCCUPIED: góc thật của bốn góc ô nhìn từ camera; ô chứa vị trí camera che mọi hướng
+    half = fine.resolution / 2
+    corner_dx = dx[cells, None] + np.array([[-half, half, half, -half]])
+    corner_dy = dy[cells, None] + np.array([[-half, -half, half, half]])
+    offsets = np.arctan2(corner_dy, corner_dx) - azimuth[cells, None]
+    offsets = (offsets + np.pi) % (2 * np.pi) - np.pi
+    half_extent = np.abs(offsets).max(axis=1)
+    contains_camera = (np.abs(dx[cells]) <= half) & (np.abs(dy[cells]) <= half)
+    half_extent[contains_camera] = np.pi
+    lo = np.floor((azimuth[cells] - half_extent + np.pi) / bin_size).astype(np.int64)
+    hi = np.floor((azimuth[cells] + half_extent + np.pi) / bin_size).astype(np.int64)
+    count = np.minimum(hi - lo + 1, n_bins)
+
+    # lượt gỡ FREE: ô con có tâm trong tầm có thể có góc xa hơn tới 0,71 × cạnh ô con — nới tầm một cạnh để không sót
+    limit = None if max_range is None else float(max_range) + fine.resolution
+    center, corner = _pixel_ground_cells(calib, fine, limit)
+    position = np.full(rows * cols + 1, -1, np.int32)          # phần tử cuối: chỗ của chỉ số −1 (ngoài lưới)
+    position[cells] = np.arange(len(cells), dtype=np.int32)
+    # góc (i, j) thuộc các pixel (i-1..i, j-1..j): pixel (r, c) có bốn góc (r, c), (r, c+1), (r+1, c), (r+1, c+1).
+    # Cặp (pixel, ô con) không lặp: bỏ điểm rơi vào cùng ô con với một điểm trước đó của chính pixel ấy.
+    points = [position[where].ravel() for where in
+              (center, corner[:-1, :-1], corner[:-1, 1:], corner[1:, :-1], corner[1:, 1:])]
+    pair_pixel, pair_cell = [], []
+    for j, pos in enumerate(points):
+        keep = pos >= 0
+        for earlier in points[:j]:
+            keep &= pos != earlier
+        index = np.flatnonzero(keep)
+        pair_pixel.append(index)
+        pair_cell.append(pos[index])
+    pair_pixel, pair_cell = np.concatenate(pair_pixel), np.concatenate(pair_cell)
+    # xếp theo ô con (sắp ổn định; khóa uint16 khi đủ chỗ thì numpy dùng radix sort)
+    order = np.argsort(pair_cell.astype(np.uint16) if len(cells) <= 65536 else pair_cell, kind="stable")
+    pair_pixel, pair_cell = pair_pixel[order], pair_cell[order]
+    touch_starts = np.flatnonzero(np.r_[True, pair_cell[1:] != pair_cell[:-1]]) if pair_cell.size \
+        else np.zeros(0, np.intp)
+    geometry = ViewGeometry((rows, cols), cells, pixels, distance[cells], azimuth_bin[cells], lo, count, n_bins,
+                            pair_pixel.astype(np.intp), touch_starts.astype(np.intp),
+                            pair_cell[touch_starts].astype(np.intp))
+    for name in _GEOMETRY_ARRAYS:
+        getattr(geometry, name).flags.writeable = False
+    return geometry
+
+
+def _occlusion_hidden(occupied: np.ndarray, geometry: ViewGeometry) -> np.ndarray | None:
+    """Phép che khuất của project_labels trên ô con trong vùng: mỗi ô OCCUPIED (vị trí `occupied`) che mọi bin phương vị
+    mà bốn góc của nó chắn; ô xa hơn ô OCCUPIED gần nhất trong bin của nó bị che. None khi không có ô OCCUPIED."""
+    if not occupied.size:
+        return None
+    count = geometry.shadow_count[occupied]
+    expanded = (np.repeat(geometry.shadow_lo[occupied], count) + _ranges(count)) % geometry.n_bins
+    nearest = np.full(geometry.n_bins, np.inf)
+    np.minimum.at(nearest, expanded, np.repeat(geometry.distance[occupied], count))
+    return geometry.distance > nearest[geometry.azimuth_bin] + 1e-9
 
 
 def project_camera(prob, camera: BevCamera, grid: GridSpec, *, t_free: float = DEFAULT_T_FREE,
                    t_blocked: float = DEFAULT_T_BLOCKED, max_range: float | None = RIG_MAX_RANGE,
                    supersample: int = DEFAULT_SUPERSAMPLE,
                    azimuth_bin_deg: float = DEFAULT_AZIMUTH_BIN_DEG) -> CameraView:
+    """Chiếu MỘT camera xuống lưới mịn. Quy tắc như bản đầu (docs/BEV.md mục 2), tính trên bảng hình học dựng sẵn
+    (`view_geometry`) nên mỗi khung chỉ còn đọc nhãn pixel, che khuất và gỡ FREE trên các ô con trong vùng."""
+    check_max_range(max_range)
     t0 = time.perf_counter()
     calib = camera.calibration
     intr = calib.intrinsics
-    raw = as_probability(prob)
+    raw = _probability(prob, copy=False)[0]                     # chỉ đọc: không cần bản chép
     p = resize_probability(raw, intr.width, intr.height)
     labels, uncertain = evidence_labels(p, t_free, t_blocked, camera.roi)
     fine = fine_grid(grid, supersample)
-    state_f = project_labels(labels, calib, fine, max_range=max_range, azimuth_bin_deg=azimuth_bin_deg)
-    # FREE chỉ khi MỌI pixel rơi vào ô con là FREE: project_labels chỉ đọc pixel ở tâm ô con, nên vật mảnh nằm giữa các
+    geometry = view_geometry(calib, fine, max_range, azimuth_bin_deg)
+    labels_flat, uncertain_flat = labels.ravel(), uncertain.ravel()
+    # (1) như project_labels: ô con lấy nhãn của pixel ở tâm nó (0 → FREE, 1 → OCCUPIED, còn lại UNKNOWN), rồi mọi ô
+    # sau ô OCCUPIED gần nhất theo phương vị là UNKNOWN. Ô con ngoài vùng (ngoài ảnh, θ > theta_max, quá tầm) UNKNOWN.
+    sampled = labels_flat[geometry.pixels]
+    state = _STATE_OF_LABEL[sampled]
+    hidden = _occlusion_hidden(np.flatnonzero(state == OCCUPIED), geometry)
+    if hidden is not None:
+        state[hidden] = UNKNOWN
+    # (2) FREE chỉ khi MỌI pixel rơi vào ô con là FREE: bước (1) chỉ đọc pixel ở tâm ô con, nên vật mảnh nằm giữa các
     # tâm (cột 2 cm cách camera 0,25 m ≈ 25 px) từng để ô của nó FREE và vệt OCCUPIED rơi sang ô xa hơn (đo 24/09: 5/75
-    # vị trí với cột 2 cm, 14/75 với 1,5 cm, 44/75 với 1 cm; docs/BEV.md mục 2). Pixel BLOCKED/không chắc gỡ FREE (→ UNKNOWN)
-    # ở ô con nó rơi vào; không đặt OCCUPIED nên tập OCCUPIED và phép che khuất của project_labels giữ nguyên. Mỗi camera
-    # gỡ FREE của riêng nó: "không chắc" của camera này không phủ quyết FREE chắc chắn của camera khác.
-    state_f[not_free_hits(labels, uncertain, calib, fine, max_range) & (state_f == FREE)] = UNKNOWN
-    # lượt thứ hai: pixel không chắc coi như FREE. Tập OCCUPIED (nên phép che khuất) giữ nguyên, nên ô khác UNKNOWN ở
-    # lượt này = ô camera thật sự thấy, không bị che, trong tầm và trong ROI.
-    seen_labels = labels.copy()
-    seen_labels[uncertain] = LABEL_FREE
-    seen_f = project_labels(seen_labels, calib, fine, max_range=max_range, azimuth_bin_deg=azimuth_bin_deg) != UNKNOWN
-    # vùng hình học (không xét che khuất): chiếu hợp lệ, pixel có dữ liệu (trong ROI, không NaN), trong tầm
-    gx, gy = fine.centers()
-    u, v, valid = calib.ground_to_pixel(np.column_stack([gx.ravel(), gy.ravel()]))
-    usable_px = (labels != LABEL_NONE) | uncertain
-    in_view_f = valid.copy()
-    in_view_f[valid] = usable_px[np.rint(v[valid]).astype(np.int64), np.rint(u[valid]).astype(np.int64)]
-    if max_range is not None:
-        cx, cy = calib.extrinsics.translation[:2]
-        in_view_f &= np.hypot(gx.ravel() - cx, gy.ravel() - cy) <= max_range
-    in_view_f = in_view_f.reshape(fine.shape)
+    # vị trí với cột 2 cm, 14/75 với 1,5 cm, 44/75 với 1 cm; docs/BEV.md mục 2). Pixel BLOCKED/không chắc (tâm và bốn
+    # góc) gỡ FREE (→ UNKNOWN) ở ô con nó rơi vào; không đặt OCCUPIED nên tập OCCUPIED và phép che khuất giữ nguyên.
+    # Điểm sàn của một pixel là điểm XA NHẤT tia của nó có thể chạm, nên pixel BLOCKED không chứng minh được mặt sàn ở
+    # đó trống: gỡ FREE luôn an toàn. Mỗi camera gỡ FREE của riêng nó: "không chắc" của camera này không phủ quyết FREE
+    # chắc chắn của camera khác.
+    if geometry.touch_starts.size:
+        not_free_px = (labels_flat == LABEL_BLOCKED) | uncertain_flat
+        hit = geometry.touch_cells[np.logical_or.reduceat(not_free_px[geometry.touch_pixels], geometry.touch_starts)]
+        state[hit[state[hit] == FREE]] = UNKNOWN
+    # (3) ô con camera thật sự thấy (bản đầu: chiếu lượt hai với pixel không chắc coi như FREE — tập OCCUPIED, nên phép
+    # che khuất, không đổi): pixel ở tâm có dữ liệu (FREE, BLOCKED hoặc không chắc) và không bị che. Vùng hình học
+    # (không xét che khuất): trong vùng và pixel ở tâm có dữ liệu (trong ROI, không NaN).
+    usable = (sampled != LABEL_NONE) | uncertain_flat[geometry.pixels]
+    seen = usable if hidden is None else usable & ~hidden
+    size = geometry.fine_shape[0] * geometry.fine_shape[1]
+    state_f = np.full(size, UNKNOWN, np.int8)
+    state_f[geometry.cells] = state
+    seen_f = np.zeros(size, bool)
+    seen_f[geometry.cells] = seen
+    in_view_f = np.zeros(size, bool)
+    in_view_f[geometry.cells] = usable
+    state_f, seen_f, in_view_f = (a.reshape(geometry.fine_shape) for a in (state_f, seen_f, in_view_f))
 
     k = int(supersample)
-    state = np.full(grid.shape, UNKNOWN, np.int8)
-    state[_all(state_f == FREE, k)] = FREE
-    state[_any(state_f == OCCUPIED, k)] = OCCUPIED
+    state_out = np.full(grid.shape, UNKNOWN, np.int8)
+    state_out[_all(state_f == FREE, k)] = FREE
+    state_out[_any(state_f == OCCUPIED, k)] = OCCUPIED
+    # nhãn chỉ có 0 / 1 / 255 và pixel "không chắc" luôn mang nhãn 255 (evidence_labels)
     total = labels.size
-    fractions = {"free": float((labels == LABEL_FREE).sum() / total),
-                 "uncertain": float(uncertain.sum() / total),
-                 "blocked": float((labels == LABEL_BLOCKED).sum() / total),
-                 "no_evidence": float(((labels == LABEL_NONE) & ~uncertain).sum() / total)}
-    return CameraView(camera.name, state_f, seen_f, in_view_f, state, fractions, (int(raw.shape[1]), int(raw.shape[0])),
-                      1000.0 * (time.perf_counter() - t0))
+    n_free = np.count_nonzero(labels_flat == LABEL_FREE)
+    n_blocked = np.count_nonzero(labels_flat == LABEL_BLOCKED)
+    n_uncertain = np.count_nonzero(uncertain_flat)
+    n_none = np.count_nonzero(labels_flat == LABEL_NONE) - n_uncertain
+    fractions = {"free": float(n_free / total), "uncertain": float(n_uncertain / total),
+                 "blocked": float(n_blocked / total), "no_evidence": float(n_none / total)}
+    return CameraView(camera.name, state_f, seen_f, in_view_f, state_out, fractions,
+                      (int(raw.shape[1]), int(raw.shape[0])), 1000.0 * (time.perf_counter() - t0))
 
 
 # ---- hợp nhất --------------------------------------------------------------------------------------------------------
@@ -570,9 +758,11 @@ def merge_views(views: list, grid: GridSpec, names: list, supersample: int, ego:
     seen_by, free_by, occupied_by, in_view_by = (np.zeros((rows, cols), np.uint16) for _ in range(4))
     occupied_f = np.zeros(fine_shape, bool)
     free_f = np.zeros(fine_shape, bool)
+    masks = []                                  # (camera, ô con OCCUPIED, ô con FREE): so sánh một lần mỗi camera
     for view in views:
         bit = np.uint16(1 << names.index(view.name))
         occ, fr = view.state_fine == OCCUPIED, view.state_fine == FREE
+        masks.append((view, occ, fr))
         occupied_by[_any(occ, k)] |= bit
         free_by[_any(fr, k)] |= bit
         seen_by[_any(view.seen_fine, k)] |= bit
@@ -581,10 +771,12 @@ def merge_views(views: list, grid: GridSpec, names: list, supersample: int, ego:
         free_f |= fr
     conflict_f = np.zeros(fine_shape, bool)
     pairs = {}
-    for a in views:
-        for b in views:
+    for a, occ_a, _ in masks:
+        if not occ_a.any():                     # camera không nói OCCUPIED ở đâu thì không gây xung đột nào
+            continue
+        for b, _, fr_b in masks:
             if a is not b:
-                both = (a.state_fine == OCCUPIED) & (b.state_fine == FREE)
+                both = occ_a & fr_b
                 if both.any():
                     conflict_f |= both
                     pairs[f"{a.name} OCCUPIED / {b.name} FREE"] = int(_any(both, k).sum())
@@ -615,6 +807,7 @@ def build_bev(probs: dict, cameras: dict, grid: GridSpec, *, t_free: float = DEF
     """probs: {tên camera: bản đồ P(BLOCKED) hoặc None}; cameras: {tên: BevCamera} — thứ tự này là thứ tự bit.
     Camera có trong `cameras` mà không có xác suất thì không góp gì (lý do ở `missing`)."""
     check_thresholds(t_free, t_blocked)
+    check_max_range(max_range)
     names = list(cameras)
     if len(names) > MAX_CAMERAS:
         raise ValueError(f"tối đa {MAX_CAMERAS} camera")
@@ -742,6 +935,8 @@ def unusable_reasons(result: BevResult, cameras: dict) -> list:
         cam = cameras[name]
         if not cam.extrinsics_measured:
             reasons.append(f"{name}: ngoại tham GIẢ ĐỊNH — CHƯA ĐO")
+        if cam.synthetic:
+            reasons.append(f"{name}: {' và '.join(cam.synthetic)} là dữ liệu TỔNG HỢP — không phải số đo")
         if cam.roi is None:
             reasons.append(f"{name}: chưa có ROI (thân xe/viền ống kính chưa bị loại khỏi ảnh)")
         if cam.acceptance_all_pass is False:
@@ -775,7 +970,8 @@ def result_stats(result: BevResult, cameras: dict, *, extra: dict | None = None)
     stats = {"created_utc": utc_now(), "kind": "autopark_bev_v0", "params": result.params,
              "rules": {"evidence": "p ≤ t_free → FREE; p ≥ t_blocked → OCCUPIED; ở giữa → không chắc (UNKNOWN); "
                                    "ngoài ROI/NaN → không có bằng chứng",
-                       "projection": "costmap.project_labels trên lưới mịn (supersample); sau ô OCCUPIED đầu tiên theo "
+                       "projection": "phép chiếu của costmap.project_labels (tính trên bảng hình học dựng sẵn, trùng "
+                                     "từng bit) trên lưới mịn (supersample); sau ô OCCUPIED đầu tiên theo "
                                      "phương vị là UNKNOWN; quá max_range là UNKNOWN; ô con có tâm/góc của pixel BLOCKED "
                                      "hay không chắc rơi vào thì không FREE (→ UNKNOWN) ở camera đó; gộp ô con: OCCUPIED "
                                      "nếu có ô con OCCUPIED, FREE chỉ khi mọi ô con FREE",
@@ -883,6 +1079,7 @@ def bev_from_snapshot(folder, *, extrinsics=DEFAULT_EXTRINSICS, calibration_dir=
                       supersample: int = DEFAULT_SUPERSAMPLE, max_skew_ms: float = MAX_SKEW_MS,
                       bottom_repeat_limit: float = BOTTOM_REPEAT_LIMIT, skip_uncalibrated: bool = False):
     """→ (BevResult, cameras, SourceStamp, thông tin thêm cho stats.json)."""
+    check_max_range(max_range)                                  # từ chối trước khi đọc ảnh và nạp hiệu chuẩn
     grid = grid or GridSpec(*RIG_GRID)
     folder = Path(folder)
     meta, probs_by_port = read_snapshot(folder)
@@ -1123,13 +1320,26 @@ def synthetic_truth(scene: SyntheticScene, grid: GridSpec, t_free: float = DEFAU
 
 
 # ---- dòng lệnh -------------------------------------------------------------------------------------------------------
+def _range_arg(text: str) -> float:
+    """--max-range: số hữu hạn > 0. Từ chối lúc đọc tham số, trước mọi phép tính: NaN/≤ 0 như `check_max_range`; ±inf
+    cũng bị từ chối vì stats.json (JSON chặt) không ghi được inf và lỗi chỉ lộ ra sau khi đã tính BEV."""
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"--max-range phải là số (nhận {text!r})") from None
+    if not math.isfinite(value) or value <= 0:
+        raise argparse.ArgumentTypeError(f"--max-range phải là số hữu hạn > 0 tính bằng m (nhận {text!r})")
+    return value
+
+
 def _common_args(p: argparse.ArgumentParser, grid_default, range_default) -> None:
     p.add_argument("--out", type=Path, help="thư mục ra (mặc định runs/bev/<tên>)")
     p.add_argument("--grid", type=float, nargs=5, metavar=("XMIN", "XMAX", "YMIN", "YMAX", "RES"), default=grid_default)
     p.add_argument("--t-free", type=float, default=DEFAULT_T_FREE, help="p ≤ ngưỡng này là FREE (mặc định %(default)s)")
     p.add_argument("--t-blocked", type=float, default=DEFAULT_T_BLOCKED,
                    help="p ≥ ngưỡng này là OCCUPIED (mặc định %(default)s)")
-    p.add_argument("--max-range", type=float, default=range_default, help="m tính từ camera (mặc định %(default)s)")
+    p.add_argument("--max-range", type=_range_arg, default=range_default,
+                   help="m tính từ camera, số hữu hạn > 0 (mặc định %(default)s)")
     p.add_argument("--supersample", type=int, default=DEFAULT_SUPERSAMPLE)
 
 
@@ -1225,6 +1435,60 @@ def _cmd_woodscape(args) -> int:
     return 0
 
 
+def _cmd_bench(args) -> int:
+    """Đo thời gian build_bev trên rig tổng hợp (không dữ liệu, không thiết bị): lần đầu (gồm dựng bảng hình học) và
+    `--repeat` lần sau đó. Để so máy bàn với laptop nộp đồ án; tải máy KHÔNG được kiểm soát."""
+    if args.repeat < 1:
+        raise RigConfigError("--repeat phải ≥ 1")
+    grid = GridSpec(*args.grid)
+    cameras, ego = synthetic_rig(args.extrinsics)
+    probs = {name: np.round(synthetic_prob_map(cam.calibration, DEFAULT_SCENE, out_size=(480, 360)) * 255)
+             .astype(np.uint8) for name, cam in cameras.items()}                 # P×255 cỡ hiển thị, như bàn thử ghi
+    kw = dict(t_free=args.t_free, t_blocked=args.t_blocked, max_range=args.max_range, supersample=args.supersample,
+              ego=ego)
+    view_geometry.cache_clear()
+    t0 = time.perf_counter()
+    first = build_bev(probs, cameras, grid, **kw)
+    first_ms = 1000.0 * (time.perf_counter() - t0)
+    warm, per_camera, merge = [], {name: [] for name in cameras}, []
+    for _ in range(args.repeat):
+        t0 = time.perf_counter()
+        result = build_bev(probs, cameras, grid, **kw)
+        warm.append(1000.0 * (time.perf_counter() - t0))
+        merge.append(result.timing_ms["merge_ms"])
+        for name, ms in result.timing_ms["per_camera_ms"].items():
+            per_camera[name].append(ms)
+    if not np.array_equal(result.states, first.states):
+        raise RuntimeError("kết quả khung sau khác khung đầu trên cùng đầu vào")
+    fine = fine_grid(grid, args.supersample)
+    report = {
+        "created_utc": utc_now(), "kind": "autopark_bev_bench_v0",
+        "machine": {"platform": platform.platform(), "processor": platform.processor(), "cpu_count": os.cpu_count(),
+                    "python": sys.version.split()[0], "numpy": np.__version__, "opencv": cv2.__version__},
+        "input": {"kind": "rig tổng hợp (DEFAULT_SCENE), KHÔNG phải ảnh thật", "cameras": sorted(cameras),
+                  "calibration_size": [640, 480], "prob_size": [480, 360], "prob_dtype": "uint8 (P×255)"},
+        "params": first.params,
+        "first_call_ms": round(first_ms, 2),
+        "warm_ms": {"repeat": args.repeat, "best": round(min(warm), 2), "median": round(statistics.median(warm), 2),
+                    "max": round(max(warm), 2), "all": [round(t, 2) for t in warm]},
+        "warm_best_per_camera_ms": {name: round(min(ts), 2) for name, ts in per_camera.items()},
+        "warm_best_merge_ms": round(min(merge), 2),
+        "geometry_table_bytes": {name: view_geometry(cam.calibration, fine, args.max_range,
+                                                     DEFAULT_AZIMUTH_BIN_DEG).nbytes()
+                                 for name, cam in cameras.items()},
+        "frame_period_ms_24fps": round(1000.0 / 24, 1),
+        "notes": ["'lần đầu' gồm dựng bảng hình học (view_geometry) của mọi camera; khung sau dùng lại bảng",
+                  "tải máy không được kiểm soát hay ghi: chạy khi máy rảnh, ghi rõ việc gì chạy song song"]}
+    out = args.out or DEFAULT_OUT_ROOT / f"bench_{time.strftime('%Y%m%d_%H%M%S')}"
+    out.mkdir(parents=True, exist_ok=True)
+    atomic_write_json(out / "bench.json", report)
+    print(f"BEV bench (rig tổng hợp, {len(cameras)} camera 640×480, lưới {grid.shape[0]}×{grid.shape[1]} ô, "
+          f"supersample {args.supersample}): lần đầu {first_ms:.1f} ms; {args.repeat} lần sau: tốt nhất "
+          f"{min(warm):.1f} ms, trung vị {statistics.median(warm):.1f} ms, chậm nhất {max(warm):.1f} ms "
+          f"(chu kỳ khung 24 khung/s ≈ 41,7 ms)\n  -> {out / 'bench.json'}", flush=True)
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="BEV chiếm chỗ từ AI của nhiều camera (docs/BEV.md)")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -1255,6 +1519,12 @@ def main(argv=None) -> int:
     p.add_argument("--no-roi", action="store_true")
     _common_args(p, WOODSCAPE_GRID, WOODSCAPE_MAX_RANGE)
     p.set_defaults(func=_cmd_woodscape)
+
+    p = sub.add_parser("bench", help="đo thời gian build_bev trên rig tổng hợp (không cần dữ liệu, không cần thiết bị)")
+    _common_args(p, RIG_GRID, RIG_MAX_RANGE)
+    p.add_argument("--extrinsics", type=Path, default=DEFAULT_EXTRINSICS)
+    p.add_argument("--repeat", type=int, default=15, help="số lần đo sau lần đầu (mặc định %(default)s)")
+    p.set_defaults(func=_cmd_bench)
 
     args = parser.parse_args(argv)
     try:

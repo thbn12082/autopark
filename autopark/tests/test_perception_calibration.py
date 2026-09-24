@@ -87,6 +87,19 @@ def test_intrinsics_reject_non_monotonic_polynomial():
         FisheyeIntrinsics(640, 480, (300.0, 0.0, 0.0, -400.0))
 
 
+@pytest.mark.parametrize("bad", [float("nan"), 0.0, -1.0, "xa"])
+def test_costmap_projection_rejects_a_max_range_that_would_silently_disable_the_limit(bad):
+    """25/09/2026: NaN làm `distance > nan` luôn sai → giới hạn tầm biến mất mà không báo; ≤ 0 và chữ cũng bị từ chối."""
+    calib = pitched_rig()
+    grid = GridSpec(-2.0, 8.0, -3.0, 3.0, 0.25)
+    labels = np.zeros((480, 640), np.uint8)
+    with pytest.raises(ValueError, match="max_range"):
+        project_labels(labels, calib, grid, max_range=bad)
+    near = project_labels(labels, calib, grid, max_range=6.0)
+    unlimited = project_labels(labels, calib, grid, max_range=None)
+    assert (near != UNKNOWN).sum() < (unlimited != UNKNOWN).sum()   # giới hạn tầm hữu hạn thật sự có tác dụng
+
+
 @pytest.mark.parametrize("tall", [False, True])
 def test_costmap_projection_marks_free_occupied_occluded_and_unknown(tall):
     calib = pitched_rig()

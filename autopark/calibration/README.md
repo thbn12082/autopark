@@ -36,7 +36,7 @@ Nếu chỉnh cỡ ô danh định, dạng tên tệp bảng in sẽ đổi theo
 | `field_of_view_deg` | Trường nhìn ngang/dọc/chéo **suy từ mô hình**, không phải đo trực tiếp; θ ở bốn góc ảnh; `theta_observed_max_deg` là θ lớn nhất đã thấy bảng (lớn hơn giá trị này là ngoại suy) |
 | `woodscape_intrinsic` | Cùng nội tham đó nhưng ở dạng đa thức của dự án (`FisheyeIntrinsics`, cùng khóa với tệp WoodScape: `k1..k4`, `cx_offset`, `cy_offset`, `aspect_ratio`), kèm `theta_max_deg` (θ ở góc ảnh `theta_image_corner_deg`, nâng thêm `theta_max_raise_deg` cho đa thức chạm tới điểm ảnh góc), sai số khớp lớn nhất (px), kết quả kiểm chiếu, `corners_invertible`, `ok` và `reason`. Nạp bằng `fisheye_calib.load_intrinsics()`; hàm này từ chối nếu `ok` là false hoặc cỡ ảnh khác |
 | `acceptance` | Các tiêu chí **đề xuất**, chưa kiểm trên camera thật, và kết quả đạt/chưa đạt của từng tiêu chí. Tiêu chí sai số chuyển đổi chỉ đạt khi `woodscape_intrinsic.ok` cũng đúng |
-| `extrinsic`, `rig` | Luôn là `null`: **camera chưa gắn lên rig**, chưa có vị trí/hướng so với xe. Ngoại tham sẽ nằm ở `camera_rig_extrinsics.yaml`, chưa làm |
+| `extrinsic`, `rig` | Luôn là `null`: tệp này chỉ có nội tham. Ngoại tham (vị trí/hướng so với xe) đo riêng sau khi gá camera, ghi vào `configs/rig/camera_rig_extrinsics_v1.json` (*sửa khuya 24/09/2026:* trước ghi "`camera_rig_extrinsics.yaml`, chưa làm"; công cụ đã có, xem cuối tệp) |
 | `images_dir`, `capture` | Nơi lưu ảnh đã dùng (trong `runs/calib/`), công cụ đã tạo ra tệp |
 | `created_local`, `software` | Thời điểm tạo; phiên bản OpenCV, numpy, Python |
 
@@ -53,3 +53,9 @@ khối `intrinsic` và khối `extrinsic`, còn tệp ở đây ghi nội tham �
 BEV từ AI — `perception/bev.py::load_rig` — đã đọc các tệp này qua `fisheye_calib.load_intrinsics` và ghép với ngoại
 tham GIẢ ĐỊNH ở `configs/rig/camera_rig_extrinsics_v0.json`; xem [docs/BEV.md](../docs/BEV.md). Chưa có tệp `cam_p*.json`
 nào, nên BEV trên camera dự án chưa chạy được.)*
+
+**Ngoại tham và ROI (thêm tối 24/09/2026):** hai thứ này không nằm trong thư mục `calibration/`. Ngoại tham nằm trong
+`configs/rig/camera_rig_extrinsics_v1.json`, do `perception/extrinsics_calib.py` ghi. Mặt nạ ROI nằm trong
+`configs/roi/rig_v1/roi_p<N>.png`, do `perception/roi_tool.py` ghi. Giao diện chung cho cả hai là `ui/roi_app.py`. Cả hai
+công cụ cần tệp `cam_p<N>.json` ở đây trước. Cách làm: [docs/NGOAI_THAM_VA_ROI.md](../docs/NGOAI_THAM_VA_ROI.md). Tới lúc
+này chưa có tệp ngoại tham đo hay ROI nào cho camera dự án.

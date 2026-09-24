@@ -219,3 +219,21 @@ chưa mở bằng công cụ này.
 - **Mặt nạ ROI** cho camera của dự án (thân xe, viền ống kính) chưa dựng.
 - **Kiểm trên ảnh thật:** RMS trên các ảnh để riêng không dùng để hiệu chuẩn, độ thẳng của đường thẳng thật sau khi nắn,
   so sánh bốn camera với nhau, và độ ổn định khi rút/cắm lại hoặc khi camera nóng lên. Tất cả đều chưa làm.
+
+## 7. Bước tiếp theo: ngoại tham và mặt nạ ROI (thêm tối 24/09/2026)
+
+Sau khi có `calibration/cam_p<N>.json`, bước tiếp theo là gá camera lên xe rồi đo **ngoại tham** (vị trí, hướng camera so
+với xe) và vẽ **mặt nạ ROI** (loại thân xe, dây, viền ống kính). Cách làm từng bước ở
+[NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md). Công cụ ngoại tham đặt bảng in của mục 2 nằm trên sàn ở vị trí đo bằng thước
+và dùng chính nội tham ở đây. Nó từ chối chạy khi thiếu tệp nội tham của camera đó, hoặc khi tệp là của cổng khác.
+
+Công cụ:
+
+- ngoại tham: `perception/extrinsics_calib.py`, ghi `configs/rig/camera_rig_extrinsics_v1.json`;
+- ROI: `perception/roi_tool.py`, ghi `configs/roi/rig_v1/roi_p<N>.png`;
+- giao diện: `ui/roi_app.py`, hai thẻ "Ngoại tham" và "ROI".
+
+Như vậy gạch đầu dòng "Ngoại tham và rig" và "Mặt nạ ROI" của mục 6 nay đã có công cụ. Nhưng công cụ **mới chỉ kiểm trên
+ảnh tổng hợp** (NGOAI_THAM_VA_ROI.md mục 7), và chưa đo ngoại tham hay dựng ROI cho camera nào, vì chưa có nội tham, chưa
+có xe, chưa gá camera. Ghép nội tham với ngoại tham cho BEV đã có sẵn trong `bev.load_rig()`, không cần sửa
+`CameraCalibration.from_dict`.

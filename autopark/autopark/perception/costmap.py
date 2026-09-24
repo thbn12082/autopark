@@ -72,9 +72,35 @@ class GridSpec:
         return row, col
 
 
+def _check_max_range(max_range) -> None:
+    if max_range is None:
+        return
+    try:
+        value = float(max_range)
+    except (TypeError, ValueError):
+        raise ValueError(f"max_range phải là None hoặc số > 0 (nhận {max_range!r})") from None
+    if math.isnan(value) or value <= 0:
+        raise ValueError(f"max_range phải là None hoặc số > 0 (nhận {max_range!r})")
+
+
+def _range_arg(text: str) -> float:
+    """--max-range: số hữu hạn > 0 (NaN, ±inf, ≤ 0 bị argparse từ chối, mã 2)."""
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"không phải số: {text!r}") from None
+    if not math.isfinite(value) or value <= 0:
+        raise argparse.ArgumentTypeError(f"phải là số hữu hạn > 0 (nhận {text!r})")
+    return value
+
+
 def project_labels(labels: np.ndarray, calibration: CameraCalibration, grid: GridSpec, *,
                    max_range: float | None = None, azimuth_bin_deg: float = 0.5) -> np.ndarray:
-    """labels (H, W) uint8 in {0, 1, 255} at the calibration's native size -> grid states (rows, cols) int8."""
+    """labels (H, W) uint8 in {0, 1, 255} at the calibration's native size -> grid states (rows, cols) int8.
+
+    `max_range`: None = không giới hạn; ngoài ra phải là số > 0. NaN bị từ chối (từ 25/09/2026): trước đó
+    `distance > nan` luôn sai nên giới hạn tầm âm thầm biến mất (cùng lỗi đã sửa ở `bev.check_max_range`)."""
+    _check_max_range(max_range)
     expected = (calibration.intrinsics.height, calibration.intrinsics.width)
     if labels.shape != expected:
         raise ValueError(f"labels are {labels.shape}, calibration expects {expected}: apply the ROI and project at "
@@ -196,7 +222,7 @@ def main(argv=None) -> int:
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--grid", type=float, nargs=5, metavar=("XMIN", "XMAX", "YMIN", "YMAX", "RES"),
                         default=(-10.0, 15.0, -10.0, 10.0, 0.1))
-    parser.add_argument("--max-range", type=float, default=12.0)
+    parser.add_argument("--max-range", type=_range_arg, default=12.0)
     args = parser.parse_args(argv)
     if not torch.cuda.is_available():
         raise SystemExit("CUDA unavailable.")

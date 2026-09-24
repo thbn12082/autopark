@@ -22,6 +22,10 @@
 
 Camera lấy qua tham số `open_camera(cổng, rộng, cao)` nên test cắm được nguồn giả; `main()` dùng `resolve_ports` +
 `UsbCameraSource`. Công cụ chưa từng chạy với camera thật khi viết (chỉ test offscreen với nguồn giả).
+
+Bước sau nội tham (thêm tối 24/09/2026): ngoại tham (bảng đặt trên sàn ở vị trí đo bằng thước) và mặt nạ ROI làm ở giao
+diện riêng `autopark.ui.roi_app` (docs/NGOAI_THAM_VA_ROI.md). Giao diện đó dùng lại `LiveCamera`, `to_qimage`,
+`parse_size` và `usb_camera_factory` của tệp này — đổi chữ ký các hàm đó thì kiểm cả tests/test_roi_tool.py.
 """
 from __future__ import annotations
 
