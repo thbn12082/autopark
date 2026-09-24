@@ -159,7 +159,11 @@ class CameraCalibration:
                    FisheyeIntrinsics(int(intr["width"]), int(intr["height"]),
                                      (float(intr["k1"]), float(intr["k2"]), float(intr["k3"]), float(intr["k4"])),
                                      float(intr.get("cx_offset", 0.0)), float(intr.get("cy_offset", 0.0)),
-                                     float(intr.get("aspect_ratio", 1.0))),
+                                     float(intr.get("aspect_ratio", 1.0)),
+                                     # tệp WoodScape không có khóa này (giữ 100°); tệp của fisheye_calib ghi góc lớn nhất
+                                     # mà đa thức khớp còn đúng, vượt quá đó là ngoại suy
+                                     math.radians(float(intr["theta_max_deg"])) if "theta_max_deg" in intr
+                                     else math.radians(100.0)),
                    Extrinsics(tuple(float(q) for q in extr["quaternion"]),
                               tuple(float(t) for t in extr["translation"])))
 

@@ -1,0 +1,56 @@
+{
+ "format": "autopark.calib_board/1",
+ "pattern": "chessboard",
+ "inner_corners": {
+  "cols": 9,
+  "rows": 6
+ },
+ "squares": {
+  "x": 10,
+  "y": 7
+ },
+ "square_mm_nominal": 20.0,
+ "paper": "A4",
+ "orientation": "landscape",
+ "page_mm": [
+  297.0,
+  210.0
+ ],
+ "board_origin_mm": [
+  48.5,
+  39.0
+ ],
+ "board_mm": [
+  200.0,
+  140.0
+ ],
+ "quiet_zone_mm": 20.0,
+ "print_margin_mm": 6.0,
+ "text_on_page": true,
+ "pdf": {
+  "file": "ban_co_9x6_20mm_A4.pdf",
+  "square_pt": 56.69291338582678,
+  "print_scaling_none_hint": true
+ },
+ "png": {
+  "file": "ban_co_9x6_20mm_A4.png",
+  "dpi": 300.0,
+  "size_px": [
+   3508,
+   2480
+  ],
+  "square_px": 236,
+  "square_mm_at_dpi": 19.981333333333332,
+  "board_origin_px": [
+   573,
+   461
+  ]
+ },
+ "measure_hint": {
+  "span_squares": 8,
+  "span_mm_nominal": 160.0,
+  "how": "đo bằng thước từ góc trong đầu tới góc trong cuối của một hàng, chia cho span_squares"
+ },
+ "created_local": "2026-09-24T09:41:24",
+ "note": "Kích thước danh định. Sau khi in phải đo lại và dùng cỡ ô ĐO ĐƯỢC khi hiệu chuẩn; PNG làm tròn cạnh ô tới số nguyên điểm ảnh nên cỡ ô của PNG là png.square_mm_at_dpi, không đúng hẳn square_mm_nominal."
+}

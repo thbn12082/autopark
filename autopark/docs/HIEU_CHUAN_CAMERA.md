@@ -1,0 +1,206 @@
+# Hiệu chuẩn nội tham từng camera (giai đoạn 2, bước 4): công cụ và cách làm (24/09/2026)
+
+**Kế hoạch đối chiếu:** v3.1 mục 6, "Khi đủ bốn camera", bước 4: *"Hiệu chuẩn riêng từng camera; gắn lên rig rồi xác
+định vị trí/hướng của camera so với rig."* Đầu ra cần có: *"bốn tệp calibration, `camera_rig_extrinsics.yaml`"*.
+
+**Mức bằng chứng:** công cụ mới chỉ chạy trên ảnh tổng hợp và trên nguồn camera giả trong test. Chưa có ảnh bảng nào
+chụp từ camera thật, và bảng chưa được in. Con số 130° là số người bán quảng cáo, chưa ai đo. Mọi ngưỡng chấp nhận dưới
+đây là **đề xuất**, chưa được kiểm trên camera thật.
+
+**Phần này làm ra gì:** bốn tệp `calibration/cam_p1.json` … `cam_p4.json`, mỗi tệp là **nội tham** của một camera, gọi
+theo cổng hub. Chưa có **ngoại tham**, tức vị trí và hướng của camera so với xe (xem mục 6).
+
+## 1. Công cụ
+
+| Việc | Mã | Kiểm (không cần thiết bị) |
+|---|---|---|
+| Bảng ô vuông để in: PDF vector đúng khổ A4/A3, PNG ở một DPI cho trước (có khối pHYs), JSON mô tả bảng | `perception/calib_board.py`; tệp in sẵn trong `calibration/bang_in/` | Đọc MediaBox và các hình chữ nhật trong PDF; vẽ lại PDF bằng pdfium (QtPdf) rồi dò bảng: ô 78,7 px ở 100 DPI, sai lệch dưới 1 %; đếm điểm ảnh của ô trong PNG |
+| Dò góc bảng, kiểm từng ảnh, bản đồ phủ, hiệu chuẩn `cv2.fisheye`, loại ảnh ngoại lai, trường nhìn, chuyển sang mô hình đa thức của dự án, nắn ảnh, đọc/ghi tệp, dòng lệnh | `perception/fisheye_calib.py` | `tests/test_fisheye_calib.py`: ảnh dựng qua một camera Kannala–Brandt đã biết (mục 5) |
+| Giao diện: chọn camera theo cổng hub, xem trực tiếp có vẽ góc bảng và lưới phủ, chụp tay hoặc tự chụp, hiệu chuẩn chạy nền, xem ảnh nắn cạnh ảnh sống, lưu | `ui/calib_app.py` | `tests/test_calib_app_ui.py`: chạy offscreen với camera giả phát ảnh tổng hợp. Kiểm: chụp tay, tự chụp (không chụp lại tư thế cũ, giữ khoảng cách thời gian giữa hai lần chụp), khung hỏng bị đếm và không được chụp, khung khác cỡ không được chụp; lưới phủ và ảnh nắn so từng điểm ảnh với `draw_coverage` / `undistort_image`; không lưu khi danh sách ảnh hoặc cỡ ô đổi sau hiệu chuẩn; ô "Đã đo cỡ ô" quyết định `square_mm_measured`; đổi cổng/mode bỏ ảnh và kết quả, kể cả kết quả của lần hiệu chuẩn đang chạy; phím cách chụp cả khi ô nhập số giữ focus; lưu vào thư mục tên tiếng Việt |
+
+Mô hình ống kính là Kannala–Brandt của `cv2.fisheye` với 4 hệ số, skew cố định bằng 0. Mô hình này chỉ biểu diễn được
+tia lệch trục quang dưới 90°. Như vậy là đủ nếu ống kính đúng như quảng cáo là 130° (tức 65° mỗi bên), nhưng chưa ai đo.
+Mã cũ `perception/calibration.py` chỉ đọc hiệu chuẩn của WoodScape; mã mới không sửa gì trong tệp đó.
+
+## 2. In bảng
+
+Có sẵn hai bản in trong `calibration/bang_in/`:
+
+| Tệp | Bảng | Cỡ ô danh định | Khi nào dùng |
+|---|---|---|---|
+| `ban_co_9x6_20mm_A4.pdf` | 9×6 góc trong (10×7 ô) | 20 mm | Dễ in |
+| `ban_co_9x6_30mm_A3.pdf` | 9×6 góc trong | 30 mm | Nên chọn nếu in được A3: bảng to thì cầm xa hơn được, ảnh nét hơn với ống kính lấy nét cố định |
+
+Muốn bảng khác thì chạy `.\.venv\Scripts\python.exe -X utf8 -m autopark.perception.fisheye_calib board --paper A3 --square-mm 28`.
+Nếu bảng cùng viền trắng một ô không vừa trang, lệnh sẽ báo lỗi kèm cỡ ô lớn nhất còn vừa.
+
+1. **In 100 %, không co giãn.** Trong hộp thoại in, chọn "Actual size" và tắt "Fit to page". Tệp PDF có ghi gợi ý
+   `/PrintScaling /None` cho trình đọc, nhưng nhiều trình đọc bỏ qua gợi ý này, nên vẫn phải tự chọn. Nên in lên giấy
+   mờ: giấy bóng dễ bị lóa.
+2. **Dán lên một tấm phẳng và cứng** như bìa foam, gỗ hay kính. Không để giấy phồng, nhất là ở các góc. Bảng cong làm sai
+   hiệu chuẩn, mà RMS chưa chắc đã cho thấy.
+3. **Đo lại bằng thước.** Đo từ góc trong đầu tiên tới góc trong cuối cùng **của một hàng** (8 ô), chia cho 8. Đo thêm
+   một cột (5 ô), chia cho 5. Nếu hai con số lệch nhau quá 0,5 % thì máy in đã co giãn không đều theo hai chiều, cần in
+   lại, vì bảng ô vuông giả định mọi ô đều vuông. Nếu cả hai con số cùng nhỏ hơn danh định (ví dụ 150 mm thay vì 160 mm,
+   tức 94 %) thì máy in đã chạy "vừa trang". Khi đó hoặc in lại, hoặc cứ nhập cỡ ô đo được.
+4. **Nhập cỡ ô ĐO ĐƯỢC** khi hiệu chuẩn, không nhập cỡ danh định. Trong giao diện, điền ô "cỡ ô ĐO ĐƯỢC" và đánh dấu "Đã
+   đo cỡ ô bằng thước". Ở dòng lệnh, dùng `--square-mm`.
+
+**Cỡ ô không ảnh hưởng tới K, D.** Phóng to cả bảng lẫn khoảng cách theo cùng một tỉ lệ thì ảnh chụp được không đổi, nên
+cỡ ô chỉ quyết định khoảng cách bảng tính ra (`distance_m`) và sau này là ngoại tham. Độ phẳng của bảng và độ vuông của
+từng ô thì có ảnh hưởng tới K, D.
+
+## 3. Chụp
+
+```
+.\.venv\Scripts\python.exe -X utf8 -m autopark.ui.calib_app --port 1 --square-mm 19.95
+```
+
+- **Mỗi lần một camera.** Chọn camera theo cổng hub; khi mở, công cụ hỏi Windows cổng đó đang ứng với index OpenCV nào
+  (`resolve_ports`, cần pygrabber). Mode mặc định là **640×480 MJPG**, là mode chạy chung bốn camera. Cũng chọn được
+  1280×720, nhưng đó là một hiệu chuẩn **riêng** cho mode ấy, lưu vào `cam_pN_1280x720.json`. Mode 16:9 có thể lấy một
+  phần khác của cảm biến, nên không đem K của mode này dùng cho mode kia. Việc này chưa kiểm.
+- **Số ảnh:** 20–30 ảnh, để sau khi loại ngoại lai còn ít nhất 15.
+- **Phủ kín ảnh, nhất là mép và bốn góc.** Mép và góc là nơi méo nhiều nhất và quyết định hệ số D. Lưới phủ trên ảnh
+  sống tô **đỏ** những ô chưa có góc bảng nào của các ảnh đã chụp, và tô **xanh** đậm dần theo số góc. Chụp tới khi gần
+  hết ô chuyển xanh, cả bốn khối góc đều có điểm. Ở mép ảnh mắt cá, bảng trông nhỏ và cong: đưa bảng lại gần camera
+  hơn, nhưng vẫn phải thấy trọn bảng.
+- **Nghiêng bảng** khoảng 20–45° quanh cả hai trục, và xoay trong mặt phẳng ảnh một ít. Nếu chỉ chụp bảng nhìn thẳng
+  thì tiêu cự và độ méo khó tách khỏi nhau. Nên có vài ảnh nhìn thẳng ở giữa ảnh.
+- **Khoảng cách:** với bảng A4, giữa ảnh có thể để bảng chiếm từ 1/4 đến 1/2 bề ngang ảnh. Ống kính loại này thường lấy
+  nét cố định. Nếu số "nét" trên dòng trạng thái tăng khi đưa bảng lại gần, bạn đang ở gần hơn tầm nét: lùi ra, hoặc
+  dùng bảng A3.
+- **Giữ yên.** Camera tự phơi sáng và chạy khoảng 24 khung/s. Phòng tối thì thời gian phơi dài, ảnh dễ nhòe khi bảng di
+  chuyển. Hãy bật đủ đèn và tránh đèn chiếu thẳng gây lóa trên giấy. "Tự chụp" chỉ chụp khi bảng đạt chất lượng, các góc
+  dịch trung bình không quá 0,8 px/khung trong 0,5 s, và tư thế khác mọi ảnh đã chụp. Khi camera chưa gá, có thể cố
+  định bảng trên tường rồi cầm camera di chuyển; về hình học thì cách này tương đương.
+- **Dòng trạng thái** cho biết: có thấy đủ 54 góc không; "nét" là độ rộng vùng chuyển đen→trắng, tính bằng px, nhỏ là
+  tốt (OpenCV khuyên dưới khoảng 3 px; ngưỡng này chỉnh được trên giao diện); tương phản; bảng cách mép ảnh bao xa;
+  khung có hỏng không; bảng có đứng yên không; tư thế khác ảnh gần nhất bao nhiêu. Khung MJPEG bị cắt cụt hay có dải xé
+  (`truncated_rows`/`torn_bands`, xem [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2) không bao giờ được chụp.
+  Nguồn USB đã loại những khung này và dòng dưới đếm lại chúng.
+- "Chụp" (hoặc phím cách) chỉ nhận khung đạt. Phím cách vẫn là "Chụp" khi ô cỡ ô hoặc ô ngưỡng mờ đang giữ focus, kể cả
+  khi vừa gõ cỡ ô mà chưa Enter (giá trị đang gõ đã được nhận). Ảnh chụp giữ nguyên ảnh gốc, chưa vẽ gì lên, và được ghi
+  dưới dạng PNG không mất thông tin khi bấm "Lưu".
+
+## 4. Hiệu chuẩn, đọc kết quả, lưu
+
+Khi có ít nhất 8 ảnh thì bấm được "Hiệu chuẩn". Công cụ gọi `cv2.fisheye.calibrate` với cờ CALIB_RECOMPUTE_EXTRINSIC |
+CALIB_FIX_SKEW, và thử thêm CALIB_CHECK_COND. Nếu OpenCV báo một ảnh làm ma trận suy biến thì ảnh đó bị bỏ. Sau mỗi lần
+hiệu chuẩn, nếu RMS riêng của ảnh tệ nhất lớn hơn max(1 px, 3 × trung vị) thì ảnh đó bị bỏ và hiệu chuẩn lại, miễn là
+vẫn còn ít nhất 8 ảnh. Ảnh bị bỏ được chấm lại dưới mô hình cuối và được ghi lý do. Ô bên phải hiện ảnh sống đã nắn sang
+phối cảnh. Kéo "balance" từ 0 (cắt hết viền đen) tới 1 (giữ cả trường nhìn). Cạnh bảng phải thẳng ở **mọi** vị trí
+trong ảnh.
+
+Trong lúc hiệu chuẩn chạy, ô chọn cổng và mode bị khoá. Nếu camera/mode vẫn bị đổi (hàm `reopen` gọi từ mã), kết quả
+của lần chạy đó bị bỏ khi xong, kể cả khi đã quay lại đúng cổng/mode cũ: ảnh của lần mở trước đã bị bỏ, nên kết quả
+không còn ứng với ảnh nào. Số liệu và ảnh nắn trên màn hình vì thế luôn thuộc camera đang mở.
+
+**Tiêu chí đề xuất** (có trong tệp, mục `acceptance`; công cụ không tự chặn việc lưu theo các tiêu chí này):
+
+| Tiêu chí | Đề xuất | Lý do |
+|---|---|---|
+| RMS chiếu lại, tính trên mọi góc | ≤ 0,5 px | Trên ảnh tổng hợp đạt 0,07 px. Ảnh thật (nén MJPEG, mờ, bảng không phẳng hẳn) sẽ cao hơn, chưa biết bao nhiêu |
+| RMS của ảnh tệ nhất còn dùng | ≤ 1,0 px | Một ảnh lệch hẳn thường là dò sai hoặc bảng cong |
+| Số ảnh dùng | ≥ 15 | |
+| Phủ lưới 8×6 | ≥ 70 % số ô, **và** cả bốn khối góc có điểm | Ngoài vùng đã thấy bảng, mô hình là ngoại suy |
+| Ảnh bảng nghiêng ≥ 20° | ≥ 4 | Tách tiêu cự khỏi độ méo |
+| Sai số khi chuyển sang mô hình dự án | ≤ 0,5 px **và** chuyển đổi đạt (`woodscape_intrinsic.ok`: đa thức tăng đơn điệu, góc ảnh nằm trong vùng KB nghịch đảo được và nghịch đảo được bằng đa thức) | Xem dưới. Sai số khớp nhỏ chưa đủ: với D gập lại trước góc ảnh (thử D = (−0,0958; −0,0376; 0,0171; −0,0047) trên K tổng hợp), sai số khớp chỉ 0,29 px nhưng `load_intrinsics()` từ chối tệp; tiêu chí này khi đó ghi CHƯA kèm lý do |
+
+Cần xem thêm hai điều mà công cụ không chấm điểm:
+
+- **θ lớn nhất đã thấy bảng, so với θ ở góc ảnh.** Bản tóm tắt in cả hai con số. Phần giữa hai số này là **ngoại suy**.
+  Trên ảnh tổng hợp của test, bảng chỉ phủ tới θ = 59,8°, trong khi góc ảnh ở θ = 68,4°. Sai số mô hình ở vùng góc ảnh
+  vì thế lên tới 0,49 px, trong khi trung vị toàn ảnh chỉ 0,05 px.
+- **So sánh bốn camera với nhau.** Bốn camera cùng loại đáng lẽ có K gần nhau. Nếu một camera có fx lệch hẳn so với ba
+  camera kia thì nên chụp lại camera đó. Đây là đề xuất; chưa có số liệu để biết thế nào là "lệch hẳn".
+
+**Chuyển sang mô hình của dự án.** `FisheyeIntrinsics` (trong `perception/calibration.py`, dạng WoodScape) dùng đa thức
+ρ(θ) = k1·θ + k2·θ² + k3·θ³ + k4·θ⁴. Công cụ khớp đa thức này vào fx·θ_d(θ) trên đoạn θ ∈ [0, θ ở góc ảnh], bắt đầu bằng
+bình phương tối thiểu rồi lặp Lawson để hạ sai số **lớn nhất**. Trên camera tổng hợp, sai số lớn nhất là 0,077 px với
+bình phương tối thiểu thường và 0,035 px sau khi lặp Lawson. Các tham số còn lại: `aspect_ratio` = fy/fx, `cx_offset` =
+cx − (W/2 − 0,5), `cy_offset` tính tương tự. Kết quả còn được kiểm chéo bằng chính `FisheyeIntrinsics.project`, so với
+`cv2.fisheye.projectPoints`.
+
+Nghiệm minimax có thể **hụt ở đầu đoạn**: ρ_poly(θ ở góc ảnh) nhỏ hơn bán kính thật của điểm ảnh góc, và điểm ảnh đó
+nghịch đảo ra NaN. Điều này có thật trên kết quả hiệu chuẩn 21 ảnh tổng hợp (không phải trên K, D thật của camera tổng
+hợp, nơi đa thức tình cờ vượt lên): ρ_poly = 405,506 px trong khi góc (0, 479) ở bán kính 405,522 px. Vì vậy
+`theta_max_deg` được **nâng** vừa đủ để ρ_poly chạm bán kính góc ảnh xa nhất (ở đây nâng 0,003°, ghi ở
+`theta_max_raise_deg`; `theta_image_corner_deg` là θ ở góc ảnh trước khi nâng), làm tròn lên, và sai số khớp được tính
+trên đoạn đã nâng. Công cụ kiểm lại bốn góc ảnh bằng chính `FisheyeIntrinsics.unproject` (`corners_invertible`).
+
+Khối `woodscape_intrinsic` bị đánh `ok: false`, và `load_intrinsics()` từ chối nạp, khi có một trong các điều sau: sai
+số khớp vượt 0,5 px; đa thức không tăng đơn điệu tới `theta_max`; góc ảnh vượt vùng mô hình KB nghịch đảo được; góc ảnh
+không nghịch đảo được bằng đa thức. `reason` liệt kê mọi điều vi phạm.
+
+**Lưu:** bấm "Lưu" sẽ ghi `calibration/cam_p<cổng>.json`. Ảnh đã chụp, `captures.json` (vị trí góc và chất lượng từng
+ảnh) và một bản sao tệp hiệu chuẩn được ghi vào `runs/calib/<ngày giờ>_p<cổng>/`. Công cụ không cho lưu nếu danh sách
+ảnh hoặc cỡ ô đã thay đổi sau lần hiệu chuẩn. Có thể hiệu chuẩn lại từ thư mục ảnh đó mà không cần camera:
+
+```
+.\.venv\Scripts\python.exe -X utf8 -m autopark.perception.fisheye_calib calibrate --images runs/calib/<thư mục> --cols 9 --rows 6 --square-mm 19.95 --port 1
+.\.venv\Scripts\python.exe -X utf8 -m autopark.perception.fisheye_calib check calibration/cam_p1.json --image runs/calib/<thư mục>/cap_000.png
+```
+
+Lệnh `check` in bản tóm tắt. Nếu có `--image`, lệnh ghi thêm ảnh gốc và ảnh nắn đặt cạnh nhau.
+
+## 5. Đã kiểm gì trên ảnh tổng hợp, và các phép kiểm đó chưa chứng minh gì
+
+Ảnh được dựng qua một camera Kannala–Brandt **đã biết**: 640×480, fx = 351,0, fy = 349,2, cx = 324,3, cy = 236,8,
+D = (−0,035; 0,018; −0,009; 0,0015). Với mỗi điểm ảnh con (siêu lấy mẫu 3×3), tia nhìn lấy từ
+`cv2.fisheye.undistortPoints`, tức không đi qua mã đang kiểm. Tia được cắt với mặt phẳng bảng rồi tô màu theo ô. Sau đó
+ảnh được làm mờ (σ = 0,6 px) và thêm nhiễu (σ = 2). Bảng 9×6 với ô 25 mm, được đặt ở 21 tư thế khắp ảnh, kể cả bốn góc,
+nghiêng tới ±40° và cách camera 0,18–0,98 m.
+
+| Đại lượng | Thật | Tìm được |
+|---|---|---|
+| fx / fy | 351,0 / 349,2 | 351,03 / 349,23 |
+| cx / cy | 324,3 / 236,8 | 324,29 / 236,76 |
+| RMS chiếu lại | — | 0,071 px (số OpenCV trả về trùng số tự tính) |
+| Sai lệch mô hình: tia thật qua mỗi điểm của lưới 65×49 trên ảnh, chiếu lại bằng mô hình tìm được | — | trung vị 0,05 px, lớn nhất 0,49 px (ở góc ảnh, vùng ngoại suy) |
+| Trường nhìn ngang / dọc / chéo suy từ mô hình | 106,8° / 79,9° / 135,2° | 106,8° / 79,8° / 135,1° |
+| Chuyển sang đa thức dự án | — | sai số lớn nhất 0,017 px |
+
+Test cũng kiểm:
+- một ảnh có nửa số góc lệch vài px bị loại đúng, còn nếu tắt việc loại ngoại lai thì RMS tăng hơn 3 lần;
+- khung bị cắt cụt hoặc có dải xé bị loại trước khi dò, và giao diện đếm lại chúng;
+- ảnh mờ bị cờ "mờ", bảng sát mép ảnh bị cờ riêng;
+- tự chụp không chụp lại một tư thế đã có;
+- sau khi nắn, các hàng góc thẳng lại (độ cong còn dưới 1/5 so với trước);
+- thư mục ảnh do giao diện lưu, khi hiệu chuẩn lại bằng dòng lệnh, cho ra cùng K;
+- với K, D **tìm được**, mọi điểm ảnh 640×480 nghịch đảo được bằng `FisheyeIntrinsics` (qua cả tệp và
+  `load_intrinsics`), tia lệch tia của OpenCV dưới 0,05°;
+- tiêu chí chấp nhận lấy đúng số liệu: độ nghiêng bảng của từng ảnh khớp tư thế thật đã dựng ảnh trong 0,5°, θ lớn nhất
+  đã thấy bảng khớp mô hình thật trong 0,2°; siết một ngưỡng thì hỏng đúng tiêu chí đó, ngưỡng bằng giá trị thì đạt;
+  khối chuyển đổi không đạt thì tiêu chí sai số chuyển đổi hỏng dù sai số khớp nhỏ.
+
+Trong lúc viết công cụ có hai phát hiện, cả hai đều **trên ảnh tổng hợp**:
+
+1. **Góc do `findChessboardCornersSB` trả về lệch có hệ thống**, kể cả khi bật ACCURACY: trung bình 0,12 px, lớn nhất
+   1,5 px trên bảng nhỏ ở góc ảnh. Độ lệch này làm fx ra 352,07 thay vì 351,0 (lệch 0,3 %), và mô hình sai tới 2,3 px ở
+   góc ảnh. Khi tinh chỉnh thêm bằng `cornerSubPix`, góc chỉ còn lệch trung bình 0,06 px và fx ra 351,03. Vì vậy công
+   cụ **luôn** tinh chỉnh bằng `cornerSubPix`, và test sẽ hỏng nếu bỏ bước này. Chế độ SB nhanh cộng `cornerSubPix` cho
+   kết quả tốt ngang SB kỹ cộng `cornerSubPix`, mà chỉ mất khoảng 15 ms/khung thay vì 38 ms trên máy bàn i9. Chưa biết
+   độ lệch này còn không trên ảnh MJPEG thật.
+2. `estimateChessboardSharpness` trả về giá trị 9999, tương phản 0, khi ô trên ảnh chỉ khoảng 8 px. Công cụ coi đó là
+   "không đo được độ nét", không coi là "mờ".
+
+**Các phép kiểm này chưa chứng minh:** ống kính thật khớp tốt với mô hình 4 hệ số (camera tổng hợp dùng đúng mô hình
+đó nên luôn khớp); ảnh nén MJPEG, rolling shutter, phơi sáng tự động và độ mờ thật không làm lệch góc; máy in in đúng tỉ
+lệ; bảng dán đủ phẳng; và công cụ chạy được với camera thật. Giao diện chưa từng mở một camera thật nào. Hàm
+`usb_camera_factory` (gồm `resolve_ports`, `UsbCameraSource` và kiểm `mode_mismatch`) chưa chạy lần nào.
+
+## 6. Chưa làm
+
+- **Ngoại tham và rig.** Chưa có `camera_rig_extrinsics.yaml`, và chưa có vị trí/hướng camera so với xe. Việc này cần gá
+  cứng và một cách đo, chẳng hạn đặt bảng trên sàn ở vị trí đo được rồi dùng `cv2.fisheye.solvePnP` với nội tham ở đây,
+  hoặc đo tay rồi kiểm lại bằng vật mẫu trên BEV. Chưa chọn cách nào, chưa làm. Mỗi tệp nội tham có
+  `"extrinsic": null`, `"rig": null` và một câu ghi chú nói rõ điều này.
+- **Nối vào costmap.** `CameraCalibration.from_dict` (trong `perception/calibration.py`) bắt buộc có khối `extrinsic` và
+  bỏ qua `theta_max`: nó luôn dùng 100°, trong khi đa thức khớp ở đây chỉ bảo đảm tăng đơn điệu tới θ ở góc ảnh (khoảng
+  68° trên camera tổng hợp). Hiện chỉ nạp được nội tham bằng `fisheye_calib.load_intrinsics(...)`, trả về
+  `FisheyeIntrinsics` với `theta_max` đúng. Muốn đưa vào `CameraCalibration` thì cần ngoại tham, và `from_dict` phải đọc
+  được `theta_max_deg`. Tệp `calibration.py` không thuộc phần việc này nên chưa sửa.
+- **Mặt nạ ROI** cho camera của dự án (thân xe, viền ống kính) chưa dựng.
+- **Kiểm trên ảnh thật:** RMS trên các ảnh để riêng không dùng để hiệu chuẩn, độ thẳng của đường thẳng thật sau khi nắn,
+  so sánh bốn camera với nhau, và độ ổn định khi rút/cắm lại hoặc khi camera nóng lên. Tất cả đều chưa làm.

@@ -187,3 +187,14 @@ def test_axis_adjacent_occupied_cell_shadows_its_whole_wedge():
     for x, y in ((0.45, 0.35), (0.55, 0.45), (1.05, 0.95), (1.05, -0.95)):   # azimuths 37-45 deg, behind the cell
         assert states[grid.index(x, y)] == UNKNOWN, (x, y)
     assert states[grid.index(0.55, 0.85)] == FREE                    # ~58 deg: outside the wedge, still visible
+
+
+def test_from_dict_reads_theta_max_of_own_calibration_files_and_keeps_100_deg_for_woodscape():
+    """Tệp của perception/fisheye_calib ghi `theta_max_deg` (góc lớn nhất đa thức khớp còn đúng, thường < 100°); tệp
+    WoodScape không có khóa này và phải giữ nguyên mặc định 100°."""
+    base = {"name": "t", "extrinsic": {"quaternion": [0, 0, 0, 1], "translation": [0, 0, 0.3]},
+            "intrinsic": {"model": "radial_poly", "poly_order": 4, "width": 640, "height": 480,
+                          "k1": 300.0, "k2": 0.0, "k3": 0.0, "k4": 0.0}}
+    assert CameraCalibration.from_dict(base).intrinsics.theta_max == pytest.approx(math.radians(100.0))
+    own = {**base, "intrinsic": {**base["intrinsic"], "theta_max_deg": 68.25}}
+    assert CameraCalibration.from_dict(own).intrinsics.theta_max == pytest.approx(math.radians(68.25))
