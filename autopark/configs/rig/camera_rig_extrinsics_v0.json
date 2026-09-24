@@ -1,0 +1,60 @@
+{
+  "format": "autopark.camera_rig_extrinsics/0",
+  "status": "GIẢ ĐỊNH — CHƯA ĐO",
+  "created_local": "2026-09-24",
+  "ghi_chu": [
+    "GIẢ ĐỊNH — CHƯA ĐO (24/09/2026): chưa có xe MN300, chưa có gá camera, chưa có công cụ đo ngoại tham (docs/HIEU_CHUAN_CAMERA.md mục 6). Mọi vị trí/góc dưới đây là số đặt tay để chạy thử luồng BEV và kiểm thử, KHÔNG phải số đo.",
+    "BEV dựng từ tệp này luôn bị đóng dấu không dùng được cho lập đường (stamp valid = false, stats.json liệt kê lý do) cho tới khi mọi camera có \"measured\": true.",
+    "Gán cổng hub → hướng (trước/sau/trái/phải) CHƯA CHỐT: docs/usb_topology.md ghi việc gán hướng sẽ làm theo cổng khi có gá. Thứ tự p1 trước, p2 sau, p3 trái, p4 phải chỉ là chỗ giữ chỗ.",
+    "Kích thước xe: số gần đúng của xe 1/12 (≈ 0,40 × 0,20 m) theo yêu cầu dựng tệp; KHÁC configs/vehicle_default.json (0,31 × 0,14 m, cũng là giả định cho sa bàn giai đoạn 0). Cả hai chưa phải số đo MN300 (giai đoạn 4).",
+    "Góc 130° của ống kính là số nhà bán; chưa biết là góc chéo hay góc ngang, góc thật chưa đo. Tệp này không chứa nội tham: nội tham lấy từ calibration/cam_p<cổng>.json (fisheye_calib), thiếu tệp thì BEV từ chối chạy.",
+    "Kế hoạch giai đoạn 2 gọi tệp này là camera_rig_extrinsics.yaml; dự án dùng JSON vì cả .venv và .venv-train không có thư viện YAML (kiểm 24/09/2026)."
+  ],
+  "frame": "hệ xe: x hướng trước, y sang trái, z lên; gốc trên mặt sàn, dưới tâm trục sau (quy ước Pose của dự án, trùng ISO 8855 của WoodScape)",
+  "angle_convention": "yaw_deg: hướng của trục quang chiếu xuống mặt sàn, đo từ +x, dương ngược chiều kim đồng hồ (90 = sang trái). pitch_down_deg: góc chúc của trục quang dưới mặt phẳng ngang (dương = nhìn xuống). roll_deg: xoay quanh trục quang, dương = trục phải của ảnh quay về phía trục xuống của ảnh. roll = 0 nghĩa là hàng ảnh nằm ngang. Camera đã đo thì có thể ghi thẳng quaternion_xyzw (camera → xe, giống WoodScape) thay cho ba góc.",
+  "vehicle_assumed": {
+    "length_m": 0.40,
+    "width_m": 0.20,
+    "rear_overhang_m": 0.07,
+    "ego_margin_m": 0.02,
+    "note": "GIẢ ĐỊNH — CHƯA ĐO. Thân xe x ∈ [−0,07; 0,33] m, y ∈ [−0,10; 0,10] m. Ô lưới dưới thân xe (nới thêm ego_margin_m) luôn là UNKNOWN trong BEV: camera gắn trên xe không nhìn được mặt sàn dưới xe."
+  },
+  "cameras": {
+    "1": {
+      "direction": "front",
+      "measured": false,
+      "position_m": [0.33, 0.00, 0.12],
+      "yaw_deg": 0.0,
+      "pitch_down_deg": 30.0,
+      "roll_deg": 0.0,
+      "basis": "GIẢ ĐỊNH — CHƯA ĐO: mép trước thân xe giả định, cao 0,12 m; chúc 30° để trục quang chạm sàn ≈ 0,21 m trước camera mà mép trên ảnh vẫn tới đường chân trời (ống kính mắt cá, nửa góc dọc ≈ 39–49° tùy 130° là góc chéo hay ngang)."
+    },
+    "2": {
+      "direction": "rear",
+      "measured": false,
+      "position_m": [-0.07, 0.00, 0.12],
+      "yaw_deg": 180.0,
+      "pitch_down_deg": 30.0,
+      "roll_deg": 0.0,
+      "basis": "GIẢ ĐỊNH — CHƯA ĐO: mép sau thân xe giả định, cao 0,12 m, chúc 30°, đối xứng camera trước."
+    },
+    "3": {
+      "direction": "left",
+      "measured": false,
+      "position_m": [0.13, 0.10, 0.15],
+      "yaw_deg": 90.0,
+      "pitch_down_deg": 45.0,
+      "roll_deg": 0.0,
+      "basis": "GIẢ ĐỊNH — CHƯA ĐO: giữa sườn trái (x = 0,13 m là giữa thân xe 0,40 m), cao 0,15 m, chúc 45° để phủ mặt sàn sát hông xe."
+    },
+    "4": {
+      "direction": "right",
+      "measured": false,
+      "position_m": [0.13, -0.10, 0.15],
+      "yaw_deg": -90.0,
+      "pitch_down_deg": 45.0,
+      "roll_deg": 0.0,
+      "basis": "GIẢ ĐỊNH — CHƯA ĐO: đối xứng camera trái qua trục xe."
+    }
+  }
+}

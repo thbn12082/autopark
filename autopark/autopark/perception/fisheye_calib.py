@@ -1,9 +1,11 @@
 """Hiệu chuẩn nội tham từng camera mắt cá bằng bảng ô vuông (kế hoạch giai đoạn 2, bước 4 "Hiệu chuẩn riêng từng camera").
 
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.fisheye_calib board --paper A4
-    .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.fisheye_calib calibrate --images runs/calib/<thư mục> ^
-        --cols 9 --rows 6 --square-mm <cỡ ô ĐO ĐƯỢC> --port 1 --out calibration/cam_p1.json
+    .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.fisheye_calib calibrate --images runs/calib/<thư mục> --cols 9 --rows 6 --square-mm <cỡ ô ĐO ĐƯỢC> --port 1 --out calibration/cam_p1.json
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.fisheye_calib check calibration/cam_p1.json
+
+Mỗi lệnh viết trên một dòng để dán được vào cmd.exe lẫn PowerShell; thay `<...>` bằng giá trị thật trước khi chạy
+(sửa 24/09/2026: bản trước ngắt lệnh `calibrate` thành hai dòng bằng `^` của cmd.exe).
 
 Mô hình: Kannala–Brandt của `cv2.fisheye` (4 hệ số): với tia có góc θ so với trục quang,
 θ_d = θ·(1 + d1·θ² + d2·θ⁴ + d3·θ⁶ + d4·θ⁸), điểm ảnh = (fx·θ_d·cosφ + cx, fy·θ_d·sinφ + cy), skew cố định 0.

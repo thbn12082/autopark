@@ -18,7 +18,6 @@ uncertainty here fails safe. Calibration error, ground slope and the model's own
 """
 import argparse
 from dataclasses import dataclass
-import json
 import math
 from pathlib import Path
 import sys

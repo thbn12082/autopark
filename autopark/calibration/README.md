@@ -49,4 +49,7 @@ Kiểm nhanh một tệp:
 **Lưu ý:** `perception/calibration.py::CameraCalibration.from_dict` hiện **chưa** đọc thẳng được các tệp này. Hàm đó cần
 khối `intrinsic` và khối `extrinsic`, còn tệp ở đây ghi nội tham ở `woodscape_intrinsic` và chưa có ngoại tham
 (`extrinsic` là `null`). Hàm đã đọc `theta_max_deg` khi có (từ 24/09/2026; bản đầu của README ghi hàm bỏ qua
-`theta_max`). Xem mục 6 của [docs/HIEU_CHUAN_CAMERA.md](../docs/HIEU_CHUAN_CAMERA.md).
+`theta_max`). Xem mục 6 của [docs/HIEU_CHUAN_CAMERA.md](../docs/HIEU_CHUAN_CAMERA.md). *(Cập nhật tối 24/09/2026:
+BEV từ AI — `perception/bev.py::load_rig` — đã đọc các tệp này qua `fisheye_calib.load_intrinsics` và ghép với ngoại
+tham GIẢ ĐỊNH ở `configs/rig/camera_rig_extrinsics_v0.json`; xem [docs/BEV.md](../docs/BEV.md). Chưa có tệp `cam_p*.json`
+nào, nên BEV trên camera dự án chưa chạy được.)*
