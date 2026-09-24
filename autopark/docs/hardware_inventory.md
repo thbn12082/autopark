@@ -37,7 +37,7 @@ Số đo trên bàn ngày 22/09/2026, chế độ Standard, chưa làm nóng, kh
 | Khởi động lại máy | 12:35 ngày 23/09: InstanceId theo cổng giữ nguyên, index OpenCV đổi (cổng 2 ↔ cổng 4) → chọn camera theo cổng, không theo index | `usb_topology_20260923_after_reboot.json` |
 | Góc nhìn thực, nhãn/hộp, độ nét trong vùng làm việc | **chưa đo** (camera mới nằm trên bàn) | |
 | Lớp phim bảo vệ ống kính | các phiên m01–m13 đo khi còn phim; lột lúc ≈ 11:15 ngày 23/09; phiên n01–n06 sau khi lột: nhịp khung/FPS không đổi, ảnh sáng hơn ≈ 5 lần ở cùng phơi sáng thủ công | [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.4 |
-| `camera_01_calibration.yaml` | chưa có (chưa in bảng hiệu chuẩn; mã hiệu chuẩn cho ống kính thật chưa viết) | |
+| `camera_01_calibration.yaml` | chưa có (chưa in bảng hiệu chuẩn, chưa chụp). Mã đã có từ 24/09: tệp ra sẽ là `calibration/cam_p<cổng>.json`, mới kiểm trên ảnh tổng hợp | [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md) |
 | Dây camera (chiều dài, loại) | **chưa ghi** — kế hoạch yêu cầu thử dây ngắn trước rồi mới cáp kéo dài | |
 | Laptop của xe | chưa thử | |
 

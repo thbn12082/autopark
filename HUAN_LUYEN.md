@@ -5,7 +5,8 @@
 **Ngày thực hiện:** 21/09/2026 (phần I), 22/09/2026 (phần II — đánh giá mở rộng, từ mục 8) và đêm 22 → 23/09/2026 kèm sáng 23/09 (phần III — thêm dữ liệu AVM-SS và ACDC, từ mục 15)
 **Máy:** Intel Core i9-14900, NVIDIA RTX 4000 Ada 20 GB (driver 596.72), Windows 11, RAM 64 GB
 **Mã nguồn:** [autopark/autopark/perception](autopark/autopark/perception/) · **Hồ sơ lượt chạy:** [autopark/runs/ai_woodscape_rtx4000_v1](autopark/runs/ai_woodscape_rtx4000_v1/)
-**Mức bằng chứng:** AI trên ảnh lưu sẵn của bộ dữ liệu công khai. Chưa có ảnh sa bàn/MN300, chưa nối vào planner hay phần cứng.
+**Mức bằng chứng:** AI trên ảnh lưu sẵn của bộ dữ liệu công khai. Chưa có ảnh sa bàn/MN300, chưa nối vào planner hay phần cứng.  
+*Cập nhật 24/09/2026:* từ 23/09 checkpoint nền chạy trực tiếp trên bốn camera USB của bàn thử giai đoạn 2 ([GIAI_DOAN_2_BAN_THU.md](autopark/docs/GIAI_DOAN_2_BAN_THU.md)): đo được thời gian suy luận, còn lớp tô chỉ để quan sát. Chưa chấm trên ảnh sa bàn có nhãn, chưa nối vào planner.
 
 ## 1. Kết quả tóm tắt
 
@@ -162,9 +163,9 @@ Thư mục `runs/` và `datasets/prepared/` nằm trong `.gitignore`: **checkpoi
 
 ## 6. Chưa làm
 
-- Môi trường mô phỏng `.venv` vẫn hỏng trên máy này; **220 test giai đoạn 0 chưa được chạy lại ở đây**. Mã mô phỏng (planner/controller/UI) không bị sửa.
-- Repo git vẫn chưa có commit nào; chưa commit mã mới.
-- Dọn dẹp cùng ngày: 11 file ZIP gốc trong `datasets/raw` (31 GB, đã đối chiếu CRC32 khớp 100% với bản giải nén) và hai venv hỏng từ máy cũ (5,3 GB) được gom vào `D:\ap\_CHO_XOA` chờ xóa; xem `DOC_TRUOC_KHI_XOA.md` trong đó. Môi trường mô phỏng cần dựng lại bằng `autopark/cai_dat.cmd`.
+- Môi trường mô phỏng `.venv` vẫn hỏng trên máy này; **220 test giai đoạn 0 chưa được chạy lại ở đây**. Mã mô phỏng (planner/controller/UI) không bị sửa. *Cập nhật 24/09/2026: `.venv` đã được dựng lại ngày 22/09 (ngày tạo `pyvenv.cfg`); một lượt chạy toàn bộ test trên máy này ngày 22/09 cho 284 đạt, 4 bỏ qua (có lẽ trên cây làm việc trước khi hoàn tất commit `6dba1a6`; không còn nhật ký của lượt đó); chạy lại đúng bản `6dba1a6` ngày 24/09 cho 292 đạt, 4 bỏ qua ([GIAI_DOAN_3_CHUAN_BI.md](autopark/docs/GIAI_DOAN_3_CHUAN_BI.md) mục 1). Cả hai lượt đều gồm các test giai đoạn 0.*
+- Repo git vẫn chưa có commit nào; chưa commit mã mới. *Cập nhật 24/09/2026: theo `git log`, commit đầu tiên `bef5695` được tạo ngày 21/09/2026 lúc 18:11 và đã chứa tệp này; nhánh `main` đã có trên remote `origin`.*
+- Dọn dẹp cùng ngày: 11 file ZIP gốc trong `datasets/raw` (31 GB, đã đối chiếu CRC32 khớp 100% với bản giải nén) và hai venv hỏng từ máy cũ (5,3 GB) được gom vào `D:\ap\_CHO_XOA` chờ xóa; xem `DOC_TRUOC_KHI_XOA.md` trong đó. Môi trường mô phỏng cần dựng lại bằng `autopark/cai_dat.cmd`. *Cập nhật 24/09/2026: thư mục `D:\ap\_CHO_XOA` không còn trong `D:\ap`; `autopark/datasets/raw/` chỉ còn các tệp `.zip.json` ghi SHA-256, nên bản giải nén là bản dữ liệu duy nhất trên máy này.*
 
 ## 7. Việc nối tiếp đề xuất
 
@@ -369,6 +370,7 @@ Từ thư mục `autopark`, trong `.venv-train`:
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.prepare_extra avm     --out datasets/prepared/avm_ss_binary_v1
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.prepare_extra acdc    --out datasets/prepared/acdc_binary_v1
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.prepare_extra combine --caches datasets/prepared/woodscape_binary_v1 datasets/prepared/avm_ss_binary_v1 --out datasets/prepared/ws_avm_v1
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.prepare_extra combine --caches datasets/prepared/woodscape_binary_v1 datasets/prepared/avm_ss_binary_v1 datasets/prepared/acdc_binary_v1 --out datasets/prepared/ws_avm_acdc_v1
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --config configs/train_woodscape_rtx4000_baseline.json --out runs/ai_ws_avm --set prepared_manifest=datasets/prepared/ws_avm_v1/manifest.json --set seed=20260922
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --config configs/train_woodscape_rtx4000_baseline.json --out runs/ai_ws_avm_weighted --set prepared_manifest=datasets/prepared/ws_avm_v1/manifest.json --set class_weights=train_inverse_frequency --set seed=20260922
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate --checkpoint runs/ai_ws_avm/best.pt --split val --manifest datasets/prepared/avm_ss_binary_v1/manifest.json --out runs/ai_ws_avm/eval_cross_avm --examples 0
@@ -379,3 +381,5 @@ Từ thư mục `autopark`, trong `.venv-train`:
 ```
 
 Các lệnh `prepare_extra` kiểm tra tham số của mình; xem `--help` để biết đường dẫn dữ liệu thô mặc định. `train.py` từ chối `--out` đã có `status.json` ("already holds a run; pick a new --out or use --resume"), nên khi chạy lại phải đổi sang `runs/<ten_moi>`. Ngưỡng mặc định của `evaluate_external` là 0,50: thư mục `eval_acdc` / `eval_ro21` là ngưỡng 0,50 (bảng mục 16), `*_thr015` là ngưỡng 0,15 (bảng 17.1); chạy `--threshold 0.15` vào thư mục thường sẽ ghi đè metrics.json của ngưỡng 0,50.
+
+*Cập nhật 24/09/2026:* dòng `combine` thứ hai (ba cache, đúng thứ tự woodscape → avm → acdc như `combined_from` trong manifest của `ws_avm_acdc_v1`) được thêm vào khối lệnh trên; trước đó khối lệnh thiếu bước dựng cache của lượt `ai_ws_avm_acdc`. Trường `purpose` trong [acdc_cityscapes_to_binary_v1.json](autopark/configs/acdc_cityscapes_to_binary_v1.json) vẫn ghi "EVALUATION ONLY. Nothing is trained on ACDC with this file", nhưng từ 22/09 tệp này cũng là ánh xạ mặc định của `prepare_extra acdc` để dựng cache huấn luyện `acdc_binary_v1` cho lượt `ai_ws_avm_acdc`, nên câu đó đã lỗi thời. **Cố ý không sửa chữ trong tệp:** `prepare_extra` băm nguyên byte tệp làm `mapping_sha256` của cache (bản checkout CRLF của commit `960efd2` cho `d91f14cc…`, khớp manifest của `acdc_binary_v1` và 25 tệp `metrics.json` chấm ACDC trong `runs/`), bước `combine` băm tiếp các hash con thành `933fe354…` của `ws_avm_acdc_v1`, và `runs/ai_ws_avm_acdc/best.pt` lưu đúng `933fe354…`. Đổi một byte (đã thử ngày 24/09: sửa riêng chuỗi `purpose` cho `cadbc18a…`, cache ghép sẽ thành `fa69be80…`) thì trên cache dựng lại ở đúng đường dẫn cũ `evaluate --split val` sẽ từ chối checkpoint ("different split or label mapping") và `train --resume` sẽ báo "mapping_sha256 differs", dù ánh xạ lớp không đổi (suy từ mã `evaluate.py`, `train.py`; chưa chạy thử vì phải dựng lại cache). Hash cũng phụ thuộc kiểu xuống dòng: bản LF của cùng tệp cho `aa2504a2…` (cache ghép `32d0ff0b…`), nên muốn tái hiện đúng hash phải dựng từ bản checkout CRLF (`core.autocrlf=true` như máy này) hoặc truyền `--mapping` trỏ tới bản CRLF đó.

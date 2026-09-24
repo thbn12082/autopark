@@ -41,9 +41,9 @@ Video đỗ: [simulation.mp4](../runs/phase0_final_2026-09-20/parking/simulation
 
 ## Môi trường, dữ liệu và hồ sơ
 
-- Đã khởi tạo `.git`; chưa commit hoặc đẩy remote. Snapshot source mỗi phiên có SHA-256 và `source.zip`.
+- Đã khởi tạo `.git`; chưa commit hoặc đẩy remote. Snapshot source mỗi phiên có SHA-256 và `source.zip`. *Cập nhật 24/09/2026: theo `git log`, commit đầu tiên là `bef5695` ngày 21/09/2026; nhánh `main` đã có trên remote `origin`.*
 - Python 3.12.10, Windows 11; CPU i7-12700H, GPU RTX 3050 Ti Laptop GPU và Intel Iris Xe; RAM hệ thống báo 68.409.155.584 byte. Đây là thông tin hệ thống, chưa phải benchmark GPU.
-- Phiên bản package cố định tại [requirements-phase0.lock](../requirements-phase0.lock); thông tin máy/package từng phiên trong `manifest.json`. Đã thêm OpenCV cho video và công cụ tải dataset; không nâng hàng loạt dependency cũ. PyTorch khai báo tùy chọn cho perception, chưa cài/huấn luyện.
+- Phiên bản package cố định tại [requirements-phase0.lock](../requirements-phase0.lock); thông tin máy/package từng phiên trong `manifest.json`. Đã thêm OpenCV cho video và công cụ tải dataset; không nâng hàng loạt dependency cũ. PyTorch khai báo tùy chọn cho perception, chưa cài/huấn luyện. *Cập nhật 24/09/2026: PyTorch nằm trong môi trường riêng `.venv-train`; baseline nhận thức huấn luyện ngày 21/09/2026, xem [HUAN_LUYEN.md](../../HUAN_LUYEN.md).*
 - Cấu hình xe hiện ghi rõ toàn bộ là giả định, không gắn số đo WPL cho MN300. Bản đồ có loại `unknown`, planner và collision chặn vùng này.
 - [Danh mục 44 bộ/nhánh dataset](../datasets/DANH_MUC_DATASET.md); [biên bản tải/kiểm tra](../datasets/TAI_VA_KIEM_TRA.md). Đã kiểm tra nhãn pixel thực tế; không coi nhãn ô đỗ là nhãn vật cản.
 - Có hợp đồng `VehicleState`, `GoalPose`, `CameraFrame`, `LidarScan`, `Telemetry`, `Costmap`, `Trajectory`, `SafetyEvent`; metadata nguồn/thời gian/valid. Các hợp đồng cảm biến chưa phải driver hoạt động với phần cứng.
@@ -53,3 +53,5 @@ Video đỗ: [simulation.mp4](../runs/phase0_final_2026-09-20/parking/simulation
 Nguồn phản hồi là pose mô phỏng có trễ/nhiễu, chưa mô phỏng quang học bốn camera hoặc scan ray-casting. Preview dùng mô hình lý tưởng; profile lỗi chỉ tác động phiên chạy. Vật được chèn quá gần hoặc đè thân xe có thể gây FAULT; việc force-stop sau va chạm chỉ là cơ chế dừng mô phỏng, không tính là tránh va chạm thành công.
 
 V1 chưa có AI được huấn luyện, mapping LiDAR thật, hiệu chuẩn camera/BEV, liên lạc ESP32 hay kiểm chứng phanh. Giai đoạn 1 tiếp tục nguồn video/scan lưu sẵn và tiếp nhận cảm biến; giữ nguồn giả và replay để tìm lỗi. Không cần mua cảm biến để giải quyết những lỗi phần mềm vừa kiểm chứng.
+
+*Cập nhật 24/09/2026:* sau biên bản này đã có AI huấn luyện trên WoodScape ([HUAN_LUYEN.md](../../HUAN_LUYEN.md)), bản đồ lưới tĩnh từ LiDAR thật đứng yên ([GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md)) và bàn thử bốn camera + LiDAR + AI ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md)). Vẫn chưa có hiệu chuẩn camera/BEV, định vị/SLAM, liên lạc ESP32 hay kiểm chứng phanh. Kết luận của biên bản này (đạt ở mức mô phỏng) không đổi.

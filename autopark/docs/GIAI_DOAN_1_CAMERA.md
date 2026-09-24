@@ -234,7 +234,7 @@ Hệ quả cho mục 4.2–4.5:
 2. ~~Khởi động lại máy~~ — đã làm 12:35 ngày 23/09: InstanceId giữ nguyên, index đổi. Mã vận hành phải chọn camera theo cổng/InstanceId.
 3. **Đặt camera ở độ cao và góc chúc dự kiến trên xe**, bày hộp/thành/xe mô hình, ghi ảnh bằng `record` — ảnh sa bàn
    đầu tiên cho nhánh AI (HUAN_LUYEN.md phần III, mục 18).
-4. **In bảng ô vuông** có kích thước đo được để hiệu chuẩn 130°; mã hiệu chuẩn cho ống kính thật chưa có
+4. **In bảng ô vuông** có kích thước đo được để hiệu chuẩn 130°; mã hiệu chuẩn cho ống kính thật đã có từ 24/09 (`perception/fisheye_calib.py`, giao diện `ui/calib_app.py`, bảng in sẵn trong `calibration/bang_in/`, hướng dẫn [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md)), mới kiểm trên ảnh tổng hợp, chưa hiệu chuẩn camera nào
    (`perception/calibration.py` hiện chỉ đọc mô hình fisheye của WoodScape).
 5. Xác nhận nguồn hub, đo dòng camera; ghi chiều dài/loại dây camera vào kiểm kê; thử trên laptop của xe; thử cáp kéo dài — theo thứ tự kế hoạch.
 6. Chạy AI trên ảnh thật và lưu cả lỗi (bước 6 "Khi nhận một camera").

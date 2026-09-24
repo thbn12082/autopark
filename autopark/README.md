@@ -1,8 +1,8 @@
-# AutoPark — giai đoạn 0 của kế hoạch v3.1
+# AutoPark — mã nguồn xe mô hình tự đỗ theo kế hoạch v3.1
 
 > **Ghi công bắt buộc theo giấy phép dữ liệu:** nghiên cứu nhận thức trong dự án này được thực hiện với **Valeo WoodScape Dataset** (<https://woodscape.valeo.com>, [repo](https://github.com/valeoai/WoodScape)). Điều khoản Valeo yêu cầu hiển thị rõ ghi công này trong mọi tài liệu công bố có nhắc tới nghiên cứu dùng bộ dữ liệu. Bảng giấy phép đầy đủ và vấn đề cần xử lý: [docs/GIAY_PHEP_DU_LIEU.md](docs/GIAY_PHEP_DU_LIEU.md).
 
-Mô phỏng xe đạp động học, đặt/xoay đích, Hybrid A*/Reeds–Shepp, bám quỹ đạo tiến/lùi và dừng khi bản đồ/phản hồi không còn hợp lệ. Đây là phần mềm mô phỏng; thông số trong `configs/vehicle_default.json` **chưa phải số đo MN300**.
+Mô phỏng xe đạp động học, đặt/xoay đích, Hybrid A*/Reeds–Shepp, bám quỹ đạo tiến/lùi và dừng khi bản đồ/phản hồi không còn hợp lệ. Đây là phần mềm mô phỏng; thông số trong `configs/vehicle_default.json` **chưa phải số đo MN300**. Các mục từ **Huấn luyện nhận thức** trở xuống là phần làm sau giai đoạn 0: AI, LiDAR và camera thật trên máy bàn, bàn thử giai đoạn 2, hợp nhất cảm biến.
 
 ## Chạy trên Windows
 
@@ -30,7 +30,7 @@ Kịch bản `scenarios/giai_doan_0_unknown.json` minh họa vùng chưa quan s�
 
 ## Kiểm thử, bằng chứng và replay
 
-Đợt kiểm thử mở rộng: **220 ca pytest** và chiến dịch **2.880 trường hợp theo seed**. Xem [báo cáo, các lỗi đã sửa và giới hạn](docs/KIEM_THU_DO_BEN_GIAI_DOAN_0.md). Chạy bộ đo theo thời hạn riêng với campaign/coverage để tránh làm sai kết quả thời gian.
+Đợt kiểm thử mở rộng của giai đoạn 0 (20/09/2026): **220 ca pytest** và chiến dịch **2.880 trường hợp theo seed**. Xem [báo cáo, các lỗi đã sửa và giới hạn](docs/KIEM_THU_DO_BEN_GIAI_DOAN_0.md). Bộ test hiện nay nhiều hơn 220 ca vì có thêm các khối nhận thức, LiDAR, camera, hợp nhất và bàn thử; số đếm của từng đợt ghi trong biên bản của đợt đó. Chạy bộ đo theo thời hạn riêng với campaign/coverage để tránh làm sai kết quả thời gian.
 
 ```powershell
 .\.venv\Scripts\python.exe -X utf8 -m pytest
@@ -54,7 +54,7 @@ Mỗi bước replay đối chiếu kết quả với bản ghi; cùng code/môi
 
 ## Huấn luyện nhận thức (WoodScape, FREE / BLOCKED)
 
-Baseline L-RASPP/MobileNetV3 đã được huấn luyện ngày 21/09/2026 trên RTX 4000 Ada; quá trình, kết quả và giới hạn ghi tại [HUAN_LUYEN.md](../HUAN_LUYEN.md). Đây là AI trên ảnh lưu sẵn, chưa nối vào planner hay phần cứng. Chạy trong `.venv-train` (Python 3.12, torch 2.11.0+cu128), từ thư mục `autopark`:
+Baseline L-RASPP/MobileNetV3 đã được huấn luyện ngày 21/09/2026 trên RTX 4000 Ada; quá trình, kết quả và giới hạn ghi tại [HUAN_LUYEN.md](../HUAN_LUYEN.md). Mô hình mới được chấm trên ảnh lưu sẵn của bộ dữ liệu công khai. Từ 23/09 nó chạy trực tiếp trên bốn camera của bàn thử giai đoạn 2, nhưng lớp tô ở đó chỉ để quan sát: chưa chấm trên ảnh sa bàn có nhãn, và chưa nối vào planner. Chạy trong `.venv-train` (Python 3.12, torch 2.11.0+cu128), từ thư mục `autopark`:
 
 ```powershell
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.verify_cache      # bắt buộc trước khi train
@@ -77,6 +77,13 @@ Nhánh LiDAR thật (driver RPLIDAR C1 qua COM, ghi/phát lại phiên, phiên �
 Hợp nhất cảm biến chuẩn bị cho giai đoạn 3 (lớp bản đồ, hợp nhất, cầu nối vật cản vào phiên, demo LiDAR thật dừng xe ảo): [docs/GIAI_DOAN_3_CHUAN_BI.md](docs/GIAI_DOAN_3_CHUAN_BI.md).
 Giao diện bàn thử LiDAR: `python -m autopark.ui.lidar_app --port COM4` (cửa sổ đỗ xe + ngăn LiDAR).
 
+Việc làm được khi chưa đủ thiết bị (24/09/2026), mỗi việc một tài liệu:
+
+- Hiệu chuẩn camera thật: [docs/HIEU_CHUAN_CAMERA.md](docs/HIEU_CHUAN_CAMERA.md). In `calibration/bang_in/ban_co_9x6_20mm_A4.pdf` đúng 100 %, đo ô bằng thước, rồi `python -m autopark.ui.calib_app --port 1`. Tệp ra: `calibration/cam_p<cổng>.json`.
+- Gán nhãn ảnh sa bàn: [docs/GAN_NHAN_SA_BAN.md](docs/GAN_NHAN_SA_BAN.md). `python -m autopark.perception.labels import runs/rig_snapshots`, rồi `python -m autopark.ui.label_app`, rồi `python -m autopark.perception.labels export --out datasets/prepared/sa_ban_v1`.
+- Giao thức xe và firmware ESP32-S3: [docs/GIAO_THUC_XE.md](docs/GIAO_THUC_XE.md), mã `autopark/transport/`, firmware `firmware/esp32_vehicle/` (máy này không có trình biên dịch C/C++: phần C++ CHƯA biên dịch lần nào).
+- Bàn thử không chờ camera chậm: `--max-wait-ms` của `rig.bench`/`rig_app` ([docs/GIAI_DOAN_2_BAN_THU.md](docs/GIAI_DOAN_2_BAN_THU.md) mục 10).
+
 ```powershell
 # .venv-train (torch)
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate_external --checkpoint runs/<ten>/best.pt --dataset acdc --split val --out runs/<ten>/eval_acdc_val
@@ -88,7 +95,7 @@ Giao diện bàn thử LiDAR: `python -m autopark.ui.lidar_app --port COM4` (c�
 .\.venv\Scripts\python.exe -X utf8 -m autopark.lidar.viewer datasets/drow/DROWv2-data/val/run_2015-11-25-10-34-20-a.bag.csv --labels wp
 ```
 
-Các khối `lidar/`, `video/`, `safety/`, `perception/calibration.py`, `perception/costmap.py` không cần torch và được test trong cả hai môi trường. Chạy toàn bộ bộ test bằng `.venv` (`pytest`; các test cần torch tự bỏ qua) và các test nhận thức bằng `.venv-train` (`pytest tests/test_perception_*.py tests/test_phase1_sources.py`); `.venv-train` không có Shapely/PySide6 nên không chạy được test mô phỏng. Chưa có driver RPLIDAR/camera thật; `UsbCameraSource` chưa chạy với thiết bị nào.
+Các khối `lidar/`, `video/`, `safety/`, `perception/calibration.py`, `perception/costmap.py` không cần torch và được test trong cả hai môi trường. Chạy toàn bộ bộ test bằng `.venv` (`pytest`; các test cần torch tự bỏ qua) và các test nhận thức bằng `.venv-train` (`pytest tests/test_perception_*.py tests/test_phase1_sources.py`); `.venv-train` không có Shapely nên không chạy được test mô phỏng (từ 23/09 nó có PySide6 và pyserial cho bàn thử giai đoạn 2). Driver RPLIDAR C1 (`lidar/rplidar_c1.py`) đã chạy với thiết bị thật trên COM4 ngày 22/09, và `UsbCameraSource` với bốn camera USB ngày 23/09, cả hai trên máy bàn, chưa trên laptop của xe.
 
 ## Cấu trúc chính
 
@@ -99,8 +106,11 @@ Các khối `lidar/`, `video/`, `safety/`, `perception/calibration.py`, `percept
 | `autopark/geometry/`, `simulation/` | Thân xe/vùng quét, động học, phản hồi có lỗi |
 | `autopark/application/`, `ui/` | Máy trạng thái phiên và giao diện PySide6 |
 | `autopark/storage/`, `evaluation/` | Kịch bản, log/snapshot/replay, nghiệm thu/video/audit nhãn |
-| `autopark/perception/` | Chuẩn bị/xác minh cache WoodScape, trainer, benchmark, đánh giá (kể cả ACDC/RoadObstacle21), suy luận, calibration fisheye, ROI, costmap, xuất ONNX |
-| `autopark/lidar/`, `video/`, `safety/` | Phát lại scan DROW v2 và hiển thị; nguồn ảnh (thư mục/video/USB); giám sát dữ liệu cũ |
+| `autopark/perception/` | Chuẩn bị/xác minh cache WoodScape (và AVM-SS/ACDC qua `prepare_extra.py`), trainer, benchmark, đánh giá (kể cả ACDC/RoadObstacle21), suy luận (kể cả theo lô trực tiếp, `live.py`), calibration fisheye WoodScape, hiệu chuẩn nội tham camera thật bằng bảng ô vuông (`fisheye_calib.py`, bảng in `calib_board.py`, giao diện chụp `ui/calib_app.py`; mã có từ 24/09, mới kiểm trên ảnh tổng hợp, chưa hiệu chuẩn camera nào), ROI, costmap, xuất ONNX |
+| `autopark/lidar/`, `video/`, `safety/` | Driver RPLIDAR C1, ghi/phát lại phiên, phiên đo tĩnh, bản đồ lưới tĩnh, phát lại DROW v2 và hiển thị; nguồn ảnh (thư mục/video/USB, loại khung MJPEG hỏng), phiên đo camera, nhiều camera theo cổng hub; giám sát dữ liệu cũ |
+| `autopark/fusion/`, `rig/` | Lớp bản đồ và hợp nhất, cầu nối vật cản vào phiên mô phỏng; bàn thử bốn camera + LiDAR + AI |
+| `autopark/transport/`, `firmware/` | Giao thức laptop–ESP32-S3 (khung COBS + CRC), bản tham chiếu Python của firmware, VehicleIO mô phỏng/serial; firmware C++ cho ESP32-S3 (chưa biên dịch) |
+| `calibration/` | Bảng ô vuông để in và tệp hiệu chuẩn từng camera (theo cổng hub) |
 | `configs/`, `scenarios/`, `tests/` | Tham số giả định, bản đồ và kiểm thử |
 | `datasets/`, `docs/`, `runs/` | Dữ liệu, biên bản và bằng chứng từng phiên |
 

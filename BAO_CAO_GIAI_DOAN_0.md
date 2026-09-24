@@ -3,7 +3,8 @@
 **Ngày cập nhật:** 20/09/2026  
 **Kế hoạch đối chiếu:** [KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), mục 4 — Giai đoạn 0.  
 **Mã nguồn:** thư mục [autopark](autopark/README.md).  
-**Mức bằng chứng:** phần mềm và mô phỏng trên laptop; chưa kiểm chứng phần cứng.
+**Mức bằng chứng:** phần mềm và mô phỏng trên laptop; chưa kiểm chứng phần cứng.  
+**Ghi chú 24/09/2026:** nội dung báo cáo giữ nguyên như ngày 20/09. Những chỗ đã lỗi thời được đánh dấu "Cập nhật 24/09/2026" và trỏ tới tài liệu mới; tình trạng chung của dự án xem [README gốc](README.md) và bảng tiến độ ở mục 17.4 của kế hoạch.
 
 ## 1. Kết quả tổng quan
 
@@ -19,13 +20,15 @@ Sau đợt kiểm thử mở rộng:
 
 Không diễn giải các kết quả trên thành “mọi bài đỗ đều giải được”, “phần mềm không còn lỗi” hoặc “xe thật đã an toàn”. Phần chuẩn bị AI được ghi riêng ở mục 9; **chưa có lượt huấn luyện hoàn chỉnh hoặc checkpoint mô hình đã huấn luyện** tại thời điểm lập báo cáo này.
 
+*Cập nhật 24/09/2026:* baseline L-RASPP/MobileNetV3 đã được huấn luyện trên WoodScape ngày 21/09/2026 và có checkpoint; kết quả, đánh giá ngoài miền và giới hạn ở [HUAN_LUYEN.md](HUAN_LUYEN.md). Đó là AI trên ảnh của bộ dữ liệu công khai, không phải kết quả của giai đoạn 0.
+
 ## 2. Hiện trạng ban đầu và phần đã bổ sung
 
 Khi bắt đầu đối chiếu kế hoạch, code đã có giao diện sa bàn, planner, controller tiến/lùi và kiểm tra hình học; bộ kiểm thử ban đầu có **155 ca chạy đạt**. Các phần còn thiếu được bổ sung, sau đó bộ thử cơ bản đạt 169 ca. Đợt kiểm thử độ bền tiếp theo nâng tổng số lên 220 ca và tìm ra các lỗi ở những tình huống chưa được bộ thử ban đầu bao phủ.
 
 | Hạng mục | Công việc đã làm |
 |---|---|
-| Cấu trúc dự án và môi trường | Khởi tạo Git cục bộ; bổ sung README; lưu phiên bản thư viện và cấu hình máy. Chưa commit hoặc đẩy repository lên remote. |
+| Cấu trúc dự án và môi trường | Khởi tạo Git cục bộ; bổ sung README; lưu phiên bản thư viện và cấu hình máy. Chưa commit hoặc đẩy repository lên remote. *Cập nhật 24/09/2026: theo `git log`, commit đầu tiên là `bef5695` ngày 21/09/2026; nhánh `main` đã có trên remote `origin`.* |
 | Cấu hình xe | Sửa mô tả cũ còn nhắc WPL C24/1:16. Toàn bộ thông số hiện được ghi rõ là giả định mô phỏng, chưa phải số đo MN300 Tank300 1/12. |
 | Hợp đồng dữ liệu | Định nghĩa trạng thái xe, đích, frame camera, scan LiDAR, telemetry, costmap, quỹ đạo và sự kiện an toàn; có thông tin nguồn, thời gian và trạng thái hợp lệ. |
 | Bản đồ | Có sa bàn, tường, vật cản, ô đỗ và vùng chưa quan sát `unknown`. Vùng unknown bị chặn khi lập đường/kiểm tra va chạm. |
@@ -190,6 +193,8 @@ Tài liệu: [danh mục](autopark/datasets/DANH_MUC_DATASET.md), [tải và ki�
 
 File liên quan: [mapping nhãn](autopark/configs/woodscape_binary_v1.json), [mã xử lý dữ liệu](autopark/autopark/perception/data.py), [mã chuẩn bị cache](autopark/autopark/perception/prepare.py), [audit bộ dữ liệu đã chuẩn bị](autopark/datasets/prepared/woodscape_binary_v1/audit.json).
 
+*Cập nhật 24/09/2026:* gạch đầu dòng cuối ở trên không còn đúng. Trainer đã hoàn thiện và lượt huấn luyện cơ sở chạy ngày 21/09/2026 trên RTX 4000 Ada, có checkpoint `runs/ai_woodscape_rtx4000_v1/best.pt` và kết quả trên tập test giữ riêng (chấm một lần); ngày 22–23/09 có thêm đánh giá ngoài miền, ba seed và các lượt thêm AVM-SS/ACDC. Tất cả ở [HUAN_LUYEN.md](HUAN_LUYEN.md), phần I–III. Nghiên cứu này dùng **Valeo WoodScape Dataset** (<https://woodscape.valeo.com>); giấy phép WoodScape cấm dùng mô hình huấn luyện trên nó để vận hành hoặc hỗ trợ vận hành phương tiện, xem [GIAY_PHEP_DU_LIEU.md](autopark/docs/GIAY_PHEP_DU_LIEU.md).
+
 ## 10. Mã nguồn và môi trường bàn giao
 
 | Thành phần | Vị trí |
@@ -270,5 +275,7 @@ $videoDir = "runs/phase0_" + (Get-Date -Format "yyyyMMdd_HHmmss")
 2. Đánh giá trên tập giữ riêng; theo dõi đặc biệt vật cản bị nhận thành vùng trống. Xử lý vùng IGNORE/không quan sát riêng, không coi chúng là lớp vật lạ đã học được.
 3. Viết nguồn camera/video và nguồn scan phát lại, rồi tiếp nhận camera mẫu/LiDAR khi có thiết bị.
 4. Giữ bộ test và replay mô phỏng làm kiểm thử hồi quy khi tích hợp các khối thật.
+
+*Cập nhật 24/09/2026 — tình trạng các việc trên:* (1) xong: baseline có checkpoint ngày 21/09 ([HUAN_LUYEN.md](HUAN_LUYEN.md) phần I), nên câu "hiện chưa huấn luyện xong AI" ở phần giới hạn không còn đúng; độ chính xác trên ảnh sa bàn/MN300 thì vẫn chưa đo. (2) Đã đánh giá trên tập test giữ riêng và ngoài miền, đo riêng tỉ lệ vật cản bị gọi thành FREE (HUAN_LUYEN.md phần I–III). (3) Nguồn phát lại ảnh/video/scan có từ 22/09 ([GIAI_DOAN_1_CHUAN_BI.md](autopark/docs/GIAI_DOAN_1_CHUAN_BI.md)); LiDAR C1 đọc được trên máy bàn ngày 22/09 ([GIAI_DOAN_1_LIDAR.md](autopark/docs/GIAI_DOAN_1_LIDAR.md)); bốn camera USB đo trên máy bàn ngày 23/09 ([GIAI_DOAN_1_CAMERA.md](autopark/docs/GIAI_DOAN_1_CAMERA.md), [GIAI_DOAN_2_BAN_THU.md](autopark/docs/GIAI_DOAN_2_BAN_THU.md)). Các mục "chưa được chứng minh" khác ở trên vẫn đúng: camera chưa hiệu chuẩn, chưa có BEV trên gá thực, sai số khoảng cách LiDAR chưa đo, chưa có phanh/E-stop/ESP32.
 
 **Trạng thái bàn giao:** phần mô phỏng giai đoạn 0 đã có chức năng, kiểm thử và hồ sơ tái hiện; nhánh dữ liệu/AI đã được chuẩn bị và đang chuyển sang công việc giai đoạn 1. Chưa nghiệm thu hệ thống tự đỗ trên xe thật.

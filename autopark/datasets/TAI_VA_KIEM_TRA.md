@@ -4,6 +4,8 @@ Ngày: 20/09/2026. Theo yêu cầu tải các bộ dùng ngay, lựa chọn là 
 
 **Đợt tải bổ sung theo yêu cầu “tải hết”:** đang tải WoodScape RGB/semantic/instance đầy đủ, ACDC RGB + semantic/invalid masks train/val + semantic nhánh ảnh tham chiếu, và RoadAnomaly21/RoadObstacle21 cùng mã benchmark. Xem [trạng thái cập nhật tự động](TRANG_THAI_TAI_DAY_DU.md); chỉ coi hoàn tất khi báo cáo ghi **Hoàn tất tải và giải nén: CÓ**. Không suy dung lượng `.part` thành số byte đã tải vì file lớn có thể được đặt trước kích thước.
 
+*Cập nhật 24/09/2026:* đợt tải bổ sung đã xong — [TRANG_THAI_TAI_DAY_DU.md](TRANG_THAI_TAI_DAY_DU.md) ghi **Hoàn tất tải và giải nén: CÓ** (cập nhật UTC 2026-09-19T20:18), đủ 8 gói ở trạng thái `extracted`, và dữ liệu nằm trong `training/` (`woodscape`, `acdc`, `road_obstacle`, `road_anomaly`). Ngày 21/09 các ZIP trong `raw/` và `raw/full/` (gồm cả AVM-SS và DROW) đã được chuyển ra ngoài để xóa sau khi đối chiếu CRC32 với bản giải nén; hai thư mục này nay chỉ còn các tệp `.zip.json`/`.progress.json` ghi SHA-256 và tiến trình. Các đường dẫn archive trong tài liệu này là vị trí lúc tải; bản giải nén là bản duy nhất trên máy. Tiến trình giám sát tải ở đoạn dưới không còn cần chạy.
+
 Tiến trình nền `supervise_downloads.py` giám sát lượt tải, thử chạy lại worker bị ngắt với số lần giới hạn, và bộ theo dõi kiểm tra/giải nén các archive đã đạt checksum. Nó hoạt động khi máy đang bật; không phải dịch vụ tự khởi động cùng Windows. Trạng thái tiến trình nằm ở `download_metadata/supervisor_state.json`. Kho ảnh ACDC không hỗ trợ HTTP Range nên phải tải lại từ đầu nếu stream bị đứt; WoodScape và Zenodo có checkpoint theo khối.
 
 Archive bổ sung nằm trong `raw/full/`; dữ liệu đã kiểm tra và giải nén nằm trong `training/`; metadata/calibration/license WoodScape nằm trong `woodscape_metadata/`; mã benchmark đã tải nhưng chưa cài hoặc chạy nằm trong `benchmark_tools/`. Nhãn test giữ kín của ACDC/benchmark không được tạo giả hoặc đưa vào train.
@@ -89,6 +91,6 @@ labels = avm_to_project(cv2.cvtColor(mask_bgr, cv2.COLOR_BGR2RGB))
 
 ## Các việc chưa làm
 
-Chưa tải toàn bộ 44 nguồn, chưa đăng ký tài khoản dataset, chưa gửi email xin dữ liệu và chưa train model. Một lần thử tải log Intel từ máy chủ Freiburg bị từ chối kết nối; dùng DROW đã tải cho bước đọc scan trước, giữ Intel/IR-MCL trong danh mục.
+Chưa tải toàn bộ 44 nguồn, chưa đăng ký tài khoản dataset, chưa gửi email xin dữ liệu và chưa train model. *Cập nhật 24/09/2026: đã huấn luyện baseline trên WoodScape ngày 21/09 và thử thêm AVM-SS/ACDC ngày 22–23/09, xem [HUAN_LUYEN.md](../../HUAN_LUYEN.md); giấy phép từng bộ ở [GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md).* Một lần thử tải log Intel từ máy chủ Freiburg bị từ chối kết nối; dùng DROW đã tải cho bước đọc scan trước, giữ Intel/IR-MCL trong danh mục.
 
 Độ đúng nhãn chưa được chứng nhận chỉ bằng kiểm tra file/palette. Dữ liệu sa bàn với gá camera MN300 vẫn cần thu và gán nhãn ở giai đoạn sau. Toàn bộ raw/archive được loại khỏi Git; các file metadata và tài liệu được giữ để tái hiện.
