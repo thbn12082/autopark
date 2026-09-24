@@ -25,6 +25,7 @@ import argparse
 import importlib
 import inspect
 import json
+from pathlib import Path
 import math
 import sys
 import time
@@ -154,6 +155,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-rollout", action="store_true")
     ap.add_argument("--json", default="", help="ghi kết quả ra file JSON")
     args = ap.parse_args(argv)
+    if args.json:
+        # Tạo thư mục TRƯỚC khi chạy các ca (25/09/2026): trước đó đường dẫn vào thư mục chưa có chỉ hỏng ở cuối,
+        # sau khi đã chạy hết ca (có thể vài phút), và mất kết quả.
+        try:
+            Path(args.json).parent.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            ap.error(f"--json: không tạo được thư mục cho {args.json}: {exc}")
 
     cfg = load_vehicle_config(args.config)
     func = load_planner(args.planner)

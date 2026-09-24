@@ -1,0 +1,179 @@
+{
+ "mo_ta": "Chạy thử lệnh sinh đường chứng mới (autopark/evaluation/hard_cases.py main(), thêm 24/09/2026) trên máy bàn i9-14900, tối 24/09/2026, CÙNG LÚC với các tác tử khác và với nhau (3 tiến trình): wall_s và việc kịp/hết giờ không phải số đo. Tệp đầu ra nằm trong thư mục nháp, không đưa vào kho; tệp mà test đọc vẫn là witness_20260924.json. Mục đích: cho thấy lệnh chạy được và tái hiện được (hoặc không) các hàng của reproduce_runs_20260924.json.",
+ "ngay": "24/09/2026",
+ "so_sanh": [
+  "zigzag_corridor, nấc gộp-kỹ riêng 30 s: ra đúng đường đã lưu (16 lần đổi chiều, 4,9052 m, hở 2,4 mm).",
+  "parallel_122, nấc ngẫu nhiên riêng, hạt giống 7, 60 s: OK nhưng 146 lần đổi chiều (lần 24/09 trước: 150) — cùng hạt giống vẫn ra đường khác vì RRT có hạn giờ theo đồng hồ thật; sai lệch cung tròn giữa hai điểm quỹ đạo tới 3e-5 m (dãy cung đã ghi vẫn qua oracle).",
+  "portfolio 30 s cả bộ: 12/16 ca ra đường chứng; parallel_135 ra đường 9 lần đổi chiều (đã lưu: 7 lần); parallel_122, parallel_115 TIMEOUT; zigzag_corridor NO_PATH; pocket_exit_park TIMEOUT (hai nấc gộp ra đường nhưng bám mô phỏng chạm ngach_trai nên portfolio không trả đường)."
+ ],
+ "runs": [
+  {
+   "lenh": ".venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.hard_cases --witness-out <nháp>\\witness_moi.json --time-limit 30",
+   "ma_thoat": 1,
+   "ket_qua": [
+    {
+     "case": "parallel_160",
+     "status": "OK",
+     "wall_s_under_load": 0.4,
+     "cusps": 1,
+     "length_m": 1.2587,
+     "min_clearance_m": 0.0027,
+     "max_steer_deg": 27.0
+    },
+    {
+     "case": "parallel_135",
+     "status": "OK",
+     "wall_s_under_load": 4.1,
+     "cusps": 9,
+     "length_m": 1.2599,
+     "min_clearance_m": 0.0056,
+     "max_steer_deg": 27.0
+    },
+    {
+     "case": "parallel_122",
+     "status": "TIMEOUT",
+     "wall_s_under_load": 30.0,
+     "ghi": "không có đường chứng mới"
+    },
+    {
+     "case": "parallel_115",
+     "status": "TIMEOUT",
+     "wall_s_under_load": 30.0,
+     "ghi": "không có đường chứng mới"
+    },
+    {
+     "case": "perp_aisle_170",
+     "status": "OK",
+     "wall_s_under_load": 1.2,
+     "cusps": 1,
+     "length_m": 1.5222,
+     "min_clearance_m": 0.0274,
+     "max_steer_deg": 25.5
+    },
+    {
+     "case": "perp_aisle_135",
+     "status": "OK",
+     "wall_s_under_load": 1.2,
+     "cusps": 3,
+     "length_m": 1.7389,
+     "min_clearance_m": 0.0177,
+     "max_steer_deg": 25.5
+    },
+    {
+     "case": "perp_aisle_115",
+     "status": "OK",
+     "wall_s_under_load": 1.4,
+     "cusps": 5,
+     "length_m": 1.6977,
+     "min_clearance_m": 0.0152,
+     "max_steer_deg": 27.0
+    },
+    {
+     "case": "uturn_w70",
+     "status": "OK",
+     "wall_s_under_load": 1.0,
+     "cusps": 4,
+     "length_m": 1.1715,
+     "min_clearance_m": 0.0248,
+     "max_steer_deg": 27.0
+    },
+    {
+     "case": "uturn_w55",
+     "status": "OK",
+     "wall_s_under_load": 2.8,
+     "cusps": 4,
+     "length_m": 1.282,
+     "min_clearance_m": 0.009,
+     "max_steer_deg": 29.1
+    },
+    {
+     "case": "uturn_w46",
+     "status": "OK",
+     "wall_s_under_load": 12.7,
+     "cusps": 21,
+     "length_m": 2.0684,
+     "min_clearance_m": 0.03,
+     "max_steer_deg": 25.5
+    },
+    {
+     "case": "reverse_long_corridor",
+     "status": "OK",
+     "wall_s_under_load": 0.4,
+     "cusps": 0,
+     "length_m": 1.0,
+     "min_clearance_m": 0.03,
+     "max_steer_deg": 0.0
+    },
+    {
+     "case": "lateral_shift",
+     "status": "OK",
+     "wall_s_under_load": 0.5,
+     "cusps": 1,
+     "length_m": 0.7647,
+     "min_clearance_m": 0.03,
+     "max_steer_deg": 25.5
+    },
+    {
+     "case": "zigzag_corridor",
+     "status": "NO_PATH",
+     "wall_s_under_load": 29.8,
+     "ghi": "không có đường chứng mới"
+    },
+    {
+     "case": "deadend_turn_park",
+     "status": "OK",
+     "wall_s_under_load": 0.7,
+     "cusps": 1,
+     "length_m": 1.2461,
+     "min_clearance_m": 0.0211,
+     "max_steer_deg": 25.5
+    },
+    {
+     "case": "pocket_exit_park",
+     "status": "TIMEOUT",
+     "wall_s_under_load": 26.4,
+     "ghi": "không có đường chứng mới"
+    },
+    {
+     "case": "pillar_at_slot_mouth",
+     "status": "OK",
+     "wall_s_under_load": 1.1,
+     "cusps": 1,
+     "length_m": 1.8527,
+     "min_clearance_m": 0.0154,
+     "max_steer_deg": 27.0
+    }
+   ]
+  },
+  {
+   "lenh": ".venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.hard_cases --witness-out <nháp>\\witness_rrt7.json --cases parallel_122 --rung ngau-nhien --seed 7 --time-limit 60 --merge",
+   "ma_thoat": 0,
+   "ket_qua": [
+    {
+     "case": "parallel_122",
+     "status": "OK",
+     "wall_s_under_load": 16.1,
+     "cusps": 146,
+     "length_m": 5.132,
+     "min_clearance_m": 0.0059,
+     "max_steer_deg": 25.501
+    }
+   ]
+  },
+  {
+   "lenh": ".venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.hard_cases --witness-out <nháp>\\witness_zigzag.json --cases zigzag_corridor --rung gop-ky --time-limit 30",
+   "ma_thoat": 0,
+   "ket_qua": [
+    {
+     "case": "zigzag_corridor",
+     "status": "OK",
+     "wall_s_under_load": 16.9,
+     "cusps": 16,
+     "length_m": 4.9052,
+     "min_clearance_m": 0.0024,
+     "max_steer_deg": 29.1
+    }
+   ]
+  }
+ ]
+}

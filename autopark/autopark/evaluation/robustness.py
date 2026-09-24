@@ -3,6 +3,20 @@
 python -m autopark.evaluation.robustness --out runs/robustness --runs 240
 Safety invariants decide pass/fail. Completion, safe stops, unavoidable collisions
 and planner rejection are counted separately; a safe rejection is not a parking success.
+
+Xe gốc của chiến dịch lấy từ `--vehicle-config` (mặc định configs/vehicle_default.json, GIẢ ĐỊNH – CHƯA ĐO), ví dụ
+(một dòng, chạy trong D:/ap/autopark):
+    .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.robustness --out runs\\robustness_do --vehicle-config configs\\vehicle_measured.json
+Lưu ý (24/09/2026): chỉ một phần xe lấy từ tệp.
+- Ca pose/swept/runtime (`varied_config`): giữ TỈ LỆ footprint của tệp (chiều dài cơ sở, bề rộng, nhô trước/sau) nhưng
+  nhân chung một hệ số ngẫu nhiên 0,7–1,4; còn max_steer (22–38°), max_speed (0,06–0,30 m/s), max_accel
+  (0,15–0,45 m/s²), max_decel (0,25–0,90 m/s²), max_steer_rate (35–140°/s) rút từ khoảng TUYỆT ĐỐI, KHÔNG theo tệp.
+- Ca planner (`planner_case`): bề rộng và chiều dài cơ sở của tệp nhân 0,85–1,15; nhô trước/sau, max_steer, max_accel,
+  max_steer_rate giữ theo tệp; max_speed (0,10–0,30 m/s) và max_decel (0,40–0,90 m/s²) rút từ khoảng tuyệt đối; sa bàn
+  dựng bằng `build_cases(cfg)` với xe đã đổi cỡ, tức một phần sa bàn phóng theo xe.
+Vì vậy `base_vehicle` trong manifest.json là xe GỐC trước khi đổi, không phải xe của từng ca (xem `input.vehicle` trong
+cases.jsonl); chiến dịch KHÔNG kiểm giới hạn lái/tốc độ đo được của xe. Phép thử xe từ tệp trên sa bàn cố định là
+`autopark.evaluation.sensitivity --plan-config`.
 """
 from collections import Counter
 import copy
@@ -19,13 +33,16 @@ from autopark.application.session import Session, SessionError, SessionState
 from autopark.domain.types import Bounds, Obstacle, ParkingGoal, Pose, Scenario
 from autopark.evaluation import collision_oracle as oracle
 from autopark.evaluation.hard_cases import build_cases
+from autopark.evaluation.sensitivity import vehicle_config_arg
 from autopark.geometry.footprint import check_motion, check_pose
 from autopark.geometry.fast_collision import FastCollisionChecker
 from autopark.planning.hybrid_astar import PlanResult, PlannerParams
 from autopark.planning.trajectory import build_trajectory
 from autopark.simulation.feedback import FeedbackConfig
 from autopark.storage.run_store import environment, write_json
-from autopark.storage.scenario_store import load_vehicle_config
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_VEHICLE_CONFIG = PROJECT_ROOT / "configs" / "vehicle_default.json"
 
 
 def varied_config(base, rng):
@@ -263,17 +280,21 @@ def planner_case(base, index, seed):
         s.close()
 
 
-def main():
+def main(argv=None):
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--vehicle-config", type=vehicle_config_arg, default=str(DEFAULT_VEHICLE_CONFIG),
+                        help="cấu hình xe gốc (JSON như configs/vehicle_default.json, mặc định tệp đó); chỉ lấy tỉ lệ "
+                             "footprint (và ở ca planner: nhô, max_steer, max_accel, max_steer_rate); tốc độ/lái/gia "
+                             "tốc còn lại rút từ khoảng cố định, xem docstring")
     parser.add_argument("--seed", type=int, default=20260920)
     parser.add_argument("--poses", type=int, default=2000)
     parser.add_argument("--motions", type=int, default=600)
     parser.add_argument("--runs", type=int, default=240)
     parser.add_argument("--plans", type=int, default=40)
     parser.add_argument("--case", help="Reproduce one input, e.g. runtime:137 or swept:25")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     single = None
     if args.case:
         try:
@@ -284,10 +305,13 @@ def main():
         except ValueError:
             parser.error("--case must be KIND:NONNEGATIVE_INDEX")
     args.out.mkdir(parents=True, exist_ok=False)
-    root = Path(__file__).resolve().parents[2]
-    base = load_vehicle_config(root / "configs/vehicle_default.json")
-    write_json(args.out / "manifest.json", {"arguments": {**vars(args), "out": str(args.out)},
+    root = PROJECT_ROOT
+    vehicle = args.vehicle_config
+    base = vehicle.cfg
+    write_json(args.out / "manifest.json", {"arguments": {**vars(args), "out": str(args.out),
+                                                          "vehicle_config": str(vehicle.path)},
                "environment": environment(), "base_vehicle": base.to_dict(), "evidence": "simulation_only",
+               "vehicle_config": {"path": str(vehicle.path), "sha256": vehicle.sha256},
                "source_sha256": {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                                  for p in (root / "autopark").rglob("*.py")}})
     with zipfile.ZipFile(args.out / "source.zip", "w", zipfile.ZIP_DEFLATED) as archive:

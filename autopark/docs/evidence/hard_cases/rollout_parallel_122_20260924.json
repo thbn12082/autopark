@@ -1,0 +1,47 @@
+{
+ "mo_ta": "Tái bám đường chứng parallel_122 của planner (104 lần đổi chiều, 3,975 m, trong witness_20260924.json) bằng autopark/simulation/rollout.py. Máy bàn i9-14900, tối 24/09/2026, chạy cùng lúc với tác tử khác: sim_time_s là thời gian MÔ PHỎNG; wall_s_under_load là thời gian máy dưới tải, không phải số đo. Số chạy trong mô phỏng, CHƯA THỬ trên xe.",
+ "ngay": "24/09/2026",
+ "thiet_lap": "Lấy mẫu lại mỗi cung bằng collision_oracle.arc_pose với n = ceil(|s|/buoc_m); build_trajectory(cruise 0.15, approach 0.08, approach_distance 0.30); tracker_params = None (TrackerParams mặc định, như PortfolioParams); dt 0.005, control_every 4, max_time 240; dung sai đích của ca 0.05 m / 5°; tracked_4cm_4deg = ngưỡng 'bám đạt' của portfolio (4 cm / 4°). Script: nháp của task, không có trong kho mã.",
+ "ket_qua": [
+  {
+   "buoc_m": 0.02,
+   "traj_length_m": 3.9746,
+   "traj_cusps": 104,
+   "distance_m": 2.241,
+   "position_error_m": 0.0343,
+   "heading_error_deg": 0.44,
+   "sim_time_s": 67.9,
+   "completed": true,
+   "collided": false,
+   "tracked_4cm_4deg": true,
+   "wall_s_under_load": 2.0
+  },
+  {
+   "buoc_m": 0.015,
+   "traj_length_m": 3.9747,
+   "traj_cusps": 104,
+   "distance_m": 2.236,
+   "position_error_m": 0.0389,
+   "heading_error_deg": 2.84,
+   "sim_time_s": 59.9,
+   "completed": true,
+   "collided": false,
+   "tracked_4cm_4deg": true,
+   "wall_s_under_load": 3.8
+  },
+  {
+   "buoc_m": 0.01,
+   "traj_length_m": 3.9748,
+   "traj_cusps": 104,
+   "distance_m": 2.242,
+   "position_error_m": 0.039,
+   "heading_error_deg": 2.93,
+   "sim_time_s": 59.8,
+   "completed": true,
+   "collided": false,
+   "tracked_4cm_4deg": true,
+   "wall_s_under_load": 4.7
+  }
+ ],
+ "ghi_chu": "Xe mô phỏng chỉ đi khoảng 2,24 m so với 3,97 m của đường: bộ bám không tái hiện các nhịp siêu ngắn mà vẫn dừng trong dung sai. Sai số cuối nhạy với cách lấy mẫu lại (3,4–3,9 cm; 0,4–2,9°). Không đúng hệt quỹ đạo nội bộ của lần portfolio 40 s (runs[4] của reproduce_runs_20260924.json), vì tệp đó không lưu position_error/heading_error của nấc đạt."
+}

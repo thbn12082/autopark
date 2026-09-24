@@ -1,4 +1,12 @@
-"""Sinh bằng chứng giai đoạn 0: các phiên chạy, replay, video mô phỏng."""
+"""Sinh bằng chứng giai đoạn 0: các phiên chạy, replay, video mô phỏng.
+
+Chạy trong D:/ap/autopark, mỗi lệnh một dòng:
+    .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.phase0 --out runs\\phase0_moi
+    .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.phase0 --out runs\\phase0_xe_do --vehicle-config configs\\vehicle_measured.json
+
+`--vehicle-config` mặc định là configs/vehicle_default.json (GIẢ ĐỊNH – CHƯA ĐO). Cả năm ca dùng cùng cấu hình xe này;
+sa bàn của các ca giữ nguyên kích thước tuyệt đối. Cấu hình đã dùng được ghi vào `vehicle_config_used.json`.
+"""
 import argparse
 import copy
 import math
@@ -6,10 +14,14 @@ from pathlib import Path
 
 from autopark.application.session import Session, SessionState
 from autopark.domain.types import Bounds, Obstacle, ParkingGoal, Pose, Scenario
+from autopark.evaluation.sensitivity import vehicle_config_arg
 from autopark.geometry.footprint import body_corners
 from autopark.simulation.feedback import FeedbackConfig
 from autopark.storage.run_store import export_run, replay_run, write_json
-from autopark.storage.scenario_store import load_scenario, load_vehicle_config
+from autopark.storage.scenario_store import load_scenario
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_VEHICLE_CONFIG = PROJECT_ROOT / "configs" / "vehicle_default.json"
 
 
 def render_video(session, directory: Path):
@@ -67,12 +79,17 @@ def render_video(session, directory: Path):
     return count
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, required=True)
-    args = parser.parse_args()
-    root = Path(__file__).resolve().parents[2]
-    cfg = load_vehicle_config(root / "configs/vehicle_default.json")
+    parser.add_argument("--vehicle-config", type=vehicle_config_arg, default=str(DEFAULT_VEHICLE_CONFIG),
+                        help="cấu hình xe (JSON như configs/vehicle_default.json); mặc định vehicle_default.json")
+    args = parser.parse_args(argv)
+    root = PROJECT_ROOT
+    vehicle = args.vehicle_config
+    cfg = vehicle.cfg
+    args.out.mkdir(parents=True, exist_ok=True)
+    write_json(args.out / "vehicle_config_used.json", {**vehicle.describe(), "evidence": "simulation_only"})
     cases = []
     for name in ("parking", "reverse", "noisy", "obstacle", "data_loss"):
         if name == "parking":

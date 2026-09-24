@@ -1,0 +1,169 @@
+{
+ "mo_ta": "Đường chứng NGẮN cho hai ca đỗ song song rất chật của evaluation/hard_cases.py, xe configs/vehicle_default.json (thông số GIẢ ĐỊNH, chưa phải số đo MN300). Không phải đường planner tìm: tách riêng khỏi witness_20260924.json (tệp đó chỉ chứa đường từ các lần chạy planner). Mục đích: bác bỏ nhận định cũ 'hai ca này chỉ có đường với khoảng 100 lần đổi chiều trở lên'. Số lần đổi chiều TỐI THIỂU vẫn CHƯA BIẾT. Dựng tối 24/09/2026 trên máy bàn i9-14900; kiểm lại bằng tests/test_hard_cases_labels.py (collision_oracle, bước 0,5 mm, lề mẫu ≈ 0,45 mm, lệch đích ≤ 1 mm / 0,1°).",
+ "ngay": "24/09/2026",
+ "cach_dung": "1) Từ tư thế đích: lùi thẳng tới khi còn hở 1,5 mm; rồi luân phiên tiến lái trái hết mức 0,90·κ_max và lùi lái phải 0,90·κ_max, mỗi nhịp đi tới khi còn hở 1,5 mm (bước 0,5 mm, hướng không quá 70°), cho tới khi mép dưới thân xe cao hơn nóc hàng xe đỗ; nhịp cuối cắt ở điểm sớm nhất đã ra khỏi hàng. 2) Đảo ngược dãy cung đó (đổi dấu quãng, giữ độ cong). 3) Nối từ tư thế xuất phát tới đầu dãy bằng đường Reeds–Shepp (autopark.planning.reeds_shepp, độ cong 0,90·κ_max): với parallel_122, sau khi ra khỏi hàng thêm một cung lái phải đưa hướng về 0 rồi nối một đường Reeds–Shepp; với parallel_115, nối qua một tư thế trung gian chọn trên lưới thô (0,90 m; 0,30 m; 30°) bằng hai đường Reeds–Shepp. 4) Giữ đường có ít lần đổi chiều nhất qua _check_witness. Script nháp đã chạy lại tối 24/09/2026 và sinh lại đúng từng byte hai dãy cung này. Cùng cách dựng với lề 1,5 mm và lái 25,5° (0,85·δ_max, mức của RRT) cho 9 lần (122) / 17 lần (115); với lề 8–10 mm thì bước 'gỡ' tham lam thất bại, nên đường ít lần đổi chiều ở lề của planner là CHƯA BIẾT.",
+ "truong": {
+  "cusps": "số lần đổi chiều, đếm lại từ dãy cung",
+  "length_m": "tổng quãng đường tâm trục sau",
+  "max_steer_deg": "góc lái lớn nhất = atan(|κ|·L); 27,46° = 0,90·κ_max = 0,915·δ_max",
+  "shortest_run_m": "nhịp cùng chiều ngắn nhất",
+  "min_clearance_m": "khoảng hở EUCLID nhỏ nhất giữa thân xe và vật cản/biên, kiểm độc lập bằng khoảng cách đa giác tự viết (không dùng oracle, Shapely hay bộ kiểm của planner), mẫu cách 0,2 mm",
+  "min_clearance_oracle_m": "khoảng hở nhỏ nhất theo lề hình chữ nhật của collision_oracle, mẫu cách 0,5 mm (hard_cases.witness_stats; cận dưới của khoảng hở Euclid)",
+  "end_error_m / end_error_deg": "lệch cuối đường so với tư thế đích của ca",
+  "arcs": "[quãng có dấu m (+ tiến, − lùi), độ cong 1/m (+ rẽ trái)], nối tiếp từ tư thế xuất phát"
+ },
+ "vehicle": {
+  "schema_version": 1,
+  "name": "xe_mo_phong_giai_doan_0_gia_dinh",
+  "wheelbase_m": 0.19,
+  "width_m": 0.14,
+  "front_overhang_m": 0.06,
+  "rear_overhang_m": 0.06,
+  "max_steer_deg": 29.999999999999996,
+  "max_speed_mps": 0.3,
+  "max_accel_mps2": 0.3,
+  "max_decel_mps2": 0.6,
+  "max_steer_rate_deg_s": 90.0,
+  "notes": "TOÀN BỘ thông số là giả định để kiểm thử phần mềm giai đoạn 0; giữ kích thước nhỏ để tái hiện sa bàn hiện có. KHÔNG phải số đo hay thông số xác nhận của MN300 Tank300 1/12. Thay cấu hình sau khi đo xe ở giai đoạn 4."
+ },
+ "cases": {
+  "parallel_122": {
+   "nguon": "dựng riêng (script nháp của vòng rà soát, không có trong kho mã): gỡ xe khỏi ô tham lam từ đích, đảo ngược, nối từ xuất phát bằng Reeds–Shepp; xem cach_dung",
+   "cusps": 5,
+   "length_m": 1.2265,
+   "max_steer_deg": 27.46,
+   "shortest_run_m": 0.0205,
+   "min_clearance_m": 0.0016,
+   "min_clearance_oracle_m": 0.0016,
+   "end_error_m": 1.39e-17,
+   "end_error_deg": 1.59e-15,
+   "arcs": [
+    [
+     -0.0776010741410082,
+     2.734814329765373
+    ],
+    [
+     -0.2527580859590183,
+     0.0
+    ],
+    [
+     -0.0776010741410082,
+     -2.734814329765373
+    ],
+    [
+     -0.3930000000000003,
+     -2.734814329765373
+    ],
+    [
+     -0.23250000000000018,
+     2.734814329765373
+    ],
+    [
+     0.020500000000000015,
+     -2.734814329765373
+    ],
+    [
+     -0.04200000000000003,
+     2.734814329765373
+    ],
+    [
+     0.04100000000000003,
+     -2.734814329765373
+    ],
+    [
+     -0.057000000000000044,
+     2.734814329765373
+    ],
+    [
+     0.03250000000000002,
+     0.0
+    ]
+   ]
+  },
+  "parallel_115": {
+   "nguon": "dựng riêng (script nháp của vòng rà soát, không có trong kho mã): gỡ xe khỏi ô tham lam từ đích, đảo ngược, nối từ xuất phát bằng Reeds–Shepp; xem cach_dung",
+   "cusps": 13,
+   "length_m": 1.3173,
+   "max_steer_deg": 27.46,
+   "shortest_run_m": 0.0095,
+   "min_clearance_m": 0.00175,
+   "min_clearance_oracle_m": 0.0015,
+   "end_error_m": 1.19e-16,
+   "end_error_deg": 7.95e-15,
+   "arcs": [
+    [
+     -0.00815465976494097,
+     -2.734814329765373
+    ],
+    [
+     -0.4937950228048685,
+     0.0
+    ],
+    [
+     -0.18330213124990635,
+     -2.734814329765373
+    ],
+    [
+     -0.06418945247404931,
+     -2.734814329765373
+    ],
+    [
+     0.06817740047268248,
+     2.734814329765373
+    ],
+    [
+     -0.07717635603842125,
+     -2.734814329765373
+    ],
+    [
+     -0.22050000000000017,
+     2.734814329765373
+    ],
+    [
+     0.009500000000000005,
+     -2.734814329765373
+    ],
+    [
+     -0.013500000000000009,
+     2.734814329765373
+    ],
+    [
+     0.010500000000000006,
+     -2.734814329765373
+    ],
+    [
+     -0.01500000000000001,
+     2.734814329765373
+    ],
+    [
+     0.013000000000000008,
+     -2.734814329765373
+    ],
+    [
+     -0.01700000000000001,
+     2.734814329765373
+    ],
+    [
+     0.01650000000000001,
+     -2.734814329765373
+    ],
+    [
+     -0.022500000000000017,
+     2.734814329765373
+    ],
+    [
+     0.02600000000000002,
+     -2.734814329765373
+    ],
+    [
+     -0.037000000000000026,
+     2.734814329765373
+    ],
+    [
+     0.021500000000000016,
+     0.0
+    ]
+   ]
+  }
+ }
+}

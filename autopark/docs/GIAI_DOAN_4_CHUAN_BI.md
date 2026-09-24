@@ -485,7 +485,10 @@ lần ở các ca hình học/kín vòng, 0,85–1,15 lần bề rộng và chi�
 - Bộ ca khó (`evaluation/hard_cases.py`) trộn kích thước tương đối (ô đỗ song song = 1,15–1,60 × chiều dài xe; lối đi ở
   ca đỗ vuông góc = 1,15–1,70 × chiều dài xe) với kích thước tuyệt đối (đường cạnh ô đỗ song song rộng 0,40–0,52 m; hành
   lang quay đầu rộng 0,46 / 0,55 / 0,70 m; ngõ cụt rộng 0,62 m). Nhãn `expected` (feasible /
-  infeasible) được đặt cho xe mặc định. Chạy `bench --config` với xe khác thì một phần hình học đổi theo, một phần không,
+  infeasible) được đặt cho xe mặc định. *(Cập nhật 25/09/2026: từ khuya 24/09 cả 16 ca mang nhãn `feasible`, mỗi ca có
+  đường chứng kiểm độc lập; `infeasible` chỉ dùng khi có chứng minh hình học, hiện không ca nào — xem
+  [KIEM_THU_DO_BEN_GIAI_DOAN_0.md](KIEM_THU_DO_BEN_GIAI_DOAN_0.md) mục 6. Đường chứng là cho xe mặc định; xe khác cần
+  kiểm lại.)* Chạy `bench --config` với xe khác thì một phần hình học đổi theo, một phần không,
   nên nhãn cũ có thể không còn đúng. Một ca thất bại với xe đo cần xem lại hình học trước khi coi là lỗi planner.
 - Hết giờ tìm đường (TIMEOUT) phụ thuộc tải CPU và không có nghĩa là vô nghiệm hình học
   ([KIEM_THU_DO_BEN_GIAI_DOAN_0.md](KIEM_THU_DO_BEN_GIAI_DOAN_0.md) mục 4).
@@ -510,7 +513,7 @@ trong `scenarios/` có kích thước tuyệt đối. Nếu MN300 lớn hơn nhi
 một số bài quay đầu và đỗ trong các kịch bản đó có thể trở nên vô nghiệm. Khi đó là giới hạn hình học của sa bàn, không
 phải lỗi planner.
 
-### 5.3. Phép thử độ nhạy đề xuất (CHƯA CHẠY)
+### 5.3. Phép thử độ nhạy với sa bàn cố định (đề xuất; đã chạy hai lượt mô phỏng 24/09/2026, CHƯA chạy khi máy rảnh, CHƯA có số đo MN300)
 
 1. Giữ **sa bàn cố định**: các kịch bản trong `scenarios/` và bộ ca khó dựng một lần từ xe mặc định.
 2. Mỗi lần chỉ đổi **một** tham số của xe: `wheelbase_m`, `width_m`, phần nhô, `max_steer_deg`, mỗi tham số ở vài mức (ví
@@ -521,7 +524,21 @@ phải lỗi planner.
    này để biết kịch bản nào còn dùng được.
 
 `bench`/`compare` hiện dựng ca từ cùng cấu hình dùng để lập đường, nên bước 1 cần một tùy chọn mới (dựng ca từ một cấu hình,
-lập đường với cấu hình khác) hoặc một script riêng. Chưa làm.
+lập đường với cấu hình khác) hoặc một script riêng. Chưa làm (tại thời điểm soạn; xem cập nhật tối 24/09/2026 ngay dưới).
+
+*(Cập nhật tối 24/09/2026:)* đã làm bằng script riêng `evaluation/sensitivity.py`; cách dùng và kết quả ở
+[DO_NHAY_KICH_THUOC_XE.md](DO_NHAY_KICH_THUOC_XE.md). **Chỉ mô phỏng**, quanh xe `vehicle_default.json` (GIẢ ĐỊNH – CHƯA
+ĐO). Sa bàn gồm 16 ca khó và bốn kịch bản `scenarios/`, dựng một lần từ xe giả định. Mỗi tham số (chiều dài thân, bề
+rộng, phần nhô, chiều dài cơ sở, góc lái) đổi ±5/10/20 %, cộng ba tổ hợp. Hai lượt chạy trên máy bàn, ngân sách 8 s
+và 20 s mỗi ca, nhiều tiến trình song song trong khi các agent khác cũng chạy. Mười một sa bàn (gồm cả bốn kịch bản
+`scenarios/`) giải được ở mọi biến thể. Mười cặp hỏng ở cả hai lượt, kể cả khi chạy lại với ngân sách dài hơn, đều là
+xe dài hơn 10–20 % (`parallel_135`, `perp_aisle_115`, `pillar_at_slot_mouth`, `parallel_160`). `uturn_w46` nằm sát
+biên ngay với xe giả định. Khác với bước 3 ở trên: hai lượt này **không** chạy khi máy rảnh (tải máy đổi được kết quả,
+tài liệu kia, mục 4), nên mỗi ô "hết giờ" chỉ có nghĩa là không tìm được trong ngân sách ở tải máy lúc đó, không phải
+vô nghiệm; CHƯA tách được phần nào do tải máy, phần nào do ngân sách (chưa có lượt chạy khi máy rảnh). Để biết cỡ: ở
+lượt A, 141/181 ô hết giờ thuộc bốn sa bàn mà xe giả định không giải được ở cả năm lần chạy của tài liệu kia, mục 4
+(`parallel_122`, `parallel_115`, `zigzag_corridor`, `pocket_exit_park`; đếm lại từ `ket_qua.json` lượt A, 24/09/2026).
+Bước 4 mới làm được một phần: mức 5/10/20 % chỉ khoanh ngưỡng thô, và vẫn chờ số đo MN300 (lệnh `--plan-config`).
 
 ## 6. Gá điều chỉnh được (khái niệm, chưa quyết định gia công)
 
@@ -560,8 +577,8 @@ vị trí cố định xong phải đo lại và ghi thành phiên bản mới c
 |---|---|---|
 | Định dạng `vehicle_measured` (YAML theo kế hoạch hay JSON theo mã) | người dùng | mục 4.1 |
 | Có dụng cụ đo xung (máy hiện sóng/logic analyzer), đồng hồ vạn năng, bộ thử servo không | người dùng | quyết định B4, B5 (D6), B7, B8 làm ở giai đoạn 4 hay 5 |
-| Thêm tùy chọn cấu hình xe cho `robustness.py`, `phase0.py`, `fusion/demo.py`, `ui/lidar_app.py` | việc phần mềm | mục 4.3 |
-| Công cụ thử độ nhạy với sa bàn cố định | việc phần mềm | mục 5.3 |
+| Thêm tùy chọn cấu hình xe cho `robustness.py`, `phase0.py`, `fusion/demo.py`, `ui/lidar_app.py` | việc phần mềm | mục 4.3. *(Tối 24/09/2026:)* đã thêm `--vehicle-config` cho `robustness`, `phase0` và `ui/lidar_app`. Không có tùy chọn thì vẫn dùng `vehicle_default.json`; tệp hỏng thì thoát mã 2 kèm lý do. Chỉ kiểm bằng test (`tests/test_vehicle_sensitivity.py`); `lidar_app` với LiDAR thật CHƯA THỬ. Lưu ý: `robustness` chỉ lấy tỉ lệ footprint từ tệp, góc lái/tốc độ/gia tốc vẫn rút từ khoảng cố định, nên KHÔNG thử giới hạn lái/tốc độ đo được (chi tiết: DO_NHAY_KICH_THUOC_XE.md mục 3). `fusion/demo.py` CHƯA có tùy chọn này. Lệnh: [DO_NHAY_KICH_THUOC_XE.md](DO_NHAY_KICH_THUOC_XE.md) mục 3 |
+| Công cụ thử độ nhạy với sa bàn cố định | việc phần mềm | mục 5.3. *(Tối 24/09/2026:)* đã có `evaluation/sensitivity.py`; hai lượt mô phỏng đầu tiên ở [DO_NHAY_KICH_THUOC_XE.md](DO_NHAY_KICH_THUOC_XE.md). Còn mở: chạy lại khi máy rảnh (`--workers 1`), chạy với số đo MN300 khi có |
 | Nếu servo không đánh lái được khi đứng yên: xem lại `preset_steer` của bộ bám | sau B3 | mục 3, B3 |
 | Nếu tốc độ ổn định thấp nhất > 0,03 m/s: xem lại `creep_speed` | sau B4 | mục 1.2 |
 | Bộ phát có D/R, EPA, giới hạn ga không | sau phiếu kiểm kê A2b | quyết định điều kiện đo B2/B4/B7 |

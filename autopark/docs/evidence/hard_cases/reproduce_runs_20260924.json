@@ -1,0 +1,693 @@
+{
+ "mo_ta": "Tái chạy portfolio.plan (giống plan_parking: dung sai 5 cm/5°) và từng nấc riêng trên các ca khó, 24/09/2026 tối, máy bàn i9-14900 + RTX 4000 Ada. Chạy 5–10 tiến trình song song, cùng lúc với tác tử khác (tải CPU đo được tới 97 %), nên wall_s và việc một nấc kịp hay hết giờ KHÔNG phải số đo năng lực; chỉ dùng làm bằng chứng định tính. seed: hạt giống RRT của nấc 'ngẫu nhiên' ('default' = 20260907). loai = portfolio: cả thang 4 nấc; nac_rieng: gọi riêng một bộ lập đường với tham số của nấc tương ứng (lattice = 'gộp-kỹ', rrt = 'ngẫu nhiên', ref = 'lưới mịn').",
+ "ngay": "24/09/2026",
+ "runs": [
+  {
+   "loai": "portfolio",
+   "case": "parallel_122",
+   "time_limit_s": 20.0,
+   "seed": "1",
+   "status": "TIMEOUT",
+   "wall_s": 20.01,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 2.5,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 3.77,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 10.01,
+     "tracked": false,
+     "note": "RRT-Connect không nối được hai cây sau 13711 vòng, 35526 nút, 3 đường thô, 0 lần nghiệm th"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 3.73,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "parallel_122",
+   "time_limit_s": 20.0,
+   "seed": "2",
+   "status": "TIMEOUT",
+   "wall_s": 20.01,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 2.51,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 3.77,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 10.01,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 3.72,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "parallel_122",
+   "time_limit_s": 20.0,
+   "seed": "3",
+   "status": "TIMEOUT",
+   "wall_s": 20.01,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 2.51,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 3.76,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 10.01,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 3.73,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "parallel_122",
+   "time_limit_s": 20.0,
+   "seed": "default",
+   "status": "TIMEOUT",
+   "wall_s": 20.01,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 2.5,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 3.76,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 10.01,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 3.74,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "parallel_122",
+   "time_limit_s": 40.0,
+   "seed": "default",
+   "status": "OK",
+   "wall_s": 21.17,
+   "cusps": 104,
+   "length_m": 3.975,
+   "message": "Tìm được đường dài 3.97 m, 104 lần đổi chiều [nấc 'ngẫu nhiên', 3 lần thử, 21.17 s]",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 5.01,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 7.53,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "OK",
+     "s": 6.86,
+     "tracked": true,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "parallel_122",
+   "time_limit_s": 8.0,
+   "seed": "default",
+   "status": "TIMEOUT",
+   "wall_s": 8.0,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 1.01,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 1.5,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 4.0,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 1.49,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "zigzag_corridor",
+   "time_limit_s": 20.0,
+   "seed": "1",
+   "status": "TIMEOUT",
+   "wall_s": 20.01,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 2.5,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 3.76,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 10.01,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 3.74,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "zigzag_corridor",
+   "time_limit_s": 20.0,
+   "seed": "2",
+   "status": "TIMEOUT",
+   "wall_s": 20.01,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 2.5,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 3.75,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 10.02,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 3.74,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "zigzag_corridor",
+   "time_limit_s": 20.0,
+   "seed": "default",
+   "status": "TIMEOUT",
+   "wall_s": 20.01,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 2.5,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 3.75,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 10.02,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 3.73,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "zigzag_corridor",
+   "time_limit_s": 60.0,
+   "seed": "default",
+   "status": "NO_PATH",
+   "wall_s": 47.58,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Không tìm được đường trong không gian tìm kiếm",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 7.5,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "OK",
+     "s": 7.23,
+     "tracked": false,
+     "note": "Va chạm: va chạm t4"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 30.02,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "NO_PATH",
+     "s": 2.59,
+     "tracked": false,
+     "note": "Không tìm được đường trong không gian tìm kiếm"
+    }
+   ]
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "parallel_115",
+   "time_limit_s": 60.0,
+   "seed": "default",
+   "status": "NO_PATH",
+   "wall_s": 19.07,
+   "cusps": null,
+   "length_m": null,
+   "message": "[le-hep-cuoi/xuoi] vét cạn sau 39391 nút",
+   "planner": "lattice"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "parallel_115",
+   "time_limit_s": 60.0,
+   "seed": "default",
+   "status": "TIMEOUT",
+   "wall_s": 60.02,
+   "cusps": null,
+   "length_m": null,
+   "message": "RRT-Connect không nối được hai cây sau 90180 vòng, 117070 nút, 0 đường thô, 0 lần nghiệm thu, 60.0 s (hạt giống 20260907)",
+   "planner": "rrt"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "parallel_122",
+   "time_limit_s": 20.0,
+   "seed": "5",
+   "status": "TIMEOUT",
+   "wall_s": 20.01,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã hết thời gian tìm đường và kiểm chứng",
+   "planner": "rrt"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "parallel_122",
+   "time_limit_s": 20.0,
+   "seed": "default",
+   "status": "OK",
+   "wall_s": 6.67,
+   "cusps": 136,
+   "length_m": 4.976,
+   "message": "RRT-Connect+RS: dài 4.98 m, 136 lần đổi chiều, 7321 vòng, 19725 nút, 3 đường thô, 1 lần nghiệm thu, hạt giống 20260907",
+   "planner": "rrt"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "parallel_122",
+   "time_limit_s": 60.0,
+   "seed": "7",
+   "status": "OK",
+   "wall_s": 16.26,
+   "cusps": 150,
+   "length_m": 5.517,
+   "message": "RRT-Connect+RS: dài 5.52 m, 150 lần đổi chiều, 20839 vòng, 45365 nút, 3 đường thô, 1 lần nghiệm thu, hạt giống 7",
+   "planner": "rrt"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "pocket_exit_park",
+   "time_limit_s": 60.0,
+   "seed": "default",
+   "status": "OK",
+   "wall_s": 11.76,
+   "cusps": 6,
+   "length_m": 2.927,
+   "message": "[le-hep-cuoi/nguoc, lề 0.8 cm] dài 2.93 m, 6 lần đổi chiều",
+   "planner": "lattice"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "pocket_exit_park",
+   "time_limit_s": 60.0,
+   "seed": "default",
+   "status": "TIMEOUT",
+   "wall_s": 60.26,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã hết thời gian tìm đường và kiểm chứng",
+   "planner": "ref"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "pocket_exit_park",
+   "time_limit_s": 60.0,
+   "seed": "3",
+   "status": "OK",
+   "wall_s": 21.17,
+   "cusps": 93,
+   "length_m": 5.215,
+   "message": "RRT-Connect+RS: dài 5.21 m, 93 lần đổi chiều, 14979 vòng, 48642 nút, 10 đường thô, 3 lần nghiệm thu, hạt giống 3",
+   "planner": "rrt"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "pocket_exit_park",
+   "time_limit_s": 60.0,
+   "seed": "default",
+   "status": "OK",
+   "wall_s": 15.22,
+   "cusps": 137,
+   "length_m": 6.354,
+   "message": "RRT-Connect+RS: dài 6.35 m, 137 lần đổi chiều, 11678 vòng, 26731 nút, 27 đường thô, 1 lần nghiệm thu, hạt giống 20260907",
+   "planner": "rrt"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "zigzag_corridor",
+   "time_limit_s": 30.0,
+   "seed": "default",
+   "status": "OK",
+   "wall_s": 11.2,
+   "cusps": 16,
+   "length_m": 4.905,
+   "message": "[le-hep-cuoi/xuoi, lề 0.8 cm] dài 4.90 m, 16 lần đổi chiều",
+   "planner": "lattice"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "zigzag_corridor",
+   "time_limit_s": 90.0,
+   "seed": "default",
+   "status": "OK",
+   "wall_s": 16.88,
+   "cusps": 16,
+   "length_m": 4.905,
+   "message": "[le-hep-cuoi/xuoi, lề 0.8 cm] dài 4.90 m, 16 lần đổi chiều",
+   "planner": "lattice"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "zigzag_corridor",
+   "time_limit_s": 60.0,
+   "seed": "default",
+   "status": "NO_PATH",
+   "wall_s": 3.89,
+   "cusps": null,
+   "length_m": null,
+   "message": "Không tìm được đường trong không gian tìm kiếm",
+   "planner": "ref"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "zigzag_corridor",
+   "time_limit_s": 60.0,
+   "seed": "7",
+   "status": "TIMEOUT",
+   "wall_s": 60.02,
+   "cusps": null,
+   "length_m": null,
+   "message": "RRT-Connect không nối được hai cây sau 83857 vòng, 170195 nút, 0 đường thô, 0 lần nghiệm thu, 60.0 s (hạt giống 7)",
+   "planner": "rrt"
+  },
+  {
+   "loai": "nac_rieng",
+   "case": "zigzag_corridor",
+   "time_limit_s": 60.0,
+   "seed": "default",
+   "status": "TIMEOUT",
+   "wall_s": 60.03,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã hết thời gian tìm đường và kiểm chứng",
+   "planner": "rrt"
+  },
+  {
+   "loai": "portfolio",
+   "case": "pocket_exit_park",
+   "time_limit_s": 30.0,
+   "seed": "default",
+   "status": "TIMEOUT",
+   "wall_s": 25.53,
+   "cusps": null,
+   "length_m": null,
+   "message": "Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "OK",
+     "s": 1.72,
+     "tracked": false,
+     "note": "Va chạm: va chạm ngach_trai"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "OK",
+     "s": 2.79,
+     "tracked": false,
+     "note": "Va chạm: va chạm ngach_trai"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "TIMEOUT",
+     "s": 15.02,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 5.65,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "pocket_exit_park",
+   "time_limit_s": 60.0,
+   "seed": "default",
+   "status": "OK",
+   "wall_s": 34.9,
+   "cusps": 133,
+   "length_m": 6.182,
+   "message": "Tìm được đường dài 6.18 m, 133 lần đổi chiều [nấc 'ngẫu nhiên': xe mô phỏng dừng cách đích 4.0 cm / +0.1°, trong dung sai]",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "OK",
+     "s": 2.47,
+     "tracked": false,
+     "note": "Va chạm: va chạm ngach_trai"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "OK",
+     "s": 4.11,
+     "tracked": false,
+     "note": "Va chạm: va chạm ngach_trai"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "OK",
+     "s": 10.7,
+     "tracked": false,
+     "note": "Đỗ xong sau 94.0 s, đi 403 cm; sai số 4.0 cm / +0.1°"
+    },
+    {
+     "rung": "lưới mịn",
+     "status": "TIMEOUT",
+     "s": 11.3,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    }
+   ]
+  },
+  {
+   "loai": "portfolio",
+   "case": "uturn_w46",
+   "time_limit_s": 8.0,
+   "seed": "default",
+   "status": "OK",
+   "wall_s": 4.3,
+   "cusps": 21,
+   "length_m": 2.162,
+   "message": "Tìm được đường dài 2.16 m, 21 lần đổi chiều [nấc 'ngẫu nhiên', 3 lần thử, 4.30 s]",
+   "attempts": [
+    {
+     "rung": "gộp-nhanh",
+     "status": "TIMEOUT",
+     "s": 1.0,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "gộp-kỹ",
+     "status": "TIMEOUT",
+     "s": 1.5,
+     "tracked": false,
+     "note": "Đã hết thời gian tìm đường và kiểm chứng"
+    },
+    {
+     "rung": "ngẫu nhiên",
+     "status": "OK",
+     "s": 0.65,
+     "tracked": true,
+     "note": ""
+    }
+   ]
+  }
+ ]
+}

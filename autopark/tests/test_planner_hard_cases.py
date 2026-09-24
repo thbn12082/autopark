@@ -67,15 +67,23 @@ def test_ca_truoc_day_bo_tay_nay_giai_duoc(cases, real_cfg, name):
 
 
 @pytest.mark.parametrize("name", ["parallel_122", "parallel_115"])
-def test_ca_vo_nghiem_khong_bao_thanh_cong_gia(cases, real_cfg, name):
-    """Hai ca có kỳ vọng không tìm được đường trong bộ thử đã lưu.
+def test_ca_rat_chat_khong_bao_thanh_cong_gia(cases, real_cfg, name):
+    """Hai ca đỗ song song rất chặt: planner không được báo thành công giả.
 
-    Kỳ vọng này không phải chứng minh vô nghiệm liên tục. Nếu tìm được đường,
-    cần kiểm tra độc lập hình học và cập nhật kỳ vọng thay vì mặc định planner sai.
+    Trước 24/09/2026 hai ca mang nhãn `infeasible` (duyệt rộng trên đồ thị rời rạc ngày 08/09) và test này đòi
+    planner không giải được. Ngày 24/09/2026 cả hai đã có đường chứng kiểm độc lập (5 và 13 lần đổi chiều,
+    `docs/evidence/hard_cases/witness_ngan_song_song_20260924.json`, `tests/test_hard_cases_labels.py`), nên nhãn
+    đổi sang `feasible` — đúng như docstring cũ dặn ("cập nhật kỳ vọng thay vì mặc định planner sai"). Planner
+    trong 4 s thường TIMEOUT/NO_PATH ở hai ca này: đó là giới hạn của planner (lề tìm kiếm 0,8–1 cm, trần góc lái),
+    không phải lỗi test. Ý giữ lại: nếu planner báo OK thì đường phải qua phép kiểm va chạm độc lập (`path_ok`).
+    Đối chứng âm (đích tách rời xuất phát bởi tường, planner không được báo thành công):
+    `tests/test_planning.py::test_walled_off_goal_reports_no_path`.
     """
-    assert cases[name].expected == "infeasible"
+    assert cases[name].expected == "feasible"
     result = run_case(portfolio.plan, cases[name], real_cfg, time_limit=4.0)
-    assert not result.solved
+    assert result.status in ("OK", "TIMEOUT", "NO_PATH"), f"{name}: {result.status} — {result.message}"
+    if result.status == "OK":
+        assert result.path_ok, f"{name}: planner báo OK nhưng đường va chạm khi kiểm lại độc lập"
 
 
 def test_khong_hoi_quy_o_cac_ca_de(cases, real_cfg):
