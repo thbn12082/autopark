@@ -1,6 +1,7 @@
 """Gán nhãn ảnh sa bàn: kết quả AI làm nhãn nháp, người tô sửa chỗ sai, chỉ ảnh ĐÃ DUYỆT mới vào cache huấn luyện.
 
     python -m autopark.perception.labels import runs/rig_snapshots --project datasets/sa_ban_labels
+    python -m autopark.perception.labels import runs/rig_snapshots --project datasets/sa_ban_labels --exclude datasets/sa_ban_cham
     python -m autopark.perception.labels stats --project datasets/sa_ban_labels
     python -m autopark.perception.labels export --project datasets/sa_ban_labels --out datasets/prepared/sa_ban_v1
     python -m autopark.ui.label_app --project datasets/sa_ban_labels
@@ -65,6 +66,12 @@ sạch khi chấm trên cache mới. `resplit=True` (`--resplit`) chia lại t�
 ảnh, trùng tên bộ ảnh, hoặc chụp cách một bản ghi của cache đó ≤ `session_gap_s` (cùng phiên, gần trùng mà sha256 không
 bắt được). Dùng cho tập chấm của một dự án riêng: nó chỉ sạch khi không chung ảnh/phiên với cache huấn luyện.
 
+**Không nhập ảnh đã dùng ở nơi khác** (`exclude`, `import --exclude`, thêm 24/09/2026): cùng ba phép so đó nhưng lúc
+NHẬP, với nguồn là một dự án gán nhãn khác (mọi ảnh của nó, ở mọi trạng thái) hoặc một cache. Khung trùng thì không
+vào dự án, lý do in ra; ảnh đã có sẵn trong dự án mà trùng thì chỉ cảnh báo, không tự xóa. Lệnh mẫu: dòng
+`import ... --exclude` ở đầu docstring này. Đây là chốt sớm, chỉ so với những gì nguồn có LÚC NHẬP; `export
+--disjoint-from` vẫn là phép kiểm cuối trên chính cache chấm.
+
 `verify_cache` không áp dụng: nó so cache với split đóng băng và file gốc của WoodScape. Thay vào đó export tự kiểm cache
 vừa ghi (`check_cache`) trước khi đặt vào chỗ; lỗi giữa chừng thì thư mục dở `<tên>.partial_*` bị xóa.
 """
@@ -74,6 +81,7 @@ import argparse
 from bisect import bisect_left
 from collections import Counter, defaultdict
 import copy
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import getpass
 import hashlib
@@ -475,6 +483,100 @@ def _safe_name(folder: Path) -> str:
     return base
 
 
+# ---------------------------------------------------------------- loại trừ ảnh đã dùng ở nơi khác (import --exclude)
+@dataclass
+class Exclusion:
+    """Ảnh/bộ ảnh/giờ chụp đã dùng ở nơi khác (dự án gán nhãn khác, hoặc cache đã export) mà lần nhập này phải bỏ.
+
+    Cùng ba phép so với `export --disjoint-from`: sha256 ảnh, tên bộ ảnh, và giờ chụp cách một ảnh của nguồn đó
+    ≤ `gap_s` (cùng phiên — khung gần trùng mà sha256 không bắt được). Nhờ vậy khi dự án huấn luyện được nhập với
+    `--exclude <dự án chấm>`, export dự án chấm với `--disjoint-from <cache huấn luyện>` qua được (cùng khoảng phiên;
+    chỉ với các ảnh dự án chấm có lúc nhập)."""
+    shas: set[str] = field(default_factory=set)
+    snapshots: set[str] = field(default_factory=set)
+    times: list[datetime] = field(default_factory=list)
+    gap_s: float = SESSION_GAP_S
+    sources: list[dict] = field(default_factory=list)
+
+    def reasons(self, *, sha: str | None = None, snapshot: str | None = None, times=()) -> list[str]:
+        why = []
+        if sha and sha in self.shas:
+            why.append("trùng sha256 ảnh")
+        if snapshot and snapshot in self.snapshots:
+            why.append(f"cùng bộ ảnh {snapshot}")
+        gaps = []
+        for t in times:
+            if t is None:
+                continue
+            k = bisect_left(self.times, t)
+            gaps += [abs((self.times[j] - t).total_seconds()) for j in (k - 1, k) if 0 <= j < len(self.times)]
+        if gaps and min(gaps) <= self.gap_s:
+            why.append(f"chụp cách một ảnh của nguồn loại trừ {min(gaps):.0f} s (≤ {self.gap_s:g} s: cùng phiên)")
+        return why
+
+
+def load_exclusion(sources, gap_s: float = SESSION_GAP_S, *, target: Path | None = None) -> Exclusion:
+    """Đọc các nguồn loại trừ: thư mục dự án gán nhãn (có project.json: mọi ảnh trong items/ ở MỌI trạng thái — nháp,
+    đã duyệt, loại) hoặc cache (thư mục có manifest.json, hay chính manifest.json: mọi bản ghi). Chỉ ĐỌC nguồn, không
+    ghi gì vào đó. Nguồn hỏng/không nhận ra (kể cả một sidecar hỏng) thì LabelError — loại trừ thiếu là lọt ảnh, không
+    được im lặng bỏ qua. `target`: dự án đang nhập; trỏ --exclude vào chính nó bị từ chối."""
+    if not float(gap_s) >= 0.0:
+        raise ValueError("Khoảng phiên phải ≥ 0 giây")
+    exclusion = Exclusion(gap_s=float(gap_s))
+    for source in sources or ():
+        path = Path(source)
+        if target is not None and path.resolve() == Path(target).resolve():
+            raise LabelError(f"--exclude {path}: đây là chính dự án đang nhập")
+        shas, snapshots, stamps, unchecked, images = set(), set(), [], 0, 0
+        if path.is_dir() and (path / "project.json").is_file():
+            info = _read_json_object(path / "project.json", "project.json")
+            if info.get("kind") != PROJECT_KIND:
+                raise LabelError(f"--exclude {path}: project.json không phải của dự án gán nhãn sa bàn")
+            kind = "label_project"
+            for sidecar in sorted((path / "items").glob("*.json")):
+                item = _read_json_object(sidecar, "sidecar")
+                source_info = item.get("source") if isinstance(item.get("source"), dict) else {}
+                image_info = item.get("image") if isinstance(item.get("image"), dict) else {}
+                if not image_info.get("sha256") and not source_info.get("snapshot"):
+                    raise LabelError(f"--exclude: sidecar {sidecar} thiếu sha256 ảnh và tên bộ ảnh")
+                images += 1
+                shas.add(image_info.get("sha256"))
+                snapshots.add(source_info.get("snapshot"))
+                found = [t for t in (_parse_time(source_info.get("captured_local")),
+                                     _parse_time(source_info.get("frame_captured_local"))) if t is not None]
+                stamps += found
+                unchecked += not found
+            # KHÔNG đọc snapshots.json của nguồn: nó có cả bộ ảnh mà nguồn đã bỏ (hỏng, trùng, hay chính --exclude của
+            # nó), tức bộ ảnh nguồn KHÔNG dùng; tính chúng thì hai dự án loại trừ lẫn nhau thành vòng.
+        else:
+            manifest_path = path / "manifest.json" if path.is_dir() else path
+            if not manifest_path.is_file():
+                raise LabelError(f"--exclude {path}: không phải dự án gán nhãn (thiếu project.json) hay cache (thiếu "
+                                 "manifest.json)")
+            manifest = _read_json_object(manifest_path, "manifest")
+            records = manifest.get("records")
+            if not isinstance(records, list):
+                raise LabelError(f"--exclude: {manifest_path} không phải manifest của cache (thiếu 'records')")
+            kind, path = "cache", manifest_path
+            for r in (r for r in records if isinstance(r, dict)):
+                images += 1
+                shas.add(r.get("image_sha256"))
+                snapshots.add(r.get("snapshot"))
+                found = [t for t in (_parse_time(r.get("captured_local")), _parse_time(r.get("frame_captured_local")))
+                         if t is not None]
+                stamps += found
+                unchecked += not found
+        shas.discard(None)
+        snapshots.discard(None)
+        exclusion.shas |= shas
+        exclusion.snapshots |= snapshots
+        exclusion.times += stamps
+        exclusion.sources.append({"path": str(path.resolve()), "kind": kind, "images": images,
+                                  "image_sha256": len(shas), "snapshots": len(snapshots), "unchecked_time": unchecked})
+    exclusion.times.sort()
+    return exclusion
+
+
 # ---------------------------------------------------------------- sửa nhãn (không phụ thuộc Qt)
 class LabelEditor:
     """Nhãn một ảnh đang sửa: cọ, đa giác, tô lại theo AI, hoàn tác/làm lại. Không phụ thuộc Qt: giao diện gọi vào
@@ -839,20 +941,45 @@ class LabelProject:
     def import_snapshots(self, sources, *, threshold: float = DEFAULT_THRESHOLD,
                          make_segmenter: Callable[[], object] | None = None, skip_damaged: bool = False,
                          draft: bool = True, bottom_repeat_limit: float = BOTTOM_REPEAT_LIMIT,
-                         frame_age_limit_ms: float = FRAME_AGE_LIMIT_MS, log=print) -> dict:
+                         frame_age_limit_ms: float = FRAME_AGE_LIMIT_MS, exclude=(),
+                         exclude_gap_s: float = SESSION_GAP_S, log=print) -> dict:
         """Nhập các bộ ảnh (thư mục gốc chứa nhiều bộ, hoặc một bộ). Nhập lại là an toàn: ảnh trùng sha256 bỏ qua.
 
         `make_segmenter`: hàm không đối số trả một đối tượng có `infer([ảnh BGR]) -> ([P(BLOCKED) float], _)` (như
         `LiveSegmenter`); chỉ gọi khi gặp ảnh không có xác suất. `draft=False`: không dùng AI (không chép xác suất,
         nháp toàn IGNORE) — cho bộ nhãn không dính tới mô hình huấn luyện trên WoodScape. `frame_age_limit_ms`: khung có
-        `age_ms` lớn hơn là khung cũ (camera treo) — đánh dấu hỏng, và giờ khung được ghi riêng để xếp đúng phiên."""
+        `age_ms` lớn hơn là khung cũ (camera treo) — đánh dấu hỏng, và giờ khung được ghi riêng để xếp đúng phiên.
+
+        `exclude` (`--exclude`, thêm 24/09/2026): dự án gán nhãn khác hoặc cache đã export (`load_exclusion`). Khung
+        trùng sha256 ảnh, cùng tên bộ ảnh, hoặc chụp cách một ảnh của nguồn đó ≤ `exclude_gap_s` (giờ bộ ảnh, và giờ
+        khung nếu là khung cũ) thì KHÔNG nhập, ghi lý do vào `summary["excluded"]`. Giờ của bộ ảnh bị loại trừ vẫn vào
+        `snapshots.json` như mọi bộ ảnh đã gặp. Ảnh ĐÃ có trong dự án mà trùng nguồn loại trừ không bị xóa hay đổi
+        trạng thái — chỉ liệt kê ở `summary["already_in_project_excluded"]` để người xử lý (Loại)."""
         if not 0.0 < float(threshold) < 1.0:
             raise ValueError("Ngưỡng phải nằm trong (0, 1)")
         if not float(frame_age_limit_ms) > 0.0:
             raise ValueError("Giới hạn tuổi khung phải > 0 ms")
         if isinstance(sources, (str, Path)):
             sources = [sources]
-        summary = {"imported": [], "rejected_damaged": [], "skipped": [], "prob_from_model": [], "no_prob": []}
+        if isinstance(exclude, (str, Path)):
+            exclude = [exclude]
+        # đọc nguồn loại trừ TRƯỚC khi đụng tới bộ ảnh nào: nguồn hỏng thì dừng, không nhập nửa vời
+        if isinstance(exclude, Exclusion):
+            exclusion = exclude
+        else:
+            exclusion = load_exclusion(exclude, exclude_gap_s, target=self.root) if exclude else None
+        summary = {"imported": [], "rejected_damaged": [], "skipped": [], "prob_from_model": [], "no_prob": [],
+                   "excluded": [], "exclude_sources": list(exclusion.sources) if exclusion else [],
+                   "already_in_project_excluded": []}
+        if exclusion is not None:
+            for item_id in self.ids():
+                it = self.item(item_id)
+                why = exclusion.reasons(sha=it["image"].get("sha256"), snapshot=it["source"].get("snapshot"),
+                                        times=[_parse_time(it["source"].get("captured_local")),
+                                               _parse_time(it["source"].get("frame_captured_local"))])
+                if why:
+                    summary["already_in_project_excluded"].append(f"{item_id} ({STATUS_NAMES[it['status']]}): "
+                                                                  + ", ".join(why))
         folders = []
         for source in sources:
             found, skipped = find_snapshots(source)
@@ -861,13 +988,13 @@ class LabelProject:
         seen: dict[str, dict] = {}
         try:
             self._import_folders(folders, summary, seen, threshold, make_segmenter, skip_damaged, draft,
-                                 bottom_repeat_limit, float(frame_age_limit_ms), log)
+                                 bottom_repeat_limit, float(frame_age_limit_ms), log, exclusion)
         finally:                          # ghi cả khi nhập dở: bộ ảnh đã gặp vẫn được nối chuỗi phiên
             self._remember_snapshots(seen)
         return summary
 
     def _import_folders(self, folders, summary, seen, threshold, make_segmenter, skip_damaged, draft,
-                        bottom_repeat_limit, frame_age_limit_ms, log) -> None:
+                        bottom_repeat_limit, frame_age_limit_ms, log, exclusion: Exclusion | None = None) -> None:
         by_sha = {it["image"]["sha256"]: it["id"] for it in self._items.values()}
         segmenter = None
         for folder in folders:
@@ -910,10 +1037,15 @@ class LabelProject:
                         self.path(item_id, "labels").exists():
                     item_id = f"{item_id}_{sha[:8]}"
                 # khung cũ: giờ KHUNG = giờ bộ ảnh − tuổi khung; phiên xếp theo giờ này (_group_key), không theo bộ ảnh
-                frame_time = None
+                frame_time, frame_moment = None, None
                 if damage["frame_too_old"] and captured is not None:
-                    frame_time = (captured - timedelta(milliseconds=damage["frame_age_ms"])).isoformat(
-                        timespec="milliseconds")
+                    frame_moment = captured - timedelta(milliseconds=damage["frame_age_ms"])
+                    frame_time = frame_moment.isoformat(timespec="milliseconds")
+                if exclusion is not None:
+                    why = exclusion.reasons(sha=sha, snapshot=folder.name, times=[captured, frame_moment])
+                    if why:
+                        summary["excluded"].append(f"{where}: " + ", ".join(why))
+                        continue
                 h, w = image.shape[:2]
                 prob, origin, model, checkpoint, note = None, "none", None, None, None
                 prob_path = folder / f"prob_blocked_p{port}.png"
@@ -1463,6 +1595,12 @@ def main(argv=None) -> int:
     a.add_argument("--frame-age-limit-ms", type=float, default=FRAME_AGE_LIMIT_MS,
                    help="khung có age_ms (meta.json) lớn hơn số này là khung cũ — camera treo — và bị đánh dấu hỏng "
                         f"(mặc định {FRAME_AGE_LIMIT_MS:g} ms; bộ ảnh thật 23/09: 180–341 ms)")
+    a.add_argument("--exclude", type=Path, nargs="+", default=[], metavar="NGUON",
+                   help="dự án gán nhãn khác (thư mục có project.json) hoặc cache (thư mục/manifest.json) đã dùng ảnh ở "
+                        "nơi khác: KHÔNG nhập khung trùng sha256 ảnh, trùng bộ ảnh, hay chụp cách ≤ --session-gap "
+                        "(cùng phép so với export --disjoint-from)")
+    a.add_argument("--session-gap", type=float, default=SESSION_GAP_S,
+                   help="chỉ dùng cho --exclude: chụp cách một ảnh của nguồn loại trừ ≤ số giây này là cùng phiên")
     b = sub.add_parser("stats", help="thống kê dự án")
     b.add_argument("--json", action="store_true")
     c = sub.add_parser("export", help="xuất ảnh ĐÃ DUYỆT thành cache huấn luyện")
@@ -1494,13 +1632,15 @@ def main(argv=None) -> int:
                          f"này; đang là {args.bottom_repeat_limit})")
         if not args.frame_age_limit_ms > 0.0:                      # cũng loại NaN; inf = tắt phép thử này
             parser.error(f"--frame-age-limit-ms phải > 0 mili giây (đang là {args.frame_age_limit_ms})")
-    elif not args.session_gap >= 0.0:
+    if not args.session_gap >= 0.0:                                # cũng loại NaN
         parser.error(f"--session-gap phải ≥ 0 giây (đang là {args.session_gap})")
     try:
         if args.command == "import":
             missing = [str(s) for s in args.sources if not s.is_dir()]
             if missing:                                            # báo trước khi tạo dự án rỗng
                 raise LabelError("Không phải thư mục: " + ", ".join(missing))
+            # nguồn loại trừ hỏng/sai cũng báo TRƯỚC khi tạo dự án
+            exclusion = load_exclusion(args.exclude, args.session_gap, target=args.project) if args.exclude else None
             project = LabelProject(args.project, create=True, who=args.who)
             factory = None
             if args.model is not None and not args.no_draft:
@@ -1509,12 +1649,25 @@ def main(argv=None) -> int:
             summary = project.import_snapshots(args.sources, threshold=args.threshold, make_segmenter=factory,
                                                skip_damaged=args.skip_damaged, draft=not args.no_draft,
                                                bottom_repeat_limit=args.bottom_repeat_limit,
-                                               frame_age_limit_ms=args.frame_age_limit_ms)
+                                               frame_age_limit_ms=args.frame_age_limit_ms,
+                                               exclude=exclusion if exclusion is not None else ())
             print(f"Đã nhập {len(summary['imported'])} ảnh ({len(summary['rejected_damaged'])} khung hỏng ở trạng thái "
                   f"'loại'); {len(summary['no_prob'])} ảnh không có xác suất AI (nháp toàn IGNORE); "
                   f"{len(summary['prob_from_model'])} ảnh chạy mô hình.")
+            for source in summary["exclude_sources"]:
+                print(f"  loại trừ theo {source['path']} ({source['images']} ảnh, {source['snapshots']} bộ ảnh; so "
+                      f"sha256, bộ ảnh, phiên ≤ {args.session_gap:g} s)"
+                      + (f" — {source['unchecked_time']} ảnh của nguồn không rõ giờ chụp: chỉ so sha256 và bộ ảnh"
+                         if source["unchecked_time"] else ""))
+            if args.exclude:
+                print(f"  không nhập vì --exclude: {len(summary['excluded'])} khung")
+            for reason in summary["excluded"]:
+                print(f"  loại trừ: {reason}")
             for reason in summary["skipped"]:
                 print(f"  bỏ qua: {reason}")
+            for reason in summary["already_in_project_excluded"]:
+                print(f"  CẢNH BÁO: ảnh ĐÃ có trong dự án trùng nguồn loại trừ (không tự xóa; xem lại, 'Loại' nếu cần): "
+                      f"{reason}")
             return 0
         project = LabelProject(args.project, who=args.who)
         if args.command == "stats":

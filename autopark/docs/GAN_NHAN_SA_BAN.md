@@ -161,6 +161,47 @@ hỏng không đóng băng gì (file chỉ được ghi sau khi cache đã vào 
   không cảnh báo gì. Nay `--disjoint-from` từ chối (`tests/test_labels.py`). Tỉ lệ `0 1 0` đóng băng cùng dự án: lần
   export sau của dự án này cũng phải `--ratios 0 1 0`. Giới hạn: `evaluate.py` chưa tự kiểm ảnh chấm có nằm trong train
   của checkpoint không (chế độ chấm chéo miền bỏ qua mọi phép kiểm split) — `--disjoint-from` lúc export là chốt duy nhất.
+
+  *Ghi chú muộn tối 24/09/2026 (mã chưa commit):* câu giới hạn ngay trên đã lỗi thời, nay có thêm hai chốt nữa.
+
+  **Chốt lúc nhập: `import --exclude`.** Đưa vào một dự án gán nhãn khác (thư mục có `project.json`: mọi ảnh của nó,
+  ở mọi trạng thái) hoặc một cache (thư mục hay `manifest.json`). Khung trùng sha256 ảnh, cùng tên bộ ảnh, hoặc chụp
+  cách một ảnh của nguồn đó ≤ `--session-gap` giây thì **không nhập**. Đây đúng là ba phép so của `--disjoint-from`; với
+  khung cũ thì so cả giờ khung. Lệnh in lý do cho từng khung. Giờ của bộ ảnh bị loại trừ vẫn vào `snapshots.json`. Ảnh
+  **đã có sẵn** trong dự án mà trùng nguồn thì chỉ bị cảnh báo, không tự xóa hay đổi trạng thái. Nguồn không đọc được
+  (sai đường dẫn, sidecar hỏng) thì lệnh dừng trước khi tạo gì trên đĩa. Nguồn chỉ được đọc. Hai chiều dùng được, mỗi
+  lệnh một dòng:
+
+      .venv\Scripts\python.exe -X utf8 -m autopark.perception.labels import runs/rig_snapshots --project datasets/sa_ban_labels --exclude datasets/sa_ban_cham
+      .venv\Scripts\python.exe -X utf8 -m autopark.perception.labels import runs/rig_snapshots_cham --no-draft --project datasets/sa_ban_cham --exclude datasets/sa_ban_labels
+
+  Nhập dự án huấn luyện với `--exclude <dự án chấm>` thì về sau export dự án chấm với `--disjoint-from <cache huấn
+  luyện>` qua được, với cùng khoảng phiên (có test). Phép so chỉ nhìn các ảnh mà nguồn có **lúc nhập**; ảnh nhập vào
+  dự án chấm sau đó không được so lại. Vì vậy `--disjoint-from` vẫn là phép kiểm cuối trên chính cache chấm. Import làm
+  từ dòng lệnh, giao diện gán nhãn không có nút nhập, nên không cần móc giao diện.
+
+  **Chốt lúc chấm: `evaluate.py`.** Trước khi chấm, lệnh so ảnh của split được chấm với split train của manifest mà
+  checkpoint đã học: sha256 ảnh, mã ảnh kèm cache gốc, tên bộ ảnh, giờ chụp ≤ 60 s. Có trùng, hoặc không kiểm được
+  (thiếu `manifest.json` của cache huấn luyện, hay manifest đó khác sha256 checkpoint đã ghi, vd. sau `export
+  --overwrite`), thì mặc định **từ chối**. `--train-overlap warn` cho chấm tiếp nhưng ghi `train_overlap` vào
+  metrics.json. Kiểm chỉ cần `manifest.json`, không cần `images.npy`. Mọi phép thử trên cache sa bàn là dữ liệu giả
+  trong test (`tests/test_perception_evaluation.py`, `tests/test_labels.py`), vì **chưa có dự án gán nhãn thật nào**.
+
+  *Sửa sau rà soát (tối 24/09/2026, mã chưa commit):* "giờ chụp ≤ 60 s" ở đoạn trên chỉ còn đúng khi chấm một cache
+  **khác** mà không manifest nào ghi khoảng phiên. Bản đầu so tên bộ ảnh và giờ chụp ≤ 60 s cố định cả khi chấm chính
+  cache huấn luyện. Vì vậy nó từ chối nhầm, tái hiện trên dữ liệu giả: val/test của cache export với `--session-gap 30`
+  (bộ ảnh cách nhau 45 s); và val/test có khung cũ đã duyệt mà export, đúng luật xếp theo giờ khung, đặt khác split với
+  các camera cùng bộ ảnh. Nay:
+  - chấm chính cache huấn luyện: chỉ so sha256 ảnh, mã ảnh + cache gốc và nhóm `group`. Tức là tin phân nhóm mà export
+    ghi và `check_splits` đã kiểm (khoảng phiên `--session-gap` người dùng chọn; khung cũ theo giờ khung và camera);
+  - chấm cache khác (`--manifest`): vẫn bốn phép như `--disjoint-from` và `import --exclude` (tên bộ ảnh trần, cả giờ
+    bộ ảnh lẫn giờ khung cũ — chặt hơn cách export xếp khung cũ). Khoảng phiên: của `--disjoint-from` nếu cache chấm đã
+    được export tách rời khỏi đúng manifest huấn luyện đó (khớp sha256); không thì `grouping.session_gap_s` của cache
+    huấn luyện; không có (WoodScape, ACDC, cache ghép) thì 60 s. `--session-gap` riêng của cache chấm không nới được
+    chốt. `metrics.json` ghi `train_overlap.checks`, `session_gap_s` và `session_gap_source`.
+  Mỗi trường hợp có test, và đã thử đột biến trên bản sao (`tests/test_perception_evaluation.py`). Vẫn chỉ trên dữ liệu
+  giả. Giới hạn: cache ghép (`prepare_extra combine`) không ghi khoảng phiên của cache sa bàn con, nên chấm chéo với
+  checkpoint học trên cache ghép dùng 60 s.
 - *Huấn luyện*: ghép với cache khác bằng `prepare_extra combine` (mỗi ảnh giữ split gốc), rồi
   `train --config ... --set prepared_manifest=datasets/prepared/<cache>/manifest.json`. Về giấy phép: khởi tạo từ checkpoint
   WoodScape, hay ghép với cache WoodScape, thì mô hình ra là mô hình *"trained on or refined using the Dataset"* theo
@@ -332,3 +373,16 @@ khung thật sự được chụp. Bộ ảnh cũ không ghi `age_ms` thì khôn
   mà kiểm lại từng ảnh ngay trước khi ghi và dừng nếu có gì đổi; hai lượt export chạy cùng lúc trên một dự án thì lượt
   ghi `splits.json` sau thắng (không có phép thử cho trường hợp này).
 - `evaluate.py` không vẽ ảnh minh họa cho cache sa bàn (chỉ vẽ cho tên camera WoodScape).
+- *Ghi chú muộn tối 24/09/2026:* ý thứ năm ở trên ("`evaluate.py` chưa tự kiểm…", "Chưa có `import --exclude`…") đã
+  có mã, xem ghi chú cùng ngày ở bước 7. *Sửa sau rà soát (tối 24/09/2026):* bản trước của câu này ghi 38 hàm test và
+  "bỏ riêng từng phép thì test hỏng". Câu đó nói quá: khi ấy test nguồn cache chỉ có ảnh chép nguyên byte. Đột biến bỏ
+  gom tên bộ ảnh hay giờ của nguồn cache, bỏ giờ khung cũ của nguồn dự án, bỏ việc lệnh chuyển `--session-gap`, hay bỏ
+  so tên/giờ trong cảnh báo "đã có trong dự án" đều không làm test nào hỏng. Nay `tests/test_labels.py` có 41 hàm test
+  (55 trường hợp); sáu hàm là cho `--exclude`. Mỗi phép so (sha256, tên bộ ảnh, giờ bộ ảnh, giờ khung cũ) có một bộ ảnh
+  chỉ trùng đúng theo phép đó, với nguồn là dự án gán nhãn và cả nguồn là cache (kể cả giờ khung cũ của nguồn). Cũng
+  có test cho `--session-gap` của lệnh import, và cho cảnh báo ảnh sẵn có chỉ trùng tên/giờ. Bỏ riêng từng phép, hay bỏ
+  việc đọc từng trường của nguồn, thì test hỏng: 16 đột biến trên bản sao, mỗi đột biến làm ít nhất một test hỏng.
+  Còn thiếu:
+  - ảnh gần trùng mà khác sha256, chụp ở hai phiên cách nhau > 60 s (cùng bố cục sa bàn), vẫn không phép so nào bắt được;
+  - `leakage_report` (hash tri giác) chỉ đo trong một cache, không đo giữa hai dự án;
+  - chưa dùng trên dữ liệu thật.

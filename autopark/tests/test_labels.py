@@ -1128,3 +1128,205 @@ def test_writes_are_fsynced_and_a_failed_write_leaves_no_temp_file(snap_root, tm
         project.save(item_id, editor.label, editor.edited)
     monkeypatch.setattr(L.os, "replace", real_replace)
     assert target.read_bytes() == b"abc" and not list(tmp_path.rglob("*.tmp"))
+
+
+# ---------------------------------------------------------------- import --exclude: không nhập ảnh đã dùng ở nơi khác
+def _eval_project(tmp_path, snap_root):
+    """Dự án chấm tô tay từ đầu: một bộ ảnh 2 camera lúc T0 + 10 h, trong thư mục riêng rig_snapshots_cham."""
+    cham = snap_root.parent / "rig_snapshots_cham"
+    folder = write_snapshot(cham, T0 + timedelta(hours=10), seed=70)
+    project = LabelProject(tmp_path / "chấm", create=True)
+    project.import_snapshots(cham, draft=False, log=None)
+    return project, folder
+
+
+def test_import_exclude_skips_each_kind_of_reuse_separately_and_keeps_the_rest(snap_root, tmp_path):
+    """Mỗi bộ ảnh nguồn trùng dự án chấm theo ĐÚNG MỘT cách (sha256 / tên bộ ảnh / giờ bộ ảnh / giờ khung cũ), để
+    bỏ riêng từng phép so thì test hỏng. Ảnh không trùng vẫn vào; export sau đó qua được --disjoint-from của dự án chấm."""
+    cham, eval_folder = _eval_project(tmp_path, snap_root)
+    t_eval = T0 + timedelta(hours=10)
+    only_sha = write_snapshot(snap_root, T0 + timedelta(hours=5), seed=81)     # p1 chép nguyên byte ảnh chấm p1
+    shutil.copyfile(eval_folder / "cam_p1.png", only_sha / "cam_p1.png")
+    only_name = write_snapshot(snap_root, T0 + timedelta(hours=3), seed=82, name=eval_folder.name)
+    only_gap = write_snapshot(snap_root, t_eval + timedelta(seconds=30), seed=83)
+    old = write_snapshot(snap_root, t_eval + timedelta(minutes=10), seed=84)   # p1 treo: khung chụp 20 s sau ảnh chấm
+    set_camera_meta(old, 1, age_ms=(10 * 60 - 20) * 1000.0, stale=True)
+    clean = write_snapshot(snap_root, T0, seed=85)
+
+    train = LabelProject(tmp_path / "huấn luyện", create=True)
+    summary = train.import_snapshots(snap_root, exclude=[cham.root], log=None)
+    excluded = {line.split(":")[0]: line for line in summary["excluded"]}
+    assert set(excluded) == {f"{only_sha.name}/cam_p1.png", f"{only_name.name}/cam_p1.png",
+                             f"{only_name.name}/cam_p2.png", f"{only_gap.name}/cam_p1.png",
+                             f"{only_gap.name}/cam_p2.png", f"{old.name}/cam_p1.png"}
+    assert "trùng sha256 ảnh" in excluded[f"{only_sha.name}/cam_p1.png"]
+    assert "cùng bộ ảnh" in excluded[f"{only_name.name}/cam_p2.png"]
+    assert "sha256" not in excluded[f"{only_name.name}/cam_p2.png"] and "phiên" not in excluded[f"{only_name.name}/cam_p2.png"]
+    assert "30 s" in excluded[f"{only_gap.name}/cam_p1.png"] and "cùng phiên" in excluded[f"{only_gap.name}/cam_p1.png"]
+    assert "20 s" in excluded[f"{old.name}/cam_p1.png"]                            # theo GIỜ KHUNG, không theo giờ bộ ảnh
+    assert sorted(summary["imported"]) == sorted([f"{only_sha.name}_p2", f"{old.name}_p2", f"{clean.name}_p1",
+                                                  f"{clean.name}_p2"])
+    assert not train.path(f"{only_gap.name}_p1", "images").exists()                # không ghi gì cho khung bị loại trừ
+    (source,) = summary["exclude_sources"]
+    assert source["kind"] == "label_project" and source["images"] == 2 and source["snapshots"] == 1
+    assert summary["already_in_project_excluded"] == []
+    seen = {v["snapshot"] for v in train.known_snapshots().values()}                # bộ bị loại trừ vẫn nối chuỗi phiên
+    assert {only_gap.name, only_name.name} <= seen
+
+    review_all(train)
+    v1 = tmp_path / "prepared" / "sa_ban_v1"
+    train.export(v1, log=QUIET)
+    hand_label_all(cham)
+    result = cham.export(tmp_path / "prepared" / "cham_v1", ratios=(0, 1, 0), disjoint_from=[v1], log=QUIET)
+    assert result["splits"]["val"] == 2                                            # --exclude lúc nhập => export tách rời
+
+    control = LabelProject(tmp_path / "không loại trừ", create=True)               # đối chứng: không --exclude thì nhập hết
+    assert len(control.import_snapshots(snap_root, log=None)["imported"]) == 10
+
+
+def test_import_exclude_reads_a_cache_and_only_warns_about_images_already_in_the_project(snap_root, tmp_path):
+    for k in range(3):
+        write_snapshot(snap_root, T0 + timedelta(hours=k), seed=k)
+    train = LabelProject(tmp_path / "huấn luyện", create=True)
+    train.import_snapshots(snap_root, log=None)
+    review_all(train)
+    v1 = tmp_path / "prepared" / "sa_ban_v1"
+    train.export(v1, log=QUIET)
+
+    mixed = snap_root.parent / "lẫn"                                               # thư mục chấm lỡ chứa một bộ huấn luyện
+    shutil.copytree(sorted(snap_root.iterdir())[0], mixed / sorted(snap_root.iterdir())[0].name)
+    fresh = write_snapshot(mixed, T0 + timedelta(hours=20), seed=90)
+    cham = LabelProject(tmp_path / "chấm", create=True)
+    summary = cham.import_snapshots(mixed, draft=False, exclude=v1 / "manifest.json", log=None)
+    assert sorted(summary["imported"]) == [f"{fresh.name}_p1", f"{fresh.name}_p2"] and len(summary["excluded"]) == 2
+    assert summary["exclude_sources"][0]["kind"] == "cache" and summary["exclude_sources"][0]["images"] == 6
+
+    before = {i: train.item(i)["status"] for i in train.ids()}                     # nhập lại vào CHÍNH dự án huấn luyện
+    again = train.import_snapshots(snap_root, exclude=[cham.root], log=None)       # với nguồn là dự án chấm: ảnh sẵn có
+    assert again["imported"] == [] and again["already_in_project_excluded"] == []  # không trùng => không cảnh báo
+    later = LabelProject(tmp_path / "sau", create=True)
+    later.import_snapshots(mixed, draft=False, log=None)                           # dự án đã lỡ có ảnh của cache huấn luyện
+    warned = later.import_snapshots(snap_root, exclude=[v1], log=None)
+    assert len(warned["already_in_project_excluded"]) == 2 and "trùng sha256 ảnh" in warned["already_in_project_excluded"][0]
+    assert all(later.item(i)["status"] == "draft" for i in later.ids())            # chỉ cảnh báo, không đổi trạng thái
+    assert {i: train.item(i)["status"] for i in train.ids()} == before
+    with pytest.raises(LabelError, match="chính dự án"):
+        train.import_snapshots(snap_root, exclude=[train.root], log=None)
+
+
+def test_import_exclude_source_problems_stop_before_anything_is_written(snap_root, tmp_path, capsys):
+    write_snapshot(snap_root, T0)
+    project_dir = tmp_path / "dự án"
+    assert L.main(["import", str(snap_root), "--project", str(project_dir), "--exclude", str(tmp_path / "khong_co")]) == 2
+    assert "--exclude" in capsys.readouterr().err and not project_dir.exists()
+    with pytest.raises(SystemExit) as exc:
+        L.main(["import", str(snap_root), "--project", str(project_dir), "--exclude", str(tmp_path),
+                "--session-gap", "-1"])
+    assert exc.value.code == 2 and "--session-gap" in capsys.readouterr().err and not project_dir.exists()
+
+    cham = LabelProject(tmp_path / "chấm", create=True)
+    cham.import_snapshots(snap_root, draft=False, log=None)
+    (cham.root / "items" / "hong.json").write_bytes(b"{")                          # sidecar hỏng: loại trừ thiếu = lọt ảnh
+    assert L.main(["import", str(snap_root), "--project", str(project_dir), "--exclude", str(cham.root)]) == 2
+    err = capsys.readouterr().err
+    assert "hong.json" in err and not project_dir.exists()
+    (cham.root / "items" / "hong.json").unlink()
+    files_before = {p: p.read_bytes() for p in cham.root.rglob("*") if p.is_file()}
+    assert L.main(["import", str(snap_root), "--project", str(project_dir), "--exclude", str(cham.root)]) == 0
+    out = capsys.readouterr().out
+    assert "Đã nhập 0 ảnh" in out and "không nhập vì --exclude: 2 khung" in out and "loại trừ theo" in out
+    assert {p: p.read_bytes() for p in cham.root.rglob("*") if p.is_file()} == files_before   # nguồn chỉ được đọc
+
+
+# ---------------------------------------------------------------- import --exclude, thêm sau rà soát (tối 24/09/2026):
+# từng phép so với nguồn là cache hay dự án, --session-gap của lệnh, cảnh báo ảnh sẵn có chỉ trùng tên/giờ
+def _training_with_stale_frame(snap_root, tmp_path):
+    """Dự án huấn luyện 4 bộ ảnh T0 + k giờ; bộ T0 + 1 h có p1 treo, giờ khung = T0 + 30 phút (chỉ có ở
+    frame_captured_local). Mọi ảnh đã duyệt (khung cũ duyệt với override_damage) để export ra cache được."""
+    folders = [write_snapshot(snap_root, T0 + timedelta(hours=k), seed=100 + k) for k in range(4)]
+    set_camera_meta(folders[1], 1, age_ms=30 * 60 * 1000.0, stale=True)
+    train = LabelProject(tmp_path / "huấn luyện", create=True)
+    train.import_snapshots(snap_root, log=None)
+    train.set_status(f"{folders[1].name}_p1", "reviewed", override_damage=True)
+    review_all(train)
+    return train, folders
+
+
+@pytest.mark.parametrize("kind", ["cache", "label_project"])
+def test_import_exclude_each_comparison_alone_for_cache_and_project_sources(snap_root, tmp_path, kind):
+    """Nguồn loại trừ là cache đã export hoặc dự án gán nhãn. Mỗi bộ ảnh chấm trùng nguồn theo ĐÚNG MỘT cách: tên bộ
+    ảnh; chụp 25 s TRƯỚC một bản ghi; 40 s SAU một bản ghi; 50 s sau GIỜ KHUNG cũ của nguồn (xa mọi giờ bộ ảnh). sha256
+    không trùng ở bộ nào. Bỏ riêng việc gom tên bộ ảnh / giờ bộ ảnh / giờ khung của nguồn thì test hỏng."""
+    train, folders = _training_with_stale_frame(snap_root, tmp_path)
+    source = train.root
+    if kind == "cache":
+        source = tmp_path / "prepared" / "sa_ban_v1"
+        train.export(source, log=QUIET)
+    cham_dir = snap_root.parent / "rig_snapshots_cham"
+    only_name = write_snapshot(cham_dir, T0 + timedelta(hours=10), seed=91, name=folders[2].name)
+    before = write_snapshot(cham_dir, T0 + timedelta(hours=2, seconds=-25), seed=92)
+    after = write_snapshot(cham_dir, T0 + timedelta(hours=3, seconds=40), seed=93)
+    near_frame = write_snapshot(cham_dir, T0 + timedelta(minutes=30, seconds=50), seed=94)
+    clean = write_snapshot(cham_dir, T0 + timedelta(hours=20), seed=95)
+
+    cham = LabelProject(tmp_path / "chấm", create=True)
+    summary = cham.import_snapshots(cham_dir, draft=False, exclude=[source], log=None)
+    excluded = {line.split(":")[0]: line for line in summary["excluded"]}
+    assert set(excluded) == {f"{f.name}/cam_p{p}.png" for f in (only_name, before, after, near_frame) for p in (1, 2)}
+    assert all("sha256" not in line for line in excluded.values())
+    name_line = excluded[f"{only_name.name}/cam_p1.png"]
+    assert "cùng bộ ảnh" in name_line and "phiên" not in name_line
+    assert "25 s" in excluded[f"{before.name}/cam_p1.png"] and "cùng bộ ảnh" not in excluded[f"{before.name}/cam_p1.png"]
+    assert "40 s" in excluded[f"{after.name}/cam_p2.png"]
+    assert "50 s" in excluded[f"{near_frame.name}/cam_p1.png"]              # chỉ trùng giờ KHUNG cũ của nguồn
+    assert sorted(summary["imported"]) == [f"{clean.name}_p1", f"{clean.name}_p2"]
+    (info,) = summary["exclude_sources"]
+    assert info["kind"] == kind and info["images"] == 8 and info["snapshots"] == 4 and info["unchecked_time"] == 0
+
+
+def test_import_exclude_command_line_uses_the_given_session_gap(snap_root, tmp_path, capsys):
+    """--session-gap của lệnh import phải tới được phép so: ảnh chụp 30 s sau nguồn vào được với --session-gap 10,
+    bị loại với --session-gap 40 (mặc định 60 s cũng loại, nên chuyển thiếu tham số là test hỏng)."""
+    write_snapshot(snap_root, T0, seed=1)
+    cham = LabelProject(tmp_path / "chấm", create=True)
+    cham.import_snapshots(snap_root, draft=False, log=None)
+    other = snap_root.parent / "rig_snapshots_2"
+    write_snapshot(other, T0 + timedelta(seconds=30), seed=2)
+    loose = tmp_path / "gap10"
+    assert L.main(["import", str(other), "--project", str(loose), "--exclude", str(cham.root),
+                   "--session-gap", "10"]) == 0
+    out = capsys.readouterr().out
+    assert "Đã nhập 2 ảnh" in out and "không nhập vì --exclude: 0 khung" in out and len(LabelProject(loose).ids()) == 2
+    strict = tmp_path / "gap40"
+    assert L.main(["import", str(other), "--project", str(strict), "--exclude", str(cham.root),
+                   "--session-gap", "40"]) == 0
+    out = capsys.readouterr().out
+    assert "Đã nhập 0 ảnh" in out and "không nhập vì --exclude: 2 khung" in out and "30 s" in out
+
+
+def test_import_exclude_warns_about_images_in_the_project_by_snapshot_or_time_alone(snap_root, tmp_path):
+    """Ảnh ĐÃ có trong dự án trùng nguồn chỉ theo tên bộ ảnh, chỉ theo giờ bộ ảnh, hay chỉ theo giờ khung cũ của ảnh
+    trong dự án: vẫn phải được cảnh báo (không đổi trạng thái), không chỉ khi trùng sha256."""
+    train, folders = _training_with_stale_frame(snap_root, tmp_path)
+    v1 = tmp_path / "prepared" / "sa_ban_v1"
+    train.export(v1, log=QUIET)
+    lan = snap_root.parent / "lẫn"
+    same_name = write_snapshot(lan, T0 + timedelta(hours=10), seed=71, name=folders[3].name)
+    near = write_snapshot(lan, T0 + timedelta(hours=2, seconds=35), seed=72)
+    stale = write_snapshot(lan, T0 + timedelta(hours=12), seed=73)          # p1 treo: giờ khung = T0 + 2 h + 45 s
+    set_camera_meta(stale, 1, age_ms=(10 * 3600 - 45) * 1000.0, stale=True)
+    far = write_snapshot(lan, T0 + timedelta(hours=30), seed=74)
+    later = LabelProject(tmp_path / "sau", create=True)
+    later.import_snapshots(lan, draft=False, log=None)
+    status = {i: later.item(i)["status"] for i in later.ids()}
+    assert later.item(f"{stale.name}_p1")["source"]["frame_captured_local"] == "2026-09-23T12:00:45.000"
+
+    warned = later.import_snapshots(lan, exclude=[v1], log=None)
+    lines = {line.split(" ")[0]: line for line in warned["already_in_project_excluded"]}
+    assert set(lines) == {f"{same_name.name}_p1", f"{same_name.name}_p2", f"{near.name}_p1", f"{near.name}_p2",
+                          f"{stale.name}_p1"}
+    assert "cùng bộ ảnh" in lines[f"{same_name.name}_p1"] and "sha256" not in lines[f"{same_name.name}_p1"]
+    assert "35 s" in lines[f"{near.name}_p2"] and "cùng bộ ảnh" not in lines[f"{near.name}_p2"]
+    assert "45 s" in lines[f"{stale.name}_p1"]                               # theo giờ KHUNG của ảnh trong dự án
+    assert not any(far.name in line for line in lines)
+    assert warned["imported"] == [] and {i: later.item(i)["status"] for i in later.ids()} == status
