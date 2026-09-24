@@ -1,6 +1,6 @@
 # Kiểm thử mở rộng giai đoạn 0
 
-Ngày 20/09/2026. Phạm vi: **phần mềm mô phỏng**. Kết luận sau sửa: bộ pytest **220/220 đạt**; chiến dịch **2.880 trường hợp không ghi nhận vi phạm các bất biến đã kiểm tra**. Đây không phải chứng minh mọi tình huống đều an toàn hoặc mọi bài đỗ đều giải được.
+Ngày 20/09/2026. Phạm vi: **phần mềm mô phỏng**. Kết luận sau sửa: bộ pytest **220/220 đạt**; chiến dịch **2.880 trường hợp không ghi nhận vi phạm các bất biến đã kiểm tra**. Đây không phải chứng minh mọi tình huống đều an toàn hoặc mọi bài đỗ đều giải được. *(Ghi chú 25/09/2026: 220 là số của ngày 20/09; số của bộ test hiện nay ở mục 2.)*
 
 ## 1. Lỗi đã tái hiện và sửa
 
@@ -28,10 +28,11 @@ Test bổ sung có trường hợp vật cản ở hai phía khoảng phanh, c�
 - **220 passed**, khoảng 60,23 s: [JUnit](evidence/robustness_pytest.xml), [phân bố test theo module](evidence/robustness_test_inventory.json).
 - Tăng 51 ca pytest so với bộ 169 ca ban đầu: kiểm tra runtime/an toàn, oracle hình học và xác nhận dung sai của planner.
 - Khi đo coverage: **210 passed, 10 deselected**. Mười test `planner_budget` được chạy trong lượt pytest đầy đủ không gắn tracer. Không nới thời hạn hoặc bỏ chúng khỏi lượt kiểm thử bình thường. [JUnit coverage](evidence/robustness_coverage_pytest.xml).
+- *(Ghi chú 25/09/2026: các số trên là của ngày 20/09. Ở `54cb3e2`, `pytest --collect-only` bằng `.venv` thu được 1.243 test, trong đó 15 test mang dấu `planner_budget`; lần chạy đủ ngày 25/09 trên máy bàn: `.venv` 1.242 đạt, 7 bỏ qua (sáu mô-đun cần torch bị bỏ qua cả mô-đun nên không nằm trong 1.243, cộng một test trong `tests/test_labels.py` cần torch; 1.242 + 1 = 1.243), 0 lỗi. Chạy lại theo mục 5 nay ra số khác 220 / 210.)*
 
 ### Chiến dịch theo seed
 
-[Tóm tắt bằng máy](../runs/robustness_final_2026-09-20/summary.json), [từng trường hợp](../runs/robustness_final_2026-09-20/cases.jsonl), [danh sách vi phạm](../runs/robustness_final_2026-09-20/failures.json).
+[Tóm tắt bằng máy](../runs/robustness_final_2026-09-20/summary.json), [từng trường hợp](../runs/robustness_final_2026-09-20/cases.jsonl), [danh sách vi phạm](../runs/robustness_final_2026-09-20/failures.json). *(Ghi chú 25/09/2026: `runs/` bị `.gitignore` bỏ qua, nên ba liên kết này chỉ mở được trên máy làm việc, không có trên GitHub hay trên laptop sau `git pull`.)*
 
 | Loại | Số trường hợp | Điều được kiểm tra |
 |---|---:|---|
@@ -114,7 +115,7 @@ Năm video/log của giai đoạn 0 đã được tạo lại bằng code sau s�
 **Nhãn cũ nghĩa là gì, ai dùng.** Nhãn ghi theo nhật ký 08/09/2026. Ca được ghi `infeasible` khi duyệt rộng hai chiều trên một đồ thị chuyển động **rời rạc** không cho hai mặt sóng gặp nhau. Kho mã không có chương trình để tái chạy phép duyệt này. Nơi đọc nhãn:
 - `evaluation/bench.py`: cột "kỳ vọng" trong bảng kết quả;
 - `evaluation/render.py`: tiêu đề ảnh;
-- `evaluation/sensitivity.py` (tệp mới, chưa commit): chỉ hiển thị;
+- `evaluation/sensitivity.py` (tệp mới, chưa commit; cập nhật 25/09/2026: đã commit trong `10a4735`): chỉ hiển thị;
 - `tests/test_planner_hard_cases.py::test_ca_vo_nghiem_khong_bao_thanh_cong_gia`: khẳng định hai ca 122/115 là `infeasible` và không giải được trong 4 s. *(Sửa 25/09/2026: đổi tên thành `test_ca_rat_chat_khong_bao_thanh_cong_gia`; nay khẳng định nhãn `feasible`, cho phép OK/TIMEOUT/NO_PATH, và nếu planner báo OK thì đường phải qua phép kiểm va chạm độc lập `path_ok`.)*
 
 `compare.py` và `robustness.py` không đọc nhãn.
@@ -123,6 +124,8 @@ Ghi chú 24/09/2026 (vòng sửa sau rà soát): còn ba tài liệu viện dẫ
 - `docs/evidence/ke_hoach/kiem_toan_ke_hoach_20260924.json`, mục [233], [239], [260]: lấy "các ca hard_cases 'infeasible' trả về không có đường" làm bằng chứng mô phỏng cho "không có đường phù hợp thì giữ dừng". Từ 24/09/2026 không ca nào mang nhãn `infeasible`, nên bằng chứng đó không còn;
 - `docs/KICH_BAN_NGHIEM_THU.md` (dòng ~446, biến thể (b)): còn ghi `parallel_115` chỉ có đường 279 lần đổi chiều, "có nghiệm nhưng không thực dụng". Nay đã có đường chứng 13 lần (xem dưới);
 - `docs/GIAI_DOAN_4_CHUAN_BI.md` mục 5.1: còn ghi "Nhãn `expected` (feasible / infeasible)".
+
+*(Cập nhật 25/09/2026, kiểm ở `54cb3e2`: [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) (biến thể (b)) và [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) mục 5.1 đã có ghi chú ngày 25/09 về nhãn mới; ba mục [233], [239], [260] của tệp JSON kiểm toán vẫn giữ nguyên như ngày 24/09.)*
 
 **Định nghĩa mới** (đầu tệp `autopark/evaluation/hard_cases.py`): nhãn nói về sự **tồn tại** của đường trong mô hình mà các planner dùng. Mô hình gồm: xe Reeds–Shepp, tiến và lùi; |độ cong| ≤ tan(δ_max)/L; đổi góc lái tức thời; thân chữ nhật; lề 0; tới đúng tư thế đích (lệch ≤ 1 mm, ≤ 0,1°).
 - `feasible`: có đường chứng đã kiểm độc lập.

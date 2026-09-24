@@ -16,7 +16,7 @@ Phiếu kiểm kê xe (gói hàng, pin/sạc, ESC, bộ thu, servo, motor, đầ
 |---|---|---|
 | Viết phiếu kiểm kê xe | [mn300_inventory.md](mn300_inventory.md) | mẫu đã soạn, chưa điền (chưa có xe) |
 | Chuẩn bị bảng đo tốc độ, góc lái, bán kính quay và dừng | mục 3 dưới đây (B0–B8) | bảng và cách đo đã soạn; CHƯA ĐO |
-| Để hình học xe trong cấu hình với nhãn `CHƯA ĐO`; thử độ nhạy planner theo kích thước giả định | mục 1 (ánh xạ tham số), mục 5 (độ nhạy) | trường `notes` của [vehicle_default.json](../configs/vehicle_default.json) đã ghi rõ là giả định; **chưa có phép thử độ nhạy riêng** (mục 5 giải thích vì sao chiến dịch 20/09 chưa phải phép thử đó) |
+| Để hình học xe trong cấu hình với nhãn `CHƯA ĐO`; thử độ nhạy planner theo kích thước giả định | mục 1 (ánh xạ tham số), mục 5 (độ nhạy) | trường `notes` của [vehicle_default.json](../configs/vehicle_default.json) đã ghi rõ là giả định; **chưa có phép thử độ nhạy riêng** (mục 5 giải thích vì sao chiến dịch 20/09 chưa phải phép thử đó). *(Cập nhật 25/09/2026: nay đã có, `evaluation/sensitivity.py`, commit `10a4735`; hai lượt mô phỏng, chưa chạy khi máy rảnh, chưa có số đo MN300; mục 5.3, [DO_NHAY_KICH_THUOC_XE.md](DO_NHAY_KICH_THUOC_XE.md))* |
 | Lên phương án gá điều chỉnh được, chưa gia công phần phụ thuộc kích thước chưa biết | mục 6 | khái niệm bằng bảng; chưa quyết định kích thước, vật liệu hay cách gia công |
 
 ## 1. Tham số cần đo và nơi đang dùng
@@ -441,10 +441,18 @@ Các công cụ nhận `--config` (chạy trong `D:/ap/autopark`):
      sánh. Lệch nhau (ví dụ xe 35° mà bo mô phỏng 524 mrad = 30°) sẽ không có cảnh báo, và vòng kín bám sai vì một lý do
      không có ở xe. Cách kiểm: `SimVehicleIO.from_files(<tệp mới>).connect().limits` (đơn vị m/s, rad) phải khớp
      `vehicle_measured.json` sau khi quy đổi đơn vị, sai khác không quá làm tròn (1 mm/s, 1 mrad).
+     *(Cập nhật 25/09/2026: câu "không có chỗ nào tự đối chiếu" đã lỗi thời. Từ commit `6db5087`,
+     `VehicleIO.check_limits(cfg)` so sáu giới hạn trong HELLO_ACK với `VehicleConfig`; khi START ở `VEHICLE_IO`, lệch
+     nguy hiểm thì bị từ chối, bo chỉ chặt hơn thì cảnh báo; nút "Kiểm kết nối bo" cũng báo kết quả so. Mới kiểm với bo
+     mô phỏng và cổng serial GIẢ ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 7, [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục
+     3). `load_sim_io_config` vẫn nạp hai tệp độc lập, và kiểm này không so `max_validity_ms`, `link_timeout_ms` hay các
+     khóa khác của mục `firmware`, nên vẫn kiểm tay như trên.)*
 - **Chỗ đang cố định `vehicle_default.json`** (kiểm bằng grep 24/09/2026): `evaluation/phase0.py`,
   `evaluation/robustness.py` (chiến dịch độ bền), `fusion/demo.py` (`default_vehicle`), `ui/lidar_app.py`
   (`DEFAULT_VEHICLE`). Muốn chạy chiến dịch độ bền với xe đo thì phải thêm tùy chọn cấu hình cho các công cụ này; tài liệu
-  này không sửa mã.
+  này không sửa mã. *(Cập nhật 25/09/2026: từ commit `10a4735`, `phase0`, `robustness` và `ui/lidar_app` có
+  `--vehicle-config` (không truyền thì vẫn `vehicle_default.json`); chỉ `fusion/demo.py` còn cố định. Giới hạn của
+  `robustness` với tùy chọn này: mục 8.)*
 - **Firmware:** giới hạn của bo (`max_speed_mm_s`, `max_steer_mrad`, `max_steer_rate_mrad_s`, `max_accel_mm_s2`,
   `max_decel_mm_s2`, `stop_decel_mm_s2`) là hằng số của firmware, laptop không gửi xuống. Bo báo chúng trong HELLO_ACK
   ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 3). Đổi mặc định thì phải đổi cùng lúc `FirmwareConfig` (Python) và `ap::Config`
@@ -551,8 +559,8 @@ vị trí cố định xong phải đo lại và ghi thành phiên bản mới c
 |---|---|---|---|---|
 | Tấm đế | dịch dọc trước/sau; chiều cao so với khung | bắt vào điểm có sẵn trên khung/cột vỏ; không cản cơ cấu lái, hệ treo, bánh (kế hoạch mục 11 bước 1) | B1; phiếu kiểm kê E1–E4 | CHƯA CHỐT |
 | RPLIDAR C1 | chiều cao cột; xoay quanh trục đứng (hướng "trước") | mặt phẳng quét phải cao hơn vỏ, camera và các cột khác, nếu không chúng hiện thành tia gần; datasheet: vùng mù 0,05 m (lớp LiDAR bỏ tia dưới 0,05 m); lớp LiDAR bỏ tia trong thân xe nới 10 cm ([GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md) mục 2, quy tắc 2); hướng "trước" của C1 theo trục x hình 2-4 datasheet; dấu góc trái/phải chưa xác minh bằng vật thật ([GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 6b) | chiều cao xe (B1), vị trí camera | CHƯA CHỐT; sau khi lắp phải ghi các cung góc bị che |
-| 4 camera USB | chiều cao; góc chúc; xoay ngang | góc nhìn 130° là số nhà bán, **chưa đo**; danh tính camera là cổng hub, nên dán nhãn cổng lên từng gá ([usb_topology.md](usb_topology.md)); ngoại tham `camera_rig_extrinsics.yaml` chưa có công cụ ([HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md)) | kích thước thân (B1): camera phải thấy sàn sát xe | CHƯA CHỐT |
-| VL53L1X (2, có thể 4) | vị trí trước/sau/góc; hướng | mã giả định góc nhìn 25° (`NearFieldMount.fov_deg`, [fusion/layers.py](../autopark/fusion/layers.py)), là số trong mã, chưa đo; mỗi cảm biến cần vị trí `x, y, yaw` trong cấu hình (chưa có tệp, [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12) | footprint (B1) | CHƯA CHỐT; chưa nhận cảm biến |
+| 4 camera USB | chiều cao; góc chúc; xoay ngang | góc nhìn 130° là số nhà bán, **chưa đo**; danh tính camera là cổng hub, nên dán nhãn cổng lên từng gá ([usb_topology.md](usb_topology.md)); ngoại tham `camera_rig_extrinsics.yaml` chưa có công cụ ([HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md)). *(Cập nhật 25/09/2026: nay có công cụ `perception/extrinsics_calib.py` và giao diện `ui/roi_app.py`, commit `65b7127`; ghi `configs/rig/camera_rig_extrinsics_v1.json` (JSON, không phải YAML); cần nội tham `calibration/cam_p*.json` trước, mới kiểm trên ảnh tổng hợp, chưa có ngoại tham đo; [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md))* | kích thước thân (B1): camera phải thấy sàn sát xe | CHƯA CHỐT |
+| VL53L1X (2, có thể 4) | vị trí trước/sau/góc; hướng | mã giả định góc nhìn 25° (`NearFieldMount.fov_deg`, [fusion/layers.py](../autopark/fusion/layers.py)), là số trong mã, chưa đo; mỗi cảm biến cần vị trí `x, y, yaw` trong cấu hình (chưa có tệp, [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12). *(Cập nhật 25/09/2026: nay có tệp [configs/tof_mounts_v0.json](../configs/tof_mounts_v0.json), commit `6db5087`: bốn ToF, vị trí `x, y, yaw` và góc nhìn 27°, toàn GIẢ ĐỊNH – CHƯA ĐO, theo kích thước xe giả định; 25° chỉ còn là mặc định của `NearFieldMount` khi không nạp tệp)* | footprint (B1) | CHƯA CHỐT; chưa nhận cảm biến |
 | ESP32-S3 + BNO085 | vị trí hộp mạch | IMU gắn cứng, trục ghi rõ so với trục xe; dây USB về laptop có giảm kéo | — | CHƯA CHỐT; chưa nhận |
 | AS5600 + nam châm | chỗ gắn ở cơ cấu lái | "góc đo ở trục cảm biến chưa tự đồng nghĩa góc bánh" (kế hoạch mục 1.1) | phiếu kiểm kê C4.6; B2, B8 | CHƯA CHỐT |
 | Encoder (MT6701 hoặc loại khác) | chỗ gắn: trục motor, trục truyền hay bánh | cần tỉ số truyền và đường kính bánh để quy đổi | phiếu kiểm kê C4.3, C4.5, C4.7 | CHƯA CHỐT |

@@ -310,7 +310,7 @@ Bốn camera 640×480 ở cổng hub 1–4 và LiDAR COM4, AI bật, 60 s đo sa
 |---|---|---|---|---|
 | Bộ ảnh | 1432 | 1364 | 1403 | **1432** |
 | Khung không vào bộ nào (cổng 1/2/3/4) | 0/0/0/0 | 34/34/67/34 | 0/0/29/0 | **0/0/0/0** |
-| Bộ thiếu camera | 0 | 1 | 1 | 1 (cổng 3, ở giây đầu) |
+| Bộ thiếu camera (`sets.sets_partial`; khác `sets_partial_wait` ghi trong tệp bằng chứng, là 0 ở o04) | 0 | 1 | 1 | 1 (cổng 3, ở giây đầu) |
 | Độ lệch bộ trung vị / p95 / max (ms) | 26,0 / 42,1 / 44,8 | 26,8 / 27,0 / 30,4 | 26,0 / 42,1 / 44,8 | **26,0 / 42,1 / 44,8** |
 | LiDAR − mốc bộ, trung vị (ms) | −19,8 | −23,4 | −19,7 | −19,6 |
 | Lô AI: trung vị / max (ms) | 12,3 / 18,4 | 11,8 / **1457** | 12,1 / **1272** | 12,1 / 19,7 |

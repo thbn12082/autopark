@@ -367,6 +367,12 @@ Ngoài hai vòng trên: vòng LiDAR trong ảnh chụp trước đây được l
    *Cập nhật 24/09/2026:* công cụ hiệu chuẩn nội tham cho bước 4 (bảng in sẵn, giao diện chụp, hiệu chuẩn fisheye) đã có,
    xem [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md). Công cụ mới kiểm trên ảnh tổng hợp; chưa in bảng, chưa hiệu chuẩn
    camera nào. Ngoại tham (vị trí/hướng camera so với rig) chưa có công cụ, chưa làm (HIEU_CHUAN_CAMERA.md mục 6).
+   *Cập nhật 25/09/2026:* công cụ ngoại tham và ROI đã có (`perception/extrinsics_calib.py`, `perception/roi_tool.py`,
+   giao diện `ui/roi_app.py`; commit `65b7127`; [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md)), mã chiếu kết quả AI
+   xuống sàn cũng đã có (`perception/bev.py`, commit `1d2b857`; [BEV.md](BEV.md)). Công cụ ngoại tham và ROI mới kiểm
+   trên ảnh tổng hợp; BEV kiểm trên rig tổng hợp và ảnh WoodScape. Chưa đo ngoại tham, chưa dựng ROI cho camera nào;
+   BEV chưa chạy với hiệu chuẩn thật trên camera dự án (mới thử bộ lọc khung hỏng trên hai bộ ảnh thật với nội tham
+   danh định, [BEV.md](BEV.md) mục 6), chưa hợp nhất với LiDAR.
 4. Dùng nút "Chụp bộ ảnh" ở 480p để thu ảnh sa bàn ở độ cao thật, gán nhãn, chấm các mô hình (HUAN_LUYEN.md mục 18).
    *Cập nhật 24/09/2026:* chụp, nhập, gán nhãn, split theo phiên và tách tập chấm theo
    [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md). Lúc nhập, công cụ tự đánh dấu khung hỏng (`truncated_rows`, `torn_bands`,
@@ -478,6 +484,11 @@ nhóm sau. Vì vậy dòng "Không bỏ nhầm camera khỏe" ở trên chỉ đ
 - **Chưa đo trên phần cứng:** chưa chạy lại `rig.bench` hay `may_moi` sau bản này. Sẽ đo lại ở 720p, khi cổng 1 chạy 29,3
   khung/s. Số `lagging_per_port`, `sets_partial_wait`, `wait_limit_ms` của w01–w05 và m01/m02 là của quy tắc ở trên. Các
   hệ số 1,5, nửa chu kỳ, 2,5 và 15 % là lựa chọn thiết kế, **chưa** đo trên phần cứng.
+  *(Cập nhật 25/09/2026: đã chạy lại trên máy bàn tối 24/09: `rig.bench` o01, o02 ở mục 10.3, và lệnh `may_moi` đầy
+  đủ lúc 19:08 cho tham chiếu mới [evidence/may_ban/tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json);
+  tệp này và mã quy tắc mới vào git ở commit `bfcbfc2`. Các hệ số trên vẫn chưa đo trên phần cứng: không phiên đo trực
+  tiếp nào (o01, o02, o03, o07, `may_moi` 19:08) có camera lỡ nhịp; hai lượt phát lại bản ghi o03 là o05 và o06 mỗi lượt có
+  một bộ bỏ cổng 3 ở giây đầu (`lagging_per_port`; mục 10.3 và [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 7).)*
 - **Tên trường json:** json ghi từ bản này có `policy.wait_rule = "own_cadence"` và `policy.wait_periods_of_own = 1,5`
   (số chu kỳ của **chính từng camera**). Khóa cũ `policy.wait_periods_of_fastest` vẫn được ghi cùng giá trị để trình đọc
   cũ không hỏng. Json ghi trước đó (w01–w05, m01/m02) không có `wait_rule`, và ở đó 1,5 là số chu kỳ của camera nhanh
@@ -526,7 +537,7 @@ Hai lỗi của bản ở mục 10.1, người kiểm tra tìm ra và tái hiệ
 ### 10.3. Đo lại trên phần cứng (tối 24/09/2026, máy bàn)
 
 Cùng máy, hub, bốn camera ở cổng 1–4, LiDAR COM4, cùng chỗ đặt camera như phiên `may_moi` lúc 15:25. Mã: HEAD 2bd37b6 cùng
-các thay đổi **chưa commit** ở mục 10.1–10.2 và ở [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md). Tệp gốc nằm ở
+các thay đổi **chưa commit** ở mục 10.1–10.2 và ở [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) *(cập nhật 25/09/2026: các thay đổi đó nay nằm trong commit `bfcbfc2`, đã push; tệp bằng chứng không ghi hash mã nên không đối chiếu được bản đã chạy với đúng bản commit)*. Tệp gốc nằm ở
 `runs/rig_bench/20260924_own/` (git-ignore). Bản rút gọn trong git:
 [evidence/rig/cho_nhip_rieng_ghi_phat_lai_20260924.json](evidence/rig/cho_nhip_rieng_ghi_phat_lai_20260924.json).
 

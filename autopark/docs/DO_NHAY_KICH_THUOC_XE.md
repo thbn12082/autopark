@@ -158,7 +158,7 @@ mã 2 trước khi làm gì):
 | Chạy lại các ca lật | 20 s | 60 s |
 | Số tiến trình song song | 6 | 4 |
 | Hạt giống RRT | 20260907 | 20260907 |
-| Mã nguồn | git `9bcc30c` + thay đổi chưa commit (của đợt này và của các agent khác) | như lượt A |
+| Mã nguồn | git `9bcc30c` + thay đổi chưa commit (của đợt này và của các agent khác). *(Cập nhật 25/09/2026: các thay đổi đó nay đã commit và push trong đợt khuya `65b7127` … `54cb3e2`; công cụ `sensitivity.py` ở `10a4735`. Mã lúc chạy không trùng hẳn một commit nào: bản sửa cách chấm ở mục 2 bước 5 làm sau hai lượt.)* | như lượt A |
 | Số lần chạy | 20 sa bàn × 43 biến thể = 860 | 860 |
 
 **Thời gian trong hai lượt bị nhiễu, và nhiễu này đổi kết quả.** Cả hai lượt chạy nhiều tiến trình cùng lúc, trong khi

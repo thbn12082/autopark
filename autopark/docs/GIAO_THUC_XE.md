@@ -338,7 +338,8 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
   `poll()` (kể cả khung do `Heartbeat` đọc) mà KHÔNG tiến I/O: không đọc cổng, không chạy thêm nhịp bo mô phỏng, không
   đẩy đồng hồ mô phỏng, không kiểm STALE. `VehicleLink.refresh()` dùng nó với bo mô phỏng; với bo thật `refresh()` dùng
   `poll(block=False)` (mục 12). Chưa có test riêng trong `test_transport_vehicle_io.py`; được kiểm qua
-  `tests/test_session_vehicle.py`.
+  `tests/test_session_vehicle.py`. *(Sửa 25/09/2026: câu "chưa có test riêng" sai ngay từ lúc viết. Tệp đó có
+  `test_take_new_returns_queued_telemetry_without_advancing_io`, thêm cùng `take_new()` trong commit `c43e8d3`; mục 11.)*
 - *(Thêm tối 24/09/2026.)* Đồng hồ mặc định của `SerialVehicleIO` là `time.perf_counter()` tính từ lúc tạo đối tượng
   (trước đó là `time.monotonic()`). Lý do: trên Windows `time.monotonic()` là `GetTickCount64()`, độ phân giải 15,625 ms
   (`time.get_clock_info`, Python 3.12.10, máy bàn, kiểm lại tối 24/09/2026; `perf_counter` là
@@ -496,7 +497,9 @@ Chạy lại riêng tệp này khi sửa tài liệu (máy bàn, `.venv`): 60 pa
 bằng `--collect-only`; `take_new()` chưa có test riêng ở đây). Bộ test đầy đủ cuối tối 24/09/2026 (`.venv`): 895 đạt,
 6 bỏ qua (mô-đun cần torch), 215 s.)*
 *(Thêm muộn tối 24/09/2026, máy bàn, `.venv`.)* `tests/test_transport_vehicle_io.py` có 49 test ở commit 9bcc30c.
-Số "48" ở trên là số lúc viết đoạn đó; khác nhau một test, nguồn gốc chưa tra. Nay tệp có thêm 15 test cho
+Số "48" ở trên là số lúc viết đoạn đó; khác nhau một test, nguồn gốc chưa tra. *(Tra 25/09/2026 bằng `git show
+c43e8d3`: test thứ 49 là `test_take_new_returns_queued_telemetry_without_advancing_io`, thêm cùng `take_new()`. Vì
+vậy câu "`take_new()` chưa có test riêng ở đây" ở đoạn trên và ở mục 10 không đúng.)* Nay tệp có thêm 15 test cho
 `compare_limits`/`check_limits` (mục 7) và `SerialVehicleIO.deferred` (mục 10), tổng **64**. Bốn tệp `test_transport_*`:
 **200 test, 200 đạt** (52 + 73 + 64 + 11, đếm bằng `--collect-only`, chạy trong đợt 437 đạt ghi ở
 [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 7). Test mới ở tệp khác: `tests/test_vehicle_board_ui.py` 26 đạt,
@@ -507,6 +510,12 @@ Vẫn chỉ là bản tham chiếu Python, bo mô phỏng và cổng serial gi�
 `tests/test_transport_vehicle_io.py` vẫn 64 (không thêm test). Chạy chung 19 tệp liên quan: 505 đạt, 0 lỗi. Đột biến đo
 lại trên bản sao: 50 đột biến (30 cũ còn áp dụng + 20 mới), cả 50 bị bắt; đột biến cũ "nhận đúng tầm tối đa" bỏ vì
 hành vi đổi có chủ ý (CHE_DO_QUAN_SAT.md mục 7).
+*(Cập nhật 25/09/2026, máy bàn, `.venv`.)* Mọi mã và test ở mục này đã commit và push (`e6c77c1` cho giao
+thức, bản tham chiếu firmware, `VehicleIO` và kiểm tĩnh C++; `c43e8d3`, `6db5087` cho phần nối phiên, so giới hạn, ToF;
+`origin/main` = `54cb3e2`). Đếm lại ở HEAD bằng `--collect-only`: bốn tệp `test_transport_*` 52 + 73 + 64 + 11 = 200,
+`tests/test_session_vehicle.py` 60, `tests/test_vehicle_board_ui.py` 30, `tests/test_nearfield_tof.py` 54, không đổi.
+Bộ test đầy đủ chạy lại trên mã trùng `54cb3e2`: 1242 đạt, 7 bỏ qua (mô-đun cần torch), 0 lỗi. Firmware C++ vẫn chưa
+biên dịch: máy bàn vẫn không có `g++`, `gcc`, `clang`, `cl`, `cmake` hay `pio` trên PATH (kiểm 25/09/2026).
 
 ## 12. Chưa làm / giới hạn
 

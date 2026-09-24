@@ -5,7 +5,9 @@ có nhánh mô phỏng và nhánh phần cứng. Giai đoạn 9 yêu cầu chế
 nhưng không gửi chấp hành") và "trước START kiểm tra lại trạng thái thực". Mục 10 quy định mất liên lạc hay kết
 nối lại không được tự chạy tiếp.
 
-**Mức bằng chứng: CHỈ MÔ PHỎNG.** Chưa có ESP32-S3, MN300, encoder hay AS5600, và chưa có định vị LiDAR. Mọi
+**Mức bằng chứng: CHỈ MÔ PHỎNG.** Chưa có ESP32-S3, MN300, encoder hay AS5600, và chưa có định vị LiDAR
+*(cập nhật 25/09/2026: nay có định vị LiDAR chạy offline trên bản ghi, `lidar/localize.py`, commit `b100a5d`; nó chưa là
+nguồn tư thế của phiên, mục 8)*. Mọi
 lần chạy trong tài liệu này đi qua chuỗi `Session` → `VehicleLink` → `SimVehicleIO` → byte giao thức →
 `FirmwareModel` (bản tham chiếu Python của firmware) → cơ cấu chấp hành giả định → `SimVehicle`. Tư thế xe lấy
 thẳng từ mô phỏng. Riêng các phép thử đồng hồ ở mục 7 dùng `SerialVehicleIO` với cổng serial GIẢ (đầu kia vẫn là
@@ -44,7 +46,7 @@ serial GIẢ này.)* Không số nào dưới đây là số đo trên xe hay tr
 | Đại lượng | Nguồn trong mã | Trên xe thật (khi có) | Hiện nay |
 |---|---|---|---|
 | Tốc độ, góc lái | telemetry `VehicleIO` (`speed_mps`, `steer_rad`) | encoder, AS5600 qua ESP32-S3: **chưa có mã đọc** | cảm biến giả trong `SimVehicleIO`: trễ 20/10 ms, nhiễu σ 0,01 m/s / 0,3° (giả định) |
-| Tư thế x, y, hướng | `PoseSource` tiêm vào lớp nối | định vị LiDAR: **chưa có** | `SimTruthPose`: tư thế **thật** của xe mô phỏng, tức định vị lý tưởng |
+| Tư thế x, y, hướng | `PoseSource` tiêm vào lớp nối | định vị LiDAR: **chưa có** *(cập nhật 25/09/2026: có định vị offline trên bản ghi, `lidar/localize.py`, commit `b100a5d`; chưa là `PoseSource` của phiên, mục 8)* | `SimTruthPose`: tư thế **thật** của xe mô phỏng, tức định vị lý tưởng |
 | "Xe đứng yên" | \|tốc độ đo\| ≤ 0,01 m/s **và** tham chiếu tốc độ của bo = 0, trên telemetry còn mới | như bên trái | ngưỡng CHƯA CHỐT (bằng `standstill_mm_s` của firmware) |
 | Va chạm | hình học: tư thế ước lượng so với vật cản đã biết | không phải cảm biến va chạm | như bên trái |
 | Người lái (chỉ `OBSERVE`) | tay điều khiển RC lái ESC/servo, không qua ESP32 | cách đấu dây ở chế độ quan sát **CHƯA CHỐT** | `SimHumanDriver`: xe mô phỏng theo lệnh của người lái; đầu ra của bo bị bỏ qua (và bằng 0) |
@@ -446,6 +448,11 @@ không dùng làm số đo tốc độ. Bộ test đầy đủ không chạy l�
 `test_fusion_demo` 17 (tệp do việc khác sửa cùng tối), `test_run_store_vehicle` 4, `test_vehicle_editing_ui` 4,
 `test_lidar_dock_ui` 5, `test_background_work` 8, `test_scenario_store` 25. Kết quả: **505 đạt, 0 lỗi**, 107 s (đo lúc
 các agent khác có thể đang chạy song song, không dùng làm số đo tốc độ). Bộ test đầy đủ không chạy lại.
+*(Cập nhật 25/09/2026, máy bàn, `.venv`.)* Mã và test của tài liệu này đã commit và push: `c43e8d3` (nối `VehicleIO` vào
+phiên, quan sát, bản sửa khoảng trống ở mục 8) và `6db5087` (thẻ "Bo điều khiển", so giới hạn, ToF); `origin/main` =
+`54cb3e2`. Đếm lại ở HEAD bằng `--collect-only`: số test của cả 19 tệp trên không đổi (tổng 505). Bộ test đầy đủ chạy lại
+trên mã trùng `54cb3e2` (cây làm việc chỉ khác ở tài liệu): **1242 đạt, 7 bỏ qua** (mô-đun cần torch), 0 lỗi, 313 s (máy
+có thể đang chạy việc khác, không dùng làm số đo tốc độ). Vẫn chỉ bo mô phỏng và cổng serial GIẢ.
 
 **Đồng hồ khi chạy qua `SerialVehicleIO`** (script tạm ngày 24/09, không lưu trong repo; cổng serial GIẢ theo đồng
 hồ tường, bo là `FirmwareModel`, xe đứng yên; vòng giao diện 16 ms trong 3 s; máy bàn):
@@ -517,6 +524,11 @@ hình bo nhanh dùng trong test (`boot_hold_ms` 200), cùng phép thử cho 160 
   có định vị: truyền nguồn tư thế thật vào `VehicleLink.serial_port(..., pose_source=...)`. Lúc đó còn phải thêm bước
   mở cổng (`reopen()`) trong `begin_run`, vì hiện liên kết tạo từ giao diện chưa bao giờ mở cổng; nếu không, START sẽ bị
   từ chối "Cổng chưa mở" (`START_NO_LINK`). Việc này CHƯA LÀM.
+  *(Cập nhật 25/09/2026: câu "chưa có định vị LiDAR" ở đầu gạch này nay chỉ đúng cho phiên. Đã có định vị trên bản đồ
+  tĩnh `lidar/localize.py` (commit `b100a5d`, [DINH_VI_LIDAR.md](DINH_VI_LIDAR.md)) và odometry khớp scan thử nghiệm
+  `lidar/scan_odometry.py` (commit `a7cec5e`, [SO_SANH_DINH_VI_SLAM.md](SO_SANH_DINH_VI_SLAM.md)). Cả hai chạy offline
+  trên bản ghi, chưa có tham chiếu độc lập, chưa là `PoseSource` của `VehicleLink`. Bước `reopen()` trong `begin_run`
+  vẫn CHƯA LÀM, đọc mã ở HEAD `54cb3e2`.)*
 - *(Thêm muộn tối 24/09/2026.)* **Giới hạn của kiểm tra giới hạn bo.** Kiểm tra so với `VehicleConfig`, không so với
   đường đã lập. Bo cho góc lái nhỏ hơn `max_steer` là bị từ chối, kể cả khi đường cụ thể không dùng tới góc đó. Không
   so `max_validity_ms` và `link_timeout_ms` (không có trường tương ứng) và không so trần effort (bo không báo trần này

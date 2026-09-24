@@ -171,6 +171,10 @@ khớp. Chỉ khi quyết định đổi hành vi mới sửa Python, chạy l�
    xem HELLO_ACK (boot_id, lý do reset, giới hạn), telemetry 20 Hz; thử ARM/lệnh/hết hạn/rút cáp/cắm lại/reset và
    ghi log. Đo `stats.ack_rtt_s`, `stats.cmd_echo_s` thật (không lấy số của mô phỏng). Khi đã chốt `kPinEstop`: rút
    đầu nối E-stop phải thấy `ESTOP_INPUT = 1` và FAULT, CLEAR_FAULT bị từ chối (`ESTOP_ACTIVE`) cho tới khi cắm lại.
+   *(Thêm 25/09/2026: phần đầu của bước này (HELLO_ACK, so giới hạn bo với cấu hình xe, đọc vài khung telemetry, không
+   ARM, không COMMAND nào) nay làm được bằng nút "Kiểm kết nối bo" ở thẻ "Bo điều khiển" của giao diện, commit `6db5087`;
+   [CHE_DO_QUAN_SAT.md](../../docs/CHE_DO_QUAN_SAT.md) mục 6. Mới thử với cổng serial GIẢ; ARM, lệnh, rút cáp vẫn phải
+   gọi `SerialVehicleIO` như trên.)*
 2. Đo bằng máy hiện sóng/logic analyzer chân xung khi đã chốt chân, vẫn CHƯA nối ESC/servo: các bước 1–5 ở mục
    "Cách kiểm trên bo" phía trên (bật nguồn, loop im 150 ms, treo 400 ms, `abort()`, interrupt watchdog,
    `esp_restart()`, rút E-stop). Ghi thời gian tới lúc chân xuống thấp hoặc về trung tính, và độ rộng xung ở pha XTAL.

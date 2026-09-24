@@ -10,6 +10,11 @@ vì ba thứ còn thiếu:
 - ngoại tham trong `configs/rig/camera_rig_extrinsics_v0.json` là **GIẢ ĐỊNH — CHƯA ĐO**;
 - chưa có mặt nạ ROI cho camera dự án.
 
+*(Kiểm lại 25/09/2026 ở `54cb3e2`: ba điều trên vẫn đúng. Không có `calibration/cam_p*.json`, `configs/rig/` chỉ
+có tệp v0, `configs/roi/` chỉ có `woodscape_v1`. Công cụ đo ngoại tham và dựng ROI thì đã có và đã commit
+(`65b7127`, [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md)), còn chờ nội tham và gá camera. BEV vẫn chưa nối vào bàn
+thử, hợp nhất cảm biến hay planner.)*
+
 Mọi con số dưới đây là của rig tổng hợp hoặc ảnh WoodScape. Không con số nào là số đo sai số BEV trên sa bàn. Điều kiện
 "vật mẫu xuất hiện tại vị trí có thể đối chiếu trên BEV" của kế hoạch mục 6 **chưa kiểm**.
 
@@ -442,6 +447,10 @@ giữ nguyên, không nới, cộng 6 test mới. Lần chạy cuối lúc 21:58
   162 đạt, **6 lỗi**, cả sáu ở hai tệp đó; chạy lại hai tệp bằng `.venv` lúc 22:02 cũng 6 lỗi. Nguyên nhân là
   `extrinsics_calib.py` do tác tử khác sửa lúc 22:00:55 (lỗi `ExtrinsicsError`: nội tham TỔNG HỢP không được ghi như số
   đo), không phải `bev.py`: trước lúc đó cùng các test ấy đạt với `bev.py` hiện tại.
+  *(Cập nhật 25/09/2026: ở mã đã commit `54cb3e2`, ba tệp `test_bev`, `test_extrinsics_calib`, `test_roi_tool`
+  chạy bằng `.venv` được 86 đạt (38 + 29 + 19), 0 lỗi. Lần chạy đủ bộ test ngày 25/09 trên máy bàn: `.venv` 1 242
+  đạt, 7 bỏ qua; `.venv-train` 386 đạt (các tệp cần torch, cùng test nhãn, bàn thử, kiểm máy, hiệu chuẩn, ngoại
+  tham, ROI); 0 lỗi.)*
 
 Sáu test mới:
 
@@ -575,10 +584,15 @@ Mười hai đột biến mới:
 
 1. **Hiệu chuẩn nội tham bốn camera** ([HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md)). Không có thì lệnh `snapshot`
    không chạy.
-2. **Gá camera, chốt gán cổng → hướng, đo ngoại tham.** Chưa có công cụ. Một hướng là `cv2.fisheye.solvePnP` với bảng
-   đặt trên sàn ở vị trí đo được ([TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 5.4). Ghi kết quả vào một tệp rig mới
-   với `"measured": true` và `quaternion_xyzw`; giữ v0 làm hồ sơ.
-3. **Mặt nạ ROI cho camera dự án** (`roi_p<cổng>.png`): loại thân xe, dây, viền ống kính.
+2. **Gá camera, chốt gán cổng → hướng, đo ngoại tham.** Chưa có công cụ. *(Cập nhật 25/09/2026: nay đã có và đã
+   commit trong `65b7127`: `perception/extrinsics_calib.py` và giao diện `ui/roi_app.py`, cách làm ở
+   [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md). Mới kiểm trên ảnh TỔNG HỢP; đo thật còn chờ nội tham (việc 1) và
+   gá camera. Tệp ra dự kiến `configs/rig/camera_rig_extrinsics_v1.json`, chưa có.)* Một hướng là
+   `cv2.fisheye.solvePnP` với bảng đặt trên sàn ở vị trí đo được ([TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md)
+   mục 5.4). Ghi kết quả vào một tệp rig mới với `"measured": true` và `quaternion_xyzw`; giữ v0 làm hồ sơ.
+3. **Mặt nạ ROI cho camera dự án** (`roi_p<cổng>.png`): loại thân xe, dây, viền ống kính. *(Cập nhật 25/09/2026:
+   công cụ dựng ROI đã có, `perception/roi_tool.py` và thẻ "ROI" của `ui/roi_app.py` (`65b7127`,
+   NGOAI_THAM_VA_ROI.md mục 6); chưa có mặt nạ nào cho camera dự án, thư mục `configs/roi/rig_v1` chưa có.)*
 4. **Đo sai số BEV** (kế hoạch mục 6, bước 8): đặt vật mẫu ở vị trí đo bằng thước ở trước, sau, hông và vùng giáp ranh;
    so với BEV; lập báo cáo sai số và sơ đồ vùng quan sát.
 5. Chọn và đánh giá phương pháp **biên tiếp xúc** của vật cao (mục 3). Chọn **tiêu chí độ phân giải** thay cho
@@ -587,6 +601,7 @@ Mười hai đột biến mới:
    ≈ 9,5–12 ms (trung vị) khi bảng đã dựng. Trước khi tăng tốc là ≈ 60–104 ms. Số này đo trên máy bàn, rig tổng hợp,
    khi các tác tử khác đang chạy song song. Còn thiếu:
    - **Laptop RTX 3050 Ti: CHƯA ĐO.** Chạy lệnh `bench` (mục 5, lệnh 4) trên laptop, rồi chép `bench.json` vào hồ sơ.
+     *(Cập nhật 25/09/2026: lệnh `bench` đã commit và push trong `65b7127`; laptop có nó sau `git pull`.)*
    - **Khung đầu** vẫn mất ≈ 0,3–0,5 s để dựng bảng. Phải dựng bảng lúc khởi động khi nối vào bàn thử: CHƯA LÀM.
    - Chưa đo trên khung camera thật có ROI. Chưa đo khi BEV chạy cùng bàn thử (bốn luồng camera, AI, giao diện) trong
      một tiến trình.

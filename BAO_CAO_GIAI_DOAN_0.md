@@ -4,7 +4,7 @@
 **Kế hoạch đối chiếu:** [KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), mục 4 — Giai đoạn 0.  
 **Mã nguồn:** thư mục [autopark](autopark/README.md).  
 **Mức bằng chứng:** phần mềm và mô phỏng trên laptop; chưa kiểm chứng phần cứng.  
-**Ghi chú 24/09/2026:** nội dung báo cáo giữ nguyên như ngày 20/09. Những chỗ đã lỗi thời được đánh dấu "Cập nhật 24/09/2026" và trỏ tới tài liệu mới; tình trạng chung của dự án xem [README gốc](README.md) và bảng tiến độ ở mục 17.4 của kế hoạch.
+**Ghi chú 24/09/2026:** nội dung báo cáo giữ nguyên như ngày 20/09. Những chỗ đã lỗi thời được đánh dấu "Cập nhật 24/09/2026" và trỏ tới tài liệu mới; tình trạng chung của dự án xem [README gốc](README.md) và bảng tiến độ ở mục 17.4 của kế hoạch. *(Cập nhật 25/09/2026: có thêm hai chỗ đánh dấu "Cập nhật 25/09/2026"/"ghi chú 25/09/2026": dòng "Xem trước không phát lệnh phần cứng" ở mục 3 và ghi chú về link `autopark/runs/` ở mục 6.)*
 
 ## 1. Kết quả tổng quan
 
@@ -49,7 +49,7 @@ Khi bắt đầu đối chiếu kế hoạch, code đã có giao diện sa bàn,
 | Xe chạy tiến/lùi; tuân thủ giới hạn lái | **ĐẠT trong mô phỏng** | Test động học/controller, phiên tiến/lùi và các cấu hình xe biến đổi. |
 | Kiểm tra va chạm xét toàn thân xe | **ĐẠT trong phạm vi thử** | Footprint/vùng quét; đối chiếu thêm bằng bộ kiểm tra độc lập. |
 | Vật mới làm đường cũ mất hiệu lực; dừng trước thử đường mới | **ĐẠT trong mô phỏng** | Vô hiệu quỹ đạo, chuyển STOPPING, phanh về 0, chờ; cấm lập đường trong lúc phanh. |
-| Xem trước không phát lệnh phần cứng | **ĐẠT** | Rollout riêng; chưa có transport điều khiển phần cứng trong luồng này. |
+| Xem trước không phát lệnh phần cứng | **ĐẠT** | Rollout riêng; chưa có transport điều khiển phần cứng trong luồng này. *Cập nhật 25/09/2026: từ `c43e8d3` (24/09) phiên đỗ xe có nhánh `VehicleIO` tới bo mô phỏng; từ `6db5087` chọn được cổng bo thật, nhưng START khi đó luôn bị từ chối vì chưa có nguồn tư thế thật; xem trước và lái tay vẫn là mô phỏng, không đi qua `VehicleIO` ([CHE_DO_QUAN_SAT.md](autopark/docs/CHE_DO_QUAN_SAT.md)).* |
 | Có cấu hình và log đủ để chạy lại kịch bản | **ĐẠT với các phiên đã ghi** | Snapshot, seed, sự kiện, source và replay; các phiên mẫu đối chiếu khớp. |
 
 ## 4. Luồng vận hành hiện tại
@@ -134,7 +134,7 @@ Liên kết bằng chứng:
 - [Báo cáo kiểm thử độ bền chi tiết](autopark/docs/KIEM_THU_DO_BEN_GIAI_DOAN_0.md).
 - [JUnit 220 test](autopark/docs/evidence/robustness_pytest.xml).
 - [Coverage HTML](autopark/docs/evidence/coverage_html/index.html) (chỉ có trên máy làm việc, không có trong repo), [JSON toàn bộ](autopark/docs/evidence/coverage_robustness.json), [phạm vi cốt lõi](autopark/docs/evidence/coverage_core.json).
-- [Tóm tắt chiến dịch](autopark/runs/robustness_final_2026-09-20/summary.json), [từng trường hợp và seed](autopark/runs/robustness_final_2026-09-20/cases.jsonl), [danh sách vi phạm](autopark/runs/robustness_final_2026-09-20/failures.json).
+- [Tóm tắt chiến dịch](autopark/runs/robustness_final_2026-09-20/summary.json), [từng trường hợp và seed](autopark/runs/robustness_final_2026-09-20/cases.jsonl), [danh sách vi phạm](autopark/runs/robustness_final_2026-09-20/failures.json) (thư mục `autopark/runs/` git-ignore: chỉ có trên máy làm việc, không có trong repo; ghi chú 25/09/2026, áp dụng cho mọi link `autopark/runs/` trong tệp này).
 
 ## 7. Video, log và khả năng tái hiện
 

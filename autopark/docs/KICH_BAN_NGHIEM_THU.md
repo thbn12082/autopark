@@ -36,6 +36,9 @@ trước khi chạy, và dùng tên **không dấu** (OpenCV trên Windows khôn
   cổng serial tới bo; định vị LiDAR chưa là nguồn tư thế của phiên; chưa ghi cảm biến đồng thời với phiên đỗ; chưa có công
   cụ tham chiếu trên cao; sự kiện dừng của phiên chưa vào log `VehicleIO` (T13); chưa có dấu đồng bộ video–log (T14) và nút
   CLEAR_FAULT (T15) (thêm tối 24/09/2026, đọc mã cây làm việc). Vài công cụ đang được thêm song song tối 24/09/2026, chưa commit (mục 7).
+  *(Cập nhật 25/09/2026: các việc song song đó đã commit và push, `origin/main` = `54cb3e2` (đợt khuya: `65b7127` …
+  `54cb3e2`). Giao diện nay chọn được cổng serial tới bo (thẻ "Bo điều khiển", `6db5087`), nhưng START với bo thật luôn bị
+  từ chối vì chưa có nguồn tư thế thật (T2). Các dòng còn lại của gạch này vẫn đúng ở HEAD `54cb3e2`; chi tiết mục 7.)*
 
 ## 1. Phạm vi và quy ước
 
@@ -148,6 +151,10 @@ tự tạo thư mục cha** và chỉ ghi tệp JSON sau khi chạy hết các c
 `FileNotFoundError`, thoát mã 1 và mất kết quả (thử ngày 24/09/2026 với một thư mục không tồn tại). Tạo thư mục một lần, chạy
 từ `D:\ap\autopark` (lệnh không làm gì nếu thư mục đã có; đã thử trong cmd.exe 24/09/2026):
 `if not exist runs\nghiem_thu\mo_phong mkdir runs\nghiem_thu\mo_phong`
+
+*(Cập nhật 25/09/2026: đoạn trên là hành vi trước commit `10a4735`. Từ commit đó, `bench --json` tạo thư mục cha **trước**
+khi chạy ca; không tạo được thì thoát mã 2 ngay, chưa chạy ca nào (`tests/test_evaluation_bench_cli.py`, 2 test). Lệnh
+`mkdir` ở trên không còn bắt buộc, chạy thêm cũng không sao.)*
 
 ### 2.4. Trình tự một lần chạy trên xe thật
 
@@ -339,7 +346,7 @@ tiền nghiệm thu (MP) hoặc bàn thử (BT) chạy được với phần m�
 | Đo độc lập, độ chính xác kỳ vọng | R1 cho quỹ đạo và tư thế cuối (≈ 1 cm / 1–1,6°, chờ TC-1); R2 + R4 cho tư thế cuối (± 3–5 mm mỗi điểm), làm song song với R1 ở 3 lần đầu để kiểm chéo; R5 cờ 2 cm trên mặt hai vật cạnh ô và viền chân vật; R3 cho tốc độ và đổi chiều (± một khung) |
 | Số lần | 10 |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | MP (tiền nghiệm thu, chạy được ngay): `.venv\Scripts\python.exe -X utf8 run_app.py scenarios\sa_ban_3x2_hai_hop.json`, rồi ở ngăn "Mô phỏng" chọn "VehicleIO: GỬI lệnh tới bo" trong ô "Nhánh chạy khi bấm Bắt đầu đỗ", thẻ "Bo điều khiển" để mặc định "Bo mô phỏng (mặc định)" (nhãn đổi khuya 24/09/2026; trước là "VehicleIO → bo mô phỏng"); xong bấm "Xuất log CSV…". Xe thật: CHƯA CÓ (mục 7, T1, T2) |
+| Công cụ, lệnh | MP (tiền nghiệm thu, chạy được ngay): `.venv\Scripts\python.exe -X utf8 run_app.py scenarios\sa_ban_3x2_hai_hop.json`, rồi ở ngăn "Mô phỏng" chọn "VehicleIO: GỬI lệnh tới bo" trong ô "Nhánh chạy khi bấm Bắt đầu đỗ", thẻ "Bo điều khiển" để mặc định "Bo mô phỏng (mặc định)" (nhãn đổi khuya 24/09/2026; trước là "VehicleIO → bo mô phỏng"); xong bấm "Xuất log CSV…". Xe thật: CHƯA CÓ (mục 7, T1, T2) *(cập nhật 25/09/2026: T1 đã có từ `6db5087`; còn chặn là T2: START với cổng thật luôn bị từ chối `START_NO_POSE_SOURCE`)* |
 | Điều kiện trước | ĐK-XT; AT-5 và DV-3 đạt |
 | Ngưỡng | N-D1 … N-D9, N-V1, N-P4 |
 | Trạng thái | CHƯA THỬ. Mô phỏng giai đoạn 0 và `VEHICLE_IO` mô phỏng có ca tương tự (CHE_DO_QUAN_SAT.md mục 7: 0,60 cm / +1,15°, định vị lý tưởng); không tính là nghiệm thu |
@@ -369,7 +376,7 @@ tiền nghiệm thu (MP) hoặc bàn thử (BT) chạy được với phần m�
 | Đo độc lập, độ chính xác kỳ vọng | Như DO-1; R5 viền chân mọi xe mẫu |
 | Số lần | 5 mỗi mức |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | MP. Trước lần chạy đầu, tạo thư mục kết quả (lệnh `bench` không tự tạo, thiếu thì mất kết quả, mục 2.3): `if not exist runs\nghiem_thu\mo_phong mkdir runs\nghiem_thu\mo_phong`. Rồi: `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases perp_aisle_170,perp_aisle_135,perp_aisle_115 --json runs\nghiem_thu\mo_phong\do3.json` (thêm `--config configs\vehicle_measured.json` khi có tệp này, [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) mục 4). Chạy khi máy rảnh: TIMEOUT phụ thuộc tải CPU ([KIEM_THU_DO_BEN_GIAI_DOAN_0.md](KIEM_THU_DO_BEN_GIAI_DOAN_0.md) mục 4). Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | MP. Từ commit `10a4735` (25/09/2026), `bench --json` tự tạo thư mục kết quả trước khi chạy ca; trước đó phải tạo tay, thiếu thì mất kết quả (mục 2.3). Lệnh tạo tay vẫn dùng được: `if not exist runs\nghiem_thu\mo_phong mkdir runs\nghiem_thu\mo_phong`. Chạy: `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases perp_aisle_170,perp_aisle_135,perp_aisle_115 --json runs\nghiem_thu\mo_phong\do3.json` (thêm `--config configs\vehicle_measured.json` khi có tệp này, [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) mục 4). Chạy khi máy rảnh: TIMEOUT phụ thuộc tải CPU ([KIEM_THU_DO_BEN_GIAI_DOAN_0.md](KIEM_THU_DO_BEN_GIAI_DOAN_0.md) mục 4). Xe thật: CHƯA CÓ |
 | Điều kiện trước | ĐK-XT; DO-1 đạt |
 | Ngưỡng | N-D1 … N-D4, N-D6 … N-D9, N-V1 (N-D5 không áp) |
 | Trạng thái | CHƯA THỬ |
@@ -384,7 +391,7 @@ tiền nghiệm thu (MP) hoặc bàn thử (BT) chạy được với phần m�
 | Đo độc lập, độ chính xác kỳ vọng | Như DO-1; R5 ở mặt hai xe mẫu |
 | Số lần | (a) 10; (b) 5 |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | MP (thư mục `runs\nghiem_thu\mo_phong` phải có trước, lệnh tạo ở mục 2.3): `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases parallel_160,parallel_135 --json runs\nghiem_thu\mo_phong\do4.json`. Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | MP (từ commit `10a4735`, 25/09/2026, `bench --json` tự tạo thư mục kết quả; trước đó thư mục `runs\nghiem_thu\mo_phong` phải có trước, mục 2.3): `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases parallel_160,parallel_135 --json runs\nghiem_thu\mo_phong\do4.json`. Xe thật: CHƯA CÓ |
 | Điều kiện trước | ĐK-XT; DO-1 đạt |
 | Ngưỡng | (a): N-D1 … N-D9, N-V1; (b): như DO-3 |
 | Trạng thái | CHƯA THỬ |
@@ -399,7 +406,7 @@ tiền nghiệm thu (MP) hoặc bàn thử (BT) chạy được với phần m�
 | Đo độc lập, độ chính xác kỳ vọng | R1 cho lệch ngang dọc đường và tốc độ; R3 cho tốc độ (quãng theo thước / thời gian thật giữa khung); R2 tư thế cuối; R5 viền tường. Tốc độ và góc lái đo trong `telemetry.csv` (R6) chỉ để đối chiếu |
 | Số lần | 5 |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | MP (thư mục `runs\nghiem_thu\mo_phong` phải có trước, mục 2.3): `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases reverse_long_corridor --json runs\nghiem_thu\mo_phong\do5.json`. Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | MP (từ commit `10a4735`, 25/09/2026, `bench --json` tự tạo thư mục kết quả; trước đó thư mục `runs\nghiem_thu\mo_phong` phải có trước, mục 2.3): `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases reverse_long_corridor --json runs\nghiem_thu\mo_phong\do5.json`. Xe thật: CHƯA CÓ |
 | Điều kiện trước | ĐK-XT |
 | Ngưỡng | N-D1, N-D2, N-D4, N-D7 … N-D9, N-V1; N-K1 … N-K4 khi đã có số (mục 9 của tệp ngưỡng: CHƯA ĐỀ XUẤT) |
 | Trạng thái | CHƯA THỬ |
@@ -414,7 +421,7 @@ tiền nghiệm thu (MP) hoặc bàn thử (BT) chạy được với phần m�
 | Đo độc lập, độ chính xác kỳ vọng | R3 đếm đổi chiều và kiểm không có chuyển động ngược chiều trước khi xe dừng hẳn (± một khung); R2 tư thế cuối. `telemetry.csv` (R6) để đối chiếu thời gian đứng ở 0 |
 | Số lần | 5 |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | MP (thư mục `runs\nghiem_thu\mo_phong` phải có trước, mục 2.3): `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases uturn_w70 --json runs\nghiem_thu\mo_phong\do6.json`. Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | MP (từ commit `10a4735`, 25/09/2026, `bench --json` tự tạo thư mục kết quả; trước đó thư mục `runs\nghiem_thu\mo_phong` phải có trước, mục 2.3): `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases uturn_w70 --json runs\nghiem_thu\mo_phong\do6.json`. Xe thật: CHƯA CÓ |
 | Điều kiện trước | ĐK-XT; bảng B5 (đổi chiều, dòng D6) đã đo |
 | Ngưỡng | N-D1, N-D2, N-D4, N-D6, N-K5 |
 | Trạng thái | CHƯA THỬ |
@@ -423,6 +430,11 @@ tiền nghiệm thu (MP) hoặc bàn thử (BT) chạy được với phần m�
 
 Kế hoạch 13: "Không có đường phù hợp thì giữ dừng, không ép planner phải trả một đường bất kỳ". Các kịch bản DI không có
 chuyển động, nên chạy được với xe thật ngay khi có bo nối qua giao diện, với điều kiện đường dừng phần cứng vẫn sẵn sàng.
+*(Cập nhật 25/09/2026, đọc mã ở HEAD `54cb3e2`: giao diện chọn được cổng bo thật từ `6db5087` (T1), nhưng chưa đủ. Với
+cổng thật, START luôn bị từ chối ngay ở bước đầu (`START_NO_POSE_SOURCE`), trước khi mở cổng và trước mọi kiểm FAULT, xe
+lăn, tư thế (`application/vehicle_link.py`). Đích sai hay không có đường thì bị chặn trên laptop trước START, không liên
+lạc với bo, và tư thế xuất phát planner dùng vẫn là của tệp kịch bản. Vì vậy "không bắt đầu được" trên bo thật hôm nay
+không chứng minh kiểm DI nào đã chạy; bản xe thật của DI còn chờ T2, mục 7.)*
 
 **DI-1 — Đích lấn vật cản hoặc ra ngoài sa bàn**
 
@@ -431,10 +443,10 @@ chuyển động, nên chạy được với xe thật ngay khi có bo nối qua
 | Bố trí | Sa bàn DO-1. Ba biến thể: (a) kéo đích để footprint đích chồng lên vật cạnh ô; (b) đích nằm một phần ngoài biên sa bàn; (c) vị trí đích đúng nhưng hướng làm thân xe lấn vật |
 | Hệ thống phải | Báo đích không hợp lệ; không lập đường; không bắt đầu được; bo giữ DISARMED |
 | Đo | Có lập đường không; bo có bị ARM không; có COMMAND chuyển động nào không |
-| Đo độc lập, độ chính xác kỳ vọng | R3: xe không nhúc nhích. R6 để đối chiếu: `telemetry.csv` toàn DISARMED. Không có đại lượng hình học cần đo |
+| Đo độc lập, độ chính xác kỳ vọng | R3: xe không nhúc nhích. R6 để đối chiếu: `telemetry.csv` toàn DISARMED. Không có đại lượng hình học cần đo *(ghi chú 25/09/2026, đọc mã: đích bị chặn trước START thì không lần chạy nào được mở, mà telemetry chỉ được ghi khi lần chạy đang mở (R7, mục 2.1), nên `telemetry.csv` không có dòng nào của lần thử này; R6 ở đây CHƯA dùng được)* |
 | Số lần | 3 mỗi biến thể |
 | Dữ liệu ghi | GD1, GD2, ảnh chụp màn hình |
-| Công cụ, lệnh | MP (chạy được ngay): `.venv\Scripts\python.exe -X utf8 run_app.py scenarios\sa_ban_3x2_hai_hop.json` rồi kéo đích vào hộp. Xe thật: CHƯA CÓ (T1) |
+| Công cụ, lệnh | MP (chạy được ngay): `.venv\Scripts\python.exe -X utf8 run_app.py scenarios\sa_ban_3x2_hai_hop.json` rồi kéo đích vào hộp. Xe thật: CHƯA CÓ (T1) *(cập nhật 25/09/2026: T1 đã có từ `6db5087`; bản xe thật còn chờ T2, xem ghi chú đầu mục 5.2)* |
 | Điều kiện trước | Phần mềm; với xe thật: bo nối, xe đứng trên sa bàn, đường dừng sẵn sàng |
 | Ngưỡng | N-P11 |
 | Trạng thái | CHƯA THỬ ở xe thật. Phần mô phỏng thuộc điều kiện giai đoạn 0 đã ĐẠT ngày 20/09 ("đích nằm trong vật cản bị từ chối", BAO_CAO_GIAI_DOAN_0.md mục 3) |
@@ -443,13 +455,13 @@ chuyển động, nên chạy được với xe thật ngay khi có bo nối qua
 
 | | |
 |---|---|
-| Bố trí | Hai biến thể. (a) Ô vuông góc bị vật chắn kín mọi phía, không còn lối vào: vô nghiệm hiển nhiên về hình học vì vùng đích tách rời vùng xuất phát. (b) Ô song song rất ngắn như `parallel_115` (ô 1,15 L, làn 0,40 m). Ở HEAD 9bcc30c ca này mang nhãn `infeasible` (kỳ vọng kiểm thử, chưa kiểm chứng độc lập). Bản sửa đang làm song song tối 24/09/2026 (chưa commit, tệp này không kiểm) của `evaluation/hard_cases.py` đổi nhãn thành `feasible`, với một đường dựng giải tích 279 lần đổi chiều: có nghiệm nhưng không thực dụng. *(Cập nhật 25/09/2026: bản sửa đó đã xong; ngoài đường 279 lần còn có đường chứng 13 lần đổi chiều, 1,32 m ([witness_ngan_song_song_20260924.json](evidence/hard_cases/witness_ngan_song_song_20260924.json)), nên "không thực dụng" là nhận xét về các đường dài, không phải tính chất của ca; planner hết giờ/NO_PATH ở ca này là giới hạn của planner. Đường 13 lần vẫn có nhịp 0,95–1,7 cm.)* Vì vậy (b) kiểm hành vi khi planner hết giờ, hoặc khi nó trả một đường có quá nhiều lần đổi chiều |
+| Bố trí | Hai biến thể. (a) Ô vuông góc bị vật chắn kín mọi phía, không còn lối vào: vô nghiệm hiển nhiên về hình học vì vùng đích tách rời vùng xuất phát. (b) Ô song song rất ngắn như `parallel_115` (ô 1,15 L, làn 0,40 m). Ở HEAD 9bcc30c ca này mang nhãn `infeasible` (kỳ vọng kiểm thử, chưa kiểm chứng độc lập). Bản sửa đang làm song song tối 24/09/2026 (chưa commit, tệp này không kiểm) của `evaluation/hard_cases.py` đổi nhãn thành `feasible`, với một đường dựng giải tích 279 lần đổi chiều: có nghiệm nhưng không thực dụng. *(Cập nhật 25/09/2026: bản sửa đó đã xong và đã commit, push (`10a4735`); ngoài đường 279 lần còn có đường chứng 13 lần đổi chiều, 1,32 m ([witness_ngan_song_song_20260924.json](evidence/hard_cases/witness_ngan_song_song_20260924.json)), nên "không thực dụng" là nhận xét về các đường dài, không phải tính chất của ca; planner hết giờ/NO_PATH ở ca này là giới hạn của planner. Đường 13 lần vẫn có nhịp 0,95–1,7 cm.)* Vì vậy (b) kiểm hành vi khi planner hết giờ, hoặc khi nó trả một đường có quá nhiều lần đổi chiều |
 | Hệ thống phải | (a): không trả đường (NO_PATH hoặc hết giờ), không chạy, báo lý do. (b): không trả đường thì không chạy; trả đường mà số lần đổi chiều vượt giới hạn chấp nhận được thì không được đem chạy. Giới hạn đó CHƯA CHỐT (N-D6), và mã hiện chưa có kiểm này: `portfolio` chỉ ưu tiên đường ít đổi chiều hơn, giao diện hiện số lần đổi chiều ở bước lập đường (đọc mã 24/09/2026; mục 7, T12) |
 | Đo | Kết quả lập đường, số lần đổi chiều nếu có đường, thời gian lập đường; bo không ARM |
 | Đo độc lập, độ chính xác kỳ vọng | Như DI-1 |
 | Số lần | 3 mỗi biến thể |
 | Dữ liệu ghi | GD1, GD2 |
-| Công cụ, lệnh | MP: (a) dựng trong giao diện mô phỏng (`run_app.py`), đặt vật cản kín quanh ô; (b) (thư mục `runs\nghiem_thu\mo_phong` phải có trước, mục 2.3) `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases parallel_115 --json runs\nghiem_thu\mo_phong\di2.json`. Kiểm ngày 24/09/2026 trên máy bàn: `parallel_115` hết giờ (TIMEOUT) sau 20 s ([GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) mục 1.1). Hết giờ không chứng minh vô nghiệm; tiêu chí nghiệm thu chỉ là "không chạy" |
+| Công cụ, lệnh | MP: (a) dựng trong giao diện mô phỏng (`run_app.py`), đặt vật cản kín quanh ô; (b) (từ commit `10a4735`, 25/09/2026, `bench --json` tự tạo thư mục kết quả; trước đó thư mục `runs\nghiem_thu\mo_phong` phải có trước, mục 2.3) `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench --cases parallel_115 --json runs\nghiem_thu\mo_phong\di2.json`. Kiểm ngày 24/09/2026 trên máy bàn: `parallel_115` hết giờ (TIMEOUT) sau 20 s ([GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) mục 1.1). Hết giờ không chứng minh vô nghiệm; tiêu chí nghiệm thu chỉ là "không chạy" |
 | Điều kiện trước | Như DI-1 |
 | Ngưỡng | N-P11 |
 | Trạng thái | CHƯA THỬ |
@@ -480,7 +492,7 @@ chuyển động, nên chạy được với xe thật ngay khi có bo nối qua
 | Số lần | 3 mỗi biến thể |
 | Dữ liệu ghi | GD1, GD2 |
 | Công cụ, lệnh | MP (chạy được ngay, không chạm thiết bị): `.venv\Scripts\python.exe -X utf8 -m pytest tests\test_session_vehicle.py -k refused`. Xe thật: CHƯA CÓ |
-| Điều kiện trước | Như DI-1; nguồn tư thế thật (T2) cho (a), (b) |
+| Điều kiện trước | Như DI-1; nguồn tư thế thật (T2) cho (a), (b) *(cập nhật 25/09/2026: từ `6db5087`, START với cổng thật bị từ chối ngay ở bước đầu (`START_NO_POSE_SOURCE`), trước khi mở cổng và trước các kiểm FAULT, xe lăn, tư thế; khi đó `start_refusals.csv` có dòng `START_NO_POSE_SOURCE`, không phải `START_CHECK` "TỪ CHỐI" (`tests/test_vehicle_board_ui.py`). Vì vậy cả (c), (d) trên bo thật cũng cần T2; chạy trước khi có T2 thì "bị từ chối" không chứng minh kiểm nào)* |
 | Ngưỡng | N-P11 |
 | Trạng thái | CHƯA THỬ ở xe thật (có test mô phỏng: `test_start_is_refused_when_the_real_state_disagrees`, `test_start_refused_heading_off`, `test_start_refused_vehicle_rolling`, `test_start_fault_refused_by_link_check`) |
 
@@ -724,7 +736,7 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Đo độc lập, độ chính xác kỳ vọng | R3 + R7 cho thời điểm rút |
 | Số lần | 10 |
 | Dữ liệu ghi | GD1, GD2 |
-| Công cụ, lệnh | CHƯA CÓ: chưa mua ToF (đợt 3), firmware chưa có mã đọc VL53L1X; ở HEAD 9bcc30c chưa có cầu nối `VehicleTelemetry` → `NearFieldReading` (TONG_HOP_DU_AN.md mục 5.4; đang thêm song song, chưa commit, mục 7) |
+| Công cụ, lệnh | CHƯA CÓ: chưa mua ToF (đợt 3), firmware chưa có mã đọc VL53L1X; ở HEAD 9bcc30c chưa có cầu nối `VehicleTelemetry` → `NearFieldReading` (TONG_HOP_DU_AN.md mục 5.4; đang thêm song song, chưa commit, mục 7). *(Cập nhật 25/09/2026: cầu nối đã commit trong `6db5087`: `tof_to_near_field`, `NearFieldLayer.add_telemetry`, vị trí gá GIẢ ĐỊNH ở `configs/tof_mounts_v0.json`; mới kiểm bằng khung telemetry giả và cổng serial GIẢ; ToF chưa vào `Session`/`VehicleLink` ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12). Vẫn chưa có ToF và mã đọc VL53L1X)* |
 | Điều kiện trước | ĐK-XT; T8 |
 | Ngưỡng | N-T9; tuyệt đối: không số đo nào thành giá trị an toàn |
 | Trạng thái | CHƯA THỬ |
@@ -801,7 +813,7 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Đo độc lập, độ chính xác kỳ vọng | Máy hiện sóng (M1); R3 + R7 (M3) |
 | Số lần | 10 (4 + 3 + 3) |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | Xe thật và bo: CHƯA CÓ (firmware C++ chưa biên dịch; T1) |
+| Công cụ, lệnh | Xe thật và bo: CHƯA CÓ (firmware C++ chưa biên dịch; T1) *(cập nhật 25/09/2026: T1 đã có từ `6db5087`; còn chặn: firmware chưa biên dịch và nạp được, và T2, vì START với cổng thật luôn bị từ chối `START_NO_POSE_SOURCE` nên chưa mở được lần chạy nào trên bo thật)* |
 | Điều kiện trước | ĐK-XT; L9 đạt ở M0–M1 |
 | Ngưỡng | N-P7, N-P10 |
 | Trạng thái | CHƯA THỬ (có test mô phỏng `SimVehicleIO.reset_firmware`, [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 10) |
@@ -907,12 +919,12 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Kiểm tham chiếu trên cao bằng xe giả | TC-1 | Camera trên cao, giá, marker in, thước; công cụ T4 (hoặc làm tay với ảnh) |
 | Định vị tĩnh so với thước, cùng buổi bảy lần đặt hộp | DV-1 | LiDAR C1, thước, người thao tác |
 | Hướng gốc sau khởi động lại mô-tơ | DV-2 | LiDAR C1, người thao tác |
-| Chạy dài 30 phút trên máy bàn, rồi trên laptop | LD-1 | Bốn camera, LiDAR; laptop cần mã và tham chiếu mới sau khi commit/push (TONG_HOP_DU_AN.md mục 5.1) |
+| Chạy dài 30 phút trên máy bàn, rồi trên laptop | LD-1 | Bốn camera, LiDAR; laptop cần mã và tham chiếu mới sau khi commit/push (TONG_HOP_DU_AN.md mục 5.1). *(Cập nhật 25/09/2026: đã commit và push, `origin/main` = `54cb3e2`; laptop lấy bằng `git pull`, tham chiếu máy bàn mới là [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json), commit `bfcbfc2`; [MAY_NOP_DO_AN.md](MAY_NOP_DO_AN.md). Laptop vẫn CHƯA chạy gì ngoài hồ sơ giai đoạn 0)* |
 | Rút cáp LiDAR, đưa vật vào khi xe ảo chạy, vật ngoài đường | CB-3, VC-1, VC-6 (phần BT) | LiDAR C1, người thao tác; sa bàn mặc định của `lidar_app` |
 | Vật sau đuôi khi xe ảo đang lùi | VC-2 (phần BT) | LiDAR C1, người thao tác; `--scenario scenarios\sa_ban_3x2_hai_hop.json` (có đoạn lùi); đặt vật trên đoạn lùi đã lập, phía trước–phải LiDAR, không đặt "phía sau LiDAR" (xem VC-2) |
 | Vật bên hông vùng thân xe quét qua ở đoạn cong | VC-3 (phần BT) | Như VC-2 (cùng kịch bản, vì sa bàn mặc định là đường thẳng) |
 | Rút một camera, rút hub khi bàn thử chạy | CB-1 (phần BT) | Bốn camera, người thao tác |
-| Bản mô phỏng của bài đỗ và từ chối | DO-1 … DO-6, DI-1 … DI-4, VC-4 (gần đúng, xem VC-4), VC-5, AT-1, AT-5 (phần MP) | Chỉ phần mềm; tạo `runs\nghiem_thu\mo_phong` trước khi chạy `bench` (mục 2.3) |
+| Bản mô phỏng của bài đỗ và từ chối | DO-1 … DO-6, DI-1 … DI-4, VC-4 (gần đúng, xem VC-4), VC-5, AT-1, AT-5 (phần MP) | Chỉ phần mềm. Từ commit `10a4735` (25/09/2026) `bench --json` tự tạo thư mục kết quả; trước đó phải tạo `runs\nghiem_thu\mo_phong` trước khi chạy `bench` (mục 2.3) |
 | Chạy lại test liên quan (không chạm thiết bị) | DI-4, CB-3, CB-5, CB-6, AT-2, AT-5, NT-5; VC-3 (mô phỏng hành lang, đường thẳng: `tests\test_fusion.py -k off_the_path`) | `.venv\Scripts\python.exe -X utf8 -m pytest tests\test_session_vehicle.py tests\test_lidar_unplug.py tests\test_fusion.py tests\test_bev.py` |
 
 Kết quả phần MP và BT ghi đúng mức của nó (kế hoạch 1.3); không chép sang cột nghiệm thu xe thật.
@@ -931,18 +943,23 @@ Bảng này ghi theo mã đã commit (HEAD 9bcc30c, 24/09/2026). Lúc viết (t�
 
 Khi các việc đó được commit, cập nhật cột "Ghi chú" và phần "Công cụ, lệnh" của kịch bản liên quan.
 
+*(Cập nhật 25/09/2026: bốn việc trên đã commit và push, `origin/main` = `54cb3e2`: chọn cổng serial, so giới hạn và
+ToF → `NearFieldReading` ở `6db5087`; ngoại tham và ROI ở `65b7127`; odometry LiDAR ở `a7cec5e`; độ nhạy và nhãn ca khó
+ở `10a4735`. Các dòng T1, T8, T10 dưới đây và CB-4 đã thêm ghi chú. Đọc lại mã ở HEAD `54cb3e2`: T2–T7, T9, T11–T15
+vẫn đúng như bảng; T10 phần lớn đã có từ trước khi viết bảng (xem dòng T10); T11 vẫn đúng (`calib_app`, `fisheye_calib` nhận `--port` 1..4); T12–T15 vẫn chưa có trong mã.)*
+
 | Mã | Công cụ | Cần cho | Ghi chú |
 |---|---|---|---|
-| T1 | Giao diện chọn cổng serial tới bo thật | Mọi kịch bản XT | [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 6 ở HEAD 9bcc30c: giao diện chưa có lựa chọn này (đang thêm song song, xem trên) |
+| T1 | Giao diện chọn cổng serial tới bo thật | Mọi kịch bản XT | [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 6 ở HEAD 9bcc30c: giao diện chưa có lựa chọn này (đang thêm song song, xem trên). *(Cập nhật 25/09/2026: đã có từ `6db5087`: thẻ "Bo điều khiển" chọn cổng COM, nút "Kiểm kết nối bo" chỉ HELLO + đọc telemetry, không ARM. START với cổng thật luôn bị từ chối (`START_NO_POSE_SOURCE`) tới khi có T2, và `begin_run` còn phải thêm bước mở cổng (`reopen()`), CHE_DO_QUAN_SAT.md mục 6, 8. Chỉ kiểm bằng cổng serial giả)* |
 | T2 | Định vị LiDAR làm nguồn tư thế của phiên, cùng đồng hồ với `VehicleIO` | Mọi kịch bản XT, CB-6, DV-3 | Hiện phiên dùng `SimTruthPose` (định vị lý tưởng; CHE_DO_QUAN_SAT.md mục 2). Chọn N-T2 cùng lúc |
 | T3 | Ghi cảm biến (bốn camera + LiDAR) trong phiên đỗ xe, cùng đồng hồ | GD3, DV-3, phân tích lỗi | Hiện bàn thử (`rig`) và phiên đỗ xe là hai chương trình; hai tiến trình khó mở chung một camera (suy luận, chưa thử) |
 | T4 | Công cụ tham chiếu trên cao (đề xuất có giao diện): hiệu chuẩn camera trên cao, khớp mặt sàn từ mốc, kiểm trên điểm kiểm tra, trích tư thế từ video marker, xuất tệp tư thế | R1, TC-1 | `cv2.aruco` có sẵn trong `.venv` (OpenCV 5.0.0, kiểm bằng import ngày 24/09/2026) |
 | T5 | Công cụ chấm một lần chạy: đọc log + tệp tư thế tham chiếu + bố trí tham chiếu, tính các đại lượng N-D, N-P, ghi dòng biên bản | GD6, mọi kịch bản | Tránh chấm tay dễ sai |
 | T6 | Tiêm lỗi có kiểm soát: camera đứng hình, nguồn tư thế ngừng, vòng điều khiển treo | CB-2, CB-5 (b), CB-6 | Script treo vòng điều khiển: L7 ở GIAI_DOAN_6_CHUAN_BI.md ghi "script chưa có" |
 | T7 | LED do ESP32-S3 bật khi nhận COMMAND/STOP, thấy được trong video | R7 (cách tốt nhất; chỉ có trên xe thật) | [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) B6: CHƯA LÀM |
-| T8 | Mã đọc encoder, AS5600, ToF, điện áp trong firmware; cầu nối `VehicleTelemetry` → `NearFieldReading` | ĐK-XT, CB-4, AT-4 | TONG_HOP_DU_AN.md mục 4.9, 5.4; cầu nối đang thêm song song (chưa commit) |
+| T8 | Mã đọc encoder, AS5600, ToF, điện áp trong firmware; cầu nối `VehicleTelemetry` → `NearFieldReading` | ĐK-XT, CB-4, AT-4 | TONG_HOP_DU_AN.md mục 4.9, 5.4; cầu nối đang thêm song song (chưa commit). *(Cập nhật 25/09/2026: cầu nối đã commit trong `6db5087`, xem CB-4; mã đọc cảm biến trong firmware vẫn CHƯA CÓ)* |
 | T9 | Phát lại lần chạy qua `VehicleIO` | Tái hiện (16.4 ý 10) | `replay_run` từ chối rõ bằng `ReplayNotSupported` (CHE_DO_QUAN_SAT.md mục 5); bằng chứng hiện là log GD2 |
-| T10 | Trường "khoảng dài nhất không có khung tốt" của từng camera trong `.rig.json` | N-C2, LD-1 | |
+| T10 | Trường "khoảng dài nhất không có khung tốt" của từng camera trong `.rig.json` | N-C2, LD-1 | *(Cập nhật 25/09/2026: phần lớn đã có, và đã có từ trước khi viết bảng này: `.rig.json` có `cameras[i].gap_max_ms`, khoảng dài nhất giữa hai khung tốt liên tiếp của từng camera; khung cắt, xé hay trùng không tính là khung tốt; đặt lại sau phần làm nóng (`reset_counters`); `rig.bench` in dòng "khoảng cách max". Có từ commit `7f93278` (`video/multicam.py`). Còn thiếu: khoảng hở chưa đóng ở cuối phiên (camera ngừng hẳn trước khi phiên kết thúc) không được tính; chưa có test riêng cho trường này. Số đọc lại trên máy bàn: N-C2 ở [NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md) mục 6)* |
 | T11 | Mở camera trên cao không theo cổng hub 1–4 trong công cụ hiệu chuẩn | Mục 3.4 | `calib_app` và `fisheye_calib` nhận `--port` là cổng hub 1..4 |
 | T12 | Kiểm số lần đổi chiều của đường trước khi cho chạy (từ chối hoặc cảnh báo) | DI-2, N-D6 | Mã hiện chưa có giới hạn (đọc 24/09/2026): `portfolio` chỉ ưu tiên đường ít đổi chiều hơn; giới hạn CHƯA CHỐT |
 | T13 | Ghi sự kiện dừng của phiên (`Session.safety_events` và dừng qua `request_stop` của cầu nối hợp nhất: mã, `t_session`, nguồn, thông điệp) vào log `VehicleIO` (dòng mới trong `events.csv`, `handling` = `session_stop`, hoặc tệp `safety_events.csv` cạnh `link.json`) | N-P1, VC-1 … VC-6, CB-2, CB-5, CB-6, AT, mọi ô "lý do dừng ghi trong log" | Đọc mã cây làm việc tối 24/09/2026: `Session._safety_stop` chỉ thêm vào `Session.safety_events`; `VehicleLink.observe` trả STALE_TELEMETRY/NO_MEASURED_STATE/STALE_POSE mà không qua `_log_event`; `export_run` (nơi duy nhất ghi `safety_events.json`) từ chối lần chạy VehicleIO; `RunLog` không có cột sự kiện. Hiện chỉ có văn bản lý do dừng cuối ở `link.json` `result.reason` (không có mã, không có thời điểm phát). Thử trên bo mô phỏng cùng tối (script tạm, không lưu trong repo): chèn vật giả khi đang chạy cho `MAP_CHANGED` ở 0,750 s, dòng STOP đầu của `commands.csv` ở 0,760 s, `VEHICLE_STOPPED` của bo ở 0,78 s; `events.csv` chỉ có `START_CHECK` và `VEHICLE_STOPPED`. Nguồn tư thế ngừng giữa lúc chạy: tương tự, không có dòng `STALE_POSE` |

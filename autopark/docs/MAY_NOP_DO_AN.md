@@ -46,8 +46,10 @@ máy bàn nhìn cùng một chỗ tối.
    *(Cập nhật khuya 24/09/2026:)* quy tắc chờ theo nhịp riêng, làm nóng AI và tệp tham chiếu 19:08 đã vào commit
    `bfcbfc2` (20:22 ngày 24/09), có trên `origin/main` (kiểm bằng `git branch -r --contains bfcbfc2`), nên `git pull` là
    đủ. Riêng các dòng mới của `tom_tat.md` (làm nóng AI, quy tắc chờ, độ lệch bộ ảnh, cảnh báo; mục 4) là sửa đổi của
-   `autopark/rig/may_moi.py` sau `9bcc30c`, **chưa commit** lúc viết: laptop chỉ có chúng sau khi commit, push trên máy
-   bàn rồi `git pull` trên laptop. Laptop đo bằng mã cũ hơn thì mang kết quả về máy bàn rồi tóm tắt lại (mục 4).
+   `autopark/rig/may_moi.py` sau `9bcc30c`, **chưa commit** lúc viết (khuya 24/09). *(Cập nhật 25/09/2026:)* nay đã vào
+   commit `77eb51f` và đã push (`origin/main` = `54cb3e2`), nên `git pull` trên laptop là có đủ; kiểm bằng
+   `git branch --contains 77eb51f` (phải in nhánh đang dùng, thường là `main`). Laptop đo bằng mã cũ hơn thì mang kết quả
+   về máy bàn rồi tóm tắt lại (mục 4).
 2. **Chép checkpoint.** Chép thư mục `autopark` trong `D:\CHUYEN_SANG_LAPTOP\` (qua USB) đè vào thư mục `autopark` của repo
    trên laptop. Lệnh này chỉ thêm `runs\ai_woodscape_rtx4000_v1\`. Kiểm mã trong thư mục `autopark` của repo:
    ```cmd
@@ -127,8 +129,8 @@ hay không đạt. Nên đọc kỹ những điểm sau:
 
 ### 4.1. Làm nóng AI, quy tắc chờ, độ lệch bộ ảnh và các cảnh báo (thêm khuya 24/09/2026)
 
-Từ bản `autopark/rig/may_moi.py` sửa khuya 24/09/2026 (chưa commit lúc viết, mục 2 bước 1), `tom_tat.md` có thêm các dòng
-sau. Cột máy bàn lấy từ tệp tham chiếu hiện dùng
+Từ bản `autopark/rig/may_moi.py` sửa khuya 24/09/2026 (chưa commit lúc viết, mục 2 bước 1; *25/09/2026: đã commit và
+push trong `77eb51f`*), `tom_tat.md` có thêm các dòng sau. Cột máy bàn lấy từ tệp tham chiếu hiện dùng
 ([tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json)):
 
 | Dòng trong `tom_tat.md` | Lấy từ | Máy bàn, 19:08 ngày 24/09 |

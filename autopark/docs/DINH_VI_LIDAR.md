@@ -6,12 +6,16 @@ thành ba kết quả."* Điều kiện chuyển bước liên quan: *"Có dữ 
 được báo riêng."*
 
 **Mức bằng chứng:** chỉ có dữ liệu tổng hợp (test) và ba bản ghi thật có sẵn từ ngày 22/09 và 24/09. Ngày 24/09 không
-chạy thiết bị nào. **Chưa có tham chiếu độc lập**: không có lần nào LiDAR được đặt ở vị trí đo bằng thước. Vì vậy mọi
-con số ở mục 5 là độ **nhất quán** (cùng chỗ thì ra cùng tư thế, khác chỗ thì báo hỏng), không phải độ **đúng** so với
-thực tế. Mọi ngưỡng chấp nhận là giá trị tạm, **CHƯA CHỐT**.
+chạy thiết bị nào *(cập nhật 25/09/2026: câu này chỉ nói phần việc định vị, chạy offline. Ngày 24/09 vẫn có phiên
+thiết bị: k01 ghi trên máy bàn ([GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 3b), và phiên bàn thử o03 tối
+24/09 có LiDAR ([GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 7))*. **Chưa có tham chiếu độc lập**:
+không có lần nào LiDAR được đặt ở vị trí đo bằng thước. Vì vậy mọi con số ở mục 5 là độ **nhất quán** (cùng chỗ thì
+ra cùng tư thế, khác chỗ thì báo hỏng), không phải độ **đúng** so với thực tế. Mọi ngưỡng chấp nhận là giá trị tạm,
+**CHƯA CHỐT**.
 
 **Không phải:** SLAM (bản đồ không được cập nhật khi định vị), odometry (không cộng dồn chuyển động), định vị trên xe
-thật (chưa có xe).
+thật (chưa có xe). *(Cập nhật 25/09/2026: odometry khớp scan nay là mô-đun riêng `lidar/scan_odometry.py`
+(`a7cec5e`); so sánh các phương án định vị ở [SO_SANH_DINH_VI_SLAM.md](SO_SANH_DINH_VI_SLAM.md).)*
 
 Mã: [`autopark/lidar/localize.py`](../autopark/lidar/localize.py). Test:
 [`tests/test_lidar_localize.py`](../tests/test_lidar_localize.py). Bản đồ do
@@ -192,7 +196,7 @@ test hỏng, trừ một: đổi màu nền dải chữ của overlay thành đe
 ## 5. Kết quả trên bản ghi thật (24/09/2026, chạy offline trên máy bàn)
 
 Bản ghi nằm trong `runs/lidar_bench/` và không có trong git. Kết quả chạy được ghi ra thư mục tạm của phiên làm việc,
-**chưa chép vào `docs/evidence/lidar/`**. Muốn tạo lại thì chạy các lệnh ở mục 3. *(Cập nhật tối 24/09/2026: bản rút gọn của lần chạy lại sau đợt rà soát đã được chép vào `docs/evidence/lidar/` (chưa commit):
+**chưa chép vào `docs/evidence/lidar/`**. Muốn tạo lại thì chạy các lệnh ở mục 3. *(Cập nhật tối 24/09/2026: bản rút gọn của lần chạy lại sau đợt rà soát đã được chép vào `docs/evidence/lidar/` (chưa commit; cập nhật 25/09/2026: đã commit và push trong `b100a5d`):
 [dinh_vi_p07_tren_p07.png](evidence/lidar/dinh_vi_p07_tren_p07.png),
 [dinh_vi_live_headless_tren_p07.png](evidence/lidar/dinh_vi_live_headless_tren_p07.png),
 [dinh_vi_k01_tren_p07.png](evidence/lidar/dinh_vi_k01_tren_p07.png),

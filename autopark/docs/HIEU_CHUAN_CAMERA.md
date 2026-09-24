@@ -205,7 +205,9 @@ chưa mở bằng công cụ này.
 
 - **Ngoại tham và rig.** Chưa có `camera_rig_extrinsics.yaml`, và chưa có vị trí/hướng camera so với xe. Việc này cần gá
   cứng và một cách đo, chẳng hạn đặt bảng trên sàn ở vị trí đo được rồi dùng `cv2.fisheye.solvePnP` với nội tham ở đây,
-  hoặc đo tay rồi kiểm lại bằng vật mẫu trên BEV. Chưa chọn cách nào, chưa làm. Mỗi tệp nội tham có
+  hoặc đo tay rồi kiểm lại bằng vật mẫu trên BEV. Chưa chọn cách nào, chưa làm *(cập nhật 25/09/2026: công cụ theo cách thứ nhất, bảng in đặt trên sàn ở vị trí
+  đo bằng thước, đã có từ commit `65b7127`; tệp ra là `configs/rig/camera_rig_extrinsics_v1.json`, không phải `.yaml`;
+  xem mục 7. Chưa đo ngoại tham camera nào)*. Mỗi tệp nội tham có
   `"extrinsic": null`, `"rig": null` và một câu ghi chú nói rõ điều này.
 - **Nối vào costmap.** `CameraCalibration.from_dict` (trong `perception/calibration.py`) đọc `theta_max_deg` khi khối
   nội tham có khóa này (sửa trong cùng commit 014dcdd, 24/09/2026; tệp WoodScape không có khóa này nên vẫn dùng 100°).
@@ -214,9 +216,13 @@ chưa mở bằng công cụ này.
   `extrinsic`, còn các tệp này ghi nội tham ở khóa `woodscape_intrinsic` và có `"extrinsic": null`. Hiện chỉ nạp được
   nội tham bằng `fisheye_calib.load_intrinsics(...)`, trả về `FisheyeIntrinsics` với `theta_max` đúng. Muốn đưa vào
   `CameraCalibration` thì cần ngoại tham, và một bước ghép khối `woodscape_intrinsic` với ngoại tham thành dạng
-  `from_dict` đọc được. Cả hai việc này chưa làm. *(Sửa 24/09/2026: bản đầu ghi `from_dict` bỏ qua `theta_max` và
+  `from_dict` đọc được. Cả hai việc này chưa làm. *(Cập nhật 25/09/2026: công cụ đo ngoại tham đã có từ commit
+  `65b7127`; bước ghép làm bằng `bev.load_rig()` (commit `1d2b857`): hàm này dựng thẳng `CameraCalibration` từ
+  `fisheye_calib.load_intrinsics` và tệp ngoại tham rig, không qua `from_dict`; xem mục 7. `from_dict` vẫn chưa đọc
+  được `cam_p*.json`, và chưa đo ngoại tham camera nào.)* *(Sửa 24/09/2026: bản đầu ghi `from_dict` bỏ qua `theta_max` và
   `calibration.py` chưa sửa; thực ra chính commit thêm công cụ này đã sửa.)*
-- **Mặt nạ ROI** cho camera của dự án (thân xe, viền ống kính) chưa dựng.
+- **Mặt nạ ROI** cho camera của dự án (thân xe, viền ống kính) chưa dựng. *(Cập nhật 25/09/2026: công cụ đã có, mục 7;
+  vẫn chưa dựng ROI cho camera nào.)*
 - **Kiểm trên ảnh thật:** RMS trên các ảnh để riêng không dùng để hiệu chuẩn, độ thẳng của đường thẳng thật sau khi nắn,
   so sánh bốn camera với nhau, và độ ổn định khi rút/cắm lại hoặc khi camera nóng lên. Tất cả đều chưa làm.
 
