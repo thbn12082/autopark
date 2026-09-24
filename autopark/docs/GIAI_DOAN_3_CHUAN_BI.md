@@ -26,9 +26,25 @@ Mỗi quy tắc dưới đây được thêm sau một lần xe ảo dừng gi�
 2. **Mặt nạ thân xe và vùng mù.** Tia có điểm chạm trong thân xe nới 10 cm, hoặc dưới 0,05 m, bị bỏ (thành NaN). Trên bàn, bo adapter cách LiDAR 9 cm từng rơi vào thân xe ảo và làm "xuất phát không hợp lệ".
 3. **Hành lang quỹ đạo.** Khi đang chạy chỉ vật mới chạm hành lang thân xe nới 10 cm dọc phần quỹ đạo còn lại mới làm dừng; vật mới ngoài hành lang được ghi nhớ (`bridge.seen`) và đưa vào sa bàn ở lần `sync` sau. Không có quy tắc này, vài ô lẻ tẻ cách đường 40 cm trở lên vẫn dừng xe trong vòng một giây.
 4. **Không chụp bản đồ một lần.** Bản "quét nền" (gộp N vòng rồi giữ nguyên) làm người dùng xoay LiDAR mà sa bàn vẫn là cảnh cũ. Bỏ hẳn: khi đang chỉnh sa bàn, mỗi vòng quét đồng bộ lại các hộp (`sync_incremental`); khi đã lập đường thì bản đồ được chốt, vì planner và bộ bám đường cần một bản đồ đứng yên. Đổi cấu hình LiDAR hay ngắt kết nối trong lúc chạy → yêu cầu dừng, và các ô chỉnh bị khóa khi xe đang chạy.
-5. **Cảm biến cố định thì tư thế cố định.** LiDAR trên bàn không chuyển động theo xe ảo; gán nó vào xe ảo đang chạy làm cả cảnh dịch theo xe và mọi mép vật thành "vật mới". Demo dùng LiDAR như cảm biến cố định tại vị trí xuất phát. Ngoài ra: bỏ 15 vòng đầu (mô-tơ C1 còn tăng tốc, mật độ tia đổi từng vòng), bản đồ nền là hợp của 10 vòng kế tiếp, và xả bộ đệm LiDAR sau khi lập đường (dữ liệu tồn đọng sẽ mang stamp mới dù đã cũ).
+5. **Cảm biến cố định thì tư thế cố định.** LiDAR trên bàn không chuyển động theo xe ảo; gán nó vào xe ảo đang chạy làm cả cảnh dịch theo xe và mọi mép vật thành "vật mới". Demo dùng LiDAR như cảm biến cố định tại vị trí xuất phát. Ngoài ra: bỏ 15 vòng đầu (mô-tơ C1 còn tăng tốc, mật độ tia đổi từng vòng), bản đồ nền là hợp của 10 vòng kế tiếp *(đúng với lần chạy thật 22/09/2026 ở mục 3; muộn tối 24/09/2026 demo dòng lệnh đổi sang bỏ ≥ 22 vòng, tùy chọn chờ thêm `--warmup` giây, xem ghi chú ngay dưới danh sách; CHƯA chạy với C1 thật)*, và xả bộ đệm LiDAR sau khi lập đường (dữ liệu tồn đọng sẽ mang stamp mới dù đã cũ).
 
 *Cập nhật 24/09/2026: đo lại số tia/vòng trên ba bản ghi cùng driver (p07_nen_phong và live_headless ngày 22/09, k01_kiem_suc_khoe ngày 24/09; với k01 đã tính cả 11 vòng bỏ khi làm nóng). Trong chính 10 vòng dùng làm nền (vòng 16–25), số tia/vòng vẫn còn đổi từng vòng: đạt đỉnh 536–552 ở vòng 16–17 (≈ 3,7 s sau lệnh SCAN), rồi mới về khoảng ổn định 500–516 từ vòng 21–22 (≈ 4,2 s). Vậy bỏ 15 vòng chưa phủ hết giai đoạn khởi động của mô-tơ. Chưa đo ảnh hưởng của việc này lên bản đồ nền; nếu cần thì tăng `initial_skip` lên khoảng 22 hoặc chờ theo thời gian (≥ 4,5 s sau SCAN). Chi tiết ở [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 3b.*
+
+*Cập nhật muộn tối 24/09/2026 (`fusion/demo.py`; chỉ kiểm bằng nguồn giả, CHƯA chạy với C1 thật).* Demo dòng lệnh nay bỏ vòng khởi động cho tới khi đủ CẢ HAI điều kiện:
+- đã bỏ ≥ `--initial-skip` vòng (mặc định 22, trước là 15);
+- stamp của vòng ≥ `--warmup` giây trên đồng hồ phiên của nguồn (mặc định 0 = chỉ đếm vòng; đề xuất 4,5). Với driver C1, đồng hồ này tính từ ngay trước lệnh SCAN.
+
+Vòng đầu tiên thỏa cả hai là vòng nền đầu tiên. Tính lại trên ba bản ghi (vòng nền = 10 vòng ngay sau các vòng bỏ):
+
+| Quy tắc | Vòng nền (đếm từ vòng đầu sau SCAN) | Tia/vòng của 10 vòng nền |
+|---|---|---|
+| bỏ 15 vòng (cũ) | 16–25 | 504–552 (còn đỉnh khởi động) |
+| bỏ 22 vòng (mặc định mới) | 23–32 | 500–512 |
+| bỏ 22 vòng và `--warmup 4.5` | 25–34 | 500–512 |
+
+Số tia/vòng ổn định trong 500–516 từ vòng 21 (p07) hoặc vòng 22 (live_headless, k01), nên mặc định 22 vòng chỉ dư 1–2 vòng. Chờ theo thời gian là cách an toàn hơn: nó bám theo đại lượng vật lý (thời gian kể từ khi mô-tơ bắt đầu quay), không phụ thuộc tốc độ quay lúc đầu (ở p07 các vòng đầu chỉ dài ≈ 78 ms, vòng thứ 23 đã về lúc ≈ 4,4 s), và trên ba bản ghi cho thêm 2 vòng dự phòng. Nó đã được cài và có test, nhưng chưa làm mặc định: hai test `main()` trong `tests/test_lidar_unplug.py` (không thuộc phần việc này) dùng C1 giả có đồng hồ gần như đứng yên và giả định khởi động xong trước 40 vòng. Đặt `--warmup 4.5` làm mặc định: ĐỀ XUẤT – CHỜ CHỐT, cần sửa hai test đó. Với `--recording`, stamp tính từ vòng đầu của bản ghi chứ không phải từ SCAN, nên `--warmup` chờ lâu hơn cần thiết (thận trọng, không sai). Báo cáo JSON của demo có thêm `warmup`: số vòng bỏ, stamp vòng nền đầu, số tia ít/nhiều nhất của các vòng nền. Nhờ vậy lần chạy thật đầu tiên cho biết ngay vòng nền có nằm trong khoảng ổn định không. Giao diện `ui.lidar_app` không dùng quy tắc này (bản đồ thời gian thực từ 3 vòng gần nhất) và không đổi. Kiểm chứng: 4 test mới trong `tests/test_fusion_demo.py`; kiểm đột biến trên bản sao, 6/6 đột biến bị bắt: bỏ điều kiện thời gian, bỏ điều kiện số vòng, đổi "hoặc" thành "và", đưa mặc định dòng lệnh về 15, không truyền `--warmup`, đưa mặc định của `run_demo` về 15. Ảnh hưởng của vòng khởi động lên bản đồ nền: vẫn CHƯA ĐO.
+
+*Sửa sau rà soát, muộn tối 24/09/2026 (chỉ thử bằng nguồn giả và C1 giả, không mở cổng thật).* Trước đó `--initial-skip -1` hay `--warmup -4.5` (gõ nhầm dấu) chỉ bị `run_demo` từ chối bằng traceback tiếng Anh, và với `--port` thì lúc đó cổng đã mở, lệnh SCAN đã gửi, mô-tơ C1 đã quay. Nay `main()` kiểm hai tùy chọn ngay sau khi đọc dòng lệnh, trước khi mở cổng hay bản ghi: `--initial-skip` âm, `--warmup` âm, NaN hoặc vô cực bị báo lỗi dòng lệnh bằng tiếng Việt, mã thoát 2, không traceback. Vô cực bị loại vì với `--port` nó làm demo bỏ vòng mãi mãi; NaN bị loại vì so sánh với NaN luôn sai nên điều kiện chờ bị bỏ qua. `run_demo` cũng từ chối NaN/vô cực (`ValueError`) trước lần đọc LiDAR đầu tiên. Thêm 3 hàm test (10 trường hợp) trong `tests/test_fusion_demo.py`: nguồn giả ném lỗi test nếu bị đọc, và `RplidarC1Source.open` giả ghi lại nếu bị gọi. Kiểm đột biến trên bản sao, không sửa repo: 6 đột biến mới đều bị bắt (bỏ kiểm ở `main()`; `main()` chỉ loại số âm; `main()` bỏ kiểm `--initial-skip`; bỏ kiểm ở `run_demo`; `run_demo` không loại NaN/vô cực; `run_demo` bỏ kiểm `initial_skip`), 6 đột biến cũ ở trên cũng vẫn bị bắt. `tests/test_lidar_unplug.py` (13 test, hành vi rút cáp) vẫn đạt.
 
 ## 3. Kết quả chạy thật trên bàn (22/09/2026, COM4)
 
@@ -80,6 +96,7 @@ Giao diện (khuyên dùng): cửa sổ đỗ xe giai đoạn 0 có thêm ngăn 
 .\.venv\Scripts\python.exe -X utf8 -m pytest tests/test_fusion.py tests/test_fusion_demo.py
 .\.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --port COM4 --seconds 30      # đưa tay vào trước LiDAR lúc xe chạy
 .\.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --recording runs/lidar_bench/20260922/p07_nen_phong.npz --seconds 10
+.\.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --port COM4 --seconds 30 --warmup 4.5
 ```
 
 ## 6. Chưa làm / giới hạn
@@ -89,6 +106,6 @@ Giao diện (khuyên dùng): cửa sổ đỗ xe giai đoạn 0 có thêm ngăn 
 - `CameraSemanticLayer` mới có phép đặt costmap camera vào bản đồ; chưa có khung hình camera thật đi qua.
 - Chưa có định vị: tư thế xe lấy từ mô phỏng; LiDAR thật đứng yên.
 - Không có bộ nhớ thời gian trong hợp nhất (mỗi lần gọi là ảnh chụp); lớp LiDAR trực tiếp giữ 3 vòng gần nhất.
-- Giao diện dùng bản đồ thời gian thực (3 vòng gần nhất, ô phải thấy ≥ 2 vòng); `fusion/demo.py` dòng lệnh vẫn dùng bản chụp 10 vòng đầu vì nó chạy không có người ngồi trước màn hình.
+- Giao diện dùng bản đồ thời gian thực (3 vòng gần nhất, ô phải thấy ≥ 2 vòng); `fusion/demo.py` dòng lệnh vẫn dùng bản chụp 10 vòng đầu vì nó chạy không có người ngồi trước màn hình. *(Muộn tối 24/09/2026: đó là 10 vòng ngay sau các vòng khởi động bị bỏ, mục 2. Lệnh mẫu cuối ở mục 5 thêm `--warmup 4.5`, tức chờ tới 4,5 s sau SCAN; CHƯA chạy với C1 thật.)*
 - Bản đồ chốt lúc lập đường: vật xuất hiện giữa lúc lập đường và lúc bấm chạy chỉ được phát hiện khi xe đã chạy.
 - Hiệu năng planner với hàng trăm hình chữ nhật chưa đo; cần bộ kiểm tra va chạm theo lưới nếu chậm.

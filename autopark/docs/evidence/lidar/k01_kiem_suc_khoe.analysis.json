@@ -1,0 +1,24 @@
+{
+  "file": "k01_kiem_suc_khoe.npz",
+  "analyzed_utc": "2026-09-24T05:35:08+00:00",
+  "summary": {
+    "scans": 151,
+    "duration_s": 15.031000000002678,
+    "rate_hz": 9.979375956355085,
+    "median_period_s": 0.09399999999732245,
+    "max_gap_s": 0.11000000000058208,
+    "beams_median": 512.0,
+    "beams_min": 492,
+    "beams_max": 552,
+    "no_return_fraction": 0.2110926723020277,
+    "range_min_m": 0.1354999989271164,
+    "range_max_m": 12.848750114440918
+  },
+  "checks": {
+    "rate_8_12_hz": true,
+    "beams_within_5pct_of_5khz": true,
+    "no_gap_over_3_periods": true
+  },
+  "target": null,
+  "passed": true
+}

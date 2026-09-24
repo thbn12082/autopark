@@ -306,7 +306,9 @@ trên laptop RTX 3050 Ti** (máy nộp đồ án).
    (vượt độ lặp lại ~0,1°) thì gốc góc của thiết bị đổi theo lần khởi động: khả năng (b) ở mục 5.
 2. **Vị trí đo bằng thước:** dán băng dính đánh dấu tâm quay và một vạch hướng. Đặt C1 ở gốc, ghi bản đồ. Sau đó dời
    đến các điểm đo bằng thước, ví dụ (+0,20; 0), (0; +0,20), (+0,30; −0,20) m, và quay 0°, +10°, −20° theo thước đo
-   góc. Mỗi điểm ghi 10–15 s. So `ok_pose_median` với số đo thước để có sai số vị trí/hướng (hướng trong tóm tắt là
+   góc. *(Lưu ý 25/09/2026: thước đo góc thường không đủ chính xác để kiểm ngưỡng hướng đề xuất N-L2; tham chiếu hướng
+   nên dùng thước thẳng ≥ 0,65 m đặt dọc vạch hướng, xem [NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md)
+   dòng N-L2.)* Mỗi điểm ghi 10–15 s. So `ok_pose_median` với số đo thước để có sai số vị trí/hướng (hướng trong tóm tắt là
    thống kê vòng, mục 3; so hướng theo hiệu đã quấn về ±180°). Lệnh ghi dùng
    `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --port COM4 --out runs/lidar_bench/<ngày> --name d01_... --seconds 15`
    (thay `<ngày>` bằng ngày thật trước khi dán vào cmd)

@@ -1,0 +1,333 @@
+{
+  "tool": "autopark.lidar.repeatability",
+  "analyzed_utc": "2026-09-24T14:37:20+00:00",
+  "git_commit": "9bcc30c",
+  "code_sha256": "105f6d4d888003b662b908c03d2f1c1d7829273fe8d4d4f51f682d61b949199b",
+  "code_sha256_of": "autopark/autopark/lidar/repeatability.py sau khi đổi CRLF -> LF (như blob trong git)",
+  "command": "python -X utf8 -m autopark.lidar.repeatability runs/lidar_bench/20260922/p07_nen_phong.npz runs/lidar_bench/20260922/live_headless.npz runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.npz --out runs/lidar_bench/do_lap_lai",
+  "config": {
+    "range_min_m": 0.2,
+    "range_max_m": 4.0,
+    "skip_s": 3.0,
+    "tolerances_deg": [
+      0.1,
+      0.2
+    ],
+    "bin_deg": 0.5,
+    "min_quality": 0,
+    "min_bin_samples": 10,
+    "min_bin_return_fraction": 0.5
+  },
+  "recordings": [
+    {
+      "file": "p07_nen_phong.npz",
+      "analyzed_utc": "2026-09-24T14:37:20+00:00",
+      "recording": {
+        "scans": 181,
+        "started_utc": "2026-09-22T06:10:13+00:00",
+        "recorded_with_commit": "bef5695",
+        "warmup_s_in_meta": 0.0,
+        "first_revolution_s_after_start": 2.328,
+        "duration_s": 17.844
+      },
+      "config": {
+        "range_min_m": 0.2,
+        "range_max_m": 4.0,
+        "skip_s": 3.0,
+        "tolerances_deg": [
+          0.1,
+          0.2
+        ],
+        "bin_deg": 0.5,
+        "min_quality": 0,
+        "min_bin_samples": 10,
+        "min_bin_return_fraction": 0.5
+      },
+      "revolutions_used": 149,
+      "used_from_s": 3.047,
+      "used_to_s": 17.844,
+      "beams_per_revolution_used": {
+        "min": 504,
+        "median": 508.0,
+        "max": 516
+      },
+      "range_step_mm": 0.25,
+      "consecutive": [
+        {
+          "tolerance_deg": 0.1,
+          "pairs": 8922,
+          "abs_diff_mm": {
+            "count": 8922,
+            "median": 1.0,
+            "p75": 2.0,
+            "p90": 4.25,
+            "p95": 7.0,
+            "mean": 3.1038,
+            "max": 1540.0
+          },
+          "signed_mean_mm": -0.8521
+        },
+        {
+          "tolerance_deg": 0.2,
+          "pairs": 16924,
+          "abs_diff_mm": {
+            "count": 16924,
+            "median": 1.25,
+            "p75": 2.75,
+            "p90": 6.0,
+            "p95": 10.5,
+            "mean": 3.9897,
+            "max": 1540.0
+          },
+          "signed_mean_mm": -1.0144
+        }
+      ],
+      "angle_bins": {
+        "bin_deg": 0.5,
+        "bins_total": 720,
+        "bins_used": 286,
+        "samples_in_used_bins": 28317,
+        "std_raw_mm": {
+          "count": 286,
+          "median": 3.2626,
+          "p75": 11.8503,
+          "p90": 46.8266,
+          "p95": 127.4694,
+          "mean": 33.3455,
+          "max": 1595.2286
+        },
+        "std_detrended_mm": {
+          "count": 286,
+          "median": 1.5561,
+          "p75": 8.3548,
+          "p90": 44.7855,
+          "p95": 125.8436,
+          "mean": 30.6087,
+          "max": 1328.0629
+        },
+        "mad_sigma_mm": {
+          "count": 286,
+          "median": 1.3682,
+          "p75": 3.326,
+          "p90": 10.2716,
+          "p95": 31.6541,
+          "mean": 14.7007,
+          "max": 1139.8095
+        }
+      },
+      "note": "độ lặp lại giữa các vòng trên cảnh tĩnh, không phải sai số so với thước",
+      "path": "runs/lidar_bench/20260922/p07_nen_phong.npz",
+      "outputs": {
+        "json": "p07_nen_phong.repeatability.json",
+        "png": "p07_nen_phong.repeatability.png"
+      }
+    },
+    {
+      "file": "live_headless.npz",
+      "analyzed_utc": "2026-09-24T14:37:20+00:00",
+      "recording": {
+        "scans": 60,
+        "started_utc": "2026-09-22T06:12:41+00:00",
+        "recorded_with_commit": "bef5695",
+        "warmup_s_in_meta": null,
+        "first_revolution_s_after_start": 2.313,
+        "duration_s": 5.75
+      },
+      "config": {
+        "range_min_m": 0.2,
+        "range_max_m": 4.0,
+        "skip_s": 3.0,
+        "tolerances_deg": [
+          0.1,
+          0.2
+        ],
+        "bin_deg": 0.5,
+        "min_quality": 0,
+        "min_bin_samples": 10,
+        "min_bin_return_fraction": 0.5
+      },
+      "revolutions_used": 28,
+      "used_from_s": 3.047,
+      "used_to_s": 5.75,
+      "beams_per_revolution_used": {
+        "min": 500,
+        "median": 508.0,
+        "max": 516
+      },
+      "range_step_mm": 0.25,
+      "consecutive": [
+        {
+          "tolerance_deg": 0.1,
+          "pairs": 1892,
+          "abs_diff_mm": {
+            "count": 1892,
+            "median": 0.7501,
+            "p75": 1.75,
+            "p90": 4.25,
+            "p95": 7.4999,
+            "mean": 3.4789,
+            "max": 294.5001
+          },
+          "signed_mean_mm": 1.861
+        },
+        {
+          "tolerance_deg": 0.2,
+          "pairs": 3174,
+          "abs_diff_mm": {
+            "count": 3174,
+            "median": 1.0,
+            "p75": 2.4374,
+            "p90": 5.5,
+            "p95": 10.0,
+            "mean": 4.1623,
+            "max": 294.5001
+          },
+          "signed_mean_mm": 2.1078
+        }
+      ],
+      "angle_bins": {
+        "bin_deg": 0.5,
+        "bins_total": 720,
+        "bins_used": 282,
+        "samples_in_used_bins": 5331,
+        "std_raw_mm": {
+          "count": 282,
+          "median": 2.0391,
+          "p75": 3.8421,
+          "p90": 9.721,
+          "p95": 14.1127,
+          "mean": 6.7596,
+          "max": 487.4268
+        },
+        "std_detrended_mm": {
+          "count": 282,
+          "median": 0.8922,
+          "p75": 1.7552,
+          "p90": 6.4116,
+          "p95": 9.5855,
+          "mean": 5.5443,
+          "max": 513.4318
+        },
+        "mad_sigma_mm": {
+          "count": 282,
+          "median": 0.8198,
+          "p75": 1.4884,
+          "p90": 4.1845,
+          "p95": 7.9301,
+          "mean": 5.7288,
+          "max": 576.057
+        }
+      },
+      "note": "độ lặp lại giữa các vòng trên cảnh tĩnh, không phải sai số so với thước",
+      "path": "runs/lidar_bench/20260922/live_headless.npz",
+      "outputs": {
+        "json": "live_headless.repeatability.json",
+        "png": "live_headless.repeatability.png"
+      }
+    },
+    {
+      "file": "k01_kiem_suc_khoe.npz",
+      "analyzed_utc": "2026-09-24T14:37:20+00:00",
+      "recording": {
+        "scans": 151,
+        "started_utc": "2026-09-24T05:34:53+00:00",
+        "recorded_with_commit": "8293120",
+        "warmup_s_in_meta": 3.0,
+        "first_revolution_s_after_start": 3.172,
+        "duration_s": 15.031
+      },
+      "config": {
+        "range_min_m": 0.2,
+        "range_max_m": 4.0,
+        "skip_s": 3.0,
+        "tolerances_deg": [
+          0.1,
+          0.2
+        ],
+        "bin_deg": 0.5,
+        "min_quality": 0,
+        "min_bin_samples": 10,
+        "min_bin_return_fraction": 0.5
+      },
+      "revolutions_used": 121,
+      "used_from_s": 3.031,
+      "used_to_s": 15.031,
+      "beams_per_revolution_used": {
+        "min": 504,
+        "median": 512.0,
+        "max": 516
+      },
+      "range_step_mm": 0.25,
+      "consecutive": [
+        {
+          "tolerance_deg": 0.1,
+          "pairs": 9295,
+          "abs_diff_mm": {
+            "count": 9295,
+            "median": 1.2498,
+            "p75": 2.5001,
+            "p90": 5.4998,
+            "p95": 7.825,
+            "mean": 2.4387,
+            "max": 951.0
+          },
+          "signed_mean_mm": -0.0567
+        },
+        {
+          "tolerance_deg": 0.2,
+          "pairs": 19173,
+          "abs_diff_mm": {
+            "count": 19173,
+            "median": 1.5,
+            "p75": 3.75,
+            "p90": 7.75,
+            "p95": 11.25,
+            "mean": 3.427,
+            "max": 958.5
+          },
+          "signed_mean_mm": -0.1936
+        }
+      ],
+      "angle_bins": {
+        "bin_deg": 0.5,
+        "bins_total": 720,
+        "bins_used": 429,
+        "samples_in_used_bins": 35700,
+        "std_raw_mm": {
+          "count": 429,
+          "median": 2.6839,
+          "p75": 5.1868,
+          "p90": 8.6726,
+          "p95": 14.1257,
+          "mean": 4.8515,
+          "max": 323.089
+        },
+        "std_detrended_mm": {
+          "count": 429,
+          "median": 1.3857,
+          "p75": 2.1355,
+          "p90": 3.4269,
+          "p95": 4.9636,
+          "mean": 2.6406,
+          "max": 320.5241
+        },
+        "mad_sigma_mm": {
+          "count": 429,
+          "median": 1.3895,
+          "p75": 2.1212,
+          "p90": 3.3266,
+          "p95": 4.9156,
+          "mean": 2.0675,
+          "max": 94.1091
+        }
+      },
+      "note": "độ lặp lại giữa các vòng trên cảnh tĩnh, không phải sai số so với thước",
+      "path": "runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.npz",
+      "outputs": {
+        "json": "k01_kiem_suc_khoe.repeatability.json",
+        "png": "k01_kiem_suc_khoe.repeatability.png"
+      }
+    }
+  ],
+  "note": "độ lặp lại giữa các vòng trên cảnh tĩnh, không phải sai số so với thước; offline, không mở thiết bị"
+}

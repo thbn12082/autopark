@@ -1,0 +1,79 @@
+{
+  "recording_version": 1,
+  "source_id": "rplidar_c1",
+  "started_utc": "2026-09-24T05:34:53+00:00",
+  "host": "DESKTOP-55HFSTT",
+  "python": "3.12.10",
+  "git_commit": "8293120",
+  "port": "COM4",
+  "baudrate": 460800,
+  "name": "k01_kiem_suc_khoe",
+  "placement": {
+    "expected_distance_m": null,
+    "expected_angle_deg": null,
+    "note": "kiểm LiDAR có hỏng không, 24/09"
+  },
+  "warmup_s": 3.0,
+  "requested_seconds": 15.0,
+  "driver": "autopark.lidar.rplidar_c1",
+  "driver_version": "1.0",
+  "scan_mode": "Standard (0x20)",
+  "mirror": false,
+  "device": {
+    "model": 65,
+    "model_hex": "0x41",
+    "firmware": "1.2",
+    "hardware": 18,
+    "serial": "f57ffc8bc6e598d1b59598f976dd5762"
+  },
+  "health": {
+    "status": 0,
+    "name": "OK",
+    "error_code": 0
+  },
+  "driver_stats": {
+    "revolutions_returned": 162,
+    "resets": 0,
+    "nodes": 81587,
+    "resync_bytes": 0,
+    "revolutions": 162,
+    "dropped_revolutions": 0,
+    "discarded_nodes": 32,
+    "wrap_splits": 0
+  },
+  "read_errors": 0,
+  "scan_modes": {
+    "count": 2,
+    "typical": 1,
+    "modes": [
+      {
+        "id": 0,
+        "name": "Standard",
+        "us_per_sample": 200.0,
+        "max_distance_m": 16.0,
+        "answer_type": "0x81"
+      },
+      {
+        "id": 1,
+        "name": "DenseBoost",
+        "us_per_sample": 200.0,
+        "max_distance_m": 40.0,
+        "answer_type": "0x85"
+      }
+    ]
+  },
+  "scans": 151,
+  "summary": {
+    "scans": 151,
+    "duration_s": 15.031000000002678,
+    "rate_hz": 9.979375956355085,
+    "median_period_s": 0.09399999999732245,
+    "max_gap_s": 0.11000000000058208,
+    "beams_median": 512.0,
+    "beams_min": 492,
+    "beams_max": 552,
+    "no_return_fraction": 0.2110926723020277,
+    "range_min_m": 0.1354999989271164,
+    "range_max_m": 12.848750114440918
+  }
+}

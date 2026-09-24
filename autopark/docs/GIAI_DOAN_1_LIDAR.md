@@ -19,6 +19,7 @@ Máy nhận cầu USB–UART CP2102N (VID 10C4 / PID EA60) ở trạng thái Cod
 | Bản đồ lưới tĩnh bằng ray casting, xuất `Costmap` cùng bố cục với costmap camera | `lidar/occupancy.py` | test phòng vuông (FREE/OCCUPIED/UNKNOWN, tư thế, tia NaN) |
 | Odometry DROW `.odom2` để thử ghép nhiều vòng trên dữ liệu phát lại | `lidar/drow_odom.py` | test ghép theo dòng; chạy 300 vòng val |
 | Màn hình scan trực tiếp + giám sát dữ liệu cũ + ghi phiên; phát lại `.npz` theo thời gian thật | `lidar/live_view.py` | test offscreen điều khiển tay; chạy headless 8 s với thiết bị |
+| *(thêm muộn tối 24/09/2026)* Độ lặp lại khoảng cách trên cảnh tĩnh: ghép tia hai vòng liên tiếp theo góc, độ lệch chuẩn theo ô góc đã khử dốc, bỏ tia không phản hồi, bỏ giây đầu; JSON + PNG | `lidar/repeatability.py` | 13 test (`tests/test_lidar_repeatability.py`: dữ liệu tổng hợp có nhiễu biết trước, hai test tái lập số trên p07/k01 thật); chạy offline trên p07, live_headless, k01 (mục 3c). *Sau rà soát, muộn tối 24/09/2026: 20 test, xem cuối mục 3c.* |
 | *(thêm 24/09/2026)* Định vị một vòng quét trên bản đồ đã lưu: trường khoảng cách, khớp tương quan nhánh-cận, tinh chỉnh Gauss-Newton, báo OK / AMBIGUOUS / FAILED | `lidar/localize.py` | 29 test trên phòng tổng hợp (`tests/test_lidar_localize.py`; 17 lúc viết, thêm 12 sau đợt rà soát cùng ngày); chạy offline trên p07, live_headless, k01 (mục 8) |
 
 22 test mới (`tests/test_lidar_*.py`), chạy cùng 14 test giai đoạn 1 có sẵn: 36/36 đạt trong `.venv`. Phụ thuộc mới: `pyserial>=3.5` (nhóm `lidar` trong pyproject).
@@ -49,17 +50,65 @@ Hình vòng quét cuối: [p07_nen_phong.png](evidence/lidar/p07_nen_phong.png).
 
 ## 3b. Kiểm tra lại ngày 24/09/2026 (k01)
 
-*Thêm 24/09/2026.* Ghi bằng `python -m autopark.lidar.bench record` trên máy bàn, mã ở commit `8293120`. Theo meta: COM4, `--warmup 3`, `--seconds 15`, không đặt vật, ghi chú "kiểm LiDAR có hỏng không, 24/09". LiDAR đã được dời chỗ sau 22/09; vị trí mới không được ghi lại. Bản ghi: `runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.{npz,json,analysis.json,png}` (git-ignored; chưa chép bản nhỏ vào `docs/evidence/lidar/`). *(Tối 24/09/2026: trong `docs/evidence/lidar/` chỉ có ảnh định vị k01 trên bản đồ p07, mục 8; hình vòng quét và phân tích của k01 vẫn chưa chép.)*
+*Thêm 24/09/2026.* Ghi bằng `python -m autopark.lidar.bench record` trên máy bàn, mã ở commit `8293120`. Theo meta: COM4, `--warmup 3`, `--seconds 15`, không đặt vật, ghi chú "kiểm LiDAR có hỏng không, 24/09". LiDAR đã được dời chỗ sau 22/09; vị trí mới không được ghi lại. Bản ghi: `runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.{npz,json,analysis.json,png}` (git-ignored; chưa chép bản nhỏ vào `docs/evidence/lidar/`). *(Tối 24/09/2026: trong `docs/evidence/lidar/` chỉ có ảnh định vị k01 trên bản đồ p07, mục 8; hình vòng quét và phân tích của k01 vẫn chưa chép.)* *(Muộn tối 24/09/2026: đã chép hình vòng quét cuối [k01_kiem_suc_khoe.png](evidence/lidar/k01_kiem_suc_khoe.png), phân tích [k01_kiem_suc_khoe.analysis.json](evidence/lidar/k01_kiem_suc_khoe.analysis.json) và meta [k01_kiem_suc_khoe.json](evidence/lidar/k01_kiem_suc_khoe.json); ba tệp trùng từng byte với tệp trong `runs/`. Bản ghi `.npz` (418 KB) không chép.)*
 
 - GET_INFO trả cùng thiết bị (serial `f57ffc8b…`, firmware 1.2, phần cứng 18); GET_HEALTH OK.
 - 151 vòng được ghi trong 15,0 s (driver đếm 162 vòng, gồm 11 vòng lúc làm nóng); 0 lỗi đọc, 0 byte lệch, 0 vòng bị bỏ, 0 lần đóng vòng theo điểm góc.
 - Tần số gộp 9,98 Hz (p07: 10,09 Hz); trung vị 512 tia/vòng (492–552). Chênh lệch là do đoạn khởi động mô-tơ nằm trong bản ghi, chưa thấy dấu hiệu thiết bị thay đổi. Ở p07 (ghi từ vòng đầu) mô-tơ lúc đầu quay nhanh (≈ 400 tia/vòng, vòng ≈ 78 ms theo đồng hồ thô), sau đó chậm lại (tới 536 tia/vòng ở ≈ 1,3 s), rồi mới ổn định quanh 510. Số tia/vòng tỉ lệ với chu kỳ vòng vì thiết bị lấy mẫu đều 5 kHz. `--warmup 3` tính từ ngay sau lệnh SCAN, mà node đầu tới sau ≈ 2,2 s (p07, live_headless), nên làm nóng chỉ bỏ 11 vòng đầu và k01 vẫn chứa pha chậm: 492 → 552 → 500 tia trong ≈ 1,4 s đầu bản ghi. Bỏ 3 s đầu của mỗi bản ghi thì cả hai ngày đều ≈ 10,0 Hz và 504–516 tia/vòng (trung bình ≈ 510; p07 còn 149 vòng, k01 còn 121 vòng). Stamp có bước 15,6 ms (ghi chú về đồng hồ ở mục 3), nên không ghi thêm chữ số thập phân.
-- Độ lặp lại khoảng cách trên mặt tĩnh: ghép mỗi tia với tia gần góc nhất của vòng trước (lệch góc < 0,1–0,2°), chỉ lấy phản hồi 0,2–4 m, bỏ 3 s đầu. Trung vị |chênh| 1,0–1,25 mm ở p07 và 1,25–1,5 mm ở k01 tùy dung sai góc; p90 4–8 mm. Tính bằng script tạm ngày 24/09, không lưu trong repo. Đây là độ lặp lại giữa hai vòng, không phải sai số so với thước.
+- Độ lặp lại khoảng cách trên mặt tĩnh: ghép mỗi tia với tia gần góc nhất của vòng trước (lệch góc < 0,1–0,2°), chỉ lấy phản hồi 0,2–4 m, bỏ 3 s đầu. Trung vị |chênh| 1,0–1,25 mm ở p07 và 1,25–1,5 mm ở k01 tùy dung sai góc; p90 4–8 mm. Tính bằng script tạm ngày 24/09, không lưu trong repo. Đây là độ lặp lại giữa hai vòng, không phải sai số so với thước. *(Muộn tối 24/09/2026: script tạm đã mất. Phép tính được viết lại theo đúng mô tả này thành `lidar/repeatability.py` và cho lại đúng các số trên; xem mục 3c.)*
 - Tia không phản hồi 21,1 % (p07: 34,6 %); phản hồi 0,14–12,85 m. Vùng không phản hồi thay đổi theo cảnh vì LiDAR đã dời chỗ, nên hai tỉ lệ này không so sánh được với nhau.
 
 Kết luận: giao tiếp, tần số quét và số tia không có dấu hiệu hỏng. **Sai số khoảng cách so với thước vẫn chưa đo** (mục 6). Còn mở:
 - Đỉnh khởi động 552 tia, cao hơn 536 (p07) và 540 (live_headless). Mới có ba lần khởi động được ghi (hai lần ngày 22/09, một lần ngày 24/09), chưa đủ để kết luận.
 - k01 có 268 tia rất gần (0,135–0,173 m) với chất lượng ≤ 6 (trung vị chất lượng mọi phản hồi của k01 là 24), trong 130/151 vòng, quanh −56…−52° và −30…−28° theo quy ước dự án (tức 52–56° và 28–30° theo chiều kim đồng hồ ở quy ước thiết bị; dấu trái/phải chưa xác minh, mục 6b). p07 và live_headless (chỗ đặt cũ) cũng có tia gần chất lượng thấp ở hai vùng này, rộng hơn (p07: −70…−46° và −30…−22°), cùng các phản hồi gần khác của vật sát cảm biến ở chỗ đặt cũ. Chưa rõ là vật gì (nghi dây cáp; chưa kiểm).
+
+## 3c. Độ lặp lại khoảng cách: công cụ trong repo và kết quả chạy lại (thêm muộn tối 24/09/2026)
+
+Script tạm tính độ lặp lại ở mục 3b không được lưu. Muộn tối 24/09/2026, phép tính được viết lại theo đúng mô tả ở mục 3b thành `lidar/repeatability.py`. Công cụ chạy offline trên máy bàn, không mở thiết bị. Mã gốc đã mất, nên "tái lập" ở đây chỉ có nghĩa: cùng mô tả phương pháp cho cùng các số. Không chứng minh được hai mã giống hệt nhau.
+
+Lệnh (trong `autopark`, một dòng, dán được vào cmd.exe):
+
+```
+.venv\Scripts\python.exe -X utf8 -m autopark.lidar.repeatability runs/lidar_bench/20260922/p07_nen_phong.npz runs/lidar_bench/20260922/live_headless.npz runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.npz --out runs/lidar_bench/do_lap_lai
+```
+
+Mỗi bản ghi cho `<tên>.repeatability.json` và `<tên>.repeatability.png`; thêm một tệp gộp `repeatability_summary.json`. *(Sau rà soát, muộn tối 24/09/2026: nếu hai bản ghi khác thư mục trùng tên tệp, ví dụ `lidar/part_0000.npz` của hai phiên bàn thử, thì tên tệp ra được thêm dần tên thư mục cha, ví dụ `o03_20260924__lidar__part_0000.repeatability.json`; trước đó tệp ra của bản ghi sau ghi đè bản ghi trước mà không báo. Mỗi mục trong tệp gộp ghi đường dẫn bản ghi như đã gõ (`path`) và tên hai tệp ra (`outputs`). Nêu cùng một bản ghi hai lần thì bị từ chối như lỗi dòng lệnh. Ba bản ghi ở lệnh trên không trùng tên, nên tên tệp ra không đổi.)* Bộ lọc mặc định giống mục 3b: bỏ tia không phản hồi (NaN, không tính là 0), chỉ lấy phản hồi 0,2–4 m, bỏ 3 s đầu tính từ vòng đầu của bản ghi. Có hai phép tính:
+- **Theo tia, giữa hai vòng liên tiếp** (phép tính của mục 3b): mỗi tia ghép với tia gần góc nhất của vòng trước, có xét vòng qua ±180°; chỉ nhận cặp lệch góc < 0,1° (hoặc < 0,2°); thống kê |Δr|.
+- **Theo ô góc 0,5°** (mới): gom mọi tia của các vòng đã chọn theo ô góc. Góc tia xê dịch giữa các vòng, nên trên mặt nghiêng khoảng cách đổi theo góc ngay trong một ô. Trong mỗi ô, khử độ dốc đó bằng hồi quy tuyến tính khoảng cách theo góc, rồi lấy độ lệch chuẩn phần dư. Tóm tắt bằng trung vị và p90 qua các ô. Một ô chỉ được tính khi có ≥ 10 mẫu và ≥ 50 % số tia rơi vào ô qua bộ lọc.
+
+| Bản ghi (số vòng dùng) | \|Δr\|, lệch góc < 0,1°: trung vị / p90 (số cặp) | \|Δr\|, lệch góc < 0,2°: trung vị / p90 (số cặp) | Độ lệch chuẩn theo ô 0,5°, đã khử dốc: trung vị / p90 (số ô) |
+|---|---|---|---|
+| p07, 22/09 (149) | 1,00 / 4,25 mm (8.922) | 1,25 / 6,00 mm (16.924) | 1,56 / 44,8 mm (286) |
+| live_headless, 22/09 (28) | 0,75 / 4,25 mm (1.892) | 1,00 / 5,50 mm (3.174) | 0,89 / 6,41 mm (282) |
+| k01, 24/09 (121) | 1,25 / 5,50 mm (9.295) | 1,50 / 7,75 mm (19.173) | 1,39 / 3,43 mm (429) |
+
+Đối chiếu với số đã ghi ở mục 3b và TONG_HOP_DU_AN.md mục 4.3:
+- p07 cho 1,0–1,25 mm và k01 cho 1,25–1,5 mm tùy dung sai góc: **trùng** số đã ghi. p90 là 4,25–7,75 mm, nằm trong khoảng "4–8 mm" đã ghi.
+- live_headless không có trong số đã ghi. Sau khi bỏ 3 s, bản ghi này chỉ còn 28 vòng. Trung vị của nó là 0,75–1,0 mm, thấp hơn khoảng "1,0–1,5 mm" ở TONG_HOP. Tính cả live_headless thì khoảng trung vị là 0,75–1,5 mm. Chưa rõ vì sao thấp hơn; bản ghi ngắn, ghi 2,5 phút sau p07 ở cùng chỗ đặt.
+- Trung vị luôn là bội của 0,25 mm, vì C1 gửi khoảng cách theo bước 1/4 mm (JSON ghi `range_step_mm: 0.25`, nghĩa là mọi khoảng cách hữu hạn của bản ghi là bội của 0,25 mm; đã kiểm trên cả ba bản ghi). "1,0 so với 1,25 mm" chỉ cách nhau một bậc lượng tử.
+- Hai phép tính cho cùng cỡ: trung vị |Δr| là 0,75–1,5 mm (ba bản ghi, hai dung sai góc), trung vị độ lệch chuẩn theo ô 0,5° (đã khử dốc) là 0,89–1,56 mm. Nếu nhiễu của mỗi vòng là Gauss độc lập với độ lệch chuẩn σ thì trung vị |Δr| ≈ 0,95σ, tức σ suy từ |Δr| ≈ 0,79–1,57 mm; đây là giả định, CHƯA KIỂM. *(Sửa sau rà soát, muộn tối 24/09/2026: câu cũ ghi "trung vị ≈ 0,9–1,6 mm" cho cả hai phép tính, không khớp trung vị |Δr| 0,75 mm của live_headless ở bảng trên.)*
+- p90 theo ô của p07 lớn (44,8 mm): 66/286 ô có độ lệch chuẩn > 10 mm. Các ô này gom ở vài vùng góc (quanh −95…−90°, −13…+20°, 121…155°). Ở 74 % số ô đó, 1,4826 × MAD nhỏ hơn nửa độ lệch chuẩn, tức là vài giá trị nhảy xa chứ không phải nhiễu đều. Điều này hợp với mép vật hoặc phản hồi chập chờn, nhưng chưa kiểm bằng mắt từng vùng. k01 chỉ có 11/429 ô như vậy.
+
+Bằng chứng (máy bàn, muộn tối 24/09/2026, chỉ chép phần nhỏ). Lần chạy đầu ra một thư mục tạm của phiên làm việc. *Sau rà soát cùng tối, chạy lại bằng mã đã sửa với đúng lệnh trên, ra `runs/lidar_bench/do_lap_lai` (git-ignored): mọi số trong bảng không đổi, chỉ hash mã, mốc giờ, lệnh và các trường mới `path`/`outputs` khác. Tệp tóm tắt dưới là của lần chạy lại.*
+- tóm tắt đủ ba bản ghi, kèm lệnh, tham số và hash mã `repeatability.py` lúc chạy (sha256 sau khi đổi CRLF→LF, kiểm lại bằng `git show <commit>:autopark/autopark/lidar/repeatability.py` rồi sha256; mã chưa commit): [do_lap_lai_20260924.json](evidence/lidar/do_lap_lai_20260924.json);
+- hình, bên trái là độ lệch chuẩn theo góc, bên phải là tần suất |Δr| với dung sai 0,1°: [do_lap_lai_p07_nen_phong.png](evidence/lidar/do_lap_lai_p07_nen_phong.png), [do_lap_lai_k01_kiem_suc_khoe.png](evidence/lidar/do_lap_lai_k01_kiem_suc_khoe.png).
+
+Giới hạn:
+- Đây là độ lặp lại giữa các vòng trên cảnh tĩnh, **không phải sai số so với thước**. Sai số so với thước vẫn chưa đo (mục 6).
+- p07 và live_headless ghi không làm nóng. Mốc bỏ 3 s tính từ vòng đầu của bản ghi, không phải từ lệnh SCAN.
+- Chưa tách kết quả theo khoảng cách hay theo loại bề mặt.
+
+Kiểm chứng: `tests/test_lidar_repeatability.py`, 13 test. Các test dùng dữ liệu tổng hợp có nhiễu biết trước; hai test chạy trên p07/k01 thật nếu có trong `runs/` (thiếu thì bỏ qua). Kiểm đột biến trên bản sao, không sửa repo: 9/9 đột biến bị ít nhất một test bắt. Chín đột biến là: bỏ khử dốc, giữ tia NaN, bỏ phần bỏ giây đầu, bỏ xử lý vòng qua ±180°, bỏ dung sai góc, bỏ lọc khoảng cách, bỏ lọc chất lượng, bỏ hệ số 1,4826, ghép hai vòng không liền nhau.
+
+*Sau rà soát, muộn tối 24/09/2026:* 20 test (thêm 7). Rà soát chỉ ra hai quy tắc nhận ô (≥ 10 mẫu, ≥ 50 % số tia trong ô có phản hồi) và phép kiểm bậc 0,25 mm không có test nào giữ: bỏ quy tắc 50 % thì p07 đổi từ 1,56 / 44,8 mm (286 ô) thành 2,70 / 129,5 mm (433 ô; tính lại offline trên máy bàn bằng `min_bin_return_fraction=0`) mà 13 test cũ vẫn đạt. Test mới:
+- ô có nhiều tia không phản hồi (cung 20–50° chỉ ≈ 30 % tia có phản hồi) không được tính;
+- ô cần đủ 10 mẫu (9 vòng: 0 ô, 10 vòng: 512 ô);
+- `range_step_mm` là `None` khi khoảng cách không theo bậc 0,25 mm;
+- hai test trên bản ghi thật giữ thêm số theo ô của bảng trên (286 ô, 1,56 / 44,8 mm cho p07; 429 ô, 1,39 / 3,43 mm cho k01);
+- hai bản ghi trùng tên tệp giữ đủ hai bộ tệp ra; tên tệp ra chỉ dài thêm khi trùng; cùng một bản ghi nêu hai lần bị từ chối (mã thoát 2);
+- hash mã như nhau với tệp LF và CRLF.
+
+Kiểm đột biến lại trên bản sao, không sửa repo: 9 đột biến cũ và 10 đột biến mới của `repeatability.py`, cả 19 đều bị ít nhất một test bắt. Mười đột biến mới: đặt tên tệp ra chỉ theo tên bản ghi, nhận cùng một bản ghi hai lần, thêm thư mục cha cho mọi tên, bỏ trường `path`, hash byte thô, bỏ quy tắc 50 %, hạ 50 % xuống 25 %, hạ 10 mẫu xuống 3, đổi `>=` thành `>` ở số mẫu, luôn báo bậc 0,25 mm.
 
 ## 4. Giám sát dữ liệu cũ trên thiết bị thật
 
