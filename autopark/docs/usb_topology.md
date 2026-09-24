@@ -21,8 +21,11 @@ từ 720p trở lên từng rớt khung ở cổng 4; sau khi rút/cắm lại c
 
 **Cập nhật 24/09/2026 (theo đính chính chiều 23/09):** "0 khung cũ" chỉ có nghĩa là không có khung cũ, không có nghĩa là
 ảnh nguyên vẹn: các phiên sau rút/cắm chưa kiểm khung MJPEG bị cắt cụt. Chiều 23/09 đo lại, lần này có đếm khung bị cắt.
-Kết quả: ở 720p/1080p, khi ba hoặc bốn camera chạy chung qua hub, phần lớn khung của hai đến ba camera bị cắt (đáy do bộ
-giải mã tô); chạy một mình thì không. Ở 640×480 thì phần lớn thời gian ảnh nguyên vẹn, nhưng camera cổng 1 có những đợt
+Kết quả: khi **bốn** camera chạy chung qua hub, phần lớn khung của hai đến ba camera bị cắt (đáy do bộ giải mã tô): 720p
+r04, r08, r11 và 1080p r09. Khi **ba** camera ở 720p thì chỉ **một** camera bị cắt phần lớn khung (r03: cổng 1 97 %, cổng 3
+9 %; r05: cổng 4 67 %, cổng 3 1 %). Ba camera ở 1080p chưa có phiên nào đếm khung bị cắt. Chạy một mình thì không.
+*(Sửa tối 24/09/2026: bản trước ghi "khi ba hoặc bốn camera chạy chung qua hub, phần lớn khung của hai đến ba camera bị
+cắt", gộp ba với bốn camera; số theo [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2.3.)* Ở 640×480 thì phần lớn thời gian ảnh nguyên vẹn, nhưng camera cổng 1 có những đợt
 26–36 % khung hỏng, chưa rõ nguyên nhân. Vì vậy bốn camera qua hub này chỉ dùng được ở **640×480** (mặc định của
 `rig.bench` và giao diện từ 23/09), và vẫn phải bật bộ dò `truncated_rows`/`torn_bands`. Kết quả này hợp với giả thuyết
 thiếu băng thông USB 2.0 dùng chung ở đoạn trên nhưng **chưa chứng minh**. Mức cắt còn phụ thuộc cảnh: ngày 24/09, camera
