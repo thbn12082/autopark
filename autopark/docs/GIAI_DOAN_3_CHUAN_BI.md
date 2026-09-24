@@ -42,6 +42,8 @@ Mỗi quy tắc dưới đây được thêm sau một lần xe ảo dừng gi�
 
 Chưa thử: đưa tay/hộp vào trước LiDAR trong lúc xe ảo chạy (cần người); rút cáp trong lúc chạy (kỳ vọng dừng với lý do "bản đồ hợp nhất không hợp lệ", đã có test với nguồn giả).
 
+*Cập nhật tối 24/09/2026 (chỉ thử với cổng nối tiếp GIẢ trong `tests/test_lidar_unplug.py`; rút cáp C1 thật vẫn CHƯA THỬ). Trong `fusion/demo.py`, lỗi của cổng nối tiếp (rút cáp) nay không còn đi đường "bản đồ hợp nhất không hợp lệ". Driver ném `LidarTransportError`, lớp con của `ScanReadError`. Demo thôi đọc cổng và dừng xe ảo ngay với lý do "Mất kết nối LiDAR (lỗi cổng nối tiếp)". Demo kết thúc khi xe ảo đứng yên, đóng cổng chết không ném lỗi lần hai, thoát mã 1. Lý do "bản đồ hợp nhất không hợp lệ" vẫn đúng trong hai trường hợp. (1) Hết thời gian chờ vòng quét (`ScanReadError` thường, cổng còn sống): demo đếm lỗi, đọc tiếp, và lớp `LiveLidar` hết hạn sau `--max-age` (0,3 s). (2) Giao diện `ui.lidar_app`: luồng đọc chỉ hiện tên lỗi rồi thử lại, nên xe ảo dừng khi lớp `LiveLidar` hết hạn (suy ra từ mã).*
+
 ## 3b. Kiểm toán độc lập "vì sao số vật cản khác số vật" (22/09/2026, 45 agent, 21 phát hiện, 12 được xác nhận)
 
 Câu hỏi của người dùng: LiDAR thấy nhiều hơn / số vật cản trên sa bàn nhiều hơn số đồ vật. Đo trên bản ghi p07 (cùng bàn): một vòng 352 phản hồi → 221 rơi trong sa bàn 3 × 2 m → 101 sau mặt nạ thân xe (120 điểm là bo adapter, dây cáp, mép bàn sát cảm biến) → gộp 10 vòng thành 67 ô 5 cm = 18 cụm vật nhưng 33 hình chữ nhật (11 hình chỉ một ô). Kết luận đã được phản biện xác nhận:

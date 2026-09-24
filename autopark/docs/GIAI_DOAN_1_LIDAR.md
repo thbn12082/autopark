@@ -1,6 +1,6 @@
 # Giai đoạn 1 — nhánh LiDAR: nhận RPLIDAR C1, driver, ghi phiên, bản đồ tĩnh (22/09/2026)
 
-**Kế hoạch đối chiếu:** [v3.1, mục 5 "Khi nhận LiDAR"](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), bước 1–3 và 5.
+**Kế hoạch đối chiếu:** [v3.1, mục 5 "Khi nhận LiDAR"](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), bước 1–3 và 5. *Thêm 24/09/2026:* bước 6 (nạp lại bản đồ, định vị) có công cụ và kết quả trên bản ghi sẵn, chưa có tham chiếu độc lập — mục 8 và [DINH_VI_LIDAR.md](DINH_VI_LIDAR.md).
 **Mức bằng chứng:** thiết bị thật trên bàn làm việc, máy bàn i9-14900 (không phải laptop RTX 3050 Ti mang đi nộp đồ án), chưa làm nóng theo sổ tay, chưa đặt vật ở khoảng cách đo bằng thước. Mọi con số dưới đây là của một phiên cụ thể, không phải cam kết.
 **Phần chuẩn bị khi chưa có đồ** (nguồn phát lại, ROI, costmap camera, giám sát dữ liệu cũ) nằm ở [GIAI_DOAN_1_CHUAN_BI.md](GIAI_DOAN_1_CHUAN_BI.md).
 
@@ -19,6 +19,7 @@ Máy nhận cầu USB–UART CP2102N (VID 10C4 / PID EA60) ở trạng thái Cod
 | Bản đồ lưới tĩnh bằng ray casting, xuất `Costmap` cùng bố cục với costmap camera | `lidar/occupancy.py` | test phòng vuông (FREE/OCCUPIED/UNKNOWN, tư thế, tia NaN) |
 | Odometry DROW `.odom2` để thử ghép nhiều vòng trên dữ liệu phát lại | `lidar/drow_odom.py` | test ghép theo dòng; chạy 300 vòng val |
 | Màn hình scan trực tiếp + giám sát dữ liệu cũ + ghi phiên; phát lại `.npz` theo thời gian thật | `lidar/live_view.py` | test offscreen điều khiển tay; chạy headless 8 s với thiết bị |
+| *(thêm 24/09/2026)* Định vị một vòng quét trên bản đồ đã lưu: trường khoảng cách, khớp tương quan nhánh-cận, tinh chỉnh Gauss-Newton, báo OK / AMBIGUOUS / FAILED | `lidar/localize.py` | 29 test trên phòng tổng hợp (`tests/test_lidar_localize.py`; 17 lúc viết, thêm 12 sau đợt rà soát cùng ngày); chạy offline trên p07, live_headless, k01 (mục 8) |
 
 22 test mới (`tests/test_lidar_*.py`), chạy cùng 14 test giai đoạn 1 có sẵn: 36/36 đạt trong `.venv`. Phụ thuộc mới: `pyserial>=3.5` (nhóm `lidar` trong pyproject).
 
@@ -48,7 +49,7 @@ Hình vòng quét cuối: [p07_nen_phong.png](evidence/lidar/p07_nen_phong.png).
 
 ## 3b. Kiểm tra lại ngày 24/09/2026 (k01)
 
-*Thêm 24/09/2026.* Ghi bằng `python -m autopark.lidar.bench record` trên máy bàn, mã ở commit `8293120`. Theo meta: COM4, `--warmup 3`, `--seconds 15`, không đặt vật, ghi chú "kiểm LiDAR có hỏng không, 24/09". LiDAR đã được dời chỗ sau 22/09; vị trí mới không được ghi lại. Bản ghi: `runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.{npz,json,analysis.json,png}` (git-ignored; chưa chép bản nhỏ vào `docs/evidence/lidar/`).
+*Thêm 24/09/2026.* Ghi bằng `python -m autopark.lidar.bench record` trên máy bàn, mã ở commit `8293120`. Theo meta: COM4, `--warmup 3`, `--seconds 15`, không đặt vật, ghi chú "kiểm LiDAR có hỏng không, 24/09". LiDAR đã được dời chỗ sau 22/09; vị trí mới không được ghi lại. Bản ghi: `runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.{npz,json,analysis.json,png}` (git-ignored; chưa chép bản nhỏ vào `docs/evidence/lidar/`). *(Tối 24/09/2026: trong `docs/evidence/lidar/` chỉ có ảnh định vị k01 trên bản đồ p07, mục 8; hình vòng quét và phân tích của k01 vẫn chưa chép.)*
 
 - GET_INFO trả cùng thiết bị (serial `f57ffc8b…`, firmware 1.2, phần cứng 18); GET_HEALTH OK.
 - 151 vòng được ghi trong 15,0 s (driver đếm 162 vòng, gồm 11 vòng lúc làm nóng); 0 lỗi đọc, 0 byte lệch, 0 vòng bị bỏ, 0 lần đóng vòng theo điểm góc.
@@ -67,7 +68,16 @@ Kết luận: giao tiếp, tần số quét và số tia không có dấu hiệu
 ## 5. Bản đồ lưới tĩnh và thử odometry DROW
 
 - Từ p07 (cảm biến cố định, lưới 8 × 8 m, ô 5 cm, tầm 8 m): 5.657 ô FREE, 230 ô OCCUPIED, còn lại UNKNOWN; [map_p07.png](evidence/lidar/map_p07.png); `costmap.json` cùng bố cục với costmap camera nên có thể hợp nhất sau. Chưa có tham chiếu độc lập để đo sai số bản đồ.
-- DROW val `run_2015-11-25-10-34-20-a`, 300 vòng đầu, tư thế lấy từ `.odom2` ghép theo dòng: bản đồ theo quy ước loader v2 (không mirror) cho hành lang mỏng, rõ ([drow_odom_map.png](evidence/lidar/drow_odom_map.png), sharpness 0,30); đảo dấu góc cho vệt loang ([drow_odom_mirror_map.png](evidence/lidar/drow_odom_mirror_map.png), 0,18); giữ cảm biến cố định cho 0,13. Đây là bằng chứng gián tiếp rằng odometry DROW dùng cùng chiều với góc quét, chưa phải kiểm chứng SLAM. `.odom2` có seq không trùng seq của file scan (ghép theo dòng như loader gốc) và 23 dòng lặp.
+- DROW val `run_2015-11-25-10-34-20-a`, 300 vòng đầu, tư thế lấy từ `.odom2` ghép theo dòng: bản đồ theo quy ước loader v2 (không mirror) cho hành lang mỏng, rõ ([drow_odom_map.png](evidence/lidar/drow_odom_map.png), sharpness 0,30); đảo dấu góc cho vệt loang ([drow_odom_mirror_map.png](evidence/lidar/drow_odom_mirror_map.png), 0,18); giữ cảm biến cố định cho 0,13 ([drow_fixed_map.png](evidence/lidar/drow_fixed_map.png); *link thêm tối 24/09/2026*, ảnh đã có trong `evidence/` từ 22/09 nhưng trước đây mục này chưa link). Đây là bằng chứng gián tiếp rằng odometry DROW dùng cùng chiều với góc quét, chưa phải kiểm chứng SLAM. `.odom2` có seq không trùng seq của file scan (ghép theo dòng như loader gốc) và 23 dòng lặp.
+- *Thêm tối 24/09/2026, cách dựng lại ba ảnh DROW* (trong `autopark`, `.venv`, dữ liệu `datasets/drow/` bị git-ignore; mỗi lệnh một dòng, dán được vào cmd.exe và PowerShell):
+
+  ```
+  .\.venv\Scripts\python.exe -X utf8 -m autopark.lidar.occupancy --drow datasets/drow/DROWv2-data/val/run_2015-11-25-10-34-20-a.bag.csv --scans 300 --grid -12 12 -12 12 0.1 --max-range 10 --out <thư mục>
+  .\.venv\Scripts\python.exe -X utf8 -m autopark.lidar.occupancy --drow datasets/drow/DROWv2-data/val/run_2015-11-25-10-34-20-a.bag.csv --scans 300 --grid -12 12 -12 12 0.1 --max-range 10 --odom --out <thư mục>
+  .\.venv\Scripts\python.exe -X utf8 -m autopark.lidar.occupancy --drow datasets/drow/DROWv2-data/val/run_2015-11-25-10-34-20-a.bag.csv --scans 300 --grid -12 12 -12 12 0.1 --max-range 10 --odom --mirror --out <thư mục>
+  ```
+
+  Lần lượt cho ảnh cố định, theo `.odom2`, đảo dấu góc. Tham số: 300 vòng đầu (`--start` mặc định 0), lưới 24 × 24 m ô 0,1 m, tầm 10 m; `--min-passes 3`, `--min-hits 2`, `--occupied-ratio 0.2` để mặc định. `costmap.json` không ghi tầm quét, nên tham số tầm được xác nhận bằng cách dựng lại: tối 24/09/2026 chạy ba lệnh trên vào thư mục tạm, `map.png` trùng từng byte với ba tệp trong `evidence/lidar/`, lưới `costmap.json` của ảnh cố định trùng từng ô với `runs/lidar_bench/20260922/drow_fixed/`; bỏ `--max-range 10` (tầm mặc định 12 m) thì ảnh cố định khác (739 ô OCCUPIED thay vì 660). Sharpness phụ thuộc lưới và tầm, nên trích số 0,30 / 0,18 / 0,13 phải kèm tham số này. Hình dựng từ DROW phải ghi công theo [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md) (trích cả hai bài DROW).
 
 ## 6. Việc còn lại của bước 2–3 "Khi nhận LiDAR" — cần người đặt vật
 
@@ -93,6 +103,61 @@ Driver đổi dấu góc thiết bị theo datasheet (góc tăng theo chiều ki
 
 - Chỉ dùng chế độ Standard; DenseBoost (định dạng gói khác) chưa cài đặt, chưa cần.
 - Chưa đo trên laptop RTX 3050 Ti (máy nộp đồ án); chưa đo nhiệt/độ trễ dài hạn; chưa thử cáp dài hay hub.
-- Bản đồ tĩnh không phải SLAM: không ước lượng tư thế, không nạp lại, không định vị.
+- Bản đồ tĩnh không phải SLAM: không ước lượng tư thế, không nạp lại, không định vị. *Cập nhật 24/09/2026:* đã có nạp lại bản đồ và định vị từng vòng quét trên bản đồ cố định (mục 8). Vẫn không phải SLAM: bản đồ không được cập nhật, không có odometry.
 - Phiên p07 chưa làm nóng và không có vật tham chiếu; số tia/tần số coi là ổn định, sai số khoảng cách thì chưa. *Cập nhật 24/09/2026:* ở trạng thái ổn định, số tia và tần số lặp lại ở k01 (mục 3b); sai số khoảng cách vẫn chưa đo.
 - *Cập nhật 24/09/2026:* sau phiên p07, LiDAR đã chạy chung bốn camera + AI trên bàn thử ở máy bàn ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md)): ba phiên 10 phút s07, t09, u04 được 6006 / 6005 / 6006 vòng, 0 lỗi đọc, 0 vòng mất (t09 và u04 trung bình 10,01 Hz; s07 thuộc loạt đầu, đồng hồ thô, không lấy số thời gian), và năm phiên 60–120 s ngày 24/09 (w01–w05, 10,01–10,02 Hz, 0 lỗi đọc, 0 vòng mất). Độ lệch lúc về máy giữa vòng LiDAR và bộ ảnh ở mục 3.2 của tài liệu đó. LiDAR thật đứng yên làm nền để xe ảo lập đường và đỗ xong quanh đồ vật thật ở [GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md) mục 3; chưa thử đưa vật vào để xe ảo dừng. Vẫn chưa đo: nhiệt của LiDAR, độ trễ từ sự kiện thật tới lúc vòng quét về máy, cáp dài hay hub, và mọi số trên laptop RTX 3050 Ti (máy nộp đồ án).
+
+## 8. Định vị lại trên bản đồ tĩnh (thêm 24/09/2026)
+
+Bước 6 của kế hoạch: *"Nạp lại bản đồ, thử định vị tại các vị trí có tham chiếu độc lập."* Công cụ là
+`python -m autopark.lidar.localize`. Phương pháp, tham số, test và giới hạn nằm ở [DINH_VI_LIDAR.md](DINH_VI_LIDAR.md).
+Ngày 24/09 chỉ chạy offline trên các bản ghi có sẵn, không chạy thiết bị. Bản đồ dùng là `map_p07` (mục 5). Dựng lại bản
+đồ này bằng mã hiện tại cho lưới giống hệt từng ô.
+
+| Bản ghi | Kết quả (cửa sổ ±0,5 m / ±30° quanh gốc) |
+|---|---|
+| p07 (chính dữ liệu dựng bản đồ, không độc lập) | 181/181 OK. Tư thế (−1,3 mm; −3,3 mm; +0,01°); độ lệch chuẩn giữa các vòng 1,4 / 1,8 mm, 0,05° |
+| live_headless (22/09, 2,5 phút sau p07) | 60/60 OK. Tư thế (−1,1 mm; −6,8 mm; **+4,33°**); độ lệch chuẩn 2,6 / 2,7 mm, 0,07°. Tìm trên cả bản đồ (`--global`) cho cùng kết quả |
+| k01 (24/09, LiDAR đã dời chỗ) | 151/151 FAILED (tỉ lệ khớp trung vị 0,24, mâu thuẫn với bản đồ). Tìm trên cả bản đồ (31 vòng): 31/31 FAILED |
+
+*Thêm tối 24/09/2026 — bằng chứng trong git.* Chạy lại offline trên máy bàn các lệnh ở [DINH_VI_LIDAR.md](DINH_VI_LIDAR.md) mục 3 (bản đồ `runs/lidar_bench/20260922/map_p07`, không chạy thiết bị), ra thư mục tạm, rồi chỉ chép ảnh overlay và một tệp tóm tắt:
+[dinh_vi_p07_tren_p07.png](evidence/lidar/dinh_vi_p07_tren_p07.png),
+[dinh_vi_live_headless_tren_p07.png](evidence/lidar/dinh_vi_live_headless_tren_p07.png),
+[dinh_vi_k01_tren_p07.png](evidence/lidar/dinh_vi_k01_tren_p07.png),
+[dinh_vi_k01_global_tren_p07.png](evidence/lidar/dinh_vi_k01_global_tren_p07.png) (`--global --every 5`),
+tóm tắt [dinh_vi_tren_p07_20260924.json](evidence/lidar/dinh_vi_tren_p07_20260924.json) (lệnh, tham số, hash mã `localize.py` chưa commit, kết quả từng lần chạy, kể cả `--track` và `--global` của live_headless). Trạng thái và tư thế trùng bảng trên: p07 181/181 OK, trung vị (−1,3 mm; −3,3 mm; +0,008°); live_headless 60/60 OK, (−1,1 mm; −6,8 mm; +4,33°), `--track` và `--global` cũng 60/60 OK cùng tư thế; k01 151/151 FAILED; k01 `--global --every 5` 31/31 FAILED. Thời gian mỗi vòng trong tệp tóm tắt đo lúc máy đang chạy việc khác song song, không thay số ở DINH_VI_LIDAR.md mục 5. Ảnh overlay chỉ cho thấy độ **nhất quán**, không phải độ đúng; chưa có tham chiếu độc lập. Trước khi chạy, bản đồ `map_p07` cũng được dựng lại từ p07 bằng `autopark.lidar.occupancy`: lưới trùng từng ô, `map.png` trùng từng byte với [map_p07.png](evidence/lidar/map_p07.png).
+
+Kết luận:
+- **Đọc scan được:** có, trên máy bàn (mục 3).
+- **Tạo map được:** một phần, cùng mức **MỘT PHẦN** ở [gate_01.md](gate_01.md). Có bản đồ lưới tĩnh `map_p07` từ 181 vòng
+  p07 ở một vị trí cố định (mục 5), lưu và nạp lại được. Chưa phải bản đồ SLAM: không có tư thế ước lượng, chưa ghép nhiều
+  vị trí, chưa đo sai số bản đồ vì chưa có tham chiếu độc lập. *(Sửa tối 24/09/2026: bản trước của dòng này ghi "có
+  (mục 5)", khác mức gate_01 chấm; dòng "Đọc scan được" chỉ thêm "trên máy bàn".)*
+- **Định vị lại được:** có công cụ. Công cụ nhất quán ở cùng chỗ và không nhận bừa ở chỗ khác. **Chưa đạt** theo kế hoạch
+  vì chưa có vị trí tham chiếu độc lập nào, nên chưa có sai số thật.
+
+Phát hiện mới: live_headless lệch hướng +4,3° so với p07 trong khi vị trí gần như không đổi. So hồ sơ khoảng cách theo góc
+của hai bản ghi, một cách không dùng bản đồ, cũng cho độ dịch −4,25…−4,5°. Có hai khả năng, chưa phân biệt được:
+(a) thiết bị bị xoay nhẹ trên bàn giữa hai lần ghi;
+(b) gốc góc của C1 đổi giữa hai lần khởi động mô-tơ.
+Khả năng (b) ảnh hưởng tới hướng của LiDAR so với xe ở mỗi lần bật.
+
+*Ghi chú 24/09/2026, sau đợt rà soát bộ định vị* (chi tiết ở [DINH_VI_LIDAR.md](DINH_VI_LIDAR.md) mục 2–5). Đã sửa
+sáu lỗi:
+- tóm tắt hướng tính trên vòng tròn (trước đó hướng ≈ 180° cho trung vị ≈ 0°);
+- kiểm tia xuyên tường nối hai ô chéo nhau (trước đó tường chéo có khe);
+- lý do mới `no_overlap` khi không tia nào kiểm được (trước đó báo nhầm là mâu thuẫn với bản đồ);
+- từ chối cửa sổ tìm âm hoặc không hữu hạn;
+- màu `overlay.png`: FAILED trước đó trùng màu tường, OK gần trùng chấm gốc bản đồ. Mọi `overlay.png` cũ không dán vào
+  khóa luận;
+- lệnh mẫu dán được vào cmd.exe và PowerShell.
+
+Chạy lại trên ba bản ghi: không vòng nào đổi kết luận, tư thế giữ nguyên. Kiểm xuyên tường tốn thêm vài ms mỗi vòng.
+Test tăng từ 17 lên 29. Kiểm đột biến ([DINH_VI_LIDAR.md](DINH_VI_LIDAR.md) mục 4): gỡ bất kỳ bản sửa nào trong mã,
+hay bất kỳ kiểm OK/AMBIGUOUS/FAILED nào, đều làm ít nhất một test hỏng. Hai ngoại lệ không có test: màu nền dải chữ
+trên overlay (chỉ là thẩm mỹ), và bản sửa lệnh mẫu (nằm trong tài liệu). Các ý kết luận ở trên không đổi.
+
+Việc còn lại, cần người và thiết bị, làm cùng buổi với mục 6 ([DINH_VI_LIDAR.md](DINH_VI_LIDAR.md) mục 7):
+1. Ghi hai phiên liên tiếp mà không chạm vào C1, khởi động lại mô-tơ giữa hai phiên, để kiểm khả năng (b).
+2. Dời C1 tới 3–6 vị trí và hướng đo bằng thước / thước đo góc, định vị trên bản đồ ghi ở gốc, rồi so với số đo thước.
+3. Chốt các ngưỡng tạm của bộ định vị.

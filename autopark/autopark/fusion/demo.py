@@ -13,6 +13,16 @@ quét tiếp theo là dữ liệu hiện tại chứ không phải tồn đọng
 vào (ô bị chạm ở 2 trong 3 vòng gần nhất, cách vật đã biết hơn một ô), nên đưa tay hoặc hộp vào trước LiDAR lúc
 xe đang chạy sẽ phát MAP_CHANGED → phanh → dừng → chờ lập lại đường; mất LiDAR quá `--max-age` giây cũng dừng. Đây là xe ảo: không có lệnh nào
 tới phần cứng chấp hành, và quãng phanh là của mô phỏng.
+
+Rút cáp LiDAR giữa chừng (cổng nối tiếp lỗi: `LidarTransportError` của driver, hoặc `OSError` từ nguồn khác): demo
+ghi rõ "mất kết nối LiDAR", thôi đọc cổng, dừng xe ảo và kết thúc khi xe ảo đứng yên; đóng cổng đã chết không ném
+lỗi lần hai; mã thoát 1. Lỗi cổng trước khi xe chạy (mở cổng, vòng khởi động, xả bộ đệm) cũng kết thúc gọn, mã thoát 1.
+(Sửa tối 24/09/2026; chỉ thử với cổng GIẢ trong `tests/test_lidar_unplug.py`, CHƯA THỬ rút cáp C1 thật.)
+
+Bản ghi `--recording` hết giữa lúc xe ảo chạy (`ScanStreamEnded` của `PacedReplay`): demo ghi "hết bản ghi LiDAR",
+thôi đọc, dừng xe ảo như trên và kết thúc khi xe ảo đứng yên, mã thoát 0 (hết bản ghi là kết thúc bình thường của
+phát lại). Hết ngay trong lúc khởi động (chưa đủ vòng quét): báo lỗi, mã thoát 1. Trước đó cả hai trường hợp dừng
+bằng traceback. (Sửa tối 24/09/2026; chỉ thử với nguồn giả trong `tests/test_lidar_unplug.py`.)
 """
 from __future__ import annotations
 
@@ -46,10 +56,32 @@ def default_vehicle() -> VehicleConfig:
     return VehicleConfig("xe_test", 0.19, 0.14, 0.06, 0.06, math.radians(30), 0.3, 0.3, 0.6, math.radians(90))
 
 
+def _is_port_failure(exc: BaseException) -> bool:
+    """Lỗi của chính cổng (rút cáp): thử đọc lại không giúp gì. Hết thời gian chờ một vòng quét thì không phải."""
+    from autopark.lidar.rplidar_c1 import LidarTransportError
+
+    return isinstance(exc, (LidarTransportError, OSError))
+
+
+def _is_stream_end(exc: BaseException) -> bool:
+    """`ScanStreamEnded` của `PacedReplay` (bản ghi hết). Không import `lidar.live_view` ở đây vì mô-đun đó kéo theo
+    PySide6: nếu nó chưa được nạp thì không nguồn nào của nó có thể đã ném lỗi này."""
+    live_view = sys.modules.get("autopark.lidar.live_view")
+    return live_view is not None and isinstance(exc, live_view.ScanStreamEnded)
+
+
 def run_demo(source, *, seconds: float, cfg: VehicleConfig | None = None, bounds: Bounds = DEFAULT_BOUNDS,
              start: Pose = DEFAULT_START, goal: Pose = DEFAULT_GOAL, resolution: float = 0.05, initial_scans: int = 10,
-             initial_skip: int = 15, max_age_s: float = 0.3, clock=time.monotonic, log=print) -> dict:
-    """`source` needs `read() -> LidarScan` (blocking, raises on failure) and `now() -> float` (its session clock)."""
+             initial_skip: int = 15, max_age_s: float = 0.3, clock=time.monotonic, sleep=time.sleep, log=print) -> dict:
+    """`source` needs `read() -> LidarScan` (blocking, raises on failure) and `now() -> float` (its session clock).
+
+    `ScanReadError` (một vòng quét không tới kịp) được đếm và đọc tiếp. Lỗi cổng (`LidarTransportError`/`OSError`)
+    ghi vào `report["transport_error"]`: trước khi chạy thì trả báo cáo ngay (kèm `report["error"]`), khi đang chạy
+    thì thôi đọc, dừng xe ảo và chờ nó đứng yên. `ScanStreamEnded` (bản ghi hết) đặt `report["stream_ended"]`:
+    trước khi chạy thì trả báo cáo ngay (kèm `report["error"]`), khi đang chạy thì dừng xe ảo như lỗi cổng nhưng không
+    tính là lỗi. Chỉ các lỗi trên được bắt; ngoại lệ khác của nguồn vẫn thoát ra như trước, ví dụ `ProtocolError`
+    khi `read()` của driver tự gọi `start()` mà thiết bị trả lời sai, hoặc `RuntimeError` của `now()` khi nguồn chưa
+    `start()` (sửa và thử bằng nguồn giả tối 24/09/2026)."""
     from autopark.lidar.rplidar_c1 import ScanReadError
 
     cfg = cfg or default_vehicle()
@@ -59,18 +91,42 @@ def run_demo(source, *, seconds: float, cfg: VehicleConfig | None = None, bounds
     layer = LiveLidarLayer(grid, window=3, max_age_s=max_age_s, self_mask=cfg, mask_margin=0.10)   # own body + cable ignored
     bridge = ObstacleBridge(session, prefix="lidar", path_margin=0.10)          # only the path corridor stops the car
     report = {"status": None, "initial_obstacles": 0, "new_obstacles": 0, "events": [], "stop_reason": "",
-              "collided": None, "scans": 0, "read_errors": 0}
-    for _ in range(initial_skip):
-        source.read()                                   # motor spin-up: beam density still changing
-        report["scans"] += 1
-    # bench "static map": everything hit in at least 2 of the initial scans (audit 22/09: 1-of-10 kept 29 %
-    # flicker cells; 2-of-10 keeps what the live 2-of-3 rule would also call occupied)
+              "collided": None, "scans": 0, "read_errors": 0, "transport_error": None, "stream_ended": False,
+              "error": None}
+
+    def abort_before_run(exc: BaseException, stage: str) -> dict:
+        if _is_stream_end(exc):
+            report["stream_ended"] = True
+            report["error"] = f"bản ghi LiDAR hết {stage}: mới có {report['scans']} vòng quét"
+        else:
+            report["read_errors"] += 1
+            if _is_port_failure(exc):
+                report["transport_error"] = f"{type(exc).__name__}: {exc}"
+                report["error"] = f"mất kết nối LiDAR {stage} (lỗi cổng nối tiếp, rút cáp?): {exc}"
+            else:
+                report["error"] = f"LiDAR không cho đủ vòng quét {stage}: {exc}"
+        report["status"] = "LỖI LIDAR TRƯỚC KHI CHẠY"
+        log(f"{report['status']}: {report['error']}")
+        return report
+
     known = ScanUnion(grid)
-    for _ in range(initial_scans):
-        scan = layer.filter_scan(source.read())
-        known.add(scan, sensor_pose_in_map(start, layer.mount), max_range=layer.max_range)
-        layer.add_scan(scan, start)
-        report["scans"] += 1
+    try:
+        for _ in range(initial_skip):
+            source.read()                               # motor spin-up: beam density still changing
+            report["scans"] += 1
+        # bench "static map": everything hit in at least 2 of the initial scans (audit 22/09: 1-of-10 kept 29 %
+        # flicker cells; 2-of-10 keeps what the live 2-of-3 rule would also call occupied)
+        for _ in range(initial_scans):
+            scan = layer.filter_scan(source.read())
+            known.add(scan, sensor_pose_in_map(start, layer.mount), max_range=layer.max_range)
+            layer.add_scan(scan, start)
+            report["scans"] += 1
+    except (ScanReadError, OSError) as exc:
+        return abort_before_run(exc, "trong lúc khởi động")
+    except RuntimeError as exc:
+        if not _is_stream_end(exc):
+            raise
+        return abort_before_run(exc, "trong lúc khởi động")
     static = StaticMapLayer("bench_static")
     static.set(known.costmap(SourceStamp("bench_static", max(0.0, source.now()), True, "map"),
                              min_hits=min(2, initial_scans)))                                  # seen in >= 2 scans
@@ -84,25 +140,51 @@ def run_demo(source, *, seconds: float, cfg: VehicleConfig | None = None, bounds
         return report
     flush = getattr(source, "flush", None)
     if flush is not None:
-        flush()                                         # planning took time: discard the backlog
+        try:
+            flush()                                     # planning took time: discard the backlog
+        except OSError as exc:
+            return abort_before_run(exc, "lúc xả bộ đệm sau khi lập đường")
     session.start_run()
     log("xe ảo bắt đầu chạy; đưa vật vào trước LiDAR để thử dừng")
     last_wall = clock()
     deadline = last_wall + seconds
     seen_events = 0
+    reading_over = False                                # cổng chết hoặc bản ghi hết: không đọc nữa
     while session.simulating and clock() < deadline:
         scan = None
-        try:
-            scan = source.read()
-            report["scans"] += 1
-        except ScanReadError as exc:
-            report["read_errors"] += 1
-            log(f"lỗi đọc LiDAR: {exc}")
+        added = []
+        if not reading_over:
+            try:
+                scan = source.read()
+                report["scans"] += 1
+            except (ScanReadError, OSError) as exc:
+                report["read_errors"] += 1
+                if _is_port_failure(exc):
+                    # Cổng đã chết: đọc lại chỉ ném lỗi liên tục. Thôi đọc, dừng xe ảo ngay (không chờ lớp LiDAR
+                    # hết hạn); vòng lặp chỉ còn tiến mô phỏng cho tới khi xe ảo đứng yên.
+                    reading_over = True
+                    report["transport_error"] = f"{type(exc).__name__}: {exc}"
+                    log(f"mất kết nối LiDAR (lỗi cổng nối tiếp, rút cáp?): {exc} — thôi đọc cổng, dừng xe ảo; "
+                        f"demo kết thúc khi xe ảo đứng yên")
+                    session.request_stop(f"Mất kết nối LiDAR (lỗi cổng nối tiếp): {exc}")
+                else:
+                    log(f"lỗi đọc LiDAR: {exc}")
+            except RuntimeError as exc:
+                if not _is_stream_end(exc):
+                    raise
+                # Bản ghi hết: như cổng chết nhưng là kết thúc bình thường của phát lại, không tính là lỗi.
+                reading_over = True
+                report["stream_ended"] = True
+                log("hết bản ghi LiDAR — thôi đọc, dừng xe ảo; demo kết thúc khi xe ảo đứng yên")
+                session.request_stop("Hết bản ghi LiDAR")
         now = source.now()
-        if scan is not None:
-            layer.add_scan(scan, start)                 # the real sensor does not move with the virtual car
-        added = bridge.inject(fuse([static, layer], grid, now))
-        report["new_obstacles"] += len(added)
+        if reading_over:
+            sleep(0.02)                                 # không còn gì để đọc: để xe ảo phanh theo thời gian thực
+        else:
+            if scan is not None:
+                layer.add_scan(scan, start)             # the real sensor does not move with the virtual car
+            added = bridge.inject(fuse([static, layer], grid, now))
+            report["new_obstacles"] += len(added)
         wall = clock()
         session.advance(wall - last_wall)
         last_wall = wall
@@ -119,8 +201,20 @@ def run_demo(source, *, seconds: float, cfg: VehicleConfig | None = None, bounds
     report["bridge_stops"] = bridge.stops
     report["off_path_obstacles"] = len(bridge.seen)
     log(f"kết thúc: {report['status']}, sự kiện {report['events']}, va chạm {report['collided']}, "
-        f"vật mới ngoài đường (không dừng): {len(bridge.seen)}")
+        f"vật mới ngoài đường (không dừng): {len(bridge.seen)}"
+        + (f"; mất kết nối LiDAR: {report['transport_error']}" if report["transport_error"] else "")
+        + ("; hết bản ghi LiDAR" if report["stream_ended"] else ""))
     return report
+
+
+def _close_quietly(source) -> str | None:
+    """Đóng nguồn. Cổng đã chết (rút cáp) thì `close()` không gửi được STOP và ném `OSError`: trả thông báo thay vì
+    ném lần hai trong `finally`."""
+    try:
+        source.close()
+    except OSError as exc:
+        return f"đóng LiDAR không trọn vẹn (cổng đã lỗi, không gửi được STOP): {type(exc).__name__}: {exc}"
+    return None
 
 
 def main(argv=None) -> int:
@@ -135,19 +229,33 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     if args.port:
         from autopark.lidar.rplidar_c1 import RplidarC1Source
+        from autopark.lidar.rplidar_protocol import ProtocolError
 
-        source = RplidarC1Source.open(args.port, mirror=args.mirror)
-        source.start()
+        source = None
+        try:
+            source = RplidarC1Source.open(args.port, mirror=args.mirror)
+            source.start()
+        except (OSError, ProtocolError) as exc:        # cổng không có/đang bận, thiết bị không trả lời đúng
+            print(f"không mở được LiDAR trên {args.port}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            if source is not None:
+                problem = _close_quietly(source)
+                if problem:
+                    print(problem, file=sys.stderr)
+            return 1
     else:
         from autopark.lidar.live_view import PacedReplay
 
         source = PacedReplay(args.recording)
+    problem = None
     try:
         report = run_demo(source, seconds=args.seconds, max_age_s=args.max_age, resolution=args.resolution)
     finally:
-        source.close()
+        problem = _close_quietly(source)
+        if problem:
+            print(problem, file=sys.stderr)
+    report["close_error"] = problem
     print(json.dumps(report, ensure_ascii=False))
-    return 0 if report["status"] not in (None,) else 1
+    return 0 if report["status"] is not None and not report["error"] and not report["transport_error"] else 1
 
 
 if __name__ == "__main__":

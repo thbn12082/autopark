@@ -1,0 +1,296 @@
+{
+ "created": "2026-09-24 tối (giờ máy), máy bàn i9-14900 + RTX 4000 Ada; định vị chạy trên CPU (numpy)",
+ "evidence": "OFFLINE trên bản ghi có sẵn trong runs/lidar_bench/ (git-ignore); KHÔNG chạy thiết bị",
+ "what_this_is_not": "không có tham chiếu độc lập (chưa lần nào đặt LiDAR ở vị trí đo bằng thước): số dưới đây là độ NHẤT QUÁN, không phải độ ĐÚNG; ngưỡng CHƯA CHỐT; không phải SLAM, không có odometry",
+ "doc": "docs/DINH_VI_LIDAR.md mục 3 (lệnh) và mục 5 (kết quả); docs/GIAI_DOAN_1_LIDAR.md mục 8",
+ "code": {
+  "git_head": "2bd37b6",
+  "uncommitted": [
+   "?? autopark/autopark/lidar/localize.py"
+  ],
+  "localize_py_sha256": "b170eb992d20fb1d88003f649405c9901b9f3a4f479735ccb4b60e24f169778b",
+  "occupancy_py_sha256": "070dda8920350254e94b9d311530a365bb6e75dad30357b24cd95e47c1e07e56"
+ },
+ "map": {
+  "path": "runs/lidar_bench/20260922/map_p07/costmap.json (git-ignore)",
+  "built_from": "runs/lidar_bench/20260922/p07_nen_phong.npz, 181 vòng, cảm biến đứng yên",
+  "rebuild_check": "tối 24/09 dựng lại bằng .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.lidar.occupancy --recording runs/lidar_bench/20260922/p07_nen_phong.npz --out <thư mục>: lưới trùng từng ô, map.png trùng từng byte với docs/evidence/lidar/map_p07.png",
+  "grid": "8 × 8 m, ô 0,05 m; 230 OCCUPIED, 5.657 FREE, còn lại UNKNOWN"
+ },
+ "config_default_window": {
+  "sigma_m": 0.05,
+  "free_penalty": 0.5,
+  "match_dist_m": 0.1,
+  "min_range_m": 0.25,
+  "max_range_m": 8.0,
+  "window_x_m": 0.5,
+  "window_y_m": 0.5,
+  "window_theta_deg": 30.0,
+  "angle_step_deg": null,
+  "levels": 4,
+  "keep_ratio": 0.8,
+  "peak_sep_m": 0.15,
+  "peak_sep_deg": 5.0,
+  "max_candidates": 300000,
+  "refine_iterations": 30,
+  "refine_trunc_m": 0.15,
+  "through_margin_m": 0.15,
+  "min_valid_beams": 50,
+  "min_matched": 50,
+  "min_matched_fraction": 0.6,
+  "max_conflict_fraction": 0.25,
+  "ambiguous_ratio": 0.9,
+  "max_std_xy_m": 0.05,
+  "max_std_theta_deg": 2.0
+ },
+ "units": "x_m, y_m: mét; theta_deg: độ; time_ms: ms mỗi vòng; pose trong hệ bản đồ = hệ cảm biến lúc ghi p07",
+ "timing_note": "time_ms đo trong lúc các tác vụ khác chạy song song trên cùng máy; chỉ để tham khảo, số thời gian chính thức ở DINH_VI_LIDAR.md mục 5",
+ "overlay_legend": "nền: xám UNKNOWN, xanh lá FREE, đỏ OCCUPIED; chấm xanh lơ lớn = gốc bản đồ (0,0), không phải tư thế; điểm của vòng OK cuối (hoặc vòng cuối nếu không vòng nào OK, tư thế KHÔNG được chấp nhận): vàng = khớp, tím = mâu thuẫn, trắng = không kiểm được; tư thế: xanh dương = OK, cam = AMBIGUOUS, X đen = FAILED",
+ "runs": [
+  {
+   "name": "p07",
+   "relation_to_map": "chính dữ liệu dựng bản đồ, KHÔNG độc lập",
+   "recording": "runs/lidar_bench/20260922/p07_nen_phong.npz",
+   "recording_started_utc": "2026-09-22T06:10:13+00:00",
+   "mode": "independent",
+   "window": {
+    "x_m": 0.5,
+    "y_m": 0.5,
+    "theta_deg": 30.0
+   },
+   "every": 1,
+   "levels": 4,
+   "command_cmd_exe": ".\\.venv\\Scripts\\python.exe -X utf8 -m autopark.lidar.localize --map runs/lidar_bench/20260922/map_p07 --recording runs/lidar_bench/20260922/p07_nen_phong.npz --out <thư mục kết quả>",
+   "summary": {
+    "scans": 181,
+    "ok": 181,
+    "ambiguous": 0,
+    "failed": 0,
+    "reasons": {},
+    "time_ms": {
+     "median": 14.0833,
+     "p95": 17.6496,
+     "max": 18.5622
+    },
+    "ok_pose_median": {
+     "x_m": -0.00129,
+     "y_m": -0.0033,
+     "theta_deg": 0.00786
+    },
+    "ok_pose_spread": {
+     "x_std_m": 0.00141,
+     "y_std_m": 0.00181,
+     "theta_std_deg": 0.04737,
+     "x_range_m": 0.00938,
+     "y_range_m": 0.01134,
+     "theta_range_deg": 0.29213
+    },
+    "ok_fit_median": 0.83238,
+    "ok_matched_fraction_median": 0.86222,
+    "fit_median_all": 0.83238,
+    "matched_fraction_median_all": 0.86222
+   },
+   "overlay_png": "dinh_vi_p07_tren_p07.png",
+   "overlay_sha256": "bbef50cfac8c4aff9a91fb557e2b472d450f07d62bd4da62f89252b3726024be",
+   "overlay_bytes": 56992
+  },
+  {
+   "name": "live_headless",
+   "relation_to_map": "bản ghi khác, 22/09 06:12 UTC, dự kiến cùng chỗ (không có số đo thước)",
+   "recording": "runs/lidar_bench/20260922/live_headless.npz",
+   "recording_started_utc": "2026-09-22T06:12:41+00:00",
+   "mode": "independent",
+   "window": {
+    "x_m": 0.5,
+    "y_m": 0.5,
+    "theta_deg": 30.0
+   },
+   "every": 1,
+   "levels": 4,
+   "command_cmd_exe": ".\\.venv\\Scripts\\python.exe -X utf8 -m autopark.lidar.localize --map runs/lidar_bench/20260922/map_p07 --recording runs/lidar_bench/20260922/live_headless.npz --out <thư mục kết quả>",
+   "summary": {
+    "scans": 60,
+    "ok": 60,
+    "ambiguous": 0,
+    "failed": 0,
+    "reasons": {},
+    "time_ms": {
+     "median": 13.3313,
+     "p95": 15.46542,
+     "max": 16.804
+    },
+    "ok_pose_median": {
+     "x_m": -0.00113,
+     "y_m": -0.00683,
+     "theta_deg": 4.32589
+    },
+    "ok_pose_spread": {
+     "x_std_m": 0.00262,
+     "y_std_m": 0.0027,
+     "theta_std_deg": 0.06835,
+     "x_range_m": 0.01835,
+     "y_range_m": 0.01284,
+     "theta_range_deg": 0.33509
+    },
+    "ok_fit_median": 0.78556,
+    "ok_matched_fraction_median": 0.84197,
+    "fit_median_all": 0.78556,
+    "matched_fraction_median_all": 0.84197
+   },
+   "overlay_png": "dinh_vi_live_headless_tren_p07.png",
+   "overlay_sha256": "9aa1e812dee8ee92ee7bb5843b06c9a92dc425e52f6fcccadace893627b0defe",
+   "overlay_bytes": 56497
+  },
+  {
+   "name": "live_headless --track",
+   "relation_to_map": "như trên",
+   "recording": "runs/lidar_bench/20260922/live_headless.npz",
+   "recording_started_utc": "2026-09-22T06:12:41+00:00",
+   "mode": "track",
+   "window": {
+    "x_m": 0.5,
+    "y_m": 0.5,
+    "theta_deg": 30.0
+   },
+   "every": 1,
+   "levels": 4,
+   "command_cmd_exe": ".\\.venv\\Scripts\\python.exe -X utf8 -m autopark.lidar.localize --map runs/lidar_bench/20260922/map_p07 --recording runs/lidar_bench/20260922/live_headless.npz --out <thư mục kết quả> --track",
+   "summary": {
+    "scans": 60,
+    "ok": 60,
+    "ambiguous": 0,
+    "failed": 0,
+    "reasons": {},
+    "time_ms": {
+     "median": 13.34145,
+     "p95": 16.0531,
+     "max": 17.9676
+    },
+    "ok_pose_median": {
+     "x_m": -0.00114,
+     "y_m": -0.00711,
+     "theta_deg": 4.31713
+    },
+    "ok_pose_spread": {
+     "x_std_m": 0.00262,
+     "y_std_m": 0.00269,
+     "theta_std_deg": 0.06979,
+     "x_range_m": 0.01833,
+     "y_range_m": 0.01466,
+     "theta_range_deg": 0.33452
+    },
+    "ok_fit_median": 0.78469,
+    "ok_matched_fraction_median": 0.8416,
+    "fit_median_all": 0.78469,
+    "matched_fraction_median_all": 0.8416
+   }
+  },
+  {
+   "name": "live_headless --global",
+   "relation_to_map": "như trên",
+   "recording": "runs/lidar_bench/20260922/live_headless.npz",
+   "recording_started_utc": "2026-09-22T06:12:41+00:00",
+   "mode": "global",
+   "window": "whole map, 360°",
+   "every": 1,
+   "levels": 5,
+   "command_cmd_exe": ".\\.venv\\Scripts\\python.exe -X utf8 -m autopark.lidar.localize --map runs/lidar_bench/20260922/map_p07 --recording runs/lidar_bench/20260922/live_headless.npz --out <thư mục kết quả> --global",
+   "summary": {
+    "scans": 60,
+    "ok": 60,
+    "ambiguous": 0,
+    "failed": 0,
+    "reasons": {},
+    "time_ms": {
+     "median": 481.77585,
+     "p95": 536.55029,
+     "max": 550.8604
+    },
+    "ok_pose_median": {
+     "x_m": -0.00113,
+     "y_m": -0.00684,
+     "theta_deg": 4.32589
+    },
+    "ok_pose_spread": {
+     "x_std_m": 0.00261,
+     "y_std_m": 0.00269,
+     "theta_std_deg": 0.06811,
+     "x_range_m": 0.01835,
+     "y_range_m": 0.01284,
+     "theta_range_deg": 0.33587
+    },
+    "ok_fit_median": 0.78556,
+    "ok_matched_fraction_median": 0.84197,
+    "fit_median_all": 0.78556,
+    "matched_fraction_median_all": 0.84197
+   }
+  },
+  {
+   "name": "k01",
+   "relation_to_map": "24/09, LiDAR đã dời chỗ, vị trí mới không ghi lại",
+   "recording": "runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.npz",
+   "recording_started_utc": "2026-09-24T05:34:53+00:00",
+   "mode": "independent",
+   "window": {
+    "x_m": 0.5,
+    "y_m": 0.5,
+    "theta_deg": 30.0
+   },
+   "every": 1,
+   "levels": 4,
+   "command_cmd_exe": ".\\.venv\\Scripts\\python.exe -X utf8 -m autopark.lidar.localize --map runs/lidar_bench/20260922/map_p07 --recording runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.npz --out <thư mục kết quả>",
+   "summary": {
+    "scans": 151,
+    "ok": 0,
+    "ambiguous": 0,
+    "failed": 151,
+    "reasons": {
+     "low_match_fraction": 151,
+     "conflicts_with_map": 151,
+     "window_edge": 119
+    },
+    "time_ms": {
+     "median": 87.2983,
+     "p95": 98.94285,
+     "max": 113.3311
+    },
+    "fit_median_all": 0.16934,
+    "matched_fraction_median_all": 0.23544
+   },
+   "overlay_png": "dinh_vi_k01_tren_p07.png",
+   "overlay_sha256": "5035fb7c2b18d9d06c7c6341e7575fef69d2d99a24f612e866aec2b9da59ce41",
+   "overlay_bytes": 64138
+  },
+  {
+   "name": "k01 --global --every 5",
+   "relation_to_map": "như trên",
+   "recording": "runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.npz",
+   "recording_started_utc": "2026-09-24T05:34:53+00:00",
+   "mode": "global",
+   "window": "whole map, 360°",
+   "every": 5,
+   "levels": 5,
+   "command_cmd_exe": ".\\.venv\\Scripts\\python.exe -X utf8 -m autopark.lidar.localize --map runs/lidar_bench/20260922/map_p07 --recording runs/lidar_bench/20260924_kiem/k01_kiem_suc_khoe.npz --out <thư mục kết quả> --global --every 5",
+   "summary": {
+    "scans": 31,
+    "ok": 0,
+    "ambiguous": 0,
+    "failed": 31,
+    "reasons": {
+     "low_match_fraction": 31,
+     "conflicts_with_map": 31
+    },
+    "time_ms": {
+     "median": 4769.4948,
+     "p95": 5646.349,
+     "max": 6274.3214
+    },
+    "fit_median_all": 0.20487,
+    "matched_fraction_median_all": 0.27114
+   },
+   "overlay_png": "dinh_vi_k01_global_tren_p07.png",
+   "overlay_sha256": "b81b74a1f4611134f74183661de5f0f8597168c61cde8d79e997fa62019e3ca7",
+   "overlay_bytes": 62631
+  }
+ ]
+}

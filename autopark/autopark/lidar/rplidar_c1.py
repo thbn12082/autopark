@@ -15,6 +15,13 @@ Quy ước thời gian: đồng hồ phiên `clock()` (mặc định `time.monot
 vòng quét là thời điểm gói byte chứa node cuối của vòng đó về tới máy (trễ tối đa một lần đọc, ≤ 50 ms).
 Nguồn trực tiếp không bao giờ trả `None`: hết thời gian chờ thì ném `ScanReadError`, cùng quy ước với
 `FrameReadError` của camera, để vòng lặp tiêu thụ không nhầm sự cố với hết dữ liệu.
+
+Lỗi của chính cổng nối tiếp trong `read()` (rút cáp USB: pyserial ném `SerialException`, là `OSError`, từ
+`in_waiting`/`read`) được ném lại thành `LidarTransportError` — lớp con của `ScanReadError`, giữ lỗi gốc ở
+`__cause__` — để nơi gọi chỉ bắt `ScanReadError` cũng không chết với traceback. Khác với hết thời gian chờ, thử đọc
+lại trên cùng cổng không giúp gì: phải đóng rồi mở lại cổng. (Thêm tối 24/09/2026; chỉ thử với cổng GIẢ trong
+`tests/test_lidar_unplug.py`, CHƯA THỬ rút cáp C1 thật. `close()` vẫn ném `OSError` khi không gửi được STOP qua
+cổng đã chết; nơi gọi tự quyết bỏ qua hay báo.)
 """
 from __future__ import annotations
 
@@ -42,6 +49,11 @@ DRIVER_VERSION = "1.0"
 
 class ScanReadError(RuntimeError):
     """The device did not deliver a full revolution in time; the stream is not over, something is wrong."""
+
+
+class LidarTransportError(ScanReadError):
+    """The serial port itself failed inside `read()` (USB cable pulled, driver error). The original `OSError`
+    (pyserial's `SerialException`) is the `__cause__`. Retrying on the same port does not help: close and reopen."""
 
 
 class RplidarC1Source:
@@ -185,7 +197,15 @@ class RplidarC1Source:
         return max(0.0, self.clock() - self.t0)
 
     def read(self) -> LidarScan:
-        """Blocks until one full revolution is available. Raises `ScanReadError` when none arrives in time."""
+        """Blocks until one full revolution is available. Raises `ScanReadError` when none arrives in time, and its
+        subclass `LidarTransportError` (from the port's `OSError`) when the serial port fails."""
+        try:
+            return self._read()
+        except OSError as exc:
+            raise LidarTransportError(f"{self.source_id}: serial port failed ({type(exc).__name__}: {exc}); "
+                                      f"cable unplugged? close and reopen the port") from exc
+
+    def _read(self) -> LidarScan:
         if not self.started:
             self.start()
         revolution = self.queue.pop()

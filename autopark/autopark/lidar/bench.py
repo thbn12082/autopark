@@ -152,12 +152,21 @@ def record(args) -> int:
             recorder.add(scan, quality=source.last_quality, t_first=source.last_revolution.t_first)
         path = recorder.close({"driver_stats": source.stats(), "read_errors": errors, "scan_modes": modes})
     finally:
-        source.close()
+        try:
+            source.close()
+        except OSError as exc:
+            # Cổng đã chết (rút cáp): close() không gửi được STOP. Không ném lần hai trong finally — phần đã ghi vẫn được
+            # lưu và phân tích bên dưới (sửa tối 24/09/2026; trước đó kết thúc bằng traceback, mất phần phân tích).
+            print(f"CẢNH BÁO: đóng LiDAR không trọn vẹn (cổng đã lỗi, không gửi được STOP): {type(exc).__name__}: {exc}",
+                  flush=True)
     recording = read_recording(path)
     result = analyze(recording, args.expected_distance, args.expected_angle, window_deg=args.window)
     atomic_write_json(path.with_name(path.stem + ".analysis.json"), result)
     render_placement(recording, path.with_suffix(".png"), args.expected_distance, args.expected_angle, max_range=args.max_range)
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    if errors >= 3:
+        print(f"CẢNH BÁO: phiên dừng sớm sau {errors} lỗi đọc (đếm cả phiên, không phải liên tiếp); bản ghi chỉ có phần trước lỗi", flush=True)
+        return 1
     return 0
 
 
