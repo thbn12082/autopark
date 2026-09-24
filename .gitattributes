@@ -1,0 +1,3 @@
+# PDF: không đổi xuống dòng. Bảng xref của PDF ghi vị trí theo byte (mỗi dòng xref kết thúc bằng CRLF);
+# core.autocrlf=true từng đổi CRLF thành LF khi lưu bảng in calibration/bang_in/*.pdf (commit 014dcdd).
+*.pdf binary
