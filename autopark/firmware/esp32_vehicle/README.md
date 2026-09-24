@@ -140,8 +140,11 @@ KHÔNG làm được / chưa chứng minh:
   cuối cùng tiếp tục qua in panic, ghi coredump vào flash, ROM, bootloader và initArduino. Chỉ bật nguồn/system reset mới
   làm chân thả nổi. Sụt áp (brownout): không chắc đi qua móc panic, hành vi chân CẦN ĐO. Độ rộng xung ở pha XTAL: CẦN ĐO.
 - Hành vi ESC khi mất xung (chân bị kéo thấp lúc chip reset, hoặc thả nổi lúc bật nguồn) chưa biết.
-- E-stop: một tiếp điểm chỉ phát hiện đứt dây tín hiệu, không phát hiện mất động lực ESC. Nên đọc thêm tiếp điểm thứ hai
-  của nút hoặc đo điện áp phía động lực qua bộ chia áp (chưa làm).
+- E-stop: một tiếp điểm chỉ phát hiện đứt dây tín hiệu, không phát hiện mất động lực ESC. *(Sửa tối 24/09/2026.)* Đọc
+  thêm tiếp điểm thứ hai của nút chỉ cho biết thêm về chính cái nút (so hai tiếp điểm thì thấy được một tiếp điểm hỏng);
+  nó KHÔNG thấy cầu chì đứt, đầu nối động lực lỏng, pin cạn hay phần tử ngắt không đóng lại, vì các lỗi đó nằm phía
+  động lực, sau nút. Cách phát hiện mất động lực đúng nghĩa là đo điện áp phía động lực (sau cầu chì và phần tử ngắt, gần
+  đầu vào ESC) qua bộ chia áp vào ADC của bo. Chưa làm: điểm đo, bộ chia áp và ngưỡng CHƯA CHỐT, chưa có mã đọc điện áp.
 
 ## Cách kiểm khi có trình biên dịch
 

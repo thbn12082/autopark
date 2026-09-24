@@ -1,4 +1,11 @@
-"""Phiên mô phỏng có snapshot và replay không chạy lại planner theo thời gian thực."""
+"""Phiên mô phỏng có snapshot và replay không chạy lại planner theo thời gian thực.
+
+Chỉ nhánh SIM (giai đoạn 0: `SimWorld` + phản hồi giả) được đóng gói và phát lại. Lần chạy qua `VehicleIO`
+(`VEHICLE_IO` hoặc quan sát `OBSERVE`; snapshot có khóa `vehicle_link`) KHÔNG phát lại được bằng cách chạy lại mô
+phỏng: trạng thái của nó lấy từ telemetry + nguồn tư thế. `export_run` và `replay_run` từ chối các lần chạy đó bằng
+`ReplayNotSupported` (lời báo tiếng Việt); log của chúng ghi bằng `VehicleLink.write_logs` (docs/CHE_DO_QUAN_SAT.md
+mục 5). (Thêm tối 24/09/2026.)
+"""
 from dataclasses import asdict
 from datetime import datetime, timezone
 import hashlib
@@ -31,9 +38,33 @@ def environment() -> dict:
     return info
 
 
+class ReplayNotSupported(ValueError):
+    """Lần chạy không phải nhánh SIM: không đóng gói replay / không phát lại được."""
+
+
+def _vehicle_link_refusal(snapshot: dict, action: str) -> str | None:
+    link = snapshot.get("vehicle_link")
+    if link is None:
+        return None
+    info = link if isinstance(link, dict) else {}
+    mode = info.get("mode", "?")
+    evidence = info.get("evidence", "?")
+    return (f"Không {action}: lần chạy này đi qua VehicleIO (chế độ {mode}, bằng chứng {evidence}). Gói replay chỉ "
+            f"phát lại được nhánh mô phỏng SIM (SimWorld + phản hồi giả); trạng thái của lần chạy qua VehicleIO lấy từ "
+            f"telemetry và nguồn tư thế nên không tái tạo được bằng mô phỏng. Log của lần chạy này ghi bằng "
+            f"VehicleLink.write_logs (thư mục _vehicle_io: commands.csv, telemetry.csv, events.csv, "
+            f"start_refusals.csv, link.json).")
+
+
 def export_run(session, directory: str | Path) -> Path:
     if session.run_snapshot is None or session.world is None:
         raise ValueError("Chưa có phiên chạy tự động để xuất")
+    refusal = _vehicle_link_refusal(session.run_snapshot, "xuất gói replay")
+    if refusal is None and getattr(session, "run_link", None) is not None:
+        # Lớp phòng thủ thứ hai: snapshot thiếu khóa nhưng lần chạy vẫn đi qua một liên kết VehicleIO.
+        refusal = _vehicle_link_refusal({"vehicle_link": session.run_link.describe()}, "xuất gói replay")
+    if refusal is not None:
+        raise ReplayNotSupported(refusal)          # từ chối trước khi tạo thư mục nào
     path = Path(directory)
     path.mkdir(parents=True, exist_ok=False)
     snapshots = path / "config_snapshot"
@@ -80,6 +111,9 @@ def replay_run(directory: str | Path):
 
     path = Path(directory)
     snapshot = json.loads((path / "config_snapshot/run.json").read_text(encoding="utf-8"))
+    refusal = _vehicle_link_refusal(snapshot, "phát lại")
+    if refusal is not None:
+        raise ReplayNotSupported(refusal)
     result = json.loads((path / "result.json").read_text(encoding="utf-8"))
     events = [json.loads(line) for line in (path / "events.jsonl").read_text(encoding="utf-8").splitlines()]
     sc = Scenario.from_dict(snapshot["scenario"])

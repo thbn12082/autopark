@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
 )
 
 from autopark.application.session import EDITABLE_STATES, Session, SessionError, SessionState
+from autopark.application.vehicle_link import DriveMode, SimHumanDriver, VehicleLink
 from autopark.domain.types import Bounds, Obstacle, ParkingMode, ParkingSlot, Pose, wrap_angle
 from autopark.planning.hybrid_astar import PlanResult
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config, save_scenario
@@ -84,6 +85,19 @@ _STATE_TONE = {
     SessionState.STOPPING: theme.WARN,
     SessionState.MANUAL: theme.WARN,
 }
+
+# Nhánh chạy chọn trong giao diện (24/09/2026): hai nhánh VehicleIO đều nối với bo MÔ PHỎNG (SimVehicleIO +
+# FirmwareModel) và tư thế lấy từ mô phỏng; giao diện chưa có lựa chọn cổng serial tới bo thật.
+DRIVE_MODE_CHOICES = (
+    (DriveMode.SIM, "Mô phỏng giai đoạn 0 (mặc định)",
+     "Xe ảo chạy thẳng theo lệnh, phản hồi giả như giai đoạn 0."),
+    (DriveMode.VEHICLE_IO, "VehicleIO → bo mô phỏng: GỬI lệnh",
+     "Lệnh bám đường đi qua giao thức tới bo giả (SimVehicleIO + FirmwareModel); tốc độ và góc lái lấy từ "
+     "telemetry, tư thế lấy từ mô phỏng (định vị lý tưởng). Chưa nối bo thật."),
+    (DriveMode.OBSERVE, "Quan sát: tính lệnh, KHÔNG gửi",
+     "Người lái cầm lái xe mô phỏng bằng ↑ ↓ ← → (Space phanh, Esc kết thúc). Phần mềm chỉ tính và ghi lệnh "
+     "(commands.csv); bo giữ DISARMED, không nhận COMMAND nào. Tư thế lấy từ mô phỏng."),
+)
 
 
 class SandboxView(QGraphicsView):
@@ -379,6 +393,15 @@ class MainWindow(QMainWindow):
         self.combo_feedback.addItems(["Phản hồi lý tưởng", "Trễ 40 ms + nhiễu 2 mm / 0,2°"])
         self.combo_feedback.currentIndexChanged.connect(self._set_feedback_profile)
         self.box_sim.add(self.combo_feedback)
+        drive_title = QLabel("Nhánh chạy khi bấm Bắt đầu đỗ")
+        self.combo_drive = QComboBox()
+        for mode, label, _hint in DRIVE_MODE_CHOICES:
+            self.combo_drive.addItem(label, mode.value)
+        self.combo_drive.setToolTip("Chỉ đổi được khi chưa chạy. Xem trước và lái tay luôn là mô phỏng giai đoạn 0.")
+        self.combo_drive.currentIndexChanged.connect(self._set_drive_mode)
+        self.lbl_drive_hint = WrapLabel(DRIVE_MODE_CHOICES[0][2])
+        self.lbl_drive_hint.setObjectName("hint")
+        self.box_sim.add(drive_title, self.combo_drive, self.lbl_drive_hint)
         self.box_sim.add_layout(theme.row(self.btn_manual, self.btn_export))
         self.box_sim.add(keys)
         layout.addWidget(self.box_sim)
@@ -879,7 +902,9 @@ class MainWindow(QMainWindow):
         self.preview_action.setEnabled(st == SessionState.READY)
         self.reset_action.setVisible(st in (SessionState.READY, SessionState.COMPLETED))
         self.btn_manual.setEnabled(editable)
-        self.combo_feedback.setEnabled(editable)
+        # Hồ sơ phản hồi giả chỉ có tác dụng ở nhánh SIM; nhánh chạy chỉ đổi được khi chưa chạy.
+        self.combo_feedback.setEnabled(editable and self.session.vehicle_link is None)
+        self.combo_drive.setEnabled(editable)
         self.btn_inject.setVisible(st == SessionState.RUNNING)
         self.btn_loss.setVisible(st == SessionState.RUNNING)
         self.btn_loss.setEnabled(st == SessionState.RUNNING and self.session.feedback is not None
@@ -918,6 +943,10 @@ class MainWindow(QMainWindow):
             SessionState.MANUAL: ("LÁI TAY", "Cầm lái\ntheo cách bạn.", "↑ ↓ Tăng / giảm tốc\n← → Đánh lái · Space phanh", 2),
         }
         tag, title, hint, stage = copy[st]
+        if st == SessionState.RUNNING and self._observe_human() is not None:
+            self.pill.set("Quan sát", theme.WARN)
+            tag, title = "03 / QUAN SÁT", "Người lái\ncầm lái."
+            hint = "Phần mềm chỉ tính lệnh, KHÔNG gửi.\n↑ ↓ ← → lái xe mô phỏng · Esc kết thúc"
         self.phase_tag.setText(tag)
         self.phase_title.setText(title)
         self.phase_hint.setText(hint.replace("\n", "<br>"))
@@ -994,7 +1023,11 @@ class MainWindow(QMainWindow):
         done = pts[min(out.index, len(pts) - 1)].s
         frac = done / traj.length if traj.length > 0 else 1.0
         way = "tiến" if pts[min(out.index, len(pts) - 1)].direction > 0 else "lùi"
-        self.lbl_step.setText(f"Đoạn {out.segment + 1}/{len(traj.segments)} · {way} · {frac * 100:.0f}%")
+        text = f"Đoạn {out.segment + 1}/{len(traj.segments)} · {way} · {frac * 100:.0f}%"
+        if self._observe_human() is not None:
+            text += (f" · gợi ý {out.target_speed:+.2f} m/s, lái {math.degrees(out.target_steer):+.0f}°"
+                     " (không gửi)")
+        self.lbl_step.setText(text)
         self.bar.setValue(int(min(1.0, frac) * 1000))
 
     def _refresh_instrument(self) -> None:
@@ -1250,9 +1283,17 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getSaveFileName(self, "Xuất log", default, "CSV (*.csv)")
         if not path:
             return
+        # Chỉ ghi log VehicleIO khi log hiện tại là của đúng lần chạy qua liên kết đó (snapshot có khóa vehicle_link);
+        # log lái tay (run_snapshot None) không kèm log VehicleIO của lần chạy trước.
+        snap = self.session.run_snapshot
+        link = self.session.run_link if snap is not None and "vehicle_link" in snap else None
         try:
             self.session.log.to_csv(path)
-            if self.session.run_snapshot is not None and self.session.world is not None:
+            if link is not None:
+                # Lần chạy qua VehicleIO / quan sát: ghi commands.csv, telemetry.csv, events.csv, link.json.
+                # Không xuất gói replay: replay_run chỉ phát lại được nhánh SIM.
+                link.write_logs(Path(path).with_suffix("").with_name(Path(path).stem + "_vehicle_io"))
+            elif self.session.run_snapshot is not None and self.session.world is not None:
                 from datetime import datetime
                 from autopark.storage.run_store import export_run
                 bundle = Path(path).with_suffix("").with_name(
@@ -1261,7 +1302,39 @@ class MainWindow(QMainWindow):
         except OSError as exc:
             QMessageBox.critical(self, "Không ghi được", str(exc))
             return
-        self.statusBar().showMessage(f"Đã ghi {len(self.session.log)} dòng vào {path}", 5000)
+        extra = " (+ thư mục _vehicle_io)" if link is not None else ""
+        self.statusBar().showMessage(f"Đã ghi {len(self.session.log)} dòng vào {path}{extra}", 5000)
+
+    def _set_drive_mode(self, index: int) -> None:
+        mode = DriveMode(self.combo_drive.itemData(index))
+        link = None if mode == DriveMode.SIM else VehicleLink.simulated(mode, self._sim_io_config())
+        try:
+            self.session.set_vehicle_link(link)
+        except SessionError as exc:
+            with QSignalBlocker(self.combo_drive):
+                self.combo_drive.setCurrentIndex(self.combo_drive.findData(self.session.drive_mode.value))
+            QMessageBox.warning(self, "Không đổi được nhánh chạy", str(exc))
+            return
+        self.lbl_drive_hint.setText(DRIVE_MODE_CHOICES[index][2])
+        self._refresh_mode_widgets()
+        self._refresh_status()
+
+    @staticmethod
+    def _sim_io_config():
+        """Cấu hình bo mô phỏng từ configs/vehicle_io_sim.json (toàn số GIẢ ĐỊNH); lỗi thì dùng mặc định."""
+        from autopark.transport.vehicle_io import SimIOConfig, load_sim_io_config
+        path = Path(__file__).resolve().parents[2] / "configs" / "vehicle_io_sim.json"
+        try:
+            return load_sim_io_config(path)[0]
+        except (OSError, ValueError, KeyError):
+            return SimIOConfig()
+
+    def _observe_human(self) -> SimHumanDriver | None:
+        """Người lái mô phỏng của lần quan sát đang chạy (None nếu không ở chế độ quan sát)."""
+        link = self.session.run_link
+        if self.session.state != SessionState.RUNNING or link is None or not link.observe_only:
+            return None
+        return link.human
 
     def _set_feedback_profile(self, index: int) -> None:
         from autopark.simulation.feedback import FeedbackConfig
@@ -1348,6 +1421,8 @@ class MainWindow(QMainWindow):
         self._clock.restart()
         self._refresh_mode_widgets()
         self._refresh_status()
+        if self.session.run_link is not None:
+            self.statusBar().showMessage(f"Nhánh chạy: {self.combo_drive.currentText()}", 8000)
         self.view.setFocus()
 
     def stop(self) -> None:
@@ -1469,6 +1544,25 @@ class MainWindow(QMainWindow):
                 self.stop()
             else:
                 return False
+            self._refresh_status()
+            return True
+        human = self._observe_human()
+        if human is not None and key in (K.Key_Up, K.Key_Down, K.Key_Left, K.Key_Right, K.Key_Space, K.Key_0):
+            # Quan sát: phím lái xe mô phỏng thay người lái (tay điều khiển RC); không có gì gửi tới bo.
+            speed, steer = human.speed, human.steer
+            if key == K.Key_Up:
+                speed += self.session.speed_step
+            elif key == K.Key_Down:
+                speed -= self.session.speed_step
+            elif key == K.Key_Left:
+                steer += self.session.steer_step
+            elif key == K.Key_Right:
+                steer -= self.session.steer_step
+            elif key == K.Key_Space:
+                speed = 0.0
+            else:
+                steer = 0.0
+            human.set(speed, steer)
             self._refresh_status()
             return True
         if st in (SessionState.RUNNING, SessionState.PREVIEW, SessionState.PLANNING,

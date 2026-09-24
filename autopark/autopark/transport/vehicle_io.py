@@ -17,9 +17,10 @@ bo (`device_time_ms`) giữ nguyên để đối chiếu log.
 
 Cách dùng theo bước (xác định, dùng trong test): `connect()` → `arm()` → gọi `send()` mỗi chu kỳ điều khiển và
 `poll()` (serial) hoặc `advance(dt)` (mô phỏng) để xử lý byte đến; `poll()`/`advance()` trả MỌI telemetry nhận được
-kể từ lần gọi trước. `Heartbeat` là luồng nền tùy chọn cho chạy thật: chỉ `service()` (tiến I/O, KHÔNG lấy hàng đợi
-của `poll()`) và gửi PING để giữ liên lạc, KHÔNG BAO GIỜ lặp lại lệnh chuyển động — ứng dụng treo thì lệnh cuối hết
-hạn và bo tự dốc về trung tính.
+kể từ lần gọi trước. Vòng điều khiển chạy trong luồng giao diện dùng `poll(block=False)`: chỉ đọc byte đã có sẵn,
+không chờ timeout đọc của cổng (mặc định `block=True`, dùng trong các hàm chờ và `Heartbeat`). `Heartbeat` là luồng
+nền tùy chọn cho chạy thật: chỉ `service()` (tiến I/O, KHÔNG lấy hàng đợi của `poll()`) và gửi PING để giữ liên lạc,
+KHÔNG BAO GIỜ lặp lại lệnh chuyển động — ứng dụng treo thì lệnh cuối hết hạn và bo tự dốc về trung tính.
 
 Mất liên lạc phía laptop (`TELEMETRY_STALE`: không có telemetry hợp lệ quá `telemetry_timeout_s`) được CHỐT: laptop
 gửi DISARM (nếu chiều laptop → bo còn thông thì bo về DISARMED ngay) và `send(enable=True)` bị từ chối tới khi có
@@ -220,7 +221,7 @@ def _max(a: float | None, b: float) -> float:
 class VehicleIO:
     """Phía laptop của giao thức: phiên, số thứ tự, chờ ACK, kiểm tra telemetry, sự kiện an toàn.
 
-    Lớp con cung cấp `now()`, `_write(bytes)`, `_pump()` (tiến một bước I/O: đọc cổng, hoặc chạy một nhịp mô
+    Lớp con cung cấp `now()`, `_write(bytes)`, `_pump(block)` (tiến một bước I/O: đọc cổng, hoặc chạy một nhịp mô
     phỏng, rồi gọi `_on_bytes`) và `close()`. Các phương thức chờ (`connect`, `arm`...) lặp `_pump()` tới khi có
     trả lời hoặc hết thời gian theo `now()`, nên với đồng hồ mô phỏng chúng xác định hoàn toàn.
     """
@@ -282,7 +283,9 @@ class VehicleIO:
     def _write(self, data: bytes) -> None:
         raise NotImplementedError
 
-    def _pump(self) -> None:
+    def _pump(self, block: bool = True) -> None:
+        """Một bước I/O. `block=False`: không chờ byte (serial: không có byte sẵn thì trả ngay). Nhánh mô phỏng bỏ
+        qua `block`."""
         raise NotImplementedError
 
     def _is_open(self) -> bool:
@@ -445,12 +448,12 @@ class VehicleIO:
         return self.send(0.0, 0.0, enable=False, validity_s=validity_s)
 
     # ---- nhận ----------------------------------------------------------------------------------------------------
-    def service(self) -> None:
+    def service(self, block: bool = True) -> None:
         """Tiến một bước I/O và kiểm tra telemetry cũ, KHÔNG lấy hàng đợi telemetry mới (dùng cho luồng nền như
-        `Heartbeat`, để `poll()` của ứng dụng vẫn nhận đủ mọi khung)."""
+        `Heartbeat`, để `poll()` của ứng dụng vẫn nhận đủ mọi khung). `block=False`: không chờ byte đến."""
         with self._lock:
             if self._is_open():
-                self._pump()
+                self._pump(block)
             self.check()
 
     def _take_new(self) -> list[VehicleTelemetry]:
@@ -458,12 +461,22 @@ class VehicleIO:
         self._new.clear()
         return out
 
-    def poll(self) -> list[VehicleTelemetry]:
+    def poll(self, block: bool = True) -> list[VehicleTelemetry]:
         """Tiến một bước I/O, kiểm tra telemetry cũ; trả MỌI telemetry nhận được kể từ lần `poll()` trước (kể cả
         khung do `Heartbeat` đọc). Hàng đợi có giới hạn `new_telemetry_limit`; khung cũ nhất bị đẩy ra được đếm ở
-        `stats.telemetry_unpolled_dropped`."""
+        `stats.telemetry_unpolled_dropped`.
+
+        `block=False` (vòng điều khiển của `Session` qua bo thật): chỉ đọc byte đã có sẵn, không chờ timeout đọc của
+        cổng. Mặc định `True` giữ hành vi cũ (một lần đọc chờ tối đa timeout của cổng khi chưa có byte)."""
         with self._lock:
-            self.service()
+            self.service(block)
+            return self._take_new()
+
+    def take_new(self) -> list[VehicleTelemetry]:
+        """Telemetry đã nhận kể từ lần `poll()` trước (kể cả khung do `Heartbeat` đọc), KHÔNG tiến I/O: không đọc cổng,
+        không tiến bo mô phỏng. Dùng khi chỉ cần lấy phần đã tới mà không được làm trôi đồng hồ (xem
+        `VehicleLink.refresh`)."""
+        with self._lock:
             return self._take_new()
 
     def latest(self) -> VehicleTelemetry | None:
@@ -646,8 +659,11 @@ class SerialVehicleIO(VehicleIO):
         self.transport = transport
         self._opener = opener
         if clock is None:
-            t0 = time.monotonic()
-            clock = lambda: time.monotonic() - t0  # noqa: E731
+            # perf_counter chứ không phải monotonic: trên Windows, time.monotonic() là GetTickCount64, độ phân giải
+            # 15,625 ms (đo bằng time.get_clock_info trên máy bàn, Python 3.12, 24/09/2026). Session lấy thời gian
+            # phiên theo now() của nhánh này, nên đồng hồ thô làm nhịp điều khiển 20 ms dồn thành cụm.
+            t0 = time.perf_counter()
+            clock = lambda: time.perf_counter() - t0  # noqa: E731
         self.clock = clock
 
     @classmethod
@@ -688,11 +704,13 @@ class SerialVehicleIO(VehicleIO):
             self._link_failed(exc)
             raise VehicleIOError(f"Không ghi được ra cổng: {exc}") from exc
 
-    def _pump(self) -> None:
+    def _pump(self, block: bool = True) -> None:
         if self.transport is None:
             raise VehicleIOError("Cổng đã đóng")
         try:
             waiting = self.transport.in_waiting
+            if waiting <= 0 and not block:
+                return                         # không chờ: `read(1)` trên cổng rỗng chờ tới hết timeout đọc
             data = self.transport.read(waiting if waiting > 0 else 1)
         except OSError as exc:
             self._link_failed(exc)
@@ -700,9 +718,9 @@ class SerialVehicleIO(VehicleIO):
         if data:
             self._on_bytes(bytes(data), self.now())
 
-    def service(self) -> None:
+    def service(self, block: bool = True) -> None:
         try:
-            super().service()
+            super().service(block)
         except VehicleIOError:
             pass                               # lỗi cổng đã thành sự kiện LINK_ERROR; poll() vẫn trả khung đã nhận
 
@@ -1064,7 +1082,8 @@ class SimVehicleIO(VehicleIO):
                           accel_y_mm_s2=round_half_away(truth.speed * yaw_rate * 1000))
         return FirmwareInputs(**values)
 
-    def _pump(self) -> None:
+    def _pump(self, block: bool = True) -> None:
+        # `block` không có nghĩa ở đây: mỗi lần gọi là đúng một nhịp mô phỏng.
         cfg = self.config
         tick = cfg.tick_ms
         while self._actuator and self._actuator[0][0] <= self.t_ms:

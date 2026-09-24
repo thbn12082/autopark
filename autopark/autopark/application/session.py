@@ -13,6 +13,12 @@ Lập đường và chuẩn bị xem trước dùng chung một worker; hủy t�
 tới vòng tìm kiếm/mô phỏng. Kết quả trễ của tác vụ cũ không được áp dụng vào phiên mới.
 Phản hồi giả có thể thêm trễ/nhiễu/mất mẫu; cấu hình mặc định là lý tưởng.
 Đóng phiên ngừng đồng hồ mô phỏng; đây không phải phép thử phanh phần cứng.
+
+Nhánh chạy (24/09/2026, `application/vehicle_link.py`, docs/CHE_DO_QUAN_SAT.md): mặc định SIM là hành vi giai
+đoạn 0 ở trên, không đổi. `set_vehicle_link()` chọn VEHICLE_IO (lệnh bám quỹ đạo đi qua `VehicleIO`, sự kiện dừng
+của VehicleIO → dừng an toàn) hoặc OBSERVE (tính đường/lệnh và ghi log, không gửi lệnh nào; người lái cầm lái).
+Khi đó `world` là thế giới gương: trạng thái lấy từ telemetry + nguồn tư thế, không tích phân lệnh. Xem trước và
+lái tay luôn là mô phỏng giai đoạn 0.
 """
 from __future__ import annotations
 
@@ -24,6 +30,7 @@ from enum import Enum
 
 from autopark.control.tracker import TrackerOutput, TrackerParams, TrajectoryTracker
 from autopark.application.layouts import scatter_parked_cars
+from autopark.application.vehicle_link import DriveMode, VehicleLink, VehicleLinkError
 from autopark.domain.computation import ComputationCancelled, ComputationControl, ComputationTimedOut
 from autopark.domain.types import Obstacle, ParkingMode, ParkingSlot, Pose, Scenario, VehicleConfig, clamp
 from autopark.evaluation.logger import RunLog
@@ -140,6 +147,23 @@ class Session:
         self.run_snapshot: dict | None = None
         self.path_invalidated = False
         self._stop_outcome = SessionState.STOPPED
+        # nhánh chạy: None = SIM (giai đoạn 0); run_link = liên kết của lần chạy kín vòng gần nhất mà log hiện tại
+        # thuộc về (giữ để xuất log; None sau lái tay hoặc chạy SIM)
+        self.vehicle_link: VehicleLink | None = None
+        self.run_link: VehicleLink | None = None
+
+    # ------------------------------------------------------------------ nhánh chạy
+    @property
+    def drive_mode(self) -> DriveMode:
+        return DriveMode.SIM if self.vehicle_link is None else self.vehicle_link.mode
+
+    def set_vehicle_link(self, link: VehicleLink | None) -> None:
+        """Chọn nhánh chạy cho lần Bắt đầu đỗ tới: None = SIM (mặc định). Chỉ đổi khi đang chỉnh hoặc sẵn sàng."""
+        self._require_editable()
+        old = self.vehicle_link
+        if old is not None and old is not link:
+            old.close()                   # log trong bộ nhớ vẫn còn để xuất (run_link)
+        self.vehicle_link = link
 
     # ------------------------------------------------------------------ chỉnh sa bàn
     def _require_editable(self) -> None:
@@ -424,6 +448,10 @@ class Session:
         self._closed = True
         if self._executor is not None:
             self._executor.shutdown(wait=False, cancel_futures=True)
+        links = [self.vehicle_link] + ([self.run_link] if self.run_link is not self.vehicle_link else [])
+        for link in links:
+            if link is not None:
+                link.close()              # VEHICLE_IO còn phiên: gửi enable=0 + DISARM trước khi đóng
 
     # ------------------------------------------------------------------ chạy kín vòng
     def start_run(self) -> None:
@@ -434,7 +462,19 @@ class Session:
         chk = self.start_check()
         if not chk.ok:
             raise SessionError("Không bắt đầu được: " + chk.describe())
-        self.world = SimWorld(copy.deepcopy(self.scenario), self.cfg, dt=self.PHYSICS_DT)
+        link = self.vehicle_link
+        if link is not None:
+            # "Trước START kiểm tra lại trạng thái thực" (kế hoạch mục 9): lỗi → không đổi gì, bo không bị ARM.
+            try:
+                world = link.begin_run(copy.deepcopy(self.scenario), self.cfg, self.PHYSICS_DT)
+            except VehicleLinkError as exc:
+                raise SessionError(f"Không bắt đầu được ({link.mode.label}): {exc}") from exc
+            if self.run_link is not None and self.run_link is not link:
+                self.run_link.close()
+            self.world = world
+        else:
+            self.world = SimWorld(copy.deepcopy(self.scenario), self.cfg, dt=self.PHYSICS_DT)
+        self.run_link = link
         self.tracker = TrajectoryTracker(self.trajectory, self.cfg, self.tracker_params)
         self.targets = ManualTargets()
         self.last_output = None
@@ -445,7 +485,8 @@ class Session:
         self.lagging = False
         self.log.clear()
         from dataclasses import asdict
-        self.feedback = SimFeedback(self.feedback_config, self.scenario.seed)
+        # Phản hồi giả chỉ dùng ở SIM; qua VehicleIO trạng thái đến từ telemetry + nguồn tư thế.
+        self.feedback = SimFeedback(self.feedback_config, self.scenario.seed) if link is None else None
         self.safety_events.clear()
         self.run_events.clear()
         self.run_snapshot = copy.deepcopy({
@@ -455,11 +496,13 @@ class Session:
             "physics_dt": self.PHYSICS_DT, "control_every": self.CONTROL_EVERY,
             "max_run_time": self.MAX_RUN_TIME,
         })
+        if link is not None:
+            self.run_snapshot["vehicle_link"] = copy.deepcopy(link.describe())   # replay_run chưa hỗ trợ nhánh này
         self.state = SessionState.RUNNING
 
-    def _safety_stop(self, code: str, message: str) -> None:
+    def _safety_stop(self, code: str, message: str, source: str = "sim_safety") -> None:
         assert self.world is not None
-        self.safety_events.append(SafetyEvent(SourceStamp("sim_safety", self.world.time), code, message))
+        self.safety_events.append(SafetyEvent(SourceStamp(source, self.world.time), code, message))
         self.path_invalidated = True
         if self.trajectory is not None:
             self.trajectory.valid = False
@@ -482,6 +525,8 @@ class Session:
         self.run_events.append({"t": self.world.time, "kind": "obstacle", "obstacle": obstacle.to_dict()})
 
     def inject_data_loss(self) -> None:
+        if self.run_link is not None and self.state in (SessionState.RUNNING, SessionState.STOPPING):
+            raise SessionError("Đang chạy qua VehicleIO: không có phản hồi giả để ngắt")
         if self._closed or self.state not in (SessionState.RUNNING, SessionState.STOPPING) or self.feedback is None or self.world is None:
             raise SessionError("Chỉ ngắt phản hồi giả khi đang chạy")
         self.feedback.lost = True
@@ -507,6 +552,8 @@ class Session:
         if self.state == SessionState.STOPPING or (self.simulating and self.world is not None
                                                   and abs(self.world.state.speed) > 1e-9):
             raise SessionError("Phải dừng hẳn trước khi đặt lại")
+        if self.state == SessionState.RUNNING and self.run_link is not None and self.world is not None:
+            self.run_link.end_run(self.world.time, "RESET", "Đặt lại khi đang chạy")   # VEHICLE_IO: DISARM
         if self.path_invalidated and self.world is not None:
             self.scenario.start = self.world.state.pose
             self._invalidate()
@@ -527,13 +574,46 @@ class Session:
         if self.path_invalidated:
             self.safety_events.append(SafetyEvent(SourceStamp("sim_safety", self.world.time),
                                                   "WAIT_REPLAN", reason, "WAIT"))
+        if self.run_link is not None:
+            self.run_link.end_run(self.world.time, state.value, reason)   # VEHICLE_IO: enable=0 + DISARM
+
+    def _control_through_link(self, link: VehicleLink) -> None:
+        """Một nhịp điều khiển qua VehicleIO: trạng thái ĐO (telemetry + nguồn tư thế) → bộ bám → gửi (VEHICLE_IO)
+        hoặc chỉ ghi log (OBSERVE). Trạng thái cũ/thiếu → dừng an toàn như STALE_FEEDBACK của giai đoạn 0."""
+        t = self.world.time
+        observed, problem = link.observe(t)
+        if observed is None:
+            self.targets = ManualTargets(0.0, self.targets.steer)
+            self._safety_stop(problem.code, problem.message, problem.stamp.source_id)
+            return
+        out = self.tracker.update(observed)
+        self.last_output = out
+        self.targets = ManualTargets(out.target_speed, out.target_steer)
+        problem = link.command(t, out, observed)
+        if problem is not None:
+            self.targets = ManualTargets(0.0, self.targets.steer)
+            self._safety_stop(problem.code, problem.message, problem.stamp.source_id)
 
     def _step_closed_loop(self) -> StepResult:
         assert self.world is not None and self.tracker is not None
+        link = self.run_link
+        if link is not None:
+            if self.state == SessionState.RUNNING:
+                # Telemetry/sự kiện ĐÃ tới được lấy TRƯỚC nhịp điều khiển (VehicleLink.refresh, sửa tối 24/09/2026):
+                # không gửi enable=1 khi bo đã báo dừng mà sự kiện chưa được gom.
+                link.refresh()
+            for event in link.take_events():
+                if self.state == SessionState.RUNNING:
+                    self._safety_stop(event.code, event.message, event.stamp.source_id)
+                else:
+                    self.safety_events.append(event)
         if self.state == SessionState.RUNNING and self.world.time >= self.MAX_RUN_TIME:
             self._stop_outcome = SessionState.FAULT
             self._safety_stop("RUN_TIMEOUT", f"Quá {self.MAX_RUN_TIME:.0f} s mô phỏng mà chưa tới đích")
-        if self.state == SessionState.RUNNING and self.world.step_count % self.CONTROL_EVERY == 0:
+        control_tick = self.world.step_count % self.CONTROL_EVERY == 0
+        if self.state == SessionState.RUNNING and control_tick and link is not None:
+            self._control_through_link(link)
+        elif self.state == SessionState.RUNNING and control_tick:
             assert self.feedback is not None
             observed = self.feedback.sample(self.world.state)
             if not self.feedback.fresh(self.world.time):
@@ -549,13 +629,26 @@ class Session:
                 self.targets = ManualTargets(out.target_speed, out.target_steer)
         if self.state == SessionState.STOPPING:
             self.targets = ManualTargets(0.0, self.targets.steer)
+            if link is not None and control_tick:
+                link.command_stop(self.world.time)
         result = self.world.step(self.targets.speed, self.targets.steer)
+        # Qua VehicleIO, "đã dừng" phải là số đo MỚI (telemetry không cũ), không phải giá trị giữ lại.
+        standstill = result.state.speed == 0.0 and (link is None or link.telemetry_fresh())
         if result.stopped_by_collision:
             self._finish_run(SessionState.FAULT, "Va chạm: " + result.collision.describe(), False, result.collision)
-        elif self.state == SessionState.STOPPING and result.state.speed == 0.0:
+        elif self.state == SessionState.STOPPING and link is not None and link.observe_only:
+            # Quan sát: phần mềm không điều khiển xe nên không chờ xe dừng; kết thúc quan sát ngay.
             self._finish_run(self._stop_outcome, self.stop_reason, False)
+        elif self.state == SessionState.STOPPING and standstill:
+            self._finish_run(self._stop_outcome, self.stop_reason, False)
+        elif self.state == SessionState.STOPPING and link is not None and link.stop_timed_out(self.world.time):
+            reason = (f"Không xác nhận được xe đã dừng sau {link.params.stop_confirm_timeout_s:.1f} s kể từ lệnh "
+                      f"dừng (telemetry mất/cũ hoặc xe vẫn chạy); lý do dừng: {self.stop_reason}")
+            self.safety_events.append(SafetyEvent(SourceStamp("vehicle_link", self.world.time),
+                                                  "STOP_NOT_CONFIRMED", reason))
+            self._finish_run(SessionState.FAULT, reason, False)
         elif self.state == SessionState.RUNNING and self.last_output is not None and self.last_output.done \
-                and result.state.speed == 0.0:
+                and standstill:
             pe, he = pose_error(result.state, self.scenario.goal.pose)
             goal = self.scenario.goal
             if pe <= goal.tolerance_xy and abs(he) <= goal.tolerance_yaw:
@@ -581,6 +674,11 @@ class Session:
         self.lagging = False
         self.log.clear()
         self.run_snapshot = None
+        # Log mới là của lần lái tay (SIM giai đoạn 0): bỏ liên kết của lần chạy trước để không xuất nhầm log VehicleIO
+        # của lần đó cùng log lái tay. Liên kết đang được chọn (vehicle_link) không đóng: lần Bắt đầu đỗ tới dùng lại.
+        if self.run_link is not None and self.run_link is not self.vehicle_link:
+            self.run_link.close()
+        self.run_link = None
         self.state = SessionState.MANUAL
 
     def stop_manual(self) -> None:
@@ -622,7 +720,8 @@ class Session:
         return not self._closed and self.state in (SessionState.MANUAL, SessionState.RUNNING, SessionState.STOPPING)
 
     def advance(self, real_dt: float) -> list[StepResult]:
-        """Tiến mô phỏng theo thời gian thực đã trôi (nhân realtime_factor), bước cố định."""
+        """Tiến mô phỏng theo thời gian thực đã trôi (nhân realtime_factor), bước cố định. Lần chạy qua VehicleIO
+        theo thời gian thực (`run_link.realtime`): bỏ qua real_dt, tiến tới `run_link.session_time_now()`."""
         if not self.simulating or self.world is None:
             return []
         if not math.isfinite(real_dt) or real_dt < 0:
@@ -630,7 +729,14 @@ class Session:
         if (not math.isfinite(self.realtime_factor) or self.realtime_factor <= 0
                 or not math.isfinite(self.PHYSICS_DT) or self.PHYSICS_DT <= 0):
             raise ValueError("Nhịp mô phỏng và hệ số thời gian phải hữu hạn và > 0")
-        self._accumulator += real_dt * self.realtime_factor
+        link = self.run_link
+        if self.state != SessionState.MANUAL and link is not None and link.realtime:
+            # VehicleIO theo thời gian thực (bo thật): thời gian phiên bám đồng hồ của VehicleIO (io.now() - t0),
+            # không theo real_dt của giao diện và không tua nhanh. Mỗi bước chỉ đọc byte đã có (poll không chờ), nên
+            # nhịp điều khiển, hạn xác nhận dừng, MAX_RUN_TIME và t_session của log cùng bám io.now().
+            self._accumulator = max(0.0, link.session_time_now() - self.world.time)
+        else:
+            self._accumulator += real_dt * self.realtime_factor
         results: list[StepResult] = []
         steps = 0
         while self._accumulator >= self.PHYSICS_DT and steps < self.MAX_STEPS_PER_ADVANCE and self.simulating:

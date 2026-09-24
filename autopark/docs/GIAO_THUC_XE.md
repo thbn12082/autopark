@@ -16,6 +16,7 @@ Không số nào dưới đây là số đo trên xe hay trên bo.
 | Vector mẫu chung Python ↔ C++ | `autopark/transport/vectors.py` → `firmware/esp32_vehicle/test/vectors.json` | cả hai file test Python ở trên |
 | Firmware C++ (lõi portable + lớp Arduino) | `firmware/esp32_vehicle/src/` (hướng dẫn biên dịch, test host, đo trên bo: [README firmware](../firmware/esp32_vehicle/README.md)) | **chưa biên dịch**; `test/host/test_main.cpp` sẵn sàng khi có trình biên dịch; kiểm tĩnh mã nguồn (không chạy): `tests/test_transport_firmware_source.py` |
 | Cấu hình mô phỏng | `configs/vehicle_io_sim.json` | test nạp file |
+| Nối `VehicleIO` vào phiên đỗ xe, chế độ quan sát *(thêm tối 24/09/2026)* | `autopark/application/vehicle_link.py`, `session.py` ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md)) | `tests/test_session_vehicle.py` (bo mô phỏng + cổng serial GIẢ) |
 
 ## 0. Đã quyết định và CHƯA CHỐT
 
@@ -171,7 +172,12 @@ SUPPLY_LOW: mV; STALL: |effort| ‰ lúc chốt; còn lại 0). Gửi một lầ
 
 Thời hạn tính từ lúc **bo nhận**; trễ truyền trước đó bo không biết. Laptop thấy trễ qua `cmd_age_ms`,
 `stats.cmd_echo_s` và `stats.ack_rtt_s` (mục 10). PING giữ liên lạc nhưng không kéo dài lệnh chuyển động: nếu ứng
-dụng trên laptop treo mà luồng `Heartbeat` vẫn chạy, xe vẫn dừng theo thời hạn lệnh (có test).
+dụng trên laptop treo mà luồng `Heartbeat` vẫn chạy, xe vẫn dừng theo thời hạn lệnh (có test). *(Cập nhật tối
+24/09/2026.)* Bo khi đó ở ARMED, và ARMED + COMMAND enable=1 → RUNNING (mục 6): điều giữ xe đứng yên lúc ứng dụng hết
+treo là phía laptop, không phải bo. Trong phiên đỗ xe qua `VehicleIO` đã tìm thấy một khoảng trống (chỉ trên mô phỏng,
+mục 12). *(Cập nhật muộn hơn tối 24/09/2026: khoảng trống này đã được sửa cùng tối ở phía laptop (`VehicleLink.refresh()`
+trước nhịp điều khiển + chặn gửi khi còn sự kiện dừng chưa xử lý). Mới kiểm trên bo mô phỏng và cổng serial giả, CHƯA
+THỬ với bo thật; mục 12.)*
 
 Hai khái niệm "mất liên lạc" là HAI cơ chế khác nhau, không được lẫn:
 - **Watchdog của bo** (500 ms không nhận thông điệp hợp lệ → DISARMED). Một đợt mất ngắn hơn 500 ms nhưng dài hơn thời
@@ -296,6 +302,21 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
   không bao giờ lặp lệnh chuyển động; khi nó chạy, `poll()` của ứng dụng vẫn nhận đủ mọi khung (có test đếm từng số
   thứ tự). Hàng đợi chờ `poll()` có giới hạn (`new_telemetry_limit`, mặc định 512 ≈ 10 s ở 50 Hz): ứng dụng chỉ đọc
   `latest()` thì khung cũ nhất bị đẩy ra và được đếm ở `stats.telemetry_unpolled_dropped`, không phình bộ nhớ.
+- *(Thêm tối 24/09/2026.)* `poll(block=False)` (và `service(block=False)`): chỉ đọc byte đã có sẵn trong cổng; cổng rỗng
+  thì trả ngay, không chờ timeout đọc (10 ms với `SerialVehicleIO.open`). Vòng điều khiển của phiên đỗ xe dùng dạng
+  này (`VehicleLink.pump`, [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 4 quy tắc 4). Mặc định vẫn `block=True` (một lần
+  đọc chờ tối đa timeout của cổng khi chưa có byte), dùng trong các hàm chờ (`connect`, `wait_ready`, `arm`...) và trong
+  `Heartbeat`. Nhánh mô phỏng bỏ qua `block` (mỗi lần gọi là đúng một nhịp mô phỏng).
+- *(Thêm muộn hơn tối 24/09/2026.)* `take_new()` (hàm công khai mới): trả telemetry đang chờ trong hàng đợi của
+  `poll()` (kể cả khung do `Heartbeat` đọc) mà KHÔNG tiến I/O: không đọc cổng, không chạy thêm nhịp bo mô phỏng, không
+  đẩy đồng hồ mô phỏng, không kiểm STALE. `VehicleLink.refresh()` dùng nó với bo mô phỏng; với bo thật `refresh()` dùng
+  `poll(block=False)` (mục 12). Chưa có test riêng trong `test_transport_vehicle_io.py`; được kiểm qua
+  `tests/test_session_vehicle.py`.
+- *(Thêm tối 24/09/2026.)* Đồng hồ mặc định của `SerialVehicleIO` là `time.perf_counter()` tính từ lúc tạo đối tượng
+  (trước đó là `time.monotonic()`). Lý do: trên Windows `time.monotonic()` là `GetTickCount64()`, độ phân giải 15,625 ms
+  (`time.get_clock_info`, Python 3.12.10, máy bàn, kiểm lại tối 24/09/2026; `perf_counter` là
+  `QueryPerformanceCounter()`, 1e-07 s), mà thời gian phiên và nhịp điều khiển 20 ms bám `now()` của nhánh này. Truyền
+  `clock=` thì dùng đồng hồ đó (test dùng `ManualClock`).
 - Sự kiện (`SafetyEvent`, `events()`): `TELEMETRY_STALE` (STOP; telemetry cũ hơn `telemetry_timeout_s` = 0,3 s — "mất
   liên lạc" phía laptop; CHỐT: gửi DISARM, `rearm_required = True`, `send(enable=True)` ném `VehicleIOError` tới khi
   `arm()`/`connect()`), `TELEMETRY_RESUMED` (LOG; không gỡ chốt), `VEHICLE_FAULT` (STOP), `VEHICLE_STOPPED` (kèm lý do),
@@ -312,8 +333,9 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
   firmware CÓ móc panic kéo chân ESC xuống thấp (cơ cấu chấp hành thôi kéo ngay) và giả định ESC coi mất xung là không
   kéo — cả hai CHƯA KIỂM trên bo. `hold_last_output_ms > 0` mô phỏng trường hợp xấu (reset CPU không dừng LEDC, móc không
   chạy): ga cuối cùng giữ nguyên trong khoảng đó dù bo đang BOOT.
-- Telemetry đóng dấu bằng **thời điểm laptop nhận** (`stamp.t`); tuổi tính từ đó nhỏ hơn tuổi thật một khoảng trễ
-  truyền. `source_policy()` trả `SourcePolicy` cho `FreshnessMonitor` với cùng ngưỡng.
+- Telemetry đóng dấu bằng **thời điểm laptop nhận** (`stamp.t`, theo `now()` của nhánh — với `SerialVehicleIO` mặc
+  định là `perf_counter` ở trên); tuổi tính từ đó nhỏ hơn tuổi thật một khoảng trễ truyền. `source_policy()` trả
+  `SourcePolicy` cho `FreshnessMonitor` với cùng ngưỡng.
 
 ### Kết quả mô phỏng (bộ điều khiển với vùng chết, trễ, phản hồi nhiễu)
 
@@ -385,6 +407,10 @@ Nội dung test (đều không mở cổng thật nào):
   `VEHICLE_FAULT`. Bo reset khi đang chạy: mặc định (có móc) cơ cấu chấp hành thôi kéo ngay; `hold_last_output_ms = 400`
   (không có móc) → ga cuối giữ nguyên 400 ms dù bo đã BOOT, xe còn chạy ở 0,3 s. Mục `firmware` thiếu khóa lấy
   `SIM_FIRMWARE_DEFAULT`, khóa có thì giữ.
+  *(Cập nhật tối 24/09/2026.)* `poll(block=False)` và đồng hồ mặc định `perf_counter` (mục 10) chưa có test riêng trong
+  `test_transport_vehicle_io.py`; chúng được kiểm qua phiên đỗ xe trong `tests/test_session_vehicle.py` bằng cổng
+  serial GIẢ (`test_realtime_link_session_clock_follows_io_clock_without_blocking_reads`,
+  `test_realtime_serial_link_does_not_block_the_ui_tick`, `test_serial_default_clock_is_fine_grained`).
 - **Kiểm tĩnh mã C++** (`test_transport_firmware_source.py`; đọc mã nguồn, KHÔNG biên dịch hay chạy C++): mặc định
   `ap::Config` = `FirmwareConfig()`; `test_main.cpp` đọc được mọi khóa cấu hình; enum `protocol.h` = enum Python;
   `update_speed_loop` dùng trần, `step` gọi `check_stall` ngay sau vòng tốc độ; `output_guard` đọc mốc của loop trước
@@ -422,6 +448,16 @@ kiểm STALL cả khi mạch hở): cả 22 đều làm ít nhất một test h�
 
 Firmware C++ **chưa** qua `test/host` vì chưa biên dịch được.
 
+*(Tối 24/09/2026, máy bàn, `.venv`.)* Chạy lại sau khi `VehicleIO` được nối vào phiên đỗ xe: bốn tệp `test_transport_*`
+vẫn **184 đạt** (52 + 73 + 48 + 11); `tests/test_session_vehicle.py` 49 đạt + 1 `xfail` (khoảng trống an toàn ở mục 12).
+Vẫn chỉ là bản tham chiếu Python, bo mô phỏng và cổng serial giả. *(Cập nhật cùng tối: thêm bản ép pha của test treo
+0,25 s và hai test `test_resume_burst_*` (mục 12); `tests/test_session_vehicle.py` nay **57 đạt + 2 `xfail`** (cả hai `xfail` là pha 0 của khoảng trống ở mục 12).)*
+*(Cập nhật muộn hơn tối 24/09/2026, sau bản sửa khoảng trống ở mục 12: `tests/test_session_vehicle.py` **60 đạt, 0
+`xfail`**; hai `xfail` cũ nay đạt, hai test `test_resume_burst_*` được viết lại và đổi tên, thêm một test mới (mục 12).
+Chạy lại riêng tệp này khi sửa tài liệu (máy bàn, `.venv`): 60 passed. Bốn tệp `test_transport_*` vẫn 184 test (đếm
+bằng `--collect-only`; `take_new()` chưa có test riêng ở đây). Bộ test đầy đủ cuối tối 24/09/2026 (`.venv`): 895 đạt,
+6 bỏ qua (mô-đun cần torch), 215 s.)*
+
 ## 12. Chưa làm / giới hạn
 
 - C++ chưa biên dịch: lỗi cú pháp/kiểu có thể còn; hàm Arduino-ESP32 (`ledcAttach`/`ledcSetup`, `esp_task_wdt_*`,
@@ -433,8 +469,73 @@ Firmware C++ **chưa** qua `test/host` vì chưa biên dịch được.
   này; tên hàm/thanh ghi/tiêu đề phải kiểm khi biên dịch, và tác dụng phải đo bằng máy hiện sóng
   ([firmware/esp32_vehicle/README.md](../firmware/esp32_vehicle/README.md), đoạn "Cách kiểm trên bo" trong mục An toàn).
 - Chưa có mã đọc encoder, AS5600, BNO085, VL53L1X, điện áp; firmware báo mọi số đo là không hợp lệ.
-- Chưa nối `VehicleIO` vào `application/session.py` / `TrajectoryTracker` (phiên giai đoạn 0 vẫn điều khiển `SimVehicle`
-  trực tiếp); chưa ghi `commands.csv`/`telemetry.csv` từ `VehicleIO`.
+- *(Cập nhật tối 24/09/2026; dòng cũ "chưa nối `VehicleIO` vào `session.py`, chưa ghi `commands.csv`/`telemetry.csv`"
+  đã lỗi thời.)* `VehicleIO` đã được nối vào phiên đỗ xe: `application/vehicle_link.py` + `session.py`, ba nhánh SIM
+  (mặc định, giai đoạn 0 không đổi) / `VEHICLE_IO` / `OBSERVE` (quan sát, không gửi COMMAND nào); `VehicleLink.write_logs`
+  ghi `commands.csv`, `telemetry.csv`, `events.csv`, `start_refusals.csv`, `link.json`. Mới chạy với **bo mô phỏng**
+  (`SimVehicleIO` + `FirmwareModel`) và cổng serial GIẢ; chưa với ESP32-S3 thật, chưa có nguồn tư thế thật (tư thế lấy
+  từ mô phỏng). Chi tiết và giới hạn: [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md). Thời hạn lệnh của phiên lấy
+  `LinkParams.command_validity_s` (mặc định `None` = 0,15 s của `VehicleIO`); `DriveCommand.valid_for` vẫn chưa được
+  dùng (mục 5).
+- *(Thêm tối 24/09/2026, khoảng trống an toàn, chỉ trên mô phỏng. Cập nhật muộn hơn cùng tối: **ĐÃ SỬA** phía laptop,
+  xem đoạn "Bản sửa" cuối gạch đầu dòng này; phần mô tả dưới đây giữ nguyên làm lịch sử, các câu về `xfail`,
+  `test_resume_burst_*` và "CHƯA LÀM" là trạng thái lúc tìm thấy.)* Vòng điều khiển treo lâu hơn thời hạn lệnh trong khi
+  một luồng khác vẫn đọc telemetry (như `Heartbeat`, có PING nên bo không DISARM): bo về ARMED (`COMMAND_TIMEOUT`),
+  telemetry vẫn mới, chốt `TELEMETRY_STALE` không bật. Nếu bước 5 ms đầu tiên sau khi hết treo rơi vào nhịp điều khiển,
+  phiên gửi **một** COMMAND enable=1 trước khi lấy sự kiện `VEHICLE_STOPPED` (lớp nối chỉ gom sự kiện của `VehicleIO`
+  trong `pump()`, chạy sau nhịp điều khiển), nên bo ARMED → RUNNING thêm một lần; ngay sau đó (2 bước 5 ms của phiên
+  trong các test dưới) phiên mới lấy sự kiện, dừng và gửi enable=0. Test: `test_command_timeout_while_heartbeat_keeps_link_stops_and_never_resumes[0]` là `xfail(strict=True)`
+  (pha 1–3 đạt). *(Làm rõ tối 24/09/2026; câu cũ "trên cả bo mô phỏng lẫn cổng serial giả, lệnh enable=0 tới bo cùng
+  mili giây với lệnh enable=1 nên effort vẫn 0" không nêu nguồn và dễ hiểu nhầm.)* Hai lệnh tới bo cùng mili giây, effort
+  vẫn 0, trên bo mô phỏng (`test_resume_burst_commands_share_sim_clock_ms`) và trên cổng serial giả có vòng đọc lúc treo
+  (`ManualClock`; `test_resume_burst_effort_grows_with_gap_between_commands`, gap 0). Kết quả 0 này do đồng hồ mô
+  phỏng, KHÔNG phải tính chất của thiết kế: sau khi treo, đồng hồ của `SimVehicleIO` đi trước thời gian phiên ≈ 1 s nên
+  các bước 5 ms đuổi kịp của phiên không tiến bo (hai lệnh cách nhau 2 bước của phiên nhưng cùng một mốc io);
+  `ManualClock` cũng không tiến trong một lần `Session.advance()`. Vì vậy giữa hai lệnh không có chu kỳ bo nào. Cho bo
+  chạy thêm 10/20/40 ms trước lệnh enable=0 thì effort lớn nhất là 107/115/130 ‰ (cùng test; mô hình bo hiện tại, đầu
+  vào đứng yên, không phải số đo). Trên bo thật, hai lệnh cách nhau bằng thời gian tính của đợt đuổi kịp cộng trễ
+  USB/serial, còn chu kỳ bo là 10 ms (`kTickMs`), nên có thể có chu kỳ RUNNING với effort khác 0. Khoảng cách giữa hai
+  lệnh và effort trên bo thật: CHƯA ĐO. Hai test `test_resume_burst_*` ghi lại hành vi HIỆN TẠI (có enable=1 lọt tới
+  bo); sửa xong khoảng trống thì phải thay chúng.
+  *(Cập nhật tối 24/09/2026.)* Test cũ `test_vehicle_io_command_timeout_after_freeze_never_resumes` (treo 0,25 s bằng
+  `SimVehicleIO.advance`, tức laptop vẫn đọc telemetry trong lúc treo; không cần PING vì 0,25 s < watchdog 0,5 s) là
+  cùng trường hợp này. Nó đạt chỉ vì lúc treo tình cờ rơi vào pha 3. Ép pha 0 (cùng kịch bản test): hết treo lúc
+  1440 ms, bo nhận enable=1 150 mm/s ở 1450 ms (mô phỏng). Bản ép pha:
+  `test_vehicle_io_command_timeout_after_freeze_by_phase` (pha 0 là `xfail(strict=True)`, pha 1–3 đạt).
+  Khi KHÔNG có luồng nào đọc cổng lúc treo (phiên hiện không dùng `Heartbeat`), 8 trường hợp (treo 0,3 s và 1 s × 4 pha,
+  cổng serial giả) đều dừng và không có lệnh enable nào (`test_realtime_hang_without_heartbeat_never_resumes`). Cách
+  sửa (ví dụ gom sự kiện `VehicleIO` trước nhịp điều khiển, hoặc từ chối gửi khi telemetry cho thấy bo đã rời RUNNING
+  sau lệnh của lần chạy này) thuộc `vehicle_link.py`/`session.py`, CHƯA LÀM.
+
+  **Bản sửa (muộn hơn tối 24/09/2026, máy bàn; chỉ bo mô phỏng và cổng serial GIẢ, CHƯA THỬ với ESP32-S3 thật).** Hai
+  lớp, trong `application/vehicle_link.py`, `application/session.py`, `transport/vehicle_io.py`:
+  1. `VehicleLink.refresh()`, được `Session._step_closed_loop` gọi ở đầu MỌI bước 5 ms khi phiên đang RUNNING, TRƯỚC nhịp
+     điều khiển: bo thật → `poll(block=False)` (chỉ byte đã có sẵn); bo mô phỏng → `VehicleIO.take_new()` (hàng đợi hiện
+     có, không tiến I/O hay đồng hồ mô phỏng, mục 10); rồi gom sự kiện của `VehicleIO`. Nhờ vậy `VEHICLE_STOPPED`
+     (`COMMAND_TIMEOUT`) mà telemetry đã mang tới được `Session` lấy và chuyển sang dừng trước khi tới nhịp điều khiển.
+  2. `VehicleLink.command()` không gửi gì và trả `HALTED` nếu còn sự kiện dừng nằm trong hàng chờ của lớp nối mà
+     `Session` chưa lấy (ngoài chốt `_halted` đã có).
+
+  Test (`tests/test_session_vehicle.py`, nay 60 test, 60 đạt, 0 `xfail`): hai `xfail(strict=True)` cũ ở pha 0 của
+  `test_command_timeout_while_heartbeat_keeps_link_stops_and_never_resumes` và
+  `test_vehicle_io_command_timeout_after_freeze_by_phase` nay đạt; hai test ghi hành vi lỗi được viết lại và đổi tên:
+  `test_resume_after_hang_sends_no_enable_to_the_sim_board` (bo mô phỏng, pha 0, treo 1 s: lệnh đầu tiên tới bo sau
+  khi hết treo là enable=0, không có enable=1, effort luôn 0) và
+  `test_resume_after_hang_keeps_effort_zero_whatever_the_gap_before_the_stop[0/10/20/40]` (cổng serial giả, `ManualClock`:
+  không enable=1 nào, effort 0 ở mọi khoảng bo chạy thêm trước lệnh dừng; trước bản sửa là 0/107/115/130 ‰); thêm
+  `test_command_refuses_enable_while_a_stop_event_is_pending` (lớp 2). Đột biến trong tiến trình (vá bằng plugin
+  pytest ngoài repo, không sửa tệp nào; chạy lại khi viết tài liệu này): bỏ lời gọi `refresh()` → 7 test hỏng (hai pha 0
+  ở trên, `test_resume_after_hang_sends_no_enable_to_the_sim_board`, bốn trường hợp `..._whatever_the_gap_...`), dù lớp
+  2 vẫn còn; bỏ lớp 2 → đúng test mới hỏng, 59 test còn lại đạt. Tức là lớp 2 chỉ chặn sự kiện ĐÃ được lớp nối gom, còn
+  việc bắt được khoảng trống này là nhờ lớp 1.
+
+  Giới hạn còn lại (suy ra từ mã, chưa có test): `refresh()` chỉ thấy những gì đã tới laptop. Nếu bo vừa về ARMED mà khung
+  telemetry báo điều đó chưa tới (bo gửi mỗi 50 ms, cộng trễ USB) thì laptop không biết và vẫn có thể gửi enable=1 (bo
+  ARMED → RUNNING theo mục 6); `VEHICLE_STOPPED` chỉ sinh ra khi laptop nhận một khung rời RUNNING. Trên bo thật, khoảng
+  hở này và effort khi đó: CHƯA ĐO.
+- *(Thêm tối 24/09/2026.)* Lần chạy qua `VehicleIO` không có gói replay: `storage/run_store.export_run` và `replay_run`
+  từ chối (`ReplayNotSupported`, lời báo tiếng Việt) vì trạng thái lấy từ telemetry + nguồn tư thế, không tái tạo được
+  bằng mô phỏng; bằng chứng của lần chạy là log `VehicleLink.write_logs` (test `tests/test_run_store_vehicle.py`).
 - *(24/09/2026)* Chưa có mã đổi `VehicleTelemetry.tof_m` sang `NearFieldReading` của `NearFieldLayer`
   ([giai đoạn 3](GIAI_DOAN_3_CHUAN_BI.md)). Trên dây ToF chỉ là `tof_mm[4]` + mặt nạ theo chỉ số, không có `sensor_id`
   hay `max_range_m`; cả bốn số đo dùng chung stamp của khung (thời điểm laptop nhận). Ánh xạ chỉ số →
@@ -443,7 +544,10 @@ Firmware C++ **chưa** qua `test/host` vì chưa biên dịch được.
 - Mô hình cơ cấu chấp hành đơn giản: vùng chết đối xứng, tốc độ xác lập tuyến tính theo effort, không có ma sát tĩnh
   khác động, không có phanh ESC, không có độ rơ lái; mọi hệ số là giả định.
 - Chưa có xác thực nguồn gửi (một tiến trình khác mở được cổng có thể gửi HELLO); chấp nhận ở mức bàn thử một laptop.
-- Chưa làm việc cuối trong kế hoạch mục 9, "Khi chưa đủ phần cứng": thiết kế nguồn/dừng cho phép thử sắp thực hiện.
-  Repo chưa có bảng tải, `power_budget.md`, sơ đồ nguồn hay sơ đồ dừng (đầu ra của kế hoạch mục 10). Mới chọn cách đấu
-  ngõ vào E-stop an toàn khi hở mạch (tiếp điểm NC nối GND, kéo lên; mục 0, mục 6), chưa lắp, chưa thử; ngõ vào này
-  không thay đường cắt động lực phần cứng.
+- Việc cuối trong kế hoạch mục 9, "Khi chưa đủ phần cứng" (thiết kế nguồn/dừng cho phép thử sắp thực hiện): *(cập nhật
+  tối 24/09/2026; dòng cũ "repo chưa có bảng tải, `power_budget.md`, sơ đồ nguồn hay sơ đồ dừng" đã lỗi thời)* đã có
+  **bản nháp** [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md): bảng tải (mục 1, gần như toàn CHƯA ĐO / CẦN TRA
+  datasheet), sơ đồ nguồn (mục 2), sơ đồ dừng (mục 3), bảng định mức còn phải kiểm (mục 4), kịch bản thử lỗi (mục 5, đều
+  CHƯA THỬ). Chưa có phần cứng nguồn hay dừng nào, chưa đo điện áp/dòng thiết bị nào; tách `power_budget.md` riêng hay
+  không: CHƯA CHỐT. Mới chọn cách đấu ngõ vào E-stop an toàn khi hở mạch (tiếp điểm NC nối GND, kéo lên; mục 0, mục 6),
+  chưa lắp, chưa thử; ngõ vào này không thay đường cắt động lực phần cứng.

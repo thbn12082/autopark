@@ -171,6 +171,22 @@ def test_sim_speed_sensor_noise_matches_configured_std(cfg):
     assert 0.8 * std < statistics.pstdev(samples) < 1.2 * std
 
 
+def test_take_new_returns_queued_telemetry_without_advancing_io(cfg):
+    """`take_new()` (tối 24/09/2026, dùng bởi `VehicleLink.refresh`): lấy khung đã nhận — kể cả khung do `service()` của
+    luồng kiểu `Heartbeat` đọc — mà KHÔNG tiến đồng hồ mô phỏng hay đọc thêm; khung đã lấy không trả lại lần nữa."""
+    io = sim(cfg)
+    io.connect()
+    io.wait_ready()
+    io.poll()                                                    # xả hàng đợi tới đây
+    for _ in range(40):                                          # 40 nhịp mô phỏng, chỉ service(): khung ở lại hàng đợi
+        io.service()
+    t = io.now()
+    frames = io.take_new()
+    assert frames and all(f.stamp.t <= t for f in frames) and io.now() == t
+    assert io.take_new() == [] and io.now() == t                 # không tiến, không đọc thêm
+    assert all(f.sequence not in {g.sequence for g in frames} for f in io.poll())
+
+
 def test_sim_does_not_move_when_not_armed(cfg):
     io = sim(cfg)
     io.connect()
