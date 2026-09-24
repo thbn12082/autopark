@@ -5,6 +5,15 @@
 Chạy trong `.venv-train` (cần torch cho AI; `--no-ai` thì chạy được cả trong `.venv`). Camera được chọn theo CỔNG HUB
 (index OpenCV đổi sau khởi động lại). Kết quả: `<name>.rig.json` gồm cấu hình, số đo từng camera, độ lệch bộ ảnh,
 LiDAR, AI (thời gian từng khâu, tuổi kết quả), tài nguyên (CPU, RAM, GPU, nhiệt độ GPU) và chuỗi theo giây.
+
+`--max-wait-ms` (mặc định 60; ≤ 0 = quy tắc cũ, chờ mọi camera) là SÀN của ngưỡng chờ camera chưa có khung mới; ngưỡng
+thực = max(sàn, 1,5 × chu kỳ khung TRUNG BÌNH đo được của camera nhanh nhất) — ≈ 63 ms ở 24 fps (nhịp xen kẽ 31/48 ms,
+trung bình 41,9 ms), ≈ 100 ms ở 15 fps — rồi AI chấm bộ không có camera đó. Số bộ như thế và số lần từng cổng bị bỏ
+được ghi ("chậm" trên dòng trực tiếp, `sets_partial_wait`, `lagging_per_port` trong json), cùng ngưỡng thực đã dùng
+(`wait_limit_ms`) và số bộ phải để dành camera lệch pha cho bộ sau (`sets_regrouped`). Muốn so với số đo cũ (loạt
+20260923_v3, trước khi có quy tắc này) thì chạy `--max-wait-ms 0`. Các số trên của phiên bật chờ chạy trước bản sửa bộ
+ước lượng chu kỳ ngày 24/09 KHÔNG dùng được: bản đó ước chu kỳ ≈ 24–33 ms trên nhịp 31/48 ms và ghi "chậm" cho camera
+khỏe (xem `video.multicam`).
 """
 from __future__ import annotations
 
@@ -41,16 +50,20 @@ def build_rig(args) -> Rig:
             return RplidarC1Source.open(args.lidar, mirror=args.mirror, clock=clock, first_revolution_timeout_s=4.0)
     cfg = RigConfig(width=args.width, height=args.height, fps=args.fps, fourcc=args.fourcc, exposure=args.exposure,
                     max_skew_s=None if args.max_skew_ms <= 0 else args.max_skew_ms / 1000.0,
+                    max_wait_s=None if args.max_wait_ms <= 0 else args.max_wait_ms / 1000.0,
                     display_width=args.display_width, ai=not args.no_ai, checkpoint=checkpoint,
                     lidar_port=args.lidar, notes={"name": getattr(args, "name", None), "note": getattr(args, "note", "")})
     return Rig(cams, cfg, make_segmenter=make_segmenter, open_lidar=open_lidar, clock=clock)
 
 
 def print_line(snap: dict) -> None:
+    lagging = snap["cameras"].get("lagging_per_port", {})
     cams = " | ".join(f"p{c['port']} {c['fps_last2s']:.1f}fps cũ{c['duplicates']} cắt{c['truncated']} xé{c['torn']}"
-                      + (" LỖI" if c["open_error"] else "")
+                      f" chậm{lagging.get(c['port'], 0)}" + (" LỖI" if c["open_error"] else "")
                       for c in snap["cameras"]["cameras"])
-    parts = [f"t={snap['t_s']:6.1f}s", cams]
+    limit = (snap["cameras"].get("wait_limit_ms") or {}).get("median")
+    parts = [f"t={snap['t_s']:6.1f}s", cams, f"bộ thiếu cam chậm {snap['cameras'].get('sets_partial_wait', 0)}"
+             + ("" if limit is None else f" (ngưỡng chờ {limit} ms)")]
     if snap["lidar"]:
         parts.append(f"LiDAR {snap['lidar']['hz_last3s']:.1f}Hz")
     if snap["ai"]:
@@ -76,6 +89,15 @@ def add_rig_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--exposure", type=float, default=None)
     p.add_argument("--ring", type=int, default=3)
     p.add_argument("--max-skew-ms", type=float, default=60.0, help="bộ ảnh lệch hơn thế bị bỏ; ≤ 0 để tắt")
+    # Cổng 1 ở 480p có đợt 26–36 % khung hỏng (đo 23/09); quy tắc cũ "chờ mọi camera có khung mới" làm AI chậm theo nó.
+    # Giá trị này là SÀN: ngưỡng thực = max(sàn, 1,5 × chu kỳ khung TRUNG BÌNH đo được của camera nhanh nhất), để camera
+    # khỏe chạy dưới 16,7 fps (--fps 15, phơi sáng tự động chỗ tối) không bị bỏ luân phiên. Sàn 60 ms và hệ số 1,5: lựa
+    # chọn thiết kế, kiểm bằng mô phỏng đồng hồ giả và phát lại khoảng cách khung đo được (m04), CHƯA đo trên phần cứng
+    # (xem video/multicam.py).
+    p.add_argument("--max-wait-ms", type=float, default=60.0,
+                   help="sàn của ngưỡng chờ camera chưa có khung mới; ngưỡng thực = max(giá trị này, 1,5 × chu kỳ khung "
+                        "trung bình của camera nhanh nhất): ≈ 63 ms ở 24 fps, ≈ 100 ms ở 15 fps; hết hạn thì chấm bộ "
+                        "không có camera đó; ≤ 0 để tắt (chờ mọi camera, như loạt 20260923_v3)")
     p.add_argument("--lidar", default=None, help="cổng COM của RPLIDAR C1, ví dụ COM4")
     p.add_argument("--mirror", action="store_true")
     p.add_argument("--no-ai", action="store_true")
@@ -145,8 +167,17 @@ def print_summary(s: dict) -> None:
               f"khoảng cách max {c['gap_max_ms']} ms" + (f", LỖI MỞ {c['open_error']}" if c["open_error"] else ""))
     st = s["sets"]
     sk = st["skew_ms"]
+    pol = s.get("policy") or {}
+    wait = st.get("partial_wait_ms") or {}
     print(f"  bộ ảnh: {st['sets_built']} dùng, {st['sets_rejected_skew']} bỏ vì lệch, {st['sets_partial']} thiếu camera, "
           f"{st['sets_blocked_not_new']} bị chặn vì chưa đủ khung mới; khung không vào bộ nào {st['frames_skipped']}")
+    limit = st.get("wait_limit_ms") or {}
+    wait_txt = "TẮT (chờ mọi camera)" if pol.get("max_wait_ms") is None else (
+        f"tối đa max({pol['max_wait_ms']} ms; {pol.get('wait_periods_of_fastest')} × chu kỳ camera nhanh nhất), "
+        f"ngưỡng đã dùng trung vị {limit.get('median')} ms [{limit.get('min')}; {limit.get('max')}]")
+    print(f"  chờ camera chậm {wait_txt}: {st.get('sets_partial_wait', 0)} bộ dùng thiếu camera chậm, số bộ theo cổng bị "
+          f"bỏ {st.get('lagging_per_port', {})}; khung mới đã chờ trung vị {wait.get('median')} ms, max {wait.get('max')} ms; "
+          f"{st.get('sets_regrouped', 0)} bộ để dành camera lệch pha cho bộ sau")
     print(f"  độ lệch bộ ảnh: trung vị {sk['median']} ms, p95 {sk['p95']} ms, max {sk['max']} ms (n {sk['n']})")
     if s["lidar"]:
         l = s["lidar"]
@@ -157,7 +188,7 @@ def print_summary(s: dict) -> None:
     if s["ai"]:
         a = s["ai"]
         print(f"  AI {a['model']} ({a['device']}, amp {a['amp']}): {a['batches']} lô = {a['images']} ảnh, {a['sets_per_s_mean']} bộ/s TB; "
-              f"lô đầu {a['first_batch_ms']} ms (khởi tạo, không tính)")
+              f"{a.get('batches_partial_wait', 0)} lô thiếu camera chậm; lô đầu {a['first_batch_ms']} ms (khởi tạo, không tính)")
         print(f"     một lô: trung vị {a['total_ms']['median']} ms (tiền xử lý {a['pre_ms']['median']}, mạng {a['model_ms']['median']}, "
               f"hậu xử lý {a['post_ms']['median']}), p95 {a['total_ms']['p95']} ms, max {a['total_ms']['max']} ms; lỗi {a['errors']}")
         print(f"     tuổi kết quả so với khung cũ nhất: trung vị {a['result_age_oldest_frame_ms']['median']} ms, "

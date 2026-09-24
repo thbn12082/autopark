@@ -85,8 +85,10 @@ class FakeSegmenter:
 
     def __init__(self, path: str, delay: float = 0.005, fail: bool = False):
         self.name, self.delay, self.device, self.amp, self.fail = f"fake:{path}", delay, "cpu", False, fail
+        self.batch_sizes: list[int] = []            # cỡ từng lô đã nhận, để test biết AI chấm bao nhiêu camera
 
     def infer(self, images, out_size=None):
+        self.batch_sizes.append(len(images))
         time.sleep(self.delay)
         if self.fail:
             raise RuntimeError("giả lập CUDA hết bộ nhớ")
@@ -101,7 +103,8 @@ class FakeSegmenter:
         return out, FakeTiming(len(images))
 
 
-def fake_manager(ports=(1, 2, 3, 4), period=0.02, broken=(), **kw):
+def fake_manager(ports=(1, 2, 3, 4), period=0.02, broken=(), periods=None, **kw):
+    """`periods`: {cổng: chu kỳ riêng} cho camera chậm hơn (ví dụ {4: 0.06} khi các camera khác 0,02)."""
     from autopark.video.multicam import MultiCameraManager
 
     specs = [CameraSpec(port=p, index=k) for k, p in enumerate(ports)]
@@ -109,6 +112,6 @@ def fake_manager(ports=(1, 2, 3, 4), period=0.02, broken=(), **kw):
     def open_source(spec):
         if spec.port in broken:
             raise ValueError(f"Cannot open camera index {spec.index}")
-        return FakeCamera(spec, period=period, **kw)
+        return FakeCamera(spec, period=(periods or {}).get(spec.port, period), **kw)
 
     return MultiCameraManager(specs, open_source=open_source, ring=3)

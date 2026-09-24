@@ -235,3 +235,20 @@ def test_manager_and_rig_count_truncated_and_torn_frames_per_camera():
     assert all(c["truncated"] <= 2 and c["torn"] <= 2 for c in after_reset)
     assert series and all(v >= 0 for row in series for key in ("cam_truncated_1s", "cam_torn_1s") for v in row[key].values())
     assert sum(row["cam_truncated_1s"][1] for row in series) > 0
+
+
+def test_frame_errors_carry_the_read_time(monkeypatch):
+    """MultiCameraManager ghi thời điểm khung hỏng tới để ước lượng chu kỳ khung: lỗi phải mang đồng hồ của lần đọc."""
+    now = [5.0]
+    bad = truncate(scene(seed=40), 400)
+    monkeypatch.setattr(cv2, "VideoCapture", lambda *args: ImageCapture([scene(seed=41), bad, bad]))
+    source = UsbCameraSource(0, width=1280, height=720, clock=lambda: now[0])
+    source.read()
+    now[0] = 5.042
+    with pytest.raises(FrameReadError, match="truncated frame") as cut:
+        source.read()
+    now[0] = 5.084
+    with pytest.raises(FrameReadError, match="previous frame") as dup:
+        source.read()
+    assert cut.value.t == 5.042 and dup.value.t == 5.084
+    assert FrameReadError("x").t is None                 # nguồn khác không gắn: multicam tự lấy đồng hồ

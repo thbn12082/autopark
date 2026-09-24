@@ -6,10 +6,20 @@
   BLOCKED, theo ngưỡng xác suất đang chọn. Khi bật AI, ảnh hiển thị là đúng bộ ảnh mà AI đã chấm (trễ hơn ảnh sống một
   lần suy luận) để lớp tô khớp từng pixel với ảnh; nếu AI không có kết quả mới quá 0,5 s (lỗi, đang nạp mô hình) thì
   ô quay về ảnh sống không tô và báo đỏ lý do.
+- Camera chậm (bị bỏ khỏi bộ AI vừa chấm sau khi chờ — ngưỡng thực = max(`--max-wait-ms`, 1,5 × chu kỳ khung của
+  camera nhanh nhất), xem `video.multicam`): ô vẫn hiện khung và lớp tô của lô GẦN NHẤT có camera đó (cùng mô hình), báo
+  đỏ "chậm" kèm số lô và tuổi kết quả; kết quả đó cũ hơn 0,5 s hoặc chưa có thì hiện ảnh sống không tô và nói rõ.
+  Camera được để dành cho bộ sau vì lệch pha (không chậm) cũng hiện lớp tô của lô gần nhất, ghi "lệch pha", không báo
+  đỏ. Ghi chú này đứng ĐẦU dải chữ của ô; dải quá dài thì phần số đo phía sau bị rút gọn bằng "…". Đo ngày 24/09 bằng
+  cửa sổ ẩn và QFontMetrics (Segoe UI 13 px đậm), chưa nhìn trên màn hình thật: ở cửa sổ mặc định 1600×900 ô rộng 557 px
+  (541 px cho chữ), còn dải chữ kiểu cũ (ghi chú ở cuối) dài 613 px, nên phần cuối — tuổi kết quả — bị cắt mất im lặng.
 - Chọn mô hình (mọi `runs/*/best.pt`, lượt nền WoodScape đứng đầu), kéo ngưỡng (0,50 là argmax, 0,15 là ngưỡng an toàn
   chọn trên val — HUAN_LUYEN.md mục 10), bật/tắt AI, bật/tắt lớp tô, đặt lại số đo.
 - "Chụp bộ ảnh" lưu ảnh gốc cả bốn camera, xác suất, ảnh tô, vòng LiDAR và siêu dữ liệu (nguồn: bộ AI đồng bộ hay khung
   mới nhất không đồng bộ, tuổi từng khung lúc chụp, độ lệch) vào `runs/rig_snapshots/` — để thu ảnh sa bàn gán nhãn.
+  `source: "ai_set"` chỉ nói lần chụp theo kết quả AI hiện hành; nguồn của TỪNG ảnh ở `cameras[<cổng>].frame_from`:
+  "this_set" (khung của bộ AI này), "earlier_batch" (camera ngoài bộ: khung đã chấm ở lô trước, cũ hơn) hay
+  "live_unsynced" (khung sống, không thuộc bộ AI nào, cũ hơn hay MỚI hơn bộ; các cổng này ở `unsynced_ports`).
   Ảnh ghi qua `cv2.imencode` (imwrite của OpenCV không ghi được vào đường dẫn tiếng Việt trên Windows).
 - Bảng số đo: số trực tiếp trên cửa sổ mẫu gần nhất (ghi rõ trên bảng). Số đo có hồ sơ thì dùng
   `python -m autopark.rig.bench` (không có giao diện tranh CPU).
@@ -33,7 +43,7 @@ except Exception:  # noqa: BLE001
     pass
 
 from PySide6.QtCore import QRectF, QSignalBlocker, Qt, QTimer
-from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
                                QPushButton, QSlider, QVBoxLayout, QWidget)
 
@@ -83,6 +93,7 @@ class CameraTile(QWidget):
         self.pixmap: QPixmap | None = None
         self.caption = f"cổng {port}"
         self.detail = "đang mở…"
+        self.shown_text = ""
         self.alert = False
         self.setMinimumSize(320, 180)
 
@@ -92,6 +103,18 @@ class CameraTile(QWidget):
         self.detail, self.alert = detail, alert
         self.update()
 
+    @staticmethod
+    def band_font() -> QFont:
+        font = QFont("Segoe UI")
+        font.setPixelSize(13)
+        font.setBold(True)
+        return font
+
+    def band_text(self, metrics: QFontMetrics, width: int) -> str:
+        """Chữ trên dải đầu ô, rút gọn bằng "…" ở CUỐI khi quá rộng (ghi chú quan trọng — chậm, lệch pha, AI đứng — đặt ở
+        đầu `detail` nên không bị mất; drawText tự cắt thì cắt im lặng, không ai biết thiếu chữ)."""
+        return metrics.elidedText(f"{self.caption}   {self.detail}", Qt.TextElideMode.ElideRight, max(0, int(width)))
+
     def paintEvent(self, event):
         p = QPainter(self)
         p.fillRect(self.rect(), QColor("#101821"))
@@ -99,15 +122,13 @@ class CameraTile(QWidget):
             scaled = self.pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             x, y = (self.width() - scaled.width()) // 2, (self.height() - scaled.height()) // 2
             p.drawPixmap(x, y, scaled)
-        font = QFont("Segoe UI")
-        font.setPixelSize(13)
-        font.setBold(True)
-        p.setFont(font)
+        p.setFont(self.band_font())
         band = QRectF(0, 0, self.width(), 22)
         p.fillRect(band, QColor(0, 0, 0, 150))
         p.setPen(QColor("#ff6b6b") if self.alert else QColor("#e8eef3"))
-        p.drawText(band.adjusted(8, 0, -8, 0), Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-                   f"{self.caption}   {self.detail}")
+        rect = band.adjusted(8, 0, -8, 0)
+        self.shown_text = self.band_text(p.fontMetrics(), rect.width())     # giữ lại để test biết đã vẽ chữ gì
+        p.drawText(rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, self.shown_text)
 
 
 class RigWindow(QMainWindow):
@@ -252,13 +273,28 @@ class RigWindow(QMainWindow):
 
     # ---- vẽ -----------------------------------------------------------------------------------------------------
     def _current(self):
-        """(khung theo cổng, xác suất theo cổng, kết quả AI hoặc None, ghi chú AI hoặc None)."""
+        """(khung theo cổng, xác suất theo cổng, kết quả AI hoặc None, ghi chú AI hoặc None, camera ngoài bộ).
+
+        "camera ngoài bộ": cổng không có trong bộ AI vừa chấm — chậm (`frame_set.lagging`) hoặc để dành cho bộ sau vì
+        lệch pha (`frame_set.deferred`) → `CameraAI` của lô trước mà khung/xác suất đang hiện lấy từ đó, hoặc None nếu đang
+        hiện ảnh sống không tô (chưa có kết quả, hoặc kết quả cũ hơn AI_STALE_S)."""
         ai = self.rig.ai
         if ai is not None and ai.enabled.is_set():
             result = ai.result()
-            age = None if result is None else self.clock() - result.t_done
+            now = self.clock()
+            age = None if result is None else now - result.t_done
             if result is not None and age <= AI_STALE_S:
-                return result.frame_set.frames, result.probs, result, None
+                frames, probs, lagging = dict(result.frame_set.frames), dict(result.probs), {}
+                live = None
+                for port in (*result.frame_set.lagging, *result.frame_set.deferred):
+                    held = result.carried.get(port)
+                    if held is not None and now - held.t_done <= AI_STALE_S:
+                        frames[port], probs[port], lagging[port] = held.frame, held.prob, held
+                        continue
+                    live = self.rig.cams.latest_frames() if live is None else live
+                    if port in live:
+                        frames[port], lagging[port] = live[port], None
+                return frames, probs, result, None, lagging
             if ai.segmenter is None or ai.requested != ai.checkpoint:
                 note = "AI đang nạp mô hình"
             else:
@@ -267,11 +303,11 @@ class RigWindow(QMainWindow):
                 note += f": {ai.load_error[:50]}"
             elif ai.errors and ai.last_error:
                 note += f": {ai.last_error[:50]}"
-            return self.rig.cams.latest_frames(), {}, None, note
-        return self.rig.cams.latest_frames(), {}, None, None
+            return self.rig.cams.latest_frames(), {}, None, note, {}
+        return self.rig.cams.latest_frames(), {}, None, None, {}
 
     def tick(self) -> None:
-        frames, probs, result, ai_note = self._current()
+        frames, probs, result, ai_note, lagging = self._current()
         now = self.clock()
         cam_stats = {c["port"]: c for c in self.rig.cams.camera_stats()}
         width = getattr(self.rig.cfg, "display_width", 640)
@@ -288,10 +324,23 @@ class RigWindow(QMainWindow):
             blocked = f" · BLOCKED {float((prob >= self.threshold).mean()):.0%}" if prob is not None else ""
             detail = (f"{c.get('fps_last2s', 0):.1f} fps · cũ {c.get('duplicates', 0)} · cắt {c.get('truncated', 0) + c.get('torn', 0)} · "
                       f"tuổi {1000 * (now - frame.meta.stamp.t):.0f} ms{blocked}")
+            # ghi chú quan trọng đứng ĐẦU dải chữ (ô 557 px ở cửa sổ mặc định; phần số đo phía sau có thể bị rút gọn)
             if ai_note:
-                detail += f" · {ai_note}"
-            alert = bool(c.get("stale")) or ai_note is not None
-            key = (frame.meta.stamp.t, None if result is None else result.t_done)   # id() có thể bị dùng lại
+                detail = f"{ai_note} · {detail}"
+            done_t = None if result is None else result.t_done
+            slow = False
+            if port in lagging:
+                held = lagging[port]
+                slow = port in result.frame_set.lagging              # deferred: lệch pha, camera không chậm
+                head = "chậm" if slow else "lệch pha, chấm ở bộ sau"
+                if held is None:
+                    note = f"{head}: chưa có kết quả AI mới, ảnh sống không tô"
+                else:
+                    note = f"{head}: lớp tô của lô #{held.batch_id}, cách đây {1000 * (now - held.t_done):.0f} ms"
+                    done_t = held.t_done
+                detail = f"{note} · {detail}"
+            alert = bool(c.get("stale")) or ai_note is not None or slow
+            key = (frame.meta.stamp.t, done_t)   # id() có thể bị dùng lại
             if self._last_shown.get(port) == key:
                 tile.set_image(None, detail, alert)
                 continue
@@ -327,7 +376,7 @@ class RigWindow(QMainWindow):
 
     # ---- chụp ---------------------------------------------------------------------------------------------------
     def snapshot(self) -> Path | None:
-        frames, probs, result, ai_note = self._current()
+        frames, probs, result, ai_note, lagging = self._current()
         # vòng LiDAR lấy cùng lúc với khung, TRƯỚC khi ghi ảnh (ghi PNG mất ~80 ms: lấy sau thì vòng mới hơn ảnh, tuổi âm)
         lidar_latest = self.rig.lidar.snapshot()[0] if self.rig.lidar is not None else None
         t_cap = self.clock()
@@ -339,15 +388,23 @@ class RigWindow(QMainWindow):
         stamps = [f.meta.stamp.t for f in frames.values()]
         meta = {"created_local": datetime.now().isoformat(timespec="milliseconds"), "clock": clock_info(),
                 "t_capture_s": t_cap, "threshold": self.threshold,
+                # "ai_set": mỗi ảnh lấy theo kết quả AI hiện hành; nguồn của TỪNG ảnh ở cameras[<cổng>].frame_from
                 "source": "ai_set" if result is not None else "latest_frames_unsynced",
+                # trên MỌI ảnh được ghi, gồm cả cổng ngoài bộ (frame_from: khung của lô trước — cũ hơn — hoặc khung sống,
+                # cũ hơn HAY MỚI hơn bộ); độ lệch của riêng bộ AI là set_skew_ms
                 "stamp_skew_ms": round(1000 * (max(stamps) - min(stamps)), 2),
                 "model": None if result is None else result.model,
                 "checkpoint": None if result is None else result.checkpoint,
                 "ai_note": ai_note, "camera_mode": self.rig.cams.mode, "cameras": {}, "failed_writes": []}
         if result is not None:
             meta["missing_ports"] = result.frame_set.missing
+            meta["lagging_ports"] = result.frame_set.lagging      # bị bỏ khỏi bộ này vì chậm (khác missing: vẫn có khung tươi)
+            meta["deferred_ports"] = result.frame_set.deferred    # để dành cho bộ sau vì lệch pha (camera không chậm)
+            meta["result_batch_id"] = result.batch_id
             meta["result_t_done_s"] = result.t_done
             meta["set_skew_ms"] = round(1000 * result.frame_set.skew_s, 2)
+            # cổng ngoài bộ mà ảnh ghi là khung SỐNG, không thuộc bộ AI nào (kết quả mang sang cũ hơn AI_STALE_S hoặc chưa có)
+            meta["unsynced_ports"] = sorted(p for p, h in lagging.items() if h is None)
         cam_stats = {c["port"]: c for c in self.rig.cams.camera_stats()}
         source_checks = {port: getattr(w.source, "check_truncation", None) for port, w in self.rig.cams.workers.items()}
         for port, frame in frames.items():
@@ -364,6 +421,21 @@ class RigWindow(QMainWindow):
             if not write_image(folder / f"cam_p{port}.png", frame.image):
                 meta["failed_writes"].append(f"cam_p{port}.png")
             prob = probs.get(port)
+            # xác suất của ô này lấy từ lô nào: đúng bộ AI này, một lô trước (camera chậm), hay không có
+            if result is not None:
+                held = lagging.get(port)
+                entry["lagging"] = port in result.frame_set.lagging
+                entry["deferred"] = port in result.frame_set.deferred
+                # ảnh này lấy từ đâu: đúng khung của bộ AI này / khung đã chấm ở một lô trước / khung sống không đồng bộ
+                entry["frame_from"] = ("this_set" if port not in lagging else
+                                       "earlier_batch" if held is not None else "live_unsynced")
+                entry["ai_prob_from"] = None if prob is None else ("earlier_batch" if held is not None else "this_set")
+                if prob is not None:
+                    src_id, src_t = (held.batch_id, held.t_done) if held is not None else (result.batch_id, result.t_done)
+                    entry.update({"prob_batch_id": src_id, "prob_t_done_s": src_t,
+                                  "prob_age_ms": round(1000 * (t_cap - src_t), 1)})
+            else:
+                entry["frame_from"] = "live_unsynced"
             if prob is not None:
                 small = cv2.resize(frame.image, (prob.shape[1], prob.shape[0]), interpolation=cv2.INTER_AREA)
                 for name, img in ((f"prob_blocked_p{port}.png", np.round(prob * 255).astype(np.uint8)),
@@ -382,7 +454,8 @@ class RigWindow(QMainWindow):
         self.last_snapshot = folder
         failed = meta["failed_writes"]
         self.message = f"LỖI: {len(failed)} ảnh không ghi được vào {folder.name}" if failed else \
-            f"đã chụp {folder.name}" + ("" if result is not None else " (không đồng bộ, AI tắt/đứng)")
+            f"đã chụp {folder.name}" + ("" if result is not None else " (không đồng bộ, AI tắt/đứng)") + \
+            (f" (cổng {sorted(lagging)} không có trong bộ AI này; nguồn ảnh ghi trong meta)" if lagging else "")
         return folder
 
     def closeEvent(self, event):
@@ -401,15 +474,22 @@ def format_metrics(snap: dict, threshold: float, message: str = "", last_snapsho
     f = lambda x, nd=1: "—" if x is None else f"{x:.{nd}f}".replace(".", ",")
     lines = [f"t = {f(snap['t_s'])} s   (phân vị trên cửa sổ mẫu gần nhất)"]
     cams = snap["cameras"]
+    lagging = cams.get("lagging_per_port", {})
     lines.append("CAMERA")
     for c in cams["cameras"]:
         state = f"LỖI MỞ: {c['open_error']}" if c["open_error"] else (
-            f"{f(c['fps_last2s'])} fps  cũ {c['duplicates']}  cắt {c['truncated']}  xé {c['torn']}  hỏng {c['read_failures']}  tuổi {f(c['age_ms'], 0)} ms"
-            + ("  CŨ!" if c["stale"] else ""))
+            f"{f(c['fps_last2s'])} fps  cũ {c['duplicates']}  cắt {c['truncated']}  xé {c['torn']}  hỏng {c['read_failures']}"
+            f"  chậm {lagging.get(c['port'], 0)}  tuổi {f(c['age_ms'], 0)} ms" + ("  CŨ!" if c["stale"] else ""))
         lines.append(f"  cổng {c['port']} (idx {c['index']}): {state}")
     sk = cams["skew_ms"]
+    pol = snap.get("policy") or {}
+    wait_ms, periods = pol.get("max_wait_ms"), pol.get("wait_periods_of_fastest")
+    limit = (cams.get("wait_limit_ms") or {}).get("median")
     lines.append(f"  bộ ảnh: dùng {cams['sets_built']}  bỏ vì lệch {cams['sets_rejected_skew']}  thiếu cam {cams['sets_partial']}"
                  f"  chặn (chưa đủ khung mới) {cams['sets_blocked_not_new']}")
+    wait_txt = "TẮT" if wait_ms is None else f"tối đa max({f(wait_ms, 0)} ms; {f(periods)} chu kỳ) = {f(limit, 0)} ms"
+    lines.append(f"  chờ camera chậm {wait_txt}:  bộ thiếu cam chậm {cams.get('sets_partial_wait', 0)}"
+                 f"  để dành lệch pha {cams.get('sets_regrouped', 0)}")
     lines.append(f"  độ lệch ({cams['skew_window']}): trung vị {f(sk['median'])}  p95 {f(sk['p95'])}  max {f(sk['max'])} ms")
     l = snap.get("lidar")
     lines.append("LIDAR")
@@ -434,7 +514,8 @@ def format_metrics(snap: dict, threshold: float, message: str = "", last_snapsho
             lines.append(f"  LỖI NẠP: {a['load_error'][:70]}")
         if a["errors"]:
             lines.append(f"  LỖI SUY LUẬN ×{a['errors']}: {(a['last_error'] or '')[:70]}")
-        lines.append(f"  {f(a['sets_per_s_last3s'])} bộ/s  kết quả cách đây {f(a['last_result_age_ms'], 0)} ms  lô đầu {f(a['first_batch_ms'], 0)} ms")
+        lines.append(f"  {f(a['sets_per_s_last3s'])} bộ/s  kết quả cách đây {f(a['last_result_age_ms'], 0)} ms  lô đầu {f(a['first_batch_ms'], 0)} ms"
+                     f"  lô thiếu cam chậm {a.get('batches_partial_wait', 0)}")
         lines.append(f"  một lô ({a['window']}): trung vị {f(a['total_ms']['median'])}  p95 {f(a['total_ms']['p95'])} ms")
         lines.append(f"    tiền xử lý {f(a['pre_ms']['median'])}  mạng {f(a['model_ms']['median'])}  hậu {f(a['post_ms']['median'])} ms")
         lines.append(f"  tuổi kết quả (khung cũ nhất): {f(a['result_age_oldest_frame_ms']['median'])} ms  p95 {f(a['result_age_oldest_frame_ms']['p95'])}")

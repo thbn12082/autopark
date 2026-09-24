@@ -8,12 +8,20 @@ Luồng chạy (mọi stamp dùng `RIG_CLOCK = time.perf_counter`, xem `video.mu
 - mỗi camera một luồng (`video.multicam.MultiCameraManager`);
 - một luồng LiDAR giữ vòng quét mới nhất (stamp của driver là giờ phiên, đổi về đồng hồ chung bằng `t0` của driver —
   driver PHẢI được mở với cùng đồng hồ, `bench.build_rig` làm điều đó);
-- một luồng AI: lấy bộ ảnh đồng bộ mới nhất, suy luận cả lô, công bố kết quả mới nhất (không xếp hàng);
+- một luồng AI: lấy bộ ảnh đồng bộ mới nhất, suy luận cả lô, công bố kết quả mới nhất (không xếp hàng). Với
+  `RigConfig.max_wait_s` (mặc định 60 ms; là SÀN — ngưỡng thực L = max(max_wait_s, 1,5 × chu kỳ khung TRUNG BÌNH đo
+  được của camera nhanh nhất), ≈ 63 ms ở 24 fps (nhịp xen kẽ 31/48 ms, trung bình 41,9 ms), ≈ 100 ms ở 15 fps; số
+  lagging/sets_partial_wait của phiên bật chờ chạy trước bản sửa ước lượng chu kỳ 24/09 không dùng được, xem
+  `video.multicam`), camera chưa có khung mới chỉ được chờ có giới hạn: bộ được
+  chấm không có nó (`FrameSet.lagging`, xem `video.multicam`), cỡ lô thay đổi theo số camera có trong bộ. Camera có khung
+  mới thuộc chu kỳ sau cũng có thể được để dành cho bộ sau để sửa lệch pha (`FrameSet.deferred`). Với cả hai, kết quả
+  mới nhất CỦA TỪNG camera được giữ lại (`AIResult.carried`) để giao diện vẫn tô lớp AI cũ, có ghi tuổi;
 - một luồng ghép bộ: khi AI tắt, chưa nạp xong hoặc không có, vẫn ghép bộ để đo độ lệch giữa các camera;
 - một luồng tài nguyên (1 Hz): CPU tiến trình và máy, RAM, GPU (tải, VRAM, nhiệt độ, công suất qua NVML);
 - một luồng chuỗi số đo mỗi giây, ghi số CỦA TỪNG GIÂY (khung, lô AI, vòng LiDAR trong giây đó), không phải số tích lũy.
 
-Độ lệch LiDAR − bộ ảnh được lấy NGAY LÚC GHÉP BỘ (trước suy luận): vòng quét mới nhất lúc đó so với mốc bộ ảnh. Cả hai
+Độ lệch LiDAR − bộ ảnh được lấy NGAY LÚC GHÉP BỘ (trước suy luận): vòng quét mới nhất lúc đó so với mốc bộ ảnh (mốc chỉ
+tính trên các camera có trong bộ, kể cả bộ thiếu camera chậm). Cả hai
 stamp đều là lúc dữ liệu TỚI MÁY (camera: lúc `read()` trả về, đã gồm giải mã; LiDAR: lúc gói chứa điểm cuối của vòng
 tới máy — vòng quét kéo dài ≈ 100 ms trước đó), không phải lúc phơi sáng hay lúc đo. Độ trễ từ sự kiện thật tới lúc
 dữ liệu tới máy KHÔNG đo được ở đây (cần LED nháy hoặc đồng hồ quay bằng camera).
@@ -31,7 +39,9 @@ from typing import Callable
 
 import numpy as np
 
-from autopark.video.multicam import LIVE_WINDOW, RIG_CLOCK, FrameSet, MultiCameraManager, clock_info, dist, fit_width, tail
+from autopark.video.multicam import (LIVE_WINDOW, RIG_CLOCK, WAIT_PERIODS, FrameSet, MultiCameraManager, clock_info, dist,
+                                     fit_width, tail)
+from autopark.video.sources import Frame
 
 
 def _r(x, nd=1):
@@ -140,7 +150,8 @@ class LidarWorker(threading.Thread):
 
 
 def lidar_vs_set(lidar: LidarWorker | None, fs: FrameSet) -> dict | None:
-    """LiDAR so với bộ ảnh, lấy ngay lúc ghép bộ: stamp cuối vòng − mốc (âm = vòng đã xong trước mốc)."""
+    """LiDAR so với bộ ảnh, lấy ngay lúc ghép bộ: stamp cuối vòng − mốc (âm = vòng đã xong trước mốc). Mốc của bộ thiếu
+    camera chậm chỉ tính trên các camera có trong bộ, nên số này vẫn là "LiDAR so với đúng các ảnh được chấm"."""
     if lidar is None:
         return None
     latest, _ = lidar.snapshot()
@@ -157,6 +168,16 @@ def lidar_vs_set(lidar: LidarWorker | None, fs: FrameSet) -> dict | None:
 # ------------------------------------------------------------------------------------------------------------ AI
 
 @dataclass
+class CameraAI:
+    """Kết quả AI của MỘT camera trong một lô đã chấm: đúng khung đã đưa vào mạng và xác suất của nó."""
+    frame: Frame
+    prob: np.ndarray
+    batch_id: int
+    t_done: float
+    checkpoint: str
+
+
+@dataclass
 class AIResult:
     frame_set: FrameSet
     probs: dict[int, np.ndarray]              # cổng → xác suất BLOCKED ở cỡ hiển thị (giữ tỉ lệ từng camera)
@@ -165,22 +186,31 @@ class AIResult:
     t_done: float
     timing: object
     lidar: dict | None                        # lidar_vs_set lúc ghép bộ
+    batch_id: int = -1                        # số thứ tự lô của luồng AI (tăng dần, gồm cả lô đầu)
+    # camera chậm (frame_set.lagging) hoặc để dành cho bộ sau (frame_set.deferred) → kết quả gần nhất của nó từ một lô
+    # TRƯỚC, cùng mô hình; thiếu nếu camera đó chưa từng được chấm với mô hình này
+    carried: dict[int, CameraAI] = field(default_factory=dict)
 
 
 class AIWorker(threading.Thread):
-    """Lấy bộ ảnh đồng bộ mới nhất, suy luận cả lô, công bố kết quả mới nhất. Đổi mô hình được lúc đang chạy."""
+    """Lấy bộ ảnh đồng bộ mới nhất, suy luận cả lô, công bố kết quả mới nhất. Đổi mô hình được lúc đang chạy.
+
+    Lô chỉ gồm camera có trong bộ (bộ thiếu camera chậm hay để dành camera lệch pha → lô nhỏ hơn). `by_port` giữ kết quả
+    mới nhất của từng camera; bị xóa khi đổi mô hình, để lớp tô mang sang không bao giờ đến từ mô hình khác."""
 
     def __init__(self, cams: MultiCameraManager, make_segmenter: Callable[[str], object], checkpoint: str,
                  display_width: int, max_skew_s: float | None, on_set: Callable[[FrameSet], dict | None] | None = None,
-                 clock=RIG_CLOCK):
+                 clock=RIG_CLOCK, max_wait_s: float | None = None):
         super().__init__(daemon=True, name="ai")
         self.cams, self.make_segmenter, self.display_width, self.max_skew_s = cams, make_segmenter, display_width, max_skew_s
-        self.on_set, self.clock = on_set, clock
+        self.on_set, self.clock, self.max_wait_s = on_set, clock, max_wait_s
         self.stop_event = threading.Event()
         self.enabled = threading.Event()
         self.enabled.set()
         self.lock = threading.Lock()
         self.latest: AIResult | None = None
+        self.by_port: dict[int, CameraAI] = {}
+        self._next_batch = 0
         self.segmenter = None
         self.checkpoint: str | None = None
         self._requested = checkpoint
@@ -225,6 +255,7 @@ class AIWorker(threading.Thread):
             self.segmenter, self.checkpoint = seg, want
             self.load_error = None
             self.load_ms = 1000 * (time.perf_counter() - t)
+            self.by_port = {}                                   # kết quả mang sang phải cùng mô hình
         self.reset_stats()
         self._skip_first = True
 
@@ -232,6 +263,7 @@ class AIWorker(threading.Thread):
     def reset_stats(self) -> None:
         with self.lock:
             self.batches = self.images = self.errors = 0
+            self.batches_partial_wait = 0                          # lô của bộ thiếu camera chậm
             self.since = self.clock()
             self.total_ms: deque[float] = deque(maxlen=200_000)
             self.model_ms: deque[float] = deque(maxlen=200_000)
@@ -253,42 +285,56 @@ class AIWorker(threading.Thread):
             if self.segmenter is None or not self.enabled.is_set():
                 self.stop_event.wait(0.05)
                 continue
-            fs = self.cams.latest_set(self.max_skew_s)
-            if fs is None:
+            if not self.step():
                 time.sleep(0.002)
-                continue
-            lidar = self.on_set(fs) if self.on_set is not None else None
-            ports = sorted(fs.frames)
-            images = [fs.frames[p].image for p in ports]
-            sizes = [fit_width(img.shape[1], img.shape[0], self.display_width) for img in images]
-            seg, checkpoint = self.segmenter, self.checkpoint
-            try:
-                probs, timing = seg.infer(images, sizes)
-            except Exception as exc:  # noqa: BLE001
-                with self.lock:
-                    self.errors += 1
-                    self.last_error = f"{type(exc).__name__}: {exc}"
-                self.stop_event.wait(0.1)
-                continue
-            t_done = self.clock()
-            result = AIResult(fs, dict(zip(ports, probs)), getattr(seg, "name", str(checkpoint)), str(checkpoint),
-                              t_done, timing, lidar)
+
+    def step(self) -> bool:
+        """Một vòng: lấy bộ mới (theo max_skew_s / max_wait_s), chấm các camera CÓ trong bộ, công bố. False khi chưa có
+        bộ mới. Tách khỏi `run()` để test gọi từng bước với đồng hồ giả."""
+        fs = self.cams.latest_set(self.max_skew_s, max_wait_s=self.max_wait_s)
+        if fs is None:
+            return False
+        lidar = self.on_set(fs) if self.on_set is not None else None
+        ports = sorted(fs.frames)
+        images = [fs.frames[p].image for p in ports]
+        sizes = [fit_width(img.shape[1], img.shape[0], self.display_width) for img in images]
+        seg, checkpoint = self.segmenter, self.checkpoint
+        try:
+            probs, timing = seg.infer(images, sizes)
+        except Exception as exc:  # noqa: BLE001
             with self.lock:
-                self.latest = result
-                if self._skip_first:                        # lô đầu gồm khởi tạo CUDA/cuDNN: ghi riêng
-                    self.first_batch_ms = timing.total_ms
-                    self._skip_first = False
-                    continue
-                self.batches += 1
-                self.images += len(ports)
-                self.total_ms.append(timing.total_ms)
-                self.model_ms.append(timing.model_ms)
-                self.pre_ms.append(timing.pre_ms)
-                self.post_ms.append(timing.post_ms)
-                self.age_oldest_ms.append(1000.0 * (t_done - fs.t_min))
-                self.age_newest_ms.append(1000.0 * (t_done - fs.t_max))
-                self.done_times.append(t_done)
-                self._interval.append(timing.total_ms)
+                self.errors += 1
+                self.last_error = f"{type(exc).__name__}: {exc}"
+            self.stop_event.wait(0.1)
+            return True
+        t_done = self.clock()
+        probs = dict(zip(ports, probs))
+        with self.lock:
+            batch_id, self._next_batch = self._next_batch, self._next_batch + 1
+            # mô hình chỉ đổi trong _ensure_model, chạy trên chính luồng này giữa hai bước (và xóa by_port): kết quả
+            # mang sang cho camera chậm luôn cùng mô hình với lô này
+            carried = {p: self.by_port[p] for p in (*fs.lagging, *fs.deferred) if p in self.by_port}
+            for p in ports:
+                self.by_port[p] = CameraAI(fs.frames[p], probs[p], batch_id, t_done, str(checkpoint))
+            self.latest = AIResult(fs, probs, getattr(seg, "name", str(checkpoint)), str(checkpoint), t_done, timing,
+                                   lidar, batch_id, carried)
+            if self._skip_first:                            # lô đầu gồm khởi tạo CUDA/cuDNN: ghi riêng
+                self.first_batch_ms = timing.total_ms
+                self._skip_first = False
+                return True
+            self.batches += 1
+            self.images += len(ports)
+            if fs.lagging:
+                self.batches_partial_wait += 1
+            self.total_ms.append(timing.total_ms)
+            self.model_ms.append(timing.model_ms)
+            self.pre_ms.append(timing.pre_ms)
+            self.post_ms.append(timing.post_ms)
+            self.age_oldest_ms.append(1000.0 * (t_done - fs.t_min))
+            self.age_newest_ms.append(1000.0 * (t_done - fs.t_max))
+            self.done_times.append(t_done)
+            self._interval.append(timing.total_ms)
+        return True
 
     def result(self) -> AIResult | None:
         with self.lock:
@@ -297,6 +343,7 @@ class AIWorker(threading.Thread):
     def stats(self, now: float, window: int | None = LIVE_WINDOW) -> dict:
         with self.lock:
             batches, images, errors, since = self.batches, self.images, self.errors, self.since
+            partial_wait = self.batches_partial_wait
             done = [t for t in self.done_times if now - t <= 3.0]
             arrays = {k: tail(getattr(self, k), window) for k in
                       ("total_ms", "model_ms", "pre_ms", "post_ms", "age_oldest_ms", "age_newest_ms")}
@@ -309,6 +356,8 @@ class AIWorker(threading.Thread):
                 "device": str(getattr(self.segmenter, "device", "")), "amp": getattr(self.segmenter, "amp", None),
                 "enabled": self.enabled.is_set(), "load_error": self.load_error, "load_ms": _r(self.load_ms),
                 "first_batch_ms": _r(self.first_batch_ms), "batches": batches, "images": images,
+                "batches_partial_wait": partial_wait, "max_wait_ms": None if not self.max_wait_s or self.max_wait_s <= 0
+                else _r(1000 * self.max_wait_s),
                 "sets_per_s_mean": round(batches / (now - since), 3) if now > since else None,
                 "sets_per_s_last3s": round(rate, 2), "errors": errors, "last_error": self.last_error,
                 "last_result_age_ms": None if latest is None else _r(1000 * (now - latest.t_done)),
@@ -399,6 +448,12 @@ class RigConfig:
     fourcc: str = "MJPG"
     exposure: float | None = None
     max_skew_s: float | None = 0.060          # bộ ảnh lệch hơn thế bị bỏ (≈ 1,5 chu kỳ khung ở 24 fps)
+    # SÀN của ngưỡng chờ camera chưa có khung mới; ngưỡng thực L = max(max_wait_s, 1,5 × chu kỳ khung TRUNG BÌNH đo được
+    # của camera nhanh nhất): ≈ 63 ms ở 24 fps (nhịp xen kẽ 31/48 ms, trung bình 41,9 ms), ≈ 100 ms ở 15 fps, để camera
+    # khỏe chạy dưới 16,7 fps không bị bỏ luân phiên. Hết hạn thì chấm bộ không có nó. Sàn 60 ms và hệ số 1,5 là lựa chọn
+    # thiết kế, kiểm bằng mô phỏng đồng hồ giả và phát lại khoảng cách khung đo được (m04) ngày 24/09, CHƯA đo trên phần
+    # cứng. None hoặc ≤ 0 = quy tắc cũ: chờ mọi camera, cả chuỗi chậm theo camera chậm nhất.
+    max_wait_s: float | None = 0.060
     display_width: int = 640                  # xác suất AI trả về ở bề rộng này, giữ tỉ lệ từng camera
     ai: bool = True
     checkpoint: str | None = None
@@ -418,7 +473,7 @@ class Rig:
         self.ai = None
         if cfg.ai and make_segmenter is not None and cfg.checkpoint:
             self.ai = AIWorker(cams, make_segmenter, cfg.checkpoint, cfg.display_width, cfg.max_skew_s,
-                               on_set=self._record_set, clock=clock)
+                               on_set=self._record_set, clock=clock, max_wait_s=cfg.max_wait_s)
         self.monitor = monitor if monitor is not None else ResourceMonitor(clock=clock)
         self.series: list[dict] = []
         self.t_start: float | None = None
@@ -445,7 +500,7 @@ class Rig:
         """Ghép bộ khi AI không tiêu thụ (không có, tắt, đang nạp), để độ lệch giữa các camera luôn được đo."""
         while not self._stop.wait(0.005):
             if self.ai is None or not self.ai.ready():
-                fs = self.cams.latest_set(self.cfg.max_skew_s)
+                fs = self.cams.latest_set(self.cfg.max_skew_s, max_wait_s=self.cfg.max_wait_s)
                 if fs is not None:
                     self._record_set(fs)
 
@@ -502,6 +557,8 @@ class Rig:
         return {"frames": {c["port"]: c["frames"] for c in cams}, "dups": {c["port"]: c["duplicates"] for c in cams},
                 "trunc": {c["port"]: c["truncated"] for c in cams}, "torn": {c["port"]: c["torn"] for c in cams},
                 "sets": self.cams.sets_built, "rejected": self.cams.sets_rejected_skew,
+                "partial_wait": self.cams.sets_partial_wait, "lagging": dict(self.cams.lagging_per_port),
+                "regrouped": self.cams.sets_regrouped,
                 "scans": None if self.lidar is None else self.lidar.scans}
 
     def _series_row(self) -> dict:
@@ -515,6 +572,9 @@ class Rig:
                "cam_truncated_1s": {p: counts["trunc"][p] - last.get("trunc", {}).get(p, 0) for p in counts["trunc"]},
                "cam_torn_1s": {p: counts["torn"][p] - last.get("torn", {}).get(p, 0) for p in counts["torn"]},
                "sets_built_1s": counts["sets"] - last["sets"], "sets_rejected_1s": counts["rejected"] - last["rejected"],
+               "sets_partial_wait_1s": counts["partial_wait"] - last.get("partial_wait", 0),
+               "cam_lagging_1s": {p: counts["lagging"][p] - last.get("lagging", {}).get(p, 0) for p in counts["lagging"]},
+               "sets_regrouped_1s": counts["regrouped"] - last.get("regrouped", 0),
                "lidar_scans_1s": None if counts["scans"] is None else counts["scans"] - (last["scans"] or 0),
                "resources": self.monitor.latest()}
         if self.ai is not None:
@@ -529,9 +589,18 @@ class Rig:
         with self._lidar_lock:
             return {k: dist(tail(d, window)) for k, d in self.lidar_offsets.items()}
 
+    def policy(self) -> dict:
+        """Ngưỡng ghép bộ đang dùng (ms; None = tắt), để bảng số đo ghi rõ số đi kèm quy tắc nào. `max_wait_ms` là SÀN;
+        ngưỡng thực từng bộ (max(sàn, wait_periods_of_fastest × chu kỳ camera nhanh nhất)) ở `sets.wait_limit_ms`."""
+        ms = lambda s: None if s is None or s <= 0 else _r(1000 * s)
+        wait = ms(self.cfg.max_wait_s)
+        return {"max_skew_ms": ms(self.cfg.max_skew_s), "max_wait_ms": wait,
+                "wait_periods_of_fastest": None if wait is None else WAIT_PERIODS,
+                "stale_after_ms": ms(self.cams.stale_after_s)}
+
     def snapshot(self, window: int | None = LIVE_WINDOW) -> dict:
         now = self.clock()
-        return {"t_s": _r(now - (self.t_start or now), 2), "cameras": self.cams.stats(window),
+        return {"t_s": _r(now - (self.t_start or now), 2), "policy": self.policy(), "cameras": self.cams.stats(window),
                 "lidar": None if self.lidar is None else {**self.lidar.stats(now), "vs_set": self._lidar_offset_stats(window)},
                 "ai": None if self.ai is None else self.ai.stats(now, window), "resources": self.monitor.latest()}
 
@@ -545,8 +614,10 @@ class Rig:
                 "config": dict(self.cfg.__dict__),
                 "camera_specs": [{"port": s.port, "index": s.index, "instance_id": s.instance_id} for s in self.cams.specs],
                 "cameras": per_cam,
+                "policy": self.policy(),
                 "sets": {k: cams[k] for k in ("sets_built", "sets_rejected_skew", "sets_partial", "sets_blocked_not_new",
-                                             "frames_skipped", "skew_ms")},
+                                             "sets_partial_wait", "lagging_per_port", "partial_wait_ms", "wait_limit_ms",
+                                             "sets_regrouped", "frames_skipped", "skew_ms")},
                 "lidar": None if self.lidar is None else {**self.lidar.stats(now), "vs_set": self._lidar_offset_stats(None)},
                 "ai": None if self.ai is None else self.ai.stats(now, window=None),
                 "resources": self.monitor.summary(), "stop_alive": self.stop_alive}

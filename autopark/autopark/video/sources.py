@@ -9,6 +9,12 @@ mã, nên tuổi khung tính được nhỏ hơn tuổi thật một khoảng gi
 1 khung (`CAP_PROP_BUFFERSIZE`); DirectShow có nhận hay không ghi ở `buffer_size_applied`. `mode()` trả về kích
 thước thực đọc từ driver, còn fourcc/fps chỉ là yêu cầu; `mode_mismatch` ghi khác biệt kích thước. Một `read()` bị treo vẫn chặn vòng lặp: người dùng cần gọi `FreshnessMonitor.check()`
 từ một timer riêng (hoặc chạy nguồn trong luồng riêng) để STALE_DATA vẫn được phát khi driver treo.
+
+Với `UsbCameraSource`, "một lần đọc hỏng" gồm: driver báo lỗi, driver trả lại đúng khung trước (khung cũ), và từ
+23/09/2026 khung MJPEG bị cắt cụt hoặc có dải xé mà bộ giải mã tô phần thiếu (`truncated_rows`, `torn_bands`;
+docs/GIAI_DOAN_2_BAN_THU.md mục 2; `check_truncation` tắt được). Mỗi loại được đếm riêng (`read_failures`,
+`duplicates`, `truncated`, `torn`), và khung cũ được xét trước khung bị cắt. Nguồn này dùng cho cả camera thật ở
+giai đoạn 1 lẫn bàn thử bốn camera ở giai đoạn 2.
 """
 from __future__ import annotations
 
@@ -29,7 +35,14 @@ IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".bmp", ".webp")
 
 
 class FrameReadError(RuntimeError):
-    """A live source failed to deliver a frame; the stream is not over."""
+    """A live source failed to deliver a frame; the stream is not over.
+
+    `t`: đồng hồ của nguồn ngay sau lần đọc hỏng (None nếu nguồn không ghi). MultiCameraManager dùng nó để ghi thời điểm
+    khung bị cắt/xé tới, phục vụ ước lượng chu kỳ khung; không có thì nó tự lấy đồng hồ (muộn hơn bằng thời gian kiểm khung)."""
+
+    def __init__(self, message: str, t: float | None = None):
+        super().__init__(message)
+        self.t = t
 
 
 @dataclass(frozen=True)
@@ -285,26 +298,26 @@ class UsbCameraSource:
         if not ok or image is None:
             self.failures += 1
             self.read_failures += 1
-            raise FrameReadError(f"{self.source_id}: read failed ({self.failures} failures so far)")
+            raise FrameReadError(f"{self.source_id}: read failed ({self.failures} failures so far)", t)
         # Khung cũ xét TRƯỚC khung bị cắt, so với cả lần đọc trước (kể cả khi đó là khung bị cắt: driver trả lại đúng bộ
         # đệm đó thì là khung cũ, không phải thêm một khung bị cắt — như camera_bench.measure_stream) lẫn khung tốt cuối.
         same = lambda ref: ref is not None and image.shape == ref.shape and np.array_equal(image, ref)
         if same(self._last_read) or (self._last_image is not self._last_read and same(self._last_image)):
             self.failures += 1
             self.duplicates += 1
-            raise FrameReadError(f"{self.source_id}: driver returned the previous frame again")
+            raise FrameReadError(f"{self.source_id}: driver returned the previous frame again", t)
         self._last_read = image
         if self.check_truncation:
             rows = truncated_rows(image)
             if rows:
                 self.failures += 1
                 self.truncated += 1
-                raise FrameReadError(f"{self.source_id}: truncated frame ({rows} of {image.shape[0]} rows filled by the decoder)")
+                raise FrameReadError(f"{self.source_id}: truncated frame ({rows} of {image.shape[0]} rows filled by the decoder)", t)
             bands = torn_bands(image)
             if bands:
                 self.failures += 1
                 self.torn += 1
-                raise FrameReadError(f"{self.source_id}: torn frame ({bands} block rows filled mid-image by the decoder)")
+                raise FrameReadError(f"{self.source_id}: torn frame ({bands} block rows filled mid-image by the decoder)", t)
         self._last_image = image
         frame = _frame(self.source_id, t, f"usb#frame={self.index}", image)
         self.index += 1
