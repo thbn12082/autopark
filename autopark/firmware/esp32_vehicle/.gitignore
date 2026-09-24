@@ -1,0 +1,4 @@
+# Sản phẩm biên dịch (PlatformIO, test C++ trên máy tính)
+.pio/
+build/
+.vscode/

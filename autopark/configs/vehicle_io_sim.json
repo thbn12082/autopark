@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "notes": "Cấu hình nhánh mô phỏng của VehicleIO (autopark/transport/vehicle_io.py). TOÀN BỘ số ở đây là GIẢ ĐỊNH để thử phần mềm: độ trễ đường truyền/cơ cấu chấp hành/cảm biến, vùng chết ESC, tốc độ ứng với effort tối đa, nhiễu encoder và AS5600 đều CHƯA ĐO trên MN300 hay ESP32-S3. Độ trễ của nhánh phần cứng KHÔNG lấy từ file này; nó phải được đo (stats.ack_rtt_s, stats.cmd_echo_s). Phần 'firmware' là tham số của bản tham chiếu firmware; vùng chết và feedforward cố ý lệch với 'actuator' để vòng PI phải bù. Trần effort ở đây để 1000 ‰ (không trần) cho mô phỏng thử bộ điều khiển; firmware thật mặc định 250 ‰ (GIAO_THUC_XE.md).",
+  "vehicle_config": "vehicle_default.json",
+  "tick_ms": 10,
+  "seed": 0,
+  "link": {
+    "host_to_device_latency_ms": 4,
+    "device_to_host_latency_ms": 4,
+    "drop_probability": 0.0
+  },
+  "actuator": {
+    "latency_ms": 30,
+    "effort_deadzone_permille": 150,
+    "speed_at_full_effort_mps": 0.8,
+    "steer_offset_deg": 0.0,
+    "estop_cuts_power": true
+  },
+  "sensors": {
+    "speed_available": true,
+    "speed_latency_ms": 20,
+    "speed_noise_std_mps": 0.01,
+    "steer_available": true,
+    "steer_latency_ms": 10,
+    "steer_noise_std_deg": 0.3,
+    "imu_available": true,
+    "gyro_noise_std_deg_s": 0.6
+  },
+  "firmware": {
+    "boot_hold_ms": 1000,
+    "max_speed_mm_s": 300,
+    "max_steer_mrad": 524,
+    "max_steer_rate_mrad_s": 1571,
+    "max_accel_mm_s2": 300,
+    "max_decel_mm_s2": 600,
+    "stop_decel_mm_s2": 600,
+    "max_validity_ms": 300,
+    "link_timeout_ms": 500,
+    "default_telemetry_period_ms": 50,
+    "min_telemetry_period_ms": 20,
+    "max_telemetry_period_ms": 1000,
+    "max_tick_gap_ms": 100,
+    "direction_change_hold_ms": 300,
+    "standstill_mm_s": 10,
+    "ff_permille_per_mps": 2000,
+    "deadzone_comp_permille": 100,
+    "kp_permille_per_mps": 500,
+    "ki_permille_per_m": 4000,
+    "integ_limit_permille": 300,
+    "min_supply_mv": 0,
+    "require_speed_feedback": false,
+    "fw_major": 1,
+    "fw_minor": 0,
+    "tx_capacity": 512,
+    "max_effort_permille": 1000,
+    "stall_effort_permille": 200,
+    "stall_timeout_ms": 1000
+  }
+}

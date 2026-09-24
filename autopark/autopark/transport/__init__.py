@@ -1,1 +1,6 @@
-"""Adapter mô phỏng, USB serial, mạng. Tên gói tránh trùng `io` của Python (mục 5.1). Chưa có mã."""
+"""Adapter mô phỏng, USB serial, mạng. Tên gói tránh trùng `io` của Python (mục 5.1).
+
+Laptop ↔ ESP32-S3 (giai đoạn 5, docs/GIAO_THUC_XE.md): `protocol` (khung, thông điệp), `firmware_model` (bản
+tham chiếu logic firmware), `vehicle_io` (`SimVehicleIO`, `SerialVehicleIO`), `loopback` (cổng giả nối bản tham
+chiếu), `vectors` (vector mẫu chung với firmware C++).
+"""
