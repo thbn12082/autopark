@@ -35,6 +35,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from autopark.video.sources import torn_bands, truncated_rows
+
 DEFAULT_FOURCC = "MJPG"
 SNAPSHOT_EXT = ".png"
 
@@ -287,6 +289,9 @@ class StreamStats:
     new_frames: int = 0
     duplicate_reads: int = 0          # read() trả về khung trùng byte với khung trước: driver không có khung mới
     read_failures: int = 0            # read() trả về False / None
+    truncated_frames: int = 0         # TRONG new_frames: khung MJPEG bị cắt cụt, đáy do bộ giải mã tô (sources.truncated_rows);
+                                      # vẫn tính là khung mới để số đo giai đoạn 1 (trước 23/09 chiều, chưa có cột này) so được
+    torn_frames: int = 0              # TRONG new_frames, không bị cắt đáy nhưng có dải xé giữa ảnh (sources.torn_bands)
     fps_real: float = 0.0             # khung MỚI mỗi giây
     gap_ms_mean: float = 0.0          # khoảng cách trung bình giữa hai khung mới (= 1000 / fps_real khi không rớt)
     gap_ms_median: float = 0.0        # trung vị: khác trung bình nhiều tức nhịp khung không đều
@@ -352,6 +357,10 @@ def measure_stream(capture, seconds: float, index: int = 0, clock=time.perf_coun
             continue
         t_new = clock()
         stats.new_frames += 1
+        if truncated_rows(image):
+            stats.truncated_frames += 1
+        elif torn_bands(image):
+            stats.torn_frames += 1
         gaps.append(t_new - last_new)
         last_new = t_new
         last_image = image
@@ -434,7 +443,7 @@ def record(index: int, width: int, height: int, seconds: float, out_dir: Path, n
         prev = None
         t0 = time.perf_counter()
         last_snapshot = -1e9
-        frames = duplicates = failures = 0
+        frames = duplicates = failures = truncated = torn = 0
         while time.perf_counter() - t0 < seconds:
             ok, image = capture.read()
             t_frame = time.perf_counter() - t0
@@ -445,6 +454,10 @@ def record(index: int, width: int, height: int, seconds: float, out_dir: Path, n
                 duplicates += 1
                 continue
             prev = image
+            if truncated_rows(image):                      # vẫn ghi vào video, chỉ đếm
+                truncated += 1
+            elif torn_bands(image):
+                torn += 1
             writer.write(image)
             frames += 1
             frame_times.append(t_frame)
@@ -466,7 +479,7 @@ def record(index: int, width: int, height: int, seconds: float, out_dir: Path, n
             "probe_seconds": round(probe.seconds, 2), "probe_new_frames": probe.new_frames,
             "probe_duplicate_reads": probe.duplicate_reads, "probe_fps_real": round(probe.fps_real, 2),
             "video": video_path.name, "video_fps": file_fps, "frame_times": f"{name}.frames.csv",
-            "frames_written": frames, "duplicate_reads": duplicates, "read_failures": failures,
+            "frames_written": frames, "truncated_frames": truncated, "torn_frames": torn, "duplicate_reads": duplicates, "read_failures": failures,
             "seconds": round(elapsed, 2), "fps_real": round(frames / elapsed, 2) if elapsed else 0.0, "snapshots": snapshots}
     (out_dir / f"{name}.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     return info
@@ -474,16 +487,22 @@ def record(index: int, width: int, height: int, seconds: float, out_dir: Path, n
 
 # ----------------------------------------------------------------------------------------------- báo cáo
 
+def damaged(stream: dict) -> str:
+    if "truncated_frames" not in stream:
+        return "chưa đo"                      # json giai đoạn 1 đo trước khi có bộ dò
+    return f"{stream['truncated_frames']} / {stream.get('torn_frames', 'chưa đo')}"
+
+
 def report_markdown(measurements: list[dict]) -> str:
-    lines = ["| Phiên | Camera | Mode yêu cầu | Kích thước thật | FPS thật | Khung cũ trả lại | Đọc hỏng | Khoảng cách khung trung vị / p95 / max (ms) | Độ sáng TB | CPU tiến trình (lõi) |",
-             "|---|---:|---|---|---:|---:|---:|---|---:|---:|"]
+    lines = ["| Phiên | Camera | Mode yêu cầu | Kích thước thật | FPS thật | Trong đó khung bị cắt / xé | Khung cũ trả lại | Đọc hỏng | Khoảng cách khung trung vị / p95 / max (ms) | Độ sáng TB | CPU tiến trình (lõi) |",
+             "|---|---:|---|---|---:|---:|---:|---:|---|---:|---:|"]
     for m in measurements:
         req = m["requested"]
         mode = f"{req['fourcc']} {req['width']}×{req['height']}@{req['fps']:g}" + ("" if req.get("exposure") is None else f", exposure {req['exposure']:g}")
         for s in m["streams"]:
             intensity = "—" if s["mean_intensity"] is None else f"{s['mean_intensity']:.0f}"
             lines.append(f"| {m.get('name', m['created_utc'])} | {s['index']} | {mode} | {s['width']}×{s['height']} | {s['fps_real']:.1f} | "
-                         f"{s['duplicate_reads']} | {s['read_failures']} | {s['gap_ms_median']:.0f} / {s['gap_ms_p95']:.0f} / {s['gap_ms_max']:.0f} | "
+                         f"{damaged(s)} | {s['duplicate_reads']} | {s['read_failures']} | {s['gap_ms_median']:.0f} / {s['gap_ms_p95']:.0f} / {s['gap_ms_max']:.0f} | "
                          f"{intensity} | {m['process_cpu_cores']:.2f} |")
     return "\n".join(lines) + "\n"
 
@@ -607,7 +626,8 @@ def _cmd_measure(args) -> int:
     result = measure_many(args.index, args.width, args.height, args.seconds, args.fourcc, args.exposure, args.fps)
     result["name"] = args.name
     for s in result["streams"]:
-        print(f"  cam {s['index']}: {s['width']}×{s['height']} {s['fps_real']:.1f} fps thật | khung cũ {s['duplicate_reads']} | "
+        print(f"  cam {s['index']}: {s['width']}×{s['height']} {s['fps_real']:.1f} fps thật (trong đó bị cắt {s['truncated_frames']}, xé {s['torn_frames']}) | "
+              f"khung cũ {s['duplicate_reads']} | "
               f"đọc hỏng {s['read_failures']} | khoảng cách {s['gap_ms_median']:.0f}/{s['gap_ms_p95']:.0f}/{s['gap_ms_max']:.0f} ms | "
               f"read() {s['read_ms_median']:.0f} ms | sáng {s['mean_intensity'] if s['mean_intensity'] is None else round(s['mean_intensity'])}")
     print(f"  tổng {result['total_fps_real']:.1f} khung/s, CPU tiến trình {result['process_cpu_cores']:.2f} lõi")

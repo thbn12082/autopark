@@ -15,6 +15,7 @@ video = ["opencv-python>=4.10", "pygrabber>=0.2; sys_platform == 'win32'"]
 perception = ["opencv-python>=4.10", "torch>=2.4", "torchvision>=0.19", "pillow>=10"]
 datasets = ["opencv-python>=4.10", "gdown>=6.4", "requests>=2.32"]
 lidar = ["opencv-python>=4.10", "pyserial>=3.5"]
+rig = ["opencv-python>=4.10", "pyserial>=3.5", "PySide6>=6.7", "torch>=2.4", "torchvision>=0.19", "psutil>=5.9", "nvidia-ml-py>=12", "pygrabber>=0.2; sys_platform == 'win32'"]
 
 [build-system]
 requires = ["setuptools>=68"]

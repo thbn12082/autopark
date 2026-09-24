@@ -198,7 +198,7 @@ class RplidarC1Source:
                 if data:
                     self.queue.feed(data, self.now())
                     revolution = self.queue.pop()
-                elif self.clock() >= deadline:
+                if revolution is None and self.clock() >= deadline:   # cả khi byte vẫn tới mà không ghép được vòng
                     raise ScanReadError(f"{self.source_id}: no complete revolution within {timeout:.1f} s "
                                         f"(stats {self.queue.stats()})")
         self.revolutions += 1
