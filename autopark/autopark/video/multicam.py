@@ -7,61 +7,95 @@ gian"). Không cần torch hay Qt.
   docs/usb_topology.md), còn cổng thì không. `resolve_ports()` hỏi Windows (PnP + DirectShow) để đổi cổng → index
   ngay lúc mở.
 - Mỗi camera giữ vài khung gần nhất trong một vòng đệm có giới hạn (không hàng đợi vô hạn, không tích lũy độ trễ).
-- `latest_set()` ghép một bộ: mốc thời gian = khung mới nhất của camera *chậm nhất*, rồi mỗi camera chọn khung gần
-  mốc đó nhất. Độ lệch của bộ (`skew_s`) = stamp lớn nhất − nhỏ nhất. Bộ lệch quá `max_skew_s` bị bỏ và đếm. Một bộ
+- `latest_set()` ghép một bộ: mốc thời gian = khung mới nhất của camera *chậm nhất* (camera có khung mới nhất sớm
+  nhất; khi bật chờ và các camera khác nhịp: chỉ xét camera định nhịp, xem dưới), rồi mỗi camera chọn khung gần mốc đó
+  nhất. Độ lệch của bộ (`skew_s`) = stamp lớn nhất − nhỏ nhất. Bộ lệch quá `max_skew_s` bị bỏ và đếm. Một bộ
   chỉ được coi là mới khi MỌI camera trong bộ đều có khung khác bộ trước, nên số bộ mỗi giây ≤ tốc độ camera chậm
   nhất; khi khung đến không đều, quy tắc này bỏ mất một phần khung của camera chậm — đếm ở `frames_skipped` và
   `sets_blocked_not_new` (bản đầu chỉ đòi mốc tiến, nên AI chấm lại 43 bộ/s gần trùng nhau khi camera có 24 khung/s).
-- **Chờ camera chậm có giới hạn (`max_wait_s`, mặc định tắt ở lớp này; `RigConfig` bật 60 ms).** Đo 23/09: cổng 1 ở
-  480p có đợt 26–36 % khung hỏng (còn ≈ 15–18 khung tốt/s so với 24), và vì quy tắc trên, cả chuỗi chậm theo nó. Khi
-  bật, `max_wait_s` là SÀN; ngưỡng chờ thực L = max(`max_wait_s`, 1,5 × chu kỳ khung của camera NHANH nhất) — chu kỳ
-  khung là chu kỳ TRUNG BÌNH đo từ 26 lần khung tới gần nhất, gồm cả khung cắt/xé mà nguồn đã loại
-  (`CameraWorker.frame_interval_s`, `CameraWorker.arrivals`; chưa đủ 3 lần thì chưa rõ; không camera nào rõ thì
-  L = `max_wait_s`). Nhịp camera đo được ở 24 fps KHÔNG đều: khoảng cách xen kẽ ≈ 31/48 ms, trung bình 41,9 ms
-  (GIAI_DOAN_1_CAMERA.md mục 4.1), nên L ≈ 1,5 × 41,9 ≈ 63 ms (phát lại m04: 62,4 ms); ở 15 fps ≈ 100 ms. Nếu vài camera
-  đã có khung mới mà camera khác chưa, bộ vẫn chờ, nhưng được phát KHÔNG CÓ các camera chưa có khung mới ngay khi
-  (a) khung mới cũ nhất đang chờ đã chờ quá L, hoặc
-  (b) không camera nào đang chờ còn đáng chờ (`worth_waiting`): camera đã rõ chu kỳ P của chính nó thì khung "đúng
-      lượt" của nó cho nhóm đang chờ được dự đoán từ khung cuối + m·P; không đáng chờ khi khung đó đã trễ quá P/2 (nó
-      lỡ khung) hoặc tới sau khung mới cũ nhất quá một chu kỳ của camera nhanh nhất (nó thuộc nhóm sau: camera chậm
-      đều). Camera chưa rõ chu kỳ: như bản đầu — không đáng chờ khi đã im quá L.
-  Sau đó (c) sửa "khóa lệch pha" (`out_of_phase`): độ lệch pha của từng camera = trung vị, qua REGROUP_SETS = 5 bộ ứng
-  viên đủ liên tiếp cùng thành phần, của stamp camera đó trừ stamp trung bình của bộ; nếu các độ lệch này chia hai cụm
-  — khe lớn nhất g đủ lớn để bộ sau lệch ≈ P − g, ít hơn độ lệch S hiện tại quá P/3 — và trong chính bộ sắp phát mọi
-  khung của cụm mới tới sau mọi khung của cụm cũ, thì cụm mới được để dành cho bộ sau (`FrameSet.deferred`, đếm ở
-  `sets_regrouped`; chỉ ở bộ không có camera đang chờ, và khi mọi camera của cụm cũ đã rõ nhịp và cùng nhịp — camera mới
-  vào được sửa sau 5 bộ). Bản trước quyết trên MỘT bộ: với nhịp xen kẽ 31/48 ms, stamp của hai camera cùng chu kỳ dao
-  động ±8 ms, cỡ ngưỡng P/3, nên (c) tách liên tục những bộ vốn đúng nhóm (người kiểm tra, 24/09).
-  Vì sao như vậy (bản đầu ngày 24/09 dùng L cố định và (b) = "mọi camera đang chờ im quá L"; người kiểm tra và mô
-  phỏng tìm ra ba lỗi): (1) camera KHỎE chạy dưới 1/`max_wait_s` (dưới 16,7 fps với 60 ms — `--fps 15`, hay phơi sáng
-  tự động chỗ tối) im quá 60 ms giữa hai khung bình thường, nên (b) bỏ luân phiên một camera khỏe ở mọi bộ; (2) camera
-  vừa lỡ một khung đã "im quá L" dù khung kế chỉ còn 2 ms nữa, nên bị bỏ thêm một bộ; (3) mỗi camera chỉ chọn trong
-  khung chưa dùng, nên khi một camera vào sau (mở lần lượt, hay quay lại sau khi mất) ở pha không may, bộ ghép khung
-  chu kỳ k của camera này với chu kỳ k+1 của camera kia và cứ thế mãi: bốn camera 24 fps gần cùng pha cho độ lệch
-  trung vị ≈ 40 ms thay vì ≈ 6 ms của quy tắc cũ. Lấy camera nhanh nhất (không phải trung vị) cho L để chính camera
-  chậm không nâng ngưỡng của nó.
-  Mô phỏng bằng đồng hồ giả ngày 24/09 (camera mở lần lượt cách nhau 0,3 s, ghép bộ mỗi 2 ms, tính 6 s sau 2 s khởi
-  động, rung stamp ±1–4 ms, 3 hạt ngẫu nhiên; KHÔNG đo trên phần cứng): bốn camera khỏe 24, 15, 12 hay 10 fps → mọi
-  bộ đủ bốn camera, độ lệch trung vị chênh quy tắc cũ tối đa 5,3 ms (24 fps gần cùng pha: 5,9–6,0 ms so với 5,9); ba
-  camera 24 fps + một camera đều 12 hoặc 8 fps → 24 bộ/s, chỉ camera chậm bị bỏ, độ lệch trung vị ≈ 20 ms (quy tắc
-  cũ: 12 hoặc 8 bộ/s, ≈ 47 ms); một camera mất 30–33 % khung ngẫu nhiên ở 24 fps → ≈ 24 bộ/s (quy tắc cũ 15–16 bộ/s),
-  chỉ camera đó bị bỏ, khung mới chờ tối đa 50 ms. Chỗ còn TỆ HƠN quy tắc cũ: pha bốn camera trải rộng đúng bằng
-  `max_skew_s` (12 fps, pha 0/20/40/60 ms) → phần lớn bộ bị bỏ vì lệch ở cả hai quy tắc, bật chờ còn 1,5–2,3 bộ/s so
-  với 3,8 bộ/s khi tắt — giới hạn của `max_skew_s` cố định 60 ms, chưa sửa. Chỗ còn mơ hồ: pha bốn camera trải gần hết
-  một chu kỳ (0/10/20/30 ms ở 24 fps) và stamp rung ±4 ms thì khung "đúng lượt" của camera cuối nhóm rơi sát mép "một
-  chu kỳ sau khung cũ nhất", nên thỉnh thoảng một camera khỏe bị bỏ một bộ (mô phỏng: 1 trong 60 hạt × 4 s, thêm một
-  camera mất 33 % khung). Sàn 60 ms và các hệ số 1,5, P/2, P/3, 1,25 là lựa chọn thiết kế, CHƯA đo trên phần cứng.
-  Mô phỏng trên chỉ dùng LƯỚI ĐỀU. Với nhịp đo được, bản trước ngày 24/09 (chu kỳ theo "một lưới" ra ≈ 24–33 ms thay vì
-  41,9; (c) quyết trên một bộ) KHÔNG đúng với câu "chỉ camera đó bị bỏ": phát lại khoảng cách khung thật của m04 (bốn
-  camera 480p, không mất khung; 4 bộ pha × rung 0/3 ms, AI 15 ms mỗi lô, max_skew 60 ms) chỉ 43–78 % bộ đủ bốn camera,
-  mỗi camera khỏe bị bỏ 3–17 % số bộ, 26–30 bộ/s (vượt 23,9 khung/s của camera), L = 60 ms. Sau bản sửa (chu kỳ trung
-  bình trên `arrivals`, (c) trên trung vị 5 bộ), cùng phép phát lại: 100 % bộ đủ, không lần bỏ hay để dành nào,
-  23,8–23,9 bộ/s (tắt chờ: 21,4–23,9), L trung vị 62,4 ms; nhịp tới theo tick USB 16 ms (pha cố định) cũng vậy. Nhịp
-  Markov 31,4/48,3 ms độc lập từng camera (pha giữa các camera TRÔI ngẫu nhiên, khắc nghiệt hơn m04), 20 s × 20 lần
-  chạy: mỗi camera khỏe bị bỏ 0,2–2,1 % số bộ (bản trước 18–24 %), 92–96 % bộ đủ, 3–15 lần để dành — phần bỏ còn lại do
-  mép "nhóm sau" của (b) (khung của camera cho nhóm này đã vào bộ trước), chưa sửa. Mọi số `lagging_per_port`,
-  `sets_partial_wait`, `partial_wait_ms`, `wait_limit_ms`, `sets_regrouped`, `skew_ms` của phiên BẬT chờ chạy trước bản
-  sửa này KHÔNG dùng được (24/09: runs/rig_bench chỉ có loạt 20260923, chạy quy tắc cũ, nên chưa có phiên nào như thế).
+- **Chờ camera chậm có giới hạn (`max_wait_s`, mặc định tắt ở lớp này; `RigConfig` bật 60 ms).** Mục đích: camera đang
+  có đợt khung hỏng hay bị treo không kéo cả chuỗi chậm theo nó (đo 23/09: cổng 1 ở 480p có đợt 26–36 % khung hỏng, còn
+  ≈ 15–18 khung tốt/s so với 24, và theo quy tắc trên cả chuỗi chậm theo nó). `max_wait_s` None hay ≤ 0: đúng quy tắc
+  cũ, từng bộ một.
+  **Quy tắc hiện hành (bản thứ ba, 24/09, người dùng duyệt): mỗi camera xét theo nhịp của CHÍNH nó.** P_p = chu kỳ khung
+  TRUNG BÌNH của camera p, đo từ 26 lần khung tới gần nhất, gồm cả khung cắt/xé mà nguồn đã loại
+  (`CameraWorker.frame_interval_s`, `CameraWorker.arrivals`; chưa đủ 3 lần thì chưa rõ). Ngưỡng riêng
+  L_p = max(`max_wait_s`, 1,5 × P_p) (`wait_limits_s`; P_p chưa rõ thì max(`max_wait_s`, 1,5 × chu kỳ camera nhanh
+  nhất đã rõ)). Nhịp 24 khung/s đo được KHÔNG đều: khoảng cách xen kẽ ≈ 31/48 ms, trung bình 41,9 ms
+  (GIAI_DOAN_1_CAMERA.md mục 4.1), nên L_p ≈ 63 ms; ở 15 khung/s ≈ 100 ms. Khi vài camera đã có khung mới mà camera
+  khác chưa, bộ chờ; bộ được phát KHÔNG CÓ các camera đang chờ khi không camera nào trong số đó còn đáng chờ
+  (`worth_waiting`). Một camera đang chờ hết đáng chờ khi:
+  (a) khung mới cũ nhất đang chờ đã chờ quá L_p của nó; hoặc
+  (b) nó lỡ nhịp của chính nó: khung "đúng lượt" dự đoán = khung tốt cuối + m·P_p (m ≥ 1) đã trễ quá P_p/2 — với m = 1
+      đúng là "không có khung tốt mới trong 1,5 × P_p kể từ khung tốt cuối". m chọn để khung dự đoán gần nhất với khung
+      mới cũ nhất của các camera đã có khung mới CÙNG NHỊP với nó (chu kỳ lớn / nhỏ ≤ SAME_CADENCE, `due_reference`);
+      không có camera như thế thì gần khung mới cũ nhất của mọi camera (t_old). (Sửa 24/09, mô phỏng đồng hồ giả, CHƯA
+      đo trên phần cứng: khung dư chưa dùng của camera nhanh làm t_old sớm, và camera chậm hơn vừa mất một khung bị so
+      với đúng lượt nó VỪA lỡ — bị bỏ thêm một bộ rồi ghép trễ một chu kỳ mãi.) Hoặc
+  (b') khung đúng lượt đã TỚI nhưng hỏng (lần tới cắt/xé ghi trong `arrivals`, đọc CÙNG khóa với vòng đệm —
+      `CameraWorker.snapshot_with_arrival`; đọc riêng sau đó thì khung tốt tới giữa hai lần đọc bị tưởng là hỏng, sửa
+      24/09): thôi chờ ngay, không đợi thêm P_p/2; hoặc
+  (b'') nó treo: không có lần tới nào (tốt hay hỏng) trong STALL_PERIODS = 2,5 × P_p — thôi chờ nó ở mọi bộ cho tới lần
+      tới kế.
+  Camera KHỎE chạy chậm hơn (phơi sáng dài: 15, 12 khung/s; 23,85 so với 29,3 khung/s ở 720p) không lỡ nhịp của nó nên
+  không bị bỏ: nó "định nhịp" cả chuỗi (số bộ/s ≈ tốc độ của nó, như quy tắc cũ) và khung dư của camera nhanh không vào
+  bộ nào (`frames_skipped`). Hệ quả phải biết: camera khỏe mà chậm CỐ ĐỊNH (ví dụ chỗ tối 8 khung/s) làm cả chuỗi chậm
+  theo; quy tắc chờ chỉ giúp khi một camera lỡ nhịp của chính nó. Khi các camera trong bộ khác nhịp (chu kỳ chênh quá
+  SAME_CADENCE = 1,15 lần), mốc bộ lấy trong các camera định nhịp (cùng nhịp với camera chậm nhất, `pacing_ports`), camera
+  nhanh chọn khung mới gần mốc đó nhất.
+  Sau đó (c) sửa "khóa lệch pha" (`out_of_phase`), chỉ giữa các camera định nhịp (có đúng một khung mới mỗi bộ): độ lệch
+  pha của từng camera = trung vị, qua REGROUP_SETS = 5 bộ ứng viên đủ liên tiếp cùng thành phần, của stamp camera đó trừ
+  stamp trung bình của các camera định nhịp; nếu các độ lệch này chia hai cụm — khe lớn nhất g đủ lớn để bộ sau lệch
+  ≈ P − g, ít hơn độ lệch S hiện tại quá P/3 — và trong chính bộ sắp phát mọi khung của cụm mới tới sau mọi khung của
+  cụm cũ, thì cụm mới được để dành cho bộ sau (`FrameSet.deferred`, đếm ở `sets_regrouped`; chỉ ở bộ không có camera
+  đang chờ, khi mọi camera trong bộ đã rõ nhịp — camera mới vào được sửa sau 5 bộ). Quyết trên MỘT bộ thì với nhịp xen
+  kẽ 31/48 ms, stamp của hai camera cùng chu kỳ dao động ±8 ms, cỡ ngưỡng P/3, và (c) tách liên tục những bộ vốn đúng
+  nhóm (người kiểm tra, 24/09).
+  **Vì sao đổi sang nhịp riêng (đo trên phần cứng 24/09).** `runs/may_moi_20260924_may_ban/m02_720p_chi_camera.rig.json`
+  (bản sao số: docs/evidence/may_ban/tham_chieu_20260924.json): ở 720p cổng 1 chạy 29,3 khung/s (phơi sáng tự động), cổng
+  2–4 23,85 khung/s, cả bốn 0 khung hỏng. Bản thứ hai — một ngưỡng chung L = max(`max_wait_s`, 1,5 × chu kỳ camera NHANH
+  nhất) và (b) coi khung dự đoán tới sau khung mới cũ nhất quá một chu kỳ của camera nhanh nhất là "thuộc nhóm sau" — bỏ
+  camera 24 khung/s khỏe ở 263 / 855 bộ (cổng 2 / 3 / 4: 106 / 137 / 106), 28,5 bộ/s; ở 480p (bốn camera ≈ 23,85) bỏ camera
+  khỏe ở 3 / 2861 bộ (m01, cùng thư mục). Với nhịp khác nhau, khung đúng lượt của camera 24 khung/s thường tới sau khung
+  của camera 29 khung/s hơn 34 ms nên bị coi là "nhóm sau". (c) bản thứ hai xét cả bộ, P = chu kỳ camera nhanh nhất và
+  "cùng nhịp" ≤ 1,25 lần: 41,9/34,1 = 1,23 lọt ngưỡng nên nó cũng để dành oan cổng 2–4.
+  **Mô phỏng đồng hồ giả 24/09** (phát lại khoảng cách khung THẬT của runs/camera_bench/20260923; pha ngẫu nhiên, rung stamp
+  0–2 hay 0–3 ms, ghép bộ mỗi 2 ms, tính 20 s sau 3 s, 6 hạt, max_skew 60 ms; KHÔNG đo trên phần cứng), bản thứ hai →
+  bản thứ ba (tắt chờ):
+  720p, cổng 1 29,3 khung/s (m02_cam0_720p_exp-6) + cổng 2–4 23,85 (n03): camera khỏe bị bỏ hay để dành nhiều nhất
+  12,4–18,3 % số bộ, 27,1–29,2 bộ/s → 0–0,42 % (chỉ cổng 1, camera nhanh), 23,85–23,90 bộ/s (tắt: 21,6–23,9 bộ/s); độ lệch
+  bộ trung vị 17,7–27,7 → 17,1–28,7 ms, p95 33,7–39,0 → 31,0–46,0 ms (tắt: 15,4–27,5 / 28,2–39,9).
+  480p, bốn camera m04: 0–0,21 % → 0–0,21 % (để dành, không lần bỏ nào), 23,85 bộ/s cả hai.
+  3 × 23,85 (n03) + một camera đều 15 khung/s: camera 15 khung/s bị bỏ 36,4–37,1 %, 23,8–23,9 bộ/s → 0 %, 15,0 bộ/s
+  (bằng tắt chờ); độ lệch trung vị 30–36 ms, p95 46 ms (tắt: 19–37 / 38–52 ms).
+  Nhịp Markov 31,4/48,3 ms độc lập từng camera (TỔNG HỢP, pha trôi, khắc nghiệt hơn nhịp thật): bỏ 1,2–2,1 %, bỏ + để dành
+  2,7–2,9 % → bỏ 0 %, để dành 2,1–2,5 % (pha trôi qua mép nhóm thật thì (c) ghép lại), 95,7–96,3 % bộ đủ.
+  Cổng 1 hỏng 36 % khung theo đợt 1 s (nguồn báo khung hỏng): cổng 1 bị bỏ 16,1–18,7 % số bộ ở cả hai bản; camera khỏe
+  bị bỏ hay để dành 0–2,1 % → 0–0,21 %; khung mới chờ lâu nhất 29,6–55,3 → 16,4–37,6 ms (nhờ (b')); 23,85 bộ/s (tắt:
+  18,5–20,0).
+  Cổng 2 treo 0,3 s: như nhau (23,85 bộ/s, chỉ cổng 2 bị bỏ, khung mới chờ lâu nhất 28,7–44,3 → 28,7–47,8 ms).
+  Sau hai sửa của vòng kiểm tra tối 24/09 (mốc `due_reference` ở (b), lần tới chụp cùng khóa ở (b')), cùng sáu kịch bản
+  cho ĐÚNG các số trên. Kịch bản thêm, 720p khác nhịp như trên mà cổng 4 (23,85) hỏng 36 % khung theo đợt 1 s: bộ bỏ cổng
+  4 / khung hỏng của nó 580 / 481 → 513 / 481 (6 hạt × 20 s), 23,90–24,75 → 23,85–24,30 bộ/s; phần dư ≈ 7 % chưa phân
+  tích hết (dồn ở 2 / 6 hạt; pha cổng 4 so với nhóm trôi qua cả vùng ≈ P/2, nơi ghép nhóm tự nó mơ hồ). Lưới đều, cùng
+  tỉ lệ hỏng, 4 hạt × 3 pha: 1169 → 982 bộ bỏ cho 981 khung hỏng. Camera nhanh (cổng 1) hỏng: như nhau.
+  Chỗ còn kém tắt chờ: khi camera khác nhịp, độ lệch bộ lớn hơn vài ms (mỗi camera chỉ chọn trong khung chưa dùng, và bộ
+  được phát ngay khi mọi camera có khung mới — quy tắc cũ chặn thêm cho tới khi khung gần mốc nhất của mọi camera đều
+  mới). Sàn 60 ms và các hệ số 1,5, P/2, 2,5, P/3, 1,15 là lựa chọn thiết kế, CHƯA đo trên phần cứng; số đo lại trên
+  bàn thử sau bản này: CHƯA CÓ.
+  **Lịch sử (để đọc số cũ).** Bản đầu (sáng 24/09): L cố định, (b) = "mọi camera đang chờ im quá L". Người kiểm tra và mô
+  phỏng tìm ra ba lỗi: (1) camera KHỎE chạy dưới 1/`max_wait_s` (dưới 16,7 fps với 60 ms) im quá 60 ms giữa hai khung
+  bình thường nên bị bỏ luân phiên; (2) camera vừa lỡ một khung đã "im quá L" dù khung kế chỉ còn 2 ms nữa; (3) mỗi camera
+  chỉ chọn trong khung chưa dùng, nên camera vào sau (mở lần lượt, hay quay lại sau khi mất) ở pha không may bị ghép khung
+  chu kỳ k với chu kỳ k+1 của camera kia mãi mãi (độ lệch trung vị ≈ 40 ms thay vì ≈ 6 ms). Bản thứ hai (24/09): L theo
+  camera nhanh nhất, (b) dự đoán khung đúng lượt kèm điều kiện "nhóm sau", chu kỳ TRUNG BÌNH trên `arrivals` (bản ước
+  lượng "một lưới" trước đó ra ≈ 24–33 ms thay vì 41,9 trên nhịp 31/48 ms và bỏ camera khỏe 3–17 % số bộ khi phát lại
+  m04), (c) trên trung vị 5 bộ: phát lại m04 100 % bộ đủ; nhịp Markov pha trôi bỏ 0,2–2,7 % — và lỗi 720p ở trên. Số
+  `lagging_per_port`, `sets_partial_wait`, `partial_wait_ms`, `sets_regrouped` của phiên bật chờ chạy trước bản thứ ba
+  (w01–w05 ngày 24/09 trong runs/rig_bench/20260924_wait, m01/m02 trong runs/may_moi_20260924_may_ban) là của bản thứ hai;
+  `wait_limit_ms` của chúng là ngưỡng chung theo camera nhanh nhất, còn từ bản thứ ba là ngưỡng RIÊNG lớn nhất trong các
+  camera tươi của bộ (`FrameSet.wait_limit_s`; từng camera ở `FrameSet.wait_limits_s`, nhịp từng camera ở `period_ms`
+  của `camera_stats`).
   Các camera bị bỏ vì chờ nằm ở `FrameSet.lagging`, KHÁC `missing` (không có khung nào trong `stale_after_s`, hoặc không
   mở được) và khác `deferred` (có khung mới nhưng để bộ sau). Khi bật, khung "mới" = CHƯA vào bộ nào VÀ còn tươi
   (≤ `stale_after_s`): nếu chọn cả khung đã dùng, lúc camera chậm quay lại khung của nó gần khung nhanh đã dùng hơn và
@@ -89,14 +123,15 @@ from .sources import Frame, FrameReadError, UsbCameraSource
 RIG_CLOCK = time.perf_counter
 STALE_AFTER_S = 0.5       # camera không có khung mới lâu hơn thế thì bị loại khỏi bộ ảnh và báo "cũ"
 LIVE_WINDOW = 3000        # số trực tiếp (giao diện, chuỗi theo giây) chỉ tính trên chừng ấy mẫu cuối
-WAIT_PERIODS = 1.5        # ngưỡng chờ camera chậm ≥ chừng ấy chu kỳ khung của camera nhanh nhất (xem đầu module)
+WAIT_PERIODS = 1.5        # ngưỡng chờ RIÊNG từng camera = chừng ấy chu kỳ khung của CHÍNH nó (sàn max_wait_s; đầu module)
+STALL_PERIODS = 2.5       # camera không có lần tới nào (tốt hay hỏng) quá chừng ấy chu kỳ của nó: "treo", thôi chờ ở mọi bộ
 CADENCE_FRAMES = 25       # chu kỳ khung đo trên chừng ấy khoảng cách giữa các lần khung tới gần nhất (tốt + cắt/xé)
 SEED_SPAN = 1.3           # chu kỳ khung: hạt giống = trung bình các khoảng ≤ chừng ấy × phân vị 25 % (xem frame_interval_s)
 WIDEN_SPAN = 1.75         # một bước nới: kéo nhóm khoảng dài (48–52 ms) của nhịp 31/48 ms vào nhóm "một khoảng"
 SINGLE_SPAN = 1.6         # "một khoảng" = ≤ chừng ấy × chu kỳ (khoảng gộp ≥ 76 ms của nhịp 31/48, hay 2P của nhịp đều, ở ngoài)
 OUTAGE_PERIODS = 4        # khoảng dài hơn chừng ấy chu kỳ là đợt im, không dùng để ước lượng chu kỳ
 REGROUP_GAIN = 1 / 3      # chỉ ghép lại pha khi độ lệch bộ giảm hơn chừng ấy chu kỳ (rung stamp không làm đảo qua lại)
-SAME_CADENCE = 1.25       # "cùng nhịp": chu kỳ đo được ≤ chừng ấy × chu kỳ camera nhanh nhất
+SAME_CADENCE = 1.15       # "cùng nhịp" với camera chậm nhất: chu kỳ × chừng ấy ≥ chu kỳ lớn nhất (pacing_ports, (c))
 REGROUP_SETS = 5          # (c) quyết trên trung vị độ lệch từng camera qua chừng ấy bộ ứng viên đủ, cùng thành phần
 
 
@@ -121,6 +156,16 @@ def dist(values: np.ndarray, scale: float = 1.0, nd: int = 1) -> dict:
     med, p95 = np.percentile(values, [50, 95])
     r = lambda x: round(float(x) * scale, nd)
     return {"median": r(med), "p95": r(p95), "min": r(values.min()), "max": r(values.max()), "n": int(values.size)}
+
+
+def pacing_ports(periods: dict[int, float | None]) -> list[int] | None:
+    """Camera "định nhịp": cùng nhịp với camera CHẬM nhất (chu kỳ × SAME_CADENCE ≥ chu kỳ lớn nhất). None khi có camera
+    chưa rõ chu kỳ. Khi quy tắc chờ xét mỗi camera theo nhịp của chính nó, camera khỏe chậm nhất không bị bỏ nên nó định
+    nhịp cả chuỗi: mỗi bộ nó có đúng một khung mới, camera nhanh hơn có 1–2 khung mới và khung dư không vào bộ nào."""
+    if not periods or any(iv is None for iv in periods.values()):
+        return None
+    slowest = max(periods.values())
+    return sorted(p for p, iv in periods.items() if iv * SAME_CADENCE >= slowest)
 
 
 def fit_width(width: int, height: int, max_width: int) -> tuple[int, int]:
@@ -262,6 +307,22 @@ class CameraWorker(threading.Thread):
         with self.lock:
             return list(self.ring)
 
+    def snapshot_with_arrival(self) -> tuple[list[tuple[int, Frame]], float | None]:
+        """Vòng đệm VÀ lần khung tới gần nhất (tốt hoặc cắt/xé), chụp trong CÙNG một lần giữ khóa — cho quy tắc chờ.
+
+        Đọc lần tới riêng, sau ảnh chụp vòng đệm (bản trước, sửa 24/09): khung TỐT tới giữa hai lần đọc có trong
+        `arrivals` mà không có trong ảnh chụp, và (b') của `MultiCameraManager.worth_waiting` tưởng khung đúng lượt đã
+        tới mà hỏng → bỏ một camera khỏe. Tái hiện tất định bằng đồng hồ giả, và bằng luồng thật khi ép
+        sys.setswitchinterval ≤ 100 µs (người kiểm tra, 24/09); tần suất trên phần cứng CHƯA ĐO."""
+        with self.lock:
+            return list(self.ring), (self.arrivals[-1] if self.arrivals else None)
+
+    def last_arrival(self) -> float | None:
+        """Lần khung tới gần nhất (khung tốt HOẶC khung cắt/xé), None khi chưa có lần nào. Quy tắc chờ KHÔNG dùng hàm
+        này (đọc sau ảnh chụp vòng đệm là sai, xem `snapshot_with_arrival`)."""
+        with self.lock:
+            return self.arrivals[-1] if self.arrivals else None
+
     def frame_interval_s(self, n: int = CADENCE_FRAMES) -> float | None:
         """Chu kỳ khung TRUNG BÌNH của camera, đo từ n + 1 lần khung tới gần nhất (`arrivals`: khung tốt và khung
         cắt/xé). None khi chưa có 3 lần.
@@ -314,13 +375,17 @@ class CameraWorker(threading.Thread):
 class FrameSet:
     frames: dict[int, Frame]              # cổng → khung (chỉ các camera CÓ trong bộ)
     seqs: dict[int, int]
-    anchor_t: float                       # mốc: khung mới nhất của camera chậm nhất trong số camera có trong bộ
+    anchor_t: float                       # mốc: khung mới nhất sớm nhất trong số camera có trong bộ (bật chờ, camera
+    #                                       khác nhịp: chỉ trong số camera định nhịp, xem `build_set`)
     skew_s: float                         # stamp lớn nhất − nhỏ nhất trong bộ
     missing: list[int]                    # cổng bị loại vì không có khung hoặc khung quá cũ (> stale_after_s)
     t_built: float
     lagging: list[int] = field(default_factory=list)   # cổng còn khung tươi nhưng chưa có khung mới, bị bỏ sau khi chờ
     waited_s: float | None = None         # bộ thiếu camera chậm: khung mới cũ nhất đã chờ bao lâu lúc phát bộ
-    wait_limit_s: float | None = None     # bật chờ: ngưỡng hiệu dụng L lúc phát bộ = max(max_wait_s, 1,5 × chu kỳ nhanh nhất)
+    # bật chờ: ngưỡng RIÊNG từng camera tươi lúc phát bộ, L_p = max(max_wait_s, 1,5 × chu kỳ của chính camera p) (xem
+    # `MultiCameraManager.wait_limits_s`), và ngưỡng lớn nhất trong số đó = lâu nhất một khung mới có thể bị giữ cho bộ này
+    wait_limits_s: dict[int, float] = field(default_factory=dict)
+    wait_limit_s: float | None = None
     # bật chờ: cổng CÓ khung mới nhưng khung đó thuộc chu kỳ sau so với các camera còn lại → để dành cho bộ sau (sửa lệch
     # pha, xem đầu module). Khác `lagging`: camera không chậm; AI và giao diện vẫn dùng kết quả gần nhất của nó.
     deferred: list[int] = field(default_factory=list)
@@ -334,13 +399,18 @@ class FrameSet:
         return max(f.meta.stamp.t for f in self.frames.values())
 
 
-def build_set(rings: dict[int, list[tuple[int, Frame]]], now: float, stale_after_s: float = STALE_AFTER_S) -> FrameSet | None:
-    """Ghép một bộ ảnh từ vòng đệm của từng camera (hàm thuần, để test)."""
+def build_set(rings: dict[int, list[tuple[int, Frame]]], now: float, stale_after_s: float = STALE_AFTER_S,
+              anchor_ports=None) -> FrameSet | None:
+    """Ghép một bộ ảnh từ vòng đệm của từng camera (hàm thuần, để test). Mốc = khung mới nhất sớm nhất trong các camera
+    tươi; `anchor_ports` (chỉ quy tắc chờ dùng, khi các camera khác nhịp): chỉ lấy mốc trong các cổng này — camera "định
+    nhịp", xem `pacing_ports` — các camera khác chọn khung gần mốc đó nhất. None, hay không cổng nào trong đó tươi: mọi
+    camera tươi, như quy tắc cũ."""
     fresh = {port: ring for port, ring in rings.items() if ring and now - ring[-1][1].meta.stamp.t <= stale_after_s}
     missing = sorted(p for p in rings if p not in fresh)
     if not fresh:
         return None
-    anchor = min(ring[-1][1].meta.stamp.t for ring in fresh.values())
+    anchor_from = [ring for p, ring in fresh.items() if anchor_ports is None or p in anchor_ports] or list(fresh.values())
+    anchor = min(ring[-1][1].meta.stamp.t for ring in anchor_from)
     frames, seqs = {}, {}
     for port, ring in fresh.items():
         seq, frame = min(ring, key=lambda item: abs(item[1].meta.stamp.t - anchor))
@@ -416,16 +486,27 @@ class MultiCameraManager:
     def rings(self) -> dict[int, list[tuple[int, Frame]]]:
         return {port: (w.snapshot() if w.stats.open_error is None else []) for port, w in self.workers.items()}
 
+    def _snapshot(self) -> tuple[dict[int, list[tuple[int, Frame]]], dict[int, float | None]]:
+        """Vòng đệm và lần tới gần nhất của từng camera, mỗi camera chụp dưới CÙNG một khóa (`snapshot_with_arrival`)."""
+        rings, arrivals = {}, {}
+        for port, w in self.workers.items():
+            rings[port], arrivals[port] = w.snapshot_with_arrival() if w.stats.open_error is None else ([], None)
+        return rings, arrivals
+
     def latest_set(self, max_skew_s: float | None = None, require_new: bool = True,
                    max_wait_s: float | None = None) -> FrameSet | None:
         """Bộ ảnh mới nhất. `require_new`: chỉ trả khi mọi camera trong bộ đều có khung khác bộ trước (kể cả bộ bị bỏ),
         để không suy luận lại khung cũ. Bộ lệch hơn `max_skew_s` bị bỏ (đếm vào `sets_rejected_skew`).
 
-        `max_wait_s` (None hoặc ≤ 0 = tắt, đúng quy tắc cũ): SÀN của ngưỡng chờ. Camera chưa có khung mới được chờ tối
-        đa L = max(max_wait_s, 1,5 × chu kỳ khung của camera nhanh nhất), rồi bộ được phát không có nó
-        (`FrameSet.lagging`, đếm ở `sets_partial_wait` và `lagging_per_port`; L ghi ở `FrameSet.wait_limit_s`) — xem
-        đầu module."""
-        rings = self.rings()
+        `max_wait_s` (None hoặc ≤ 0 = tắt, đúng quy tắc cũ): SÀN của ngưỡng chờ. Mỗi camera tươi chưa có khung mới được
+        xét theo nhịp của CHÍNH nó: ngưỡng riêng L_p = max(max_wait_s, 1,5 × chu kỳ khung của camera p) (`wait_limits_s`;
+        camera chưa rõ chu kỳ dùng chu kỳ của camera nhanh nhất đã rõ), và nó còn đáng chờ theo `worth_waiting`: (a) khung
+        mới cũ nhất đang chờ chưa chờ quá L_p, (b) khung đúng lượt của nó chưa trễ quá P_p/2, (b') khung đúng lượt chưa tới
+        mà hỏng, (b'') nó chưa treo quá 2,5 × P_p. Khi không camera nào đang chờ còn đáng chờ, bộ được phát không có chúng
+        (`FrameSet.lagging`, đếm ở `sets_partial_wait` và `lagging_per_port`). Ngưỡng từng camera tươi của bộ ghi ở
+        `FrameSet.wait_limits_s`, ngưỡng lớn nhất trong số đó ở `FrameSet.wait_limit_s` — xem đầu module. Vòng đệm và lần
+        tới gần nhất của mỗi camera được chụp cùng một lần giữ khóa (`CameraWorker.snapshot_with_arrival`)."""
+        rings, arrivals = self._snapshot()
         fs = build_set(rings, self.clock(), self.stale_after_s)
         if fs is None:
             return None
@@ -433,7 +514,7 @@ class MultiCameraManager:
             last = self._last_seqs
             if require_new and last is not None:
                 if max_wait_s is not None and max_wait_s > 0:
-                    fs = self._new_frames_set(rings, fs, last, max_wait_s)
+                    fs = self._new_frames_set(rings, fs, last, max_wait_s, arrivals)
                     if fs is None:
                         return None
                 else:
@@ -481,56 +562,121 @@ class MultiCameraManager:
             self.sets_blocked_not_new += 1
 
     def frame_periods(self, ports) -> dict[int, float | None]:
-        """Chu kỳ khung đo được của từng cổng (None: chưa đủ 3 khung tốt)."""
+        """Chu kỳ khung đo được của từng cổng (None: chưa đủ 3 lần khung tới)."""
         return {p: self.workers[p].frame_interval_s() for p in ports}
 
-    def wait_limit_s(self, max_wait_s: float, periods: dict[int, float | None]) -> float:
-        """Ngưỡng chờ hiệu dụng L = max(max_wait_s, WAIT_PERIODS × chu kỳ khung của camera NHANH nhất).
-        Nhanh nhất, không phải trung vị: với hai–ba camera, trung vị bị chính camera chậm kéo lên."""
+    @staticmethod
+    def wait_limits_s(max_wait_s: float, periods: dict[int, float | None]) -> dict[int, float]:
+        """Ngưỡng chờ RIÊNG từng camera: L_p = max(max_wait_s, WAIT_PERIODS × chu kỳ khung của CHÍNH camera p).
+
+        Camera chưa rõ chu kỳ (mới mở, < 3 lần tới) dùng ngưỡng dự phòng max(max_wait_s, WAIT_PERIODS × chu kỳ của camera
+        nhanh nhất đã rõ) — đúng ngưỡng chung của bản trước, nghiêng về bỏ sớm hơn là giữ lâu; không camera nào rõ thì
+        chỉ còn sàn max_wait_s. Bản trước dùng MỘT ngưỡng chung theo camera nhanh nhất cho mọi camera: đo 24/09 ở 720p,
+        cổng 1 29,3 khung/s (chu kỳ 34 ms) còn cổng 2–4 23,85 khung/s (41,9 ms), và camera 24 khung/s khỏe bị bỏ ở 263 /
+        855 bộ (xem đầu module)."""
         known = [iv for iv in periods.values() if iv is not None]
-        return max(max_wait_s, WAIT_PERIODS * min(known)) if known else max_wait_s
+        fallback = max(max_wait_s, WAIT_PERIODS * min(known)) if known else max_wait_s
+        return {p: fallback if iv is None else max(max_wait_s, WAIT_PERIODS * iv) for p, iv in periods.items()}
 
     @staticmethod
     def worth_waiting(t_last: float, t_old: float, now: float, period: float | None, limit: float,
-                      fastest: float | None) -> bool:
-        """Quy tắc (b): camera chưa có khung mới còn đáng chờ không.
+                      t_arrival: float | None = None, t_ref: float | None = None) -> bool:
+        """Camera chưa có khung mới còn đáng chờ không — xét theo nhịp của CHÍNH nó (`period`, `limit` = L_p của nó).
 
-        Chu kỳ chưa rõ (< 3 khung tốt): như bản đầu — đáng chờ khi nó im chưa quá L. Đã rõ chu kỳ P của CHÍNH nó: khung
-        "đúng lượt" cho nhóm khung đang chờ là khung dự đoán t_last + m·P gần khung mới cũ nhất t_old nhất (m ≥ 1, vì
-        khung t_last đã dùng). Đáng chờ khi khung đó thuộc nhóm đang chờ — tới trước t_old + một chu kỳ của camera nhanh
-        nhất (muộn hơn thì khung kế của camera nhanh đã tới, nhóm sau mới là nhóm của nó) và trong hạn (a) — và chưa trễ
-        quá nửa chu kỳ P. Nhờ vậy camera vừa lỡ MỘT khung vẫn được chờ nếu khung kế của nó sắp tới (chỉ đo "im bao lâu"
-        thì bỏ nó 2 ms trước khung kế — mô phỏng 24/09), còn camera chậm đều thì bị bỏ ngay ở những nhóm không có khung
-        của nó, không phải chờ hết L."""
+        (a) Khung mới cũ nhất t_old (của MỌI camera đã có khung mới) đã chờ quá L_p thì không chờ camera này nữa. (b) Chu
+        kỳ chưa rõ: đáng chờ khi nó im chưa quá L_p. Đã rõ chu kỳ P: khung "đúng lượt" của nó là khung dự đoán
+        slot = t_last + m·P gần mốc `t_ref` nhất (m ≥ 1, vì khung t_last đã dùng); đáng chờ khi khung đó chưa trễ quá nửa
+        chu kỳ P. `t_ref` = khung mới cũ nhất của các camera đã có khung mới CÙNG NHỊP với camera này (xem
+        `due_reference`); None: t_old. Với m = 1 đây đúng là "chưa có khung tốt mới trong 1,5 × chu kỳ của chính nó kể từ
+        khung tốt cuối". Camera vừa lỡ MỘT khung vẫn được chờ nếu khung kế của nó sắp tới; camera treo bị bỏ khi lỡ khung
+        đúng lượt quá P/2, rồi mỗi nhóm sau chỉ còn chờ nó tới hạn khung dự đoán kế + P/2 (khung tốt đầu tiên sau đợt treo
+        vì thế vào đúng nhóm của nó). (b') `t_arrival` = lần tới gần nhất của camera, gồm khung cắt/xé, chụp CÙNG khóa với
+        vòng đệm (`CameraWorker.snapshot_with_arrival`): nếu sau khung tốt cuối đã có một khung HỎNG tới và nó chính là
+        khung đúng lượt (slot − t_arrival < P/2), khung đúng lượt đã hỏng — không chờ nữa, khỏi đợi tới slot + P/2 (đợt
+        khung hỏng của cổng 1, đo 23/09: mỗi khung hỏng bớt tới P/2 ≈ 21 ms chờ). (b'') không có lần tới nào (tốt hay
+        hỏng) trong STALL_PERIODS × P: treo, không chờ.
+
+        Vì sao mốc là `t_ref`, không phải t_old (sửa 24/09, mô phỏng đồng hồ giả, CHƯA đo trên phần cứng): khi các camera
+        khác nhịp, t_old thường là khung dư CHƯA dùng của camera nhanh (29,3 khung/s), tới sớm hơn nhóm của camera 24
+        khung/s. Camera 24 khung/s vừa mất MỘT khung (hỏng, bị (b') bỏ ngay) bị so với đúng lượt nó VỪA lỡ ở bộ kế, nên
+        bị bỏ thêm một bộ dù khung tốt kế của nó đúng hạn, rồi bị ghép trễ một chu kỳ mãi ((c) không ghép lại vì lợi
+        < P/3). Cổng 1 29,3 + cổng 2–4 23,85 khung/s, cổng 4 hỏng 36 % khung theo đợt 1 s: trên lưới đều (4 hạt × 3 pha ×
+        20 s) 1169 bộ bỏ cổng 4 cho 981 khung hỏng với t_old → 982 với `t_ref`; trên khoảng cách khung thật (6 hạt × 20 s)
+        580 → 513 cho 481 (người kiểm tra tìm ra, tái hiện lại 24/09). Không camera nào đã có khung mới cùng nhịp (ví dụ
+        camera 15 khung/s duy nhất giữa các camera 24 khung/s) thì vẫn dùng t_old như trước; mọi camera cùng nhịp thì
+        t_ref = t_old, kết quả như trước. Vì t_ref ≥ t_old, mốc này chỉ làm chờ lâu hơn hoặc bằng, và (a) vẫn chặn trên
+        bằng t_old thật. Còn lại (đã biết): camera cùng nhịp lệch pha ≈ P/2 so với nhóm — ghép nhóm tự nó mơ hồ — một
+        khung hỏng vẫn có thể làm nó thiếu ở hai bộ.
+
+        KHÔNG còn điều kiện "khung dự đoán tới sau t_old quá một chu kỳ của camera nhanh nhất thì thuộc nhóm sau" của bản
+        trước: khi các camera khỏe có nhịp khác nhau (29,3 và 23,85 khung/s), khung đúng lượt của camera 24 khung/s thường
+        tới sau khung của camera 29 khung/s hơn 34 ms, và điều kiện đó bỏ nó đi dù nó đúng nhịp (đo 24/09). Bây giờ camera
+        nhanh hơn chờ camera khỏe chậm hơn; khung dư của nó không vào bộ nào (`frames_skipped`)."""
+        if now - t_old > limit:
+            return False
         if period is None:
             return now - t_last <= limit
-        slot = t_last + max(1, round((t_old - t_last) / period)) * period
-        horizon = t_old + min(limit, fastest if fastest is not None else limit)
-        return slot < horizon and now <= slot + 0.5 * period
+        t_seen = t_last if t_arrival is None else max(t_last, t_arrival)
+        if now - t_seen > STALL_PERIODS * period:
+            return False                                # treo: không khung nào (tốt hay hỏng) trong 2,5 chu kỳ của nó
+        ref = t_old if t_ref is None else t_ref
+        slot = t_last + max(1, round((ref - t_last) / period)) * period
+        if t_arrival is not None and t_arrival > t_last + 0.5 * period and slot - t_arrival < 0.5 * period:
+            return False                                # (b') khung đúng lượt đã tới nhưng hỏng
+        return now <= slot + 0.5 * period
+
+    @staticmethod
+    def due_reference(port: int, periods: dict[int, float | None], oldest_new: dict[int, float]) -> float | None:
+        """Mốc để đoán khung "đúng lượt" của camera `port` đang chờ (tham số `t_ref` của `worth_waiting`): khung mới cũ
+        nhất trong các camera ĐÃ có khung mới (`oldest_new` = {cổng: stamp khung mới cũ nhất của nó}) cùng nhịp với nó
+        (chu kỳ lớn / nhỏ ≤ SAME_CADENCE, như `pacing_ports`). None — dùng t_old như trước — khi `port` chưa rõ chu kỳ
+        hoặc không camera nào đã có khung mới cùng nhịp với nó."""
+        P = periods.get(port)
+        if P is None:
+            return None
+        same = [t for q, t in oldest_new.items()
+                if periods.get(q) is not None and max(P, periods[q]) <= SAME_CADENCE * min(P, periods[q])]
+        return min(same) if same else None
 
     @staticmethod
     def out_of_phase(fs: FrameSet, periods: dict[int, float | None],
                      history: list[dict[int, float]] | None = None) -> list[int]:
         """Cổng nên để dành cho bộ sau vì bộ `fs` ghép khung của hai chu kỳ khác nhau ("khóa lệch pha").
 
-        Độ lệch pha của từng camera = trung vị, qua các bộ trong `history` ({cổng: stamp}, gồm cả bộ `fs`), của stamp
-        camera đó trừ stamp trung bình của bộ; không có `history` thì chỉ dùng bộ `fs` (như bản đầu). Sắp các camera theo
-        độ lệch đó, tìm khe lớn nhất g: cụm cũ (trước khe) và cụm mới (sau khe). Nếu phát cụm cũ bây giờ và để cụm mới
-        ghép với khung KẾ TIẾP của cụm cũ (tới sau ≈ một chu kỳ P), độ lệch bộ sau ≈ P − g, thay vì độ lệch hiện tại S
-        (trải của các độ lệch). Chỉ làm khi S − (P − g) > REGROUP_GAIN × P, mọi camera của cụm cũ đã đo được chu kỳ
-        ≤ SAME_CADENCE × P (camera chậm hay chưa rõ nhịp thì không đoán được khung kế của nó tới lúc nào), và trong CHÍNH
-        bộ `fs` mọi khung của cụm mới tới sau mọi khung của cụm cũ.
+        Chỉ xét các camera "định nhịp" của bộ: camera cùng nhịp với camera CHẬM nhất trong bộ (chu kỳ ×
+        SAME_CADENCE ≥ chu kỳ chậm nhất). Mọi camera trong bộ phải đã rõ chu kỳ. Độ lệch pha của từng camera định nhịp =
+        trung vị, qua các bộ trong `history` ({cổng: stamp}, gồm cả bộ `fs`), của stamp camera đó trừ stamp trung bình
+        của các camera định nhịp trong bộ; không có `history` thì chỉ dùng bộ `fs` (như bản đầu). Sắp theo độ lệch đó,
+        tìm khe lớn nhất g: cụm cũ (trước khe) và cụm mới (sau khe). Nếu phát cụm cũ bây giờ và để cụm mới ghép với khung
+        KẾ TIẾP của cụm cũ (tới sau ≈ một chu kỳ P, P = chu kỳ nhỏ nhất trong các camera định nhịp), độ lệch bộ sau
+        ≈ P − g, thay vì độ lệch hiện tại S (trải của các độ lệch). Chỉ làm khi có ≥ 2 camera định nhịp,
+        S − (P − g) > REGROUP_GAIN × P, và trong CHÍNH bộ `fs` mọi khung của cụm mới tới sau mọi khung của cụm cũ.
+        Khi mọi camera cùng nhịp (trường hợp thường gặp) thì mọi camera đều là camera định nhịp, như bản trước.
+
+        Vì sao chỉ xét camera định nhịp (sửa 24/09, trước đó xét cả bộ và chỉ đòi cụm cũ cùng nhịp với camera NHANH
+        nhất, SAME_CADENCE = 1,25): từ khi mỗi camera được xét theo nhịp của chính nó (xem `worth_waiting`), camera khỏe
+        chậm hơn không bị bỏ nữa mà định nhịp cả chuỗi; mỗi bộ nó có đúng một khung mới, nên chỉ giữa các camera này mới
+        có "khóa lệch pha" bền. Camera nhanh hơn có 1–2 khung mới mỗi bộ, pha của nó so với nhóm trôi liên tục và
+        `build_set` tự chọn lại khung gần mốc nhất; đưa nó vào (c) chỉ để dành oan. Mô phỏng 24/09 (đồng hồ giả, KHÔNG
+        đo trên phần cứng): cổng 1 29,3 khung/s + cổng 2–4 23,85 khung/s (khoảng cách thật m02/n03; tỉ số chu kỳ
+        1,19–1,40, lọt ngưỡng 1,25 cũ) → cổng 2–4 bị để dành 2–3,8 % số bộ; ba camera 24 khung/s + một camera 15 khung/s →
+        camera 15 khung/s bị để dành 9–16 %; hai camera 24 + hai camera 15 khung/s mà cổng 15 khung/s thứ hai tới sau cổng
+        kia 50–61 ms → nếu (c) chỉ chạy khi CẢ bộ cùng nhịp thì hai camera 15 khung/s khóa lệch pha mãi, bộ lệch > 60 ms bị
+        bỏ (37 / 75 bộ trong test_two_slower_cameras_locked_out_of_phase_are_regrouped_among_themselves). Tỉ số chu kỳ
+        ước lượng giữa các camera cùng nhịp: ≤ 1,04 trên khoảng cách thật (m04, m05, n03, n06, q05; có và không rung
+        3 ms), ≤ 1,11 trên nhịp Markov 31/48 ms tổng hợp; giữa 29,3 và 23,85 khung/s thật: ≥ 1,19. Nên SAME_CADENCE = 1,15.
 
         Vì sao cần trung vị: nhịp thật xen kẽ ≈ 31/48 ms, nên stamp của hai camera cùng chu kỳ lệch nhau dao động ±8 ms
         — cỡ ngưỡng P/3 ≈ 14 ms. Quyết trên từng bộ thì (c) tách liên tục những bộ vốn đúng nhóm (phát lại nhịp m04, P
         đúng, pha 0/8/16/24 ms: 165 lần tách trong ≈ 24 s, chỉ 76 % bộ đủ bốn camera; pha 0/11/22/33: 47 lần, 92 % —
         người kiểm tra, tái hiện 24/09). Trung vị qua 5 bộ, cùng phép phát lại: 0 lần tách, 100 % bộ đủ."""
-        known = [iv for iv in periods.values() if iv is not None]
-        if len(fs.frames) < 2 or not known:
+        per = {p: periods.get(p) for p in fs.frames}
+        pace = pacing_ports(per)                        # None: có camera chưa rõ nhịp, không đoán được khung kế của nó
+        if pace is None or len(pace) < 2:
             return []
-        period = min(known)
-        cur = {p: f.meta.stamp.t for p, f in fs.frames.items()}
-        hist = history or [cur]
+        period = min(per[p] for p in pace)
+        cur = {p: fs.frames[p].meta.stamp.t for p in pace}
+        hist = [{p: h[p] for p in pace} for h in history] if history else [cur]
         offs = {p: float(np.median([h[p] - sum(h.values()) / len(h) for h in hist])) for p in cur}
         order = sorted(cur, key=lambda p: (offs[p], cur[p]))
         ts = [offs[p] for p in order]
@@ -538,17 +684,17 @@ class MultiCameraManager:
         gap, spread = ts[k] - ts[k - 1], ts[-1] - ts[0]
         if spread - (period - gap) <= REGROUP_GAIN * period:
             return []
-        if any(periods.get(p) is None or periods[p] > SAME_CADENCE * period for p in order[:k]):
-            return []
         if min(cur[p] for p in order[k:]) <= max(cur[p] for p in order[:k]):
             return []                                   # bộ này rung ngược thứ tự hai cụm: chưa tách
         return sorted(order[k:])
 
     def _new_frames_set(self, rings: dict[int, list[tuple[int, Frame]]], fs: FrameSet, last: dict[int, int],
-                        max_wait_s: float) -> FrameSet | None:
+                        max_wait_s: float, arrivals: dict[int, float | None]) -> FrameSet | None:
         """Quy tắc chờ có giới hạn (gọi trong `self._lock`; khóa từng camera chỉ được giữ ngắn bên trong, không ai giữ
         khóa camera rồi xin khóa này). `fs` là bộ ứng viên đủ camera tươi, chỉ dùng để biết camera nào tươi và camera nào
-        "missing"; bộ trả về chỉ gồm khung CHƯA vào bộ nào VÀ còn tươi (≤ stale_after_s)."""
+        "missing"; bộ trả về chỉ gồm khung CHƯA vào bộ nào VÀ còn tươi (≤ stale_after_s). `arrivals` = lần tới gần nhất
+        của từng camera, chụp cùng khóa với `rings` (`_snapshot`); chu kỳ khung (`frame_periods`) đọc sau đó cũng không
+        sao — một lần tới thêm chỉ làm ước lượng chu kỳ chính xác hơn."""
         now = fs.t_built
         fresh = sorted(fs.frames)
         # Khung mới = chưa vào bộ nào VÀ còn tươi. Camera từng "missing" bị xóa seq khỏi _last_seqs (hoặc chưa từng có seq
@@ -562,19 +708,26 @@ class MultiCameraManager:
         if not ready:
             return None                                 # không camera nào có khung mới: không đếm, như quy tắc cũ
         periods = self.frame_periods(fresh)
-        limit = self.wait_limit_s(max_wait_s, periods)
-        t_old = min(new[p][0][1].meta.stamp.t for p in ready)      # khung mới cũ nhất đang chờ
+        limits = self.wait_limits_s(max_wait_s, periods)
+        oldest_new = {p: new[p][0][1].meta.stamp.t for p in ready}
+        t_old = min(oldest_new.values())                            # khung mới cũ nhất đang chờ
         waited = now - t_old
         if waiting:
-            # (a) khung mới cũ nhất đã chờ quá L; (b) KHÔNG camera nào đang chờ còn đáng chờ (xem `worth_waiting`)
-            known = [iv for iv in periods.values() if iv is not None]
-            fastest = min(known) if known else None
+            # phát bộ thiếu khi KHÔNG camera nào đang chờ còn đáng chờ theo nhịp của chính nó (xem `worth_waiting`); khung
+            # đúng lượt đoán theo camera cùng nhịp đã có khung mới (`due_reference`), không theo khung dư của camera nhanh
             expected = [p for p in waiting
-                        if self.worth_waiting(rings[p][-1][1].meta.stamp.t, t_old, now, periods[p], limit, fastest)]
-            if waited <= limit and expected:
+                        if self.worth_waiting(rings[p][-1][1].meta.stamp.t, t_old, now, periods[p], limits[p],
+                                              arrivals.get(p), self.due_reference(p, periods, oldest_new))]
+            if expected:
                 self._count_blocked(("wait",) + tuple((p, rings[p][-1][0]) for p in fresh))
                 return None                             # còn trong hạn chờ
-        out = build_set({p: new[p] for p in ready}, now, self.stale_after_s)
+        # Camera khác nhịp: mốc lấy trong các camera định nhịp (chậm nhất, mỗi bộ đúng một khung mới); camera nhanh hơn
+        # chọn khung mới gần mốc đó nhất. Lấy mốc trong mọi camera thì camera nhanh có hai khung mới hay chọn khung CŨ
+        # (gần khung mới nhất sớm nhất của các camera nhanh khác) và bộ lệch tới hơn một chu kỳ của nó (mô phỏng 24/09:
+        # ba camera 24 khung/s + một camera 15 khung/s, bộ lệch > 60 ms bị bỏ 11–41 lần / 20 s ở 3 trong 4 hạt).
+        pace = pacing_ports({p: periods[p] for p in ready})
+        anchor_ports = pace if pace is not None and len(pace) < len(ready) else None
+        out = build_set({p: new[p] for p in ready}, now, self.stale_after_s, anchor_ports=anchor_ports)
         # (c) chỉ khi không camera nào đang chờ: khóa lệch pha là trạng thái ổn định của bộ ĐỦ; bộ phát vì hết hạn chờ đã
         # xáo nhóm, để dành thêm ở đó làm mất khung cũ còn chưa dùng của chính camera được để dành (mô phỏng 24/09).
         # Quyết trên REGROUP_SETS bộ ứng viên đủ liên tiếp cùng thành phần (xem `out_of_phase`). Bộ phát vì hết hạn chờ
@@ -593,10 +746,11 @@ class MultiCameraManager:
             # cụm cũ giữ ĐÚNG khung đã chọn: ghép lại từ cả vòng đệm thì mốc đổi và camera có hai khung mới nhảy sang khung
             # mới hơn, khung cũ của nó bị bỏ qua (mô phỏng 24/09)
             out = build_set({p: [(out.seqs[p], out.frames[p])] for p in out.frames if p not in deferred}, now,
-                            self.stale_after_s)
+                            self.stale_after_s, anchor_ports=anchor_ports)
         out.missing, out.lagging, out.deferred = list(fs.missing), waiting, deferred
         out.waited_s = waited if waiting else None
-        out.wait_limit_s = limit
+        out.wait_limits_s = limits
+        out.wait_limit_s = max(limits.values())
         return out
 
     def latest_frames(self) -> dict[int, Frame]:
@@ -619,7 +773,10 @@ class MultiCameraManager:
                        "truncated": s.truncated, "torn": s.torn, "read_failures": s.read_failures, "gap_max_ms": round(1000 * s.gap_max_s, 1),
                        "open_error": s.open_error, "last_error": s.last_error}
                 age = s.age_s(now)
+            period = w.frame_interval_s()              # tự lấy khóa camera: gọi NGOÀI khối trên (Lock không vào lại được)
             row.update({"fps_last2s": round(s.fps(now, recent=recent), 2),
+                        # chu kỳ khung đo từ 26 lần tới gần nhất (khung tốt + cắt/xé): nhịp mà quy tắc chờ xét camera này
+                        "period_ms": None if period is None else round(1000 * period, 1),
                         "age_ms": None if age is None else round(1000 * age, 1),
                         "stale": age is None or age > self.stale_after_s})
             cams.append(row)

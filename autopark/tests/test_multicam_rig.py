@@ -12,9 +12,10 @@ pytest.importorskip("cv2")
 
 from autopark.rig import bench  # noqa: E402
 from autopark.rig.core import AIWorker, Rig, RigConfig  # noqa: E402
-from autopark.video.multicam import RIG_CLOCK, CameraSpec, MultiCameraManager, build_set, clock_info, fit_width  # noqa: E402
+from autopark.video.multicam import (RIG_CLOCK, CameraSpec, MultiCameraManager, build_set,  # noqa: E402
+                                     clock_info, fit_width, pacing_ports)
 from autopark.video.sources import _frame  # noqa: E402
-from tests.rig_fakes import FakeLidar, FakeSegmenter, fake_manager  # noqa: E402
+from tests.rig_fakes import FakeCamera, FakeLidar, FakeSegmenter, fake_manager  # noqa: E402
 
 
 def ring_of(port, stamps):
@@ -150,9 +151,18 @@ def test_frame_interval_is_the_grid_period_despite_an_outage_frame_loss_and_jitt
     gaps = sorted(b - a for a, b in zip(stamps, stamps[1:]))
     assert gaps[(len(gaps) - 1) // 4] < period - 0.002                  # cách ước lượng bị bỏ: thấp hơn thật > 2 ms
     assert shaky.workers[3].frame_interval_s() == pytest.approx(period, abs=0.0015)
-    assert cams.wait_limit_s(0.06, {1: 0.04, 2: 0.125, 3: None}) == pytest.approx(0.06)     # nhanh nhất, không trung vị
-    assert cams.wait_limit_s(0.06, {1: 1 / 15, 2: 1 / 15}) == pytest.approx(0.1)
-    assert cams.wait_limit_s(0.06, {1: None}) == 0.06
+    # ngưỡng RIÊNG từng camera = max(sàn, 1,5 × chu kỳ của chính nó); chưa rõ chu kỳ: max(sàn, 1,5 × camera nhanh nhất)
+    assert cams.wait_limits_s(0.06, {1: 0.04, 2: 0.125, 3: None}) == pytest.approx({1: 0.06, 2: 0.1875, 3: 0.06})
+    assert cams.wait_limits_s(0.06, {1: 1 / 15, 2: 1 / 24}) == pytest.approx({1: 0.1, 2: 0.0625})
+    assert cams.wait_limits_s(0.06, {1: 1 / 15, 2: None}) == pytest.approx({1: 0.1, 2: 0.1})
+    assert cams.wait_limits_s(0.06, {1: None}) == {1: 0.06}
+
+
+def test_latest_set_docstring_describes_the_per_camera_rule():
+    """Docstring của lối vào công khai không được tả lại quy tắc cũ (một ngưỡng chung theo camera nhanh nhất, bỏ 24/09)."""
+    doc = MultiCameraManager.latest_set.__doc__
+    assert "wait_limits_s" in doc and "CHÍNH nó" in doc and "snapshot_with_arrival" in doc
+    assert "camera nhanh nhất), rồi bộ" not in doc
 
 
 def test_rig_clock_is_high_resolution():
@@ -461,23 +471,85 @@ def test_healthy_cameras_slower_than_the_wait_floor_still_form_full_sets(period,
     assert cams.stats(window=None)["wait_limit_ms"]["median"] == pytest.approx(1500 * period, rel=0.02)
 
 
-@pytest.mark.parametrize("fps, fast_spread_ms", [({1: 24, 2: 24, 3: 24, 4: 12}, 20), ({1: 24, 2: 8}, 0)])
-def test_only_the_slower_camera_is_left_out_and_the_limit_follows_the_fastest(fps, fast_spread_ms):
+@pytest.mark.parametrize("fps", [{1: 24, 2: 24, 3: 24, 4: 12}, {1: 24, 2: 8}, {1: 24, 2: 24, 3: 24, 4: 15}])
+def test_healthy_camera_at_a_lower_natural_rate_is_waited_for_and_paces_the_sets(fps):
+    """Mỗi camera xét theo nhịp của CHÍNH nó (sửa 24/09, người dùng duyệt): camera khỏe chậm hơn (phơi sáng dài ở chỗ
+    tối: 15, 12, 8 khung/s) KHÔNG bị bỏ; nó định nhịp cả chuỗi, khung dư của camera nhanh không vào bộ nào. Bản trước
+    (ngưỡng và "nhóm sau" theo camera NHANH nhất), cùng lịch này: bỏ nó ở 37,5 / 50 / 67 % số bộ (15 / 12 / 8 khung/s)
+    để giữ 24 bộ/s — cùng loại lỗi đo được ở 720p ngày 24/09, chỉ khác tỉ lệ nhịp (xem test ngay sau)."""
     now = [0.0]
     ports = tuple(fps)
     slow = min(fps, key=fps.get)
     cams = manual_manager(ports, now)
     phases = {p: (0.005 if p == slow else 0.01 * k) for k, p in enumerate(ports)}
-    events = schedule({p: 1 / f for p, f in fps.items()}, phases, t_end=6.0)
+    events = schedule({p: 1 / f for p, f in fps.items()}, phases, t_end=6.0, jitter=0.002)
     sets = run_schedule(cams, now, events, t_end=6.0, t_reset=2.0)
-    assert len(sets) >= 0.95 * 24 * 4.0                                     # tốc độ camera nhanh, không phải camera chậm
-    assert cams.lagging_per_port[slow] > 0.4 * len(sets)
-    assert all(v == 0 for p, v in cams.lagging_per_port.items() if p != slow)
-    assert all(slow in fs.frames or slow in fs.lagging for fs in sets) and cams.sets_regrouped == 0
+    assert 0.95 * fps[slow] * 4.0 <= len(sets) <= 1.05 * fps[slow] * 4.0      # nhịp camera chậm, không phải camera nhanh
+    assert all(len(fs.frames) == len(ports) for fs in sets) and cams.sets_partial_wait == 0
+    assert set(cams.lagging_per_port.values()) == {0} and cams.sets_regrouped == 0 and cams.sets_rejected_skew == 0
+    assert cams.frames_skipped[slow] == 0 and all(cams.frames_skipped[p] > 0 for p in ports if p != slow)
     st = cams.stats(window=None)
-    assert st["wait_limit_ms"]["median"] == pytest.approx(62.5, abs=1.0)   # 1,5 × 41,7 ms: camera chậm không kéo lên
-    # nhóm không có khung của camera chậm được phát ngay khi đủ camera nhanh, không chờ camera chậm im hết L
-    assert st["partial_wait_ms"]["max"] <= fast_spread_ms + 3.0
+    assert st["wait_limit_ms"]["median"] == pytest.approx(1500 / fps[slow], rel=0.03)   # 1,5 × chu kỳ CỦA camera chậm
+    by_port = {c["port"]: c for c in st["cameras"]}
+    assert by_port[slow]["period_ms"] == pytest.approx(1000 / fps[slow], rel=0.03)
+    assert by_port[1]["period_ms"] == pytest.approx(1000 / 24, rel=0.03)
+    assert all(fs.wait_limits_s[slow] == pytest.approx(1.5 / fps[slow], rel=0.03) for fs in sets)
+
+
+# Khoảng cách khung THẬT (ms), cắt từ runs/camera_bench/20260923 (thư mục bị git-ignore nên chép vào đây). Cổng 1 như
+# camera 29,3 khung/s (m02_cam0_720p_exp-6, khoảng thứ 100–163, trung bình 34,3 ms); cổng 2–4 như camera 23,85 khung/s
+# (n03_4cam_720p_auto_nofilm luồng 1, 2, 3; khoảng 200–247, 400–447, 600–647; trung bình 41,7 / 42,0 / 42,0 ms).
+GAPS_29FPS_MS = [32.9, 47.4, 35.0, 30.6, 32.1, 31.7, 30.7, 31.8, 48.2, 32.4, 31.4, 31.8, 31.9, 32.1, 33.8, 47.9, 30.7,
+                 31.8, 32.2, 33.8, 29.9, 34.7, 29.4, 48.6, 31.8, 31.9, 32.1, 33.3, 30.4, 34.4, 46.3, 31.5, 32.0, 31.6,
+                 32.3, 36.1, 32.3, 27.7, 50.7, 32.4, 29.5, 33.6, 30.0, 31.8, 32.2, 48.0, 33.5, 30.3, 32.2, 34.2, 31.6,
+                 32.6, 31.4, 47.7, 33.1, 29.4, 31.8, 32.2, 31.9, 32.6, 47.4, 32.2, 31.6, 32.6]
+GAPS_24FPS_MS = {
+    2: [32.1, 48.0, 32.2, 47.9, 48.9, 31.1, 47.8, 48.1, 32.0, 47.8, 32.4, 47.6, 48.5, 31.5, 48.1, 47.9, 32.2, 47.9, 31.9,
+        47.9, 48.0, 32.2, 47.8, 32.9, 47.4, 48.0, 32.3, 47.5, 47.8, 32.1, 48.0, 33.3, 46.7, 48.2, 32.2, 47.9, 50.7, 29.2,
+        48.0, 31.8, 48.0, 48.0, 32.2, 47.9, 47.8, 32.0, 48.1, 31.9],
+    3: [48.6, 47.3, 32.2, 48.0, 31.7, 47.9, 47.9, 32.0, 47.8, 49.6, 30.7, 48.1, 32.2, 47.7, 48.0, 32.0, 48.0, 48.0, 32.5,
+        47.6, 33.7, 46.4, 49.8, 32.2, 46.0, 47.9, 32.1, 47.9, 32.0, 48.0, 48.2, 31.9, 47.9, 32.2, 48.1, 47.8, 32.4, 48.4,
+        49.7, 29.9, 47.9, 32.3, 47.4, 48.0, 33.0, 47.0, 48.4, 31.8],
+    4: [48.2, 48.7, 31.1, 48.5, 31.8, 47.7, 48.0, 34.6, 46.1, 47.3, 32.5, 47.6, 33.4, 46.8, 48.0, 32.2, 48.8, 30.8, 48.2,
+        47.8, 32.1, 47.8, 48.5, 31.8, 48.2, 31.8, 47.8, 48.2, 31.8, 48.0, 48.0, 32.2, 47.8, 31.9, 48.2, 47.8, 31.8, 48.2,
+        47.9, 32.0, 48.5, 32.9, 50.1, 44.6, 32.4, 47.4, 32.4, 47.4]}
+
+
+def replay_events(gaps_ms, phases, t_end, *, t0=1.0, jitter=0.0, seed=0, start=None, damaged=None):
+    """Lịch khung (t, cổng[, "damaged"]) phát lại các dãy khoảng cách `gaps_ms[p]` (lặp vòng, bắt đầu ở chỉ số start[p]).
+    `damaged[p]` = tập chỉ số khung bị hỏng mà nguồn báo (cắt/xé: `push_damaged`). Rung stamp 0 … jitter (lấy sau read)."""
+    rnd, events = random.Random(seed), []
+    for p, gaps in gaps_ms.items():
+        t, k = t0 + phases[p], (start or {}).get(p, 0)
+        while (t := t + gaps[k % len(gaps)] / 1000) <= t_end:
+            stamp = t + (rnd.uniform(0, jitter) if jitter else 0.0)
+            events.append((stamp, p, "damaged") if k in (damaged or {}).get(p, ()) else (stamp, p))
+            k += 1
+    return sorted(events)
+
+
+@pytest.mark.parametrize("seed", range(4))
+def test_real_720p_cadences_of_29_and_24_fps_leave_no_healthy_camera_out(seed):
+    """Lỗi đo 24/09 (runs/may_moi_20260924_may_ban/m02_720p_chi_camera.rig.json, quy tắc trước): 720p, cổng 1 29,3
+    khung/s, cổng 2–4 23,85 khung/s, cả bốn khỏe (0 khung hỏng) — mà cổng 2–4 bị bỏ "chậm" ở 263 / 855 bộ (106 / 137 /
+    106), 28,5 bộ/s. Chính test này chạy với quy tắc trước (bản sao module cũ, 24/09): cổng 2–4 bị bỏ 10–15 % số bộ,
+    26–28 bộ/s — cùng cỡ số thật. Quy tắc mới: mỗi cổng bị bỏ hay để dành ≤ 1 % số bộ (mục tiêu), chuỗi theo nhịp camera
+    24 khung/s, khung dư của cổng 1 không vào bộ nào."""
+    rnd = random.Random(seed)
+    phases = {p: rnd.uniform(0, 0.042) for p in PORTS4}
+    events = replay_events({1: GAPS_29FPS_MS, **GAPS_24FPS_MS}, phases, 15.0, jitter=0.002, seed=seed,
+                           start={p: rnd.randrange(48) for p in PORTS4})
+    now = [0.0]
+    cams = manual_manager(PORTS4, now)
+    sets = run_schedule(cams, now, events, 15.0, 3.0, max_skew_s=0.06)
+    left_out = {p: sum(p in fs.lagging or p in fs.deferred for fs in sets) for p in PORTS4}
+    assert max(left_out.values()) <= 0.01 * len(sets), left_out
+    assert 23.5 <= len(sets) / 12.0 <= 24.3, len(sets)
+    assert cams.sets_rejected_skew == 0 and cams.frames_skipped[1] > 0.15 * len(sets)
+    st = cams.stats(window=None)
+    period = {c["port"]: c["period_ms"] for c in st["cameras"]}
+    assert period[1] == pytest.approx(34.3, abs=2.0) and all(period[p] == pytest.approx(41.9, abs=2.0) for p in (2, 3, 4))
+    assert st["wait_limit_ms"]["median"] == pytest.approx(63.0, abs=2.0)          # ngưỡng của camera 24 khung/s
 
 
 def test_camera_that_missed_one_frame_is_still_awaited_when_its_next_frame_is_due():
@@ -492,6 +564,180 @@ def test_camera_that_missed_one_frame_is_still_awaited_when_its_next_frame_is_du
     assert sorted(after.frames) == [1, 2] and after.skew_s == pytest.approx(0.006, abs=1e-6)
     assert all(fs.skew_s == pytest.approx(0.006, abs=1e-6) for fs in sets if len(fs.frames) == 2)
     assert cams.frames_skipped == {1: 0, 2: 0} and cams.sets_regrouped == 0
+
+
+@pytest.mark.parametrize("reported", [True, False])
+def test_camera_whose_due_frame_arrives_damaged_is_left_out_as_soon_as_it_arrives(reported):
+    """Hai camera 24 khung/s, cổng 2 trễ 15 ms; khung thứ 30 của cổng 2 hỏng. Nguồn BÁO khung hỏng (cắt/xé, như
+    UsbCameraSource; lần tới vẫn được ghi): khung đúng lượt đã tới và hỏng, bộ phát ngay (khung cổng 1 chờ ≈ 15 ms).
+    Nguồn không báo (driver bỏ hẳn khung): chờ tới khung dự đoán + P/2 ≈ 15 + 20,8 ms rồi mới bỏ. (Cổng 1 mở sau để
+    bộ đầu ghép đúng nhóm: mở cùng lúc thì hai cổng khóa lệch một chu kỳ, độ lệch 26,7 ms, lợi ghép lại 11,7 ms < P/3
+    — giới hạn REGROUP_GAIN đã biết, xem test_regroup_needs_a_gain_above_a_third_of_a_period.)"""
+    period = 1 / 24
+    events = schedule({1: period, 2: period}, {1: 0.0, 2: 0.015}, t_end=3.0, drop={2: {30}}, starts={1: 0.05})
+    if reported:
+        events = sorted(events + [(1.015 + 30 * period, 2, "damaged")])
+    now = [0.0]
+    cams = manual_manager((1, 2), now)
+    sets = run_schedule(cams, now, events, t_end=3.0, t_reset=1.5)
+    partial = [k for k, fs in enumerate(sets) if fs.lagging]
+    assert len(partial) == 1 and sets[partial[0]].lagging == [2]
+    fs = sets[partial[0]]
+    assert stamps_of(fs) == pytest.approx({1: 1.0 + 30 * period})
+    assert fs.waited_s == pytest.approx(0.015 if reported else 0.015 + period / 2, abs=0.0025)
+    assert stamps_of(sets[partial[0] + 1]) == pytest.approx({1: 1.0 + 31 * period, 2: 1.015 + 31 * period})
+    assert all(len(s.frames) == 2 for k, s in enumerate(sets) if k != partial[0]) and cams.frames_skipped == {1: 0, 2: 0}
+
+
+FAST_720P, SLOW_720P = 1 / 29.3, 1 / 23.85     # nhịp đo 24/09 ở 720p (m02): cổng 1 / cổng 2–4
+
+
+def grid_events(periods, phases, t_end, *, damaged=None, jitter=0.0, seed=0, t0=1.0):
+    """Lịch khung (t, cổng[, "damaged"]) trên lưới đều: khung k của cổng p tới ở t0 + phases[p] + k·periods[p], stamp
+    trễ thêm 0 … jitter (lấy sau read). `damaged[p]` = tập chỉ số k hỏng mà nguồn báo (cắt/xé: `push_damaged`)."""
+    rnd, events = random.Random(seed), []
+    for p, period in periods.items():
+        k = 0
+        while (t := t0 + phases[p] + k * period) <= t_end:
+            stamp = t + (rnd.uniform(0, jitter) if jitter else 0.0)
+            events.append((stamp, p, "damaged") if k in (damaged or {}).get(p, ()) else (stamp, p))
+            k += 1
+    return sorted(events)
+
+
+def test_due_reference_is_the_oldest_new_frame_of_the_cameras_at_the_same_cadence():
+    periods = {1: FAST_720P, 2: SLOW_720P, 3: SLOW_720P, 4: SLOW_720P}
+    oldest_new = {1: 1.000, 2: 1.020, 3: 1.023}
+    assert MultiCameraManager.due_reference(4, periods, oldest_new) == pytest.approx(1.020)   # không theo cổng 1 nhanh
+    assert MultiCameraManager.due_reference(1, periods, {2: 1.020, 3: 1.023}) is None          # không ai cùng nhịp: t_old
+    assert MultiCameraManager.due_reference(4, {**periods, 4: None}, oldest_new) is None             # chưa rõ nhịp
+    assert MultiCameraManager.due_reference(4, {p: SLOW_720P for p in PORTS4}, oldest_new) == pytest.approx(1.000)
+
+
+@pytest.mark.parametrize("phase1_ms", [0, 12, 20, 28])
+@pytest.mark.parametrize("delay4_ms", [7, 19])
+def test_slower_camera_losing_one_frame_among_a_faster_camera_misses_exactly_one_set(phase1_ms, delay4_ms):
+    """Cổng 1 29,3 khung/s, cổng 2–4 23,85 khung/s (720p, m02, đo 24/09), cổng 4 tới sau cổng 2 `delay4_ms` (< P/2).
+    Khung thứ 44 của cổng 4 hỏng (nguồn báo). Chỉ bộ của khung hỏng được thiếu cổng 4; khung tốt kế của nó đúng hạn
+    nên bộ sau đủ, và cổng 4 vẫn ghép đúng nhóm cũ. Bản đoán khung đúng lượt theo t_old (khung mới cũ nhất của MỌI
+    camera — thường là khung dư chưa dùng của cổng 1): 6 / 8 bộ tham số bỏ cổng 4 thêm một bộ rồi ghép nó trễ một chu
+    kỳ mãi, độ lệch trung vị 19 → 26 ms, (c) không ghép lại vì lợi < P/3 (người kiểm tra, 24/09, đồng hồ giả)."""
+    periods = {1: FAST_720P, 2: SLOW_720P, 3: SLOW_720P, 4: SLOW_720P}
+    phases = {1: phase1_ms / 1000, 2: 0.0, 3: 0.003, 4: delay4_ms / 1000}
+    events = grid_events(periods, phases, 4.0, damaged={4: {44}})
+    now = [0.0]
+    cams = manual_manager(PORTS4, now)
+    sets = run_schedule(cams, now, events, t_end=4.0, t_reset=1.5, max_skew_s=0.06)
+    lag = [fs for fs in sets if fs.lagging]
+    assert len(lag) == 1 and lag[0].lagging == [4], [(round(fs.t_built, 4), fs.lagging) for fs in lag]
+    t_damaged = 1.0 + phases[4] + 44 * SLOW_720P
+    assert lag[0].t_built == pytest.approx(t_damaged, abs=0.0025)          # (b'): bỏ ngay khi khung hỏng tới
+    later = [fs for fs in sets if fs.t_built > t_damaged + SLOW_720P / 2]
+    assert len(later) >= 25 and all(sorted(fs.frames) == [1, 2, 3, 4] for fs in later)
+    assert all(0 < fs.frames[4].meta.stamp.t - fs.frames[2].meta.stamp.t < SLOW_720P / 2 for fs in later)
+    assert cams.sets_rejected_skew == 0
+
+
+@pytest.mark.parametrize("delay4_ms", [6, 12])
+def test_slower_camera_with_damaged_bursts_among_a_faster_camera_is_left_out_once_per_damaged_frame(delay4_ms):
+    """Cổng 1 29,3 + cổng 2–4 23,85 khung/s; cổng 4 hỏng 36 % khung theo đợt 1 s (nguồn báo), rung stamp 0–2 ms. Mỗi
+    khung hỏng bỏ cổng 4 ở đúng một bộ (± 2 ở mép cửa sổ đo), không camera nào khác bị bỏ, chuỗi giữ nhịp 23,85 bộ/s.
+    Bản đoán khung đúng lượt theo t_old, đúng lịch này (24/09, đồng hồ giả): 52 / 53 bộ bỏ cổng 4 cho 39 / 42 khung
+    hỏng, 25,3 / 25,0 bộ/s (cổng 4 bị ghép trễ một chu kỳ nên có thêm bộ ghép khung dư của cổng 1); bản sửa: 39 / 42,
+    23,89 / 23,78 bộ/s."""
+    periods = {1: FAST_720P, 2: SLOW_720P, 3: SLOW_720P, 4: SLOW_720P}
+    phases = {1: 0.011, 2: 0.0, 3: 0.003, 4: 0.003 + delay4_ms / 1000}
+    rnd = random.Random(delay4_ms)
+    damaged = {k for k in range(300) if (phases[4] + k * SLOW_720P) % 2.0 < 1.0 and rnd.random() < 0.36}
+    events = grid_events(periods, phases, 12.0, damaged={4: damaged}, jitter=0.002, seed=delay4_ms)
+    now = [0.0]
+    cams = manual_manager(PORTS4, now)
+    sets = run_schedule(cams, now, events, t_end=12.0, t_reset=3.0, max_skew_s=0.06)
+    n_damaged = sum(1 for e in events if len(e) > 2 and 3.0 <= e[0] < 12.0)
+    lag = cams.lagging_per_port
+    assert n_damaged > 30 and abs(lag[4] - n_damaged) <= 2, (lag, n_damaged)
+    assert lag[1] == lag[2] == lag[3] == 0 and cams.sets_rejected_skew == 0
+    assert len(sets) / 9.0 == pytest.approx(23.85, abs=0.3)
+
+
+def test_good_frame_arriving_while_the_set_is_being_built_is_not_taken_for_a_damaged_due_frame(monkeypatch):
+    """Luồng camera ghi khung TỐT đúng lượt của cổng 2 SAU khi `latest_set` đã chụp vòng đệm, trước lúc xét (b')
+    (`frame_periods` luôn chạy giữa hai lúc đó). Bản đọc lần tới riêng (`last_arrival()` sau ảnh chụp) thấy một lần tới
+    mới mà vòng đệm không có khung tốt nào → tưởng khung đúng lượt đã hỏng → bỏ cổng 2 khỏe (tái hiện tất định, người
+    kiểm tra 24/09). Chụp vòng đệm và lần tới cùng một khóa: bộ này chờ, bộ kế đủ hai camera."""
+    period = 1 / 24
+    now = [0.0]
+    cams = manual_manager((1, 2), now)
+    events = schedule({1: period, 2: period}, {1: 0.0, 2: 0.006}, t_end=1.0 + 24.5 * period)
+    run_schedule(cams, now, events, t_end=1.0 + 24.5 * period, t_reset=1.5)
+    t1, t2 = 1.0 + 25 * period, 1.006 + 25 * period
+    push(cams, 1, t1)
+    now[0] = t1 + 0.001
+    assert cams.latest_set(0.1, max_wait_s=0.06) is None                   # cổng 2 đúng hạn: chờ
+    original = cams.frame_periods
+    calls = []
+
+    def racing_frame_periods(ports):
+        if not calls:
+            push(cams, 2, t2)                                               # khung tốt tới giữa ảnh chụp và (b')
+        calls.append(ports)
+        return original(ports)
+
+    monkeypatch.setattr(cams, "frame_periods", racing_frame_periods)
+    now[0] = t2 + 0.0005
+    first = cams.latest_set(0.1, max_wait_s=0.06)
+    assert calls and (first is None or (2 in first.frames and first.lagging == [])), first and first.lagging
+    fs = first or cams.latest_set(0.1, max_wait_s=0.06)
+    assert stamps_of(fs) == pytest.approx({1: t1, 2: t2}) and fs.lagging == []
+    assert cams.lagging_per_port == {1: 0, 2: 0} and cams.sets_partial_wait == 0
+
+
+def test_stalled_slow_camera_is_left_out_by_its_own_cadence_and_the_others_keep_their_rate():
+    """Cổng 4 khỏe 15 khung/s định nhịp chuỗi (15 bộ/s), cổng 1–3 24 khung/s. Cổng 4 treo 0,4 s (không có lần tới nào,
+    chưa quá stale_after_s): bộ đầu tiên thiếu nó được phát khi khung đúng lượt của nó trễ quá nửa chu kỳ CỦA NÓ — 1,5 ×
+    66,7 = 100 ms sau khung tốt cuối, không phải 62,5 ms của camera 24 khung/s; một nhóm nữa còn chờ tới khung dự đoán
+    kế + P/2 (2,5 chu kỳ = STALL_PERIODS), sau đó nó là "treo": không chờ nữa, chuỗi chạy theo nhịp 24 khung/s của các
+    camera còn lại. Khi nó quay lại, chuỗi lại theo nó."""
+    fps = {1: 24, 2: 24, 3: 24, 4: 15}
+    events = schedule({p: 1 / f for p, f in fps.items()}, {1: 0.0, 2: 0.01, 3: 0.02, 4: 0.005}, t_end=6.0,
+                      drop={4: set(range(30, 36))})              # khung 3,005 … 3,338 của cổng 4 không tới
+    t_good, t_back = 1.005 + 29 / 15, 1.005 + 36 / 15              # khung tốt cuối trước khi treo, khung đầu khi quay lại
+    now = [0.0]
+    cams = manual_manager(PORTS4, now)
+    sets = run_schedule(cams, now, events, t_end=6.0, t_reset=2.0)
+    lag = [fs for fs in sets if fs.lagging]
+    assert all(fs.lagging == [4] for fs in lag) and set(cams.lagging_per_port[p] for p in (1, 2, 3)) == {0}
+    assert lag[0].t_built == pytest.approx(t_good + 1.5 / 15, abs=0.003)
+    assert lag[1].t_built == pytest.approx(t_good + 2.5 / 15, abs=0.003)
+    # từ bộ thiếu thứ hai (t_good + 2,5 P) không nhóm nào còn chờ cổng 4: ≈ 24 bộ/s. Bước lag[1] → lag[2] ghim chính
+    # STALL_PERIODS: với 4,0 thay cho 2,5 bước đó là 66 ms (bản sao đổi hệ số, người kiểm tra 24/09).
+    during = lag[1:]
+    assert all(b.t_built - a.t_built < 0.05 for a, b in zip(during, during[1:])), \
+        [round(1000 * (fs.t_built - t_good), 1) for fs in lag[:4]]
+    assert len(during) >= int((t_back - (t_good + 2.5 / 15)) * 24) - 1
+    assert max(fs.waited_s for fs in lag) <= 1.5 / 15 + 0.003
+    steady = [fs for fs in sets if fs.t_built < t_good or fs.t_built > t_back + 0.3]
+    assert all(len(fs.frames) == 4 for fs in steady)
+    assert len([fs for fs in steady if fs.t_built < t_good]) == pytest.approx((t_good - 2.0) * 15, abs=1.5)
+
+
+def test_camera_sending_only_damaged_frames_past_the_stall_limit_is_not_stalled():
+    """Cổng 2 gửi 6 khung hỏng liền (nguồn báo: cắt/xé), lâu hơn STALL_PERIODS = 2,5 chu kỳ kể từ khung tốt cuối, rồi
+    khung tốt đúng lượt. Lần tới hỏng vẫn là "có tới" nên nó không bị coi là treo ((b'') xét lần tới TỐT HAY HỎNG): mỗi
+    khung hỏng chỉ bỏ nó ở đúng nhóm đó ((b')), và khung tốt đầu tiên sau đợt hỏng vào đúng nhóm của nó. Nếu quy tắc treo
+    chỉ xét khung tốt, khung đó bị bỏ ra một bộ thiếu nữa (bản sao sửa `t_seen = t_last`, người kiểm tra 24/09)."""
+    period = 1 / 24
+    burst = set(range(30, 36))
+    events = schedule({1: period, 2: period}, {1: 0.0, 2: 0.015}, t_end=3.0, drop={2: burst}, starts={1: 0.05})
+    events = sorted(events + [(1.015 + k * period, 2, "damaged") for k in burst])
+    now = [0.0]
+    cams = manual_manager((1, 2), now)
+    sets = run_schedule(cams, now, events, t_end=3.0, t_reset=1.5)
+    partial = [k for k, fs in enumerate(sets) if fs.lagging]
+    assert len(partial) == len(burst) and all(sets[k].lagging == [2] for k in partial)
+    assert stamps_of(sets[partial[-1] + 1]) == pytest.approx({1: 1.0 + 36 * period, 2: 1.015 + 36 * period})
+    assert all(len(s.frames) == 2 and s.skew_s == pytest.approx(0.015, abs=1e-6)
+               for k, s in enumerate(sets) if k not in partial)
 
 
 def test_camera_joining_at_an_unlucky_phase_is_regrouped_instead_of_locking_one_cycle_off():
@@ -698,20 +944,24 @@ def test_healthy_cameras_on_a_usb_quantized_cadence_always_form_full_sets(phases
 @pytest.mark.parametrize("phases_ms", [(0, 5, 10, 15), (0, 20, 3, 12), (0, 8, 16, 24)])
 def test_healthy_cameras_with_drifting_alternating_cadence_are_rarely_left_out(phases_ms, seed):
     """Nhịp Markov 31,4/48,3 ms độc lập từng camera, rung 3 ms: pha giữa các camera TRÔI ngẫu nhiên, đi qua cả những pha
-    mà ghép nhóm tự nó mơ hồ — khắc nghiệt hơn phát lại m04 (ở đó 100 % bộ đủ, 0 lần bỏ). Bản sửa: mỗi cổng khỏe bị bỏ
-    0,7–2,7 % số bộ (do mép "nhóm sau" của (b): khung của camera cho nhóm này đã vào bộ trước — chưa sửa), 90–94 % bộ đủ,
-    24,3–24,7 bộ/s. Bản trước (lưới + (c) một bộ): 14–25 % mỗi cổng, 23–39 % bộ đủ, 29–32 bộ/s — vượt tốc độ camera
-    ≈ 23,9 khung/s (mô phỏng 24/09)."""
+    mà ghép nhóm tự nó mơ hồ — khắc nghiệt hơn phát lại m04 (ở đó 100 % bộ đủ, 0 lần bỏ). Quy tắc theo nhịp riêng (24/09):
+    0 lần bỏ "chậm" ở cả 12 lần chạy (3 bộ pha × hạt 0–3), bị để dành (c) ≤ 3,4 % mỗi cổng — pha trôi qua mép nhóm thật
+    thì (c) ghép lại, đó là việc của nó — 95–98 % bộ đủ, 23,7–24,3 bộ/s. Quy tắc trước (ngưỡng và "nhóm sau" theo camera
+    nhanh nhất): mỗi cổng khỏe bị bỏ "chậm" 0,7–2,7 %, 90–94 % bộ đủ. Bản trước nữa (lưới + (c) một bộ): 14–25 % mỗi
+    cổng, 23–39 % bộ đủ, 29–32 bộ/s — vượt tốc độ camera ≈ 23,9 khung/s (mô phỏng 24/09)."""
     phases = {p: ms / 1000 for p, ms in zip(PORTS4, phases_ms)}
     now = [0.0]
     cams = manual_manager(PORTS4, now)
     events = alternating_events(PORTS4, phases, 9.0, jitter=0.003, seed=seed)
     sets = run_schedule(cams, now, events, 9.0, 3.0, max_wait_s=0.06, max_skew_s=0.06)
     st = cams.stats(window=None)
-    assert max(st["lagging_per_port"].values()) <= 0.04 * len(sets), st["lagging_per_port"]
-    assert sum(len(fs.frames) == 4 for fs in sets) >= 0.85 * len(sets)
-    assert len(sets) / 6.0 < 26.0
-    assert st["wait_limit_ms"]["median"] == pytest.approx(62.0, abs=2.0)      # 1,5 × ≈ 41 ms, không phải sàn 60 ms
+    assert max(st["lagging_per_port"].values()) <= 0.01 * len(sets), st["lagging_per_port"]
+    left_out = {p: sum(p in fs.lagging or p in fs.deferred for fs in sets) for p in PORTS4}
+    assert max(left_out.values()) <= 0.04 * len(sets), left_out
+    assert sum(len(fs.frames) == 4 for fs in sets) >= 0.9 * len(sets)
+    assert len(sets) / 6.0 < 25.0
+    # lớn nhất trong các ngưỡng riêng, 1,5 × ≈ 42–43 ms (chu kỳ cửa sổ 25 khoảng của nhịp Markov), không phải sàn 60 ms
+    assert st["wait_limit_ms"]["median"] == pytest.approx(64.0, abs=1.5)
 
 
 @pytest.mark.parametrize("seed", range(3))
@@ -771,6 +1021,79 @@ def test_out_of_phase_decides_on_median_offsets_not_one_jittered_set():
     assert MultiCameraManager.out_of_phase(fs, periods, flipped) == []
 
 
+# ---- camera khỏe khác nhịp: camera chậm nhất "định nhịp" (mốc bộ, quy tắc (c)) ----------------------------------------
+
+def test_pacing_ports_are_the_cameras_at_the_slowest_cadence():
+    assert pacing_ports({1: 1 / 24, 2: 1 / 24, 3: 1 / 15, 4: 1 / 15}) == [3, 4]
+    assert pacing_ports({1: 0.0343, 2: 0.0419, 3: 0.0419}) == [2, 3]       # 29,3 và 23,85 khung/s (đo 24/09): khác nhịp
+    assert pacing_ports({1: 0.0419, 2: 0.0450}) == [1, 2]                  # lệch 7 % (ước lượng rung): cùng nhịp
+    assert pacing_ports({1: 1 / 24, 2: None}) is None and pacing_ports({}) is None
+
+
+def test_build_set_can_take_the_anchor_from_the_pacing_cameras_only():
+    """Cổng 4 chậm (định nhịp) vừa có khung 1,00; cổng 1 nhanh có hai khung mới 0,935 và 0,99; cổng 2 nhanh mới có
+    0,96. Mốc theo mọi camera (0,96) kéo cổng 1 về khung CŨ 0,935: bộ lệch 65 ms (> max_skew 60 ms). Mốc theo camera định
+    nhịp (1,00): cổng 1 chọn 0,99, lệch 40 ms."""
+    rings = {1: ring_of(1, [0.935, 0.99]), 2: ring_of(2, [0.96]), 4: ring_of(4, [1.00])}
+    fs = build_set(rings, now=1.001)
+    assert fs.anchor_t == pytest.approx(0.96) and stamps_of(fs)[1] == pytest.approx(0.935)
+    assert fs.skew_s == pytest.approx(0.065)
+    fs = build_set(rings, now=1.001, anchor_ports=[4])
+    assert fs.anchor_t == pytest.approx(1.00) and stamps_of(fs) == pytest.approx({1: 0.99, 2: 0.96, 4: 1.00})
+    assert fs.skew_s == pytest.approx(0.04)
+    assert build_set(rings, now=1.001, anchor_ports=[7]).anchor_t == pytest.approx(0.96)   # không cổng nào tươi: như cũ
+
+
+def test_out_of_phase_regroups_only_the_pacing_cameras():
+    """(c) chỉ xét camera định nhịp. (1) 29,3 + 23,85 khung/s (đo 24/09): cổng 1 nhanh tới trước cổng 2–4 30 ms ở mọi bộ
+    — xét cả bộ (bản trước: P = chu kỳ camera nhanh nhất, tỉ số 1,22 < 1,25 coi là cùng nhịp) thì để dành oan cổng 2–4;
+    xét camera định nhịp thì cổng 2–4 cùng pha, không tách. (2) Hai camera 15 khung/s khóa lệch 50 ms (ghép với khung kế
+    của cổng 3 chỉ còn 16,7 ms) cạnh hai camera 24 khung/s: tách cổng 4, không đụng tới camera nhanh. (3) Chỉ một camera
+    định nhịp: không có gì để tách."""
+    periods = {1: 0.0343, 2: 0.0419, 3: 0.0419, 4: 0.0419}
+    hist = [{1: 1.0 + k * 0.0419, 2: 1.03 + k * 0.0419, 3: 1.031 + k * 0.0419, 4: 1.032 + k * 0.0419} for k in range(5)]
+    fs = build_set({p: ring_of(p, [t]) for p, t in hist[-1].items()}, now=1.2)
+    assert MultiCameraManager.out_of_phase(fs, periods, hist) == []
+    P = 1 / 15
+    periods = {1: 1 / 24, 2: 1 / 24, 3: P, 4: P}
+    hist = [{1: 1.0 + k * P + 0.02 + 0.01 * (k % 3), 2: 1.0 + k * P + 0.035 - 0.012 * (k % 2), 3: 1.0 + k * P,
+             4: 1.0 + k * P + 0.05} for k in range(5)]
+    fs = build_set({p: ring_of(p, [t]) for p, t in hist[-1].items()}, now=1.4)
+    assert MultiCameraManager.out_of_phase(fs, periods, hist) == [4]
+    assert MultiCameraManager.out_of_phase(fs, {**periods, 3: 1 / 24}, hist) == []
+
+
+def test_two_slower_cameras_locked_out_of_phase_are_regrouped_among_themselves():
+    """Hai camera 24 khung/s + hai camera 15 khung/s (định nhịp) mà cổng 4 tới sau cổng 3 50 ms. Mở cùng lúc thì bộ đầu
+    ghép khung k của cổng 3 với khung k của cổng 4 (lệch 50 ms, cộng camera nhanh thì > 60 ms: bị bỏ) và khóa mãi nếu
+    (c) chỉ chạy khi cả bộ cùng nhịp (mô phỏng 24/09: 37 / 75 bộ bị bỏ vì lệch). (c) trên camera định nhịp tách cổng 4 một
+    lần, sau đó mọi bộ đủ và không bộ nào bị bỏ."""
+    fps = {1: 24, 2: 24, 3: 15, 4: 15}
+    now = [0.0]
+    cams = manual_manager(PORTS4, now)
+    events = schedule({p: 1 / f for p, f in fps.items()}, {1: 0.02, 2: 0.035, 3: 0.0, 4: 0.05}, t_end=8.0, jitter=0.002)
+    sets = run_schedule(cams, now, events, 8.0, 3.0, max_skew_s=0.06)
+    assert cams.sets_rejected_skew == 0 and all(len(fs.frames) == 4 for fs in sets)
+    assert len(sets) == pytest.approx(15 * 5.0, abs=2) and max(fs.skew_s for fs in sets) < 0.05
+    assert set(cams.lagging_per_port.values()) == {0}
+
+
+@pytest.mark.parametrize("seed", range(4))
+def test_faster_cameras_pick_the_frame_nearest_the_pacing_camera(seed):
+    """Ba camera 24 khung/s (khoảng cách thật n03) + cổng 4 khỏe 15 khung/s định nhịp, max_skew 60 ms. Mốc lấy trong
+    camera định nhịp: không bộ nào bị bỏ vì lệch, lệch ≤ 50 ms. Mốc theo mọi camera (như khi các camera cùng nhịp):
+    1–25 bộ bị bỏ / 9 s ở 6 hạt, lệch tới 61–72 ms (mô phỏng 24/09)."""
+    rnd = random.Random(seed)
+    phases = {p: rnd.uniform(0, 0.066) for p in PORTS4}
+    gaps = {1: GAPS_24FPS_MS[2], 2: GAPS_24FPS_MS[3], 3: GAPS_24FPS_MS[4], 4: [1000 / 15]}
+    events = replay_events(gaps, phases, 12.0, jitter=0.003, seed=seed, start={p: rnd.randrange(48) for p in PORTS4})
+    now = [0.0]
+    cams = manual_manager(PORTS4, now)
+    sets = run_schedule(cams, now, events, 12.0, 3.0, max_skew_s=0.06)
+    assert cams.sets_rejected_skew == 0 and max(fs.skew_s for fs in sets) < 0.052
+    assert len(sets) == pytest.approx(15 * 9.0, abs=2) and all(len(fs.frames) == 4 for fs in sets)
+
+
 def test_ai_batch_holds_only_the_cameras_in_the_set_and_carries_the_last_result_of_a_lagging_camera():
     now = [1.00]
     cams = manual_manager((1, 2, 3), now)
@@ -805,9 +1128,20 @@ def test_ai_batch_holds_only_the_cameras_in_the_set_and_carries_the_last_result_
     assert ai.step() and ai.result().frame_set.lagging == [3] and ai.result().carried == {}
 
 
-def slow_camera_rig_rates(max_wait_s):
-    """Ba camera 20 ms, cổng 4 chu kỳ 60 ms; trả (AI bộ/s, fps camera nhanh, fps camera chậm, tổng kết)."""
-    cams = fake_manager(ports=(1, 2, 3, 4), period=0.02, periods={4: 0.06})
+def damaged_camera_manager(damaged_port=4, period=0.02, **damage):
+    """Bốn FakeCamera 20 ms; riêng cổng `damaged_port` có khung hỏng mà nguồn BÁO (cắt/xé: nguồn loại khung nhưng lần
+    tới vẫn được ghi), như cổng 1 ở 480p ngày 23/09. Ví dụ trunc_every=2, torn_every=3: chỉ lần đọc 1, 5, 7, 11… tốt,
+    ≈ 1/3 số khung, khoảng cách khung tốt 80/40 ms trong khi nhịp camera vẫn 20 ms."""
+    specs = [CameraSpec(port=p, index=k) for k, p in enumerate(PORTS4)]
+
+    def open_source(spec):
+        return FakeCamera(spec, period=period, **(damage if spec.port == damaged_port else {}))
+
+    return MultiCameraManager(specs, open_source=open_source, ring=3)
+
+
+def rig_rates(cams, max_wait_s):
+    """Chạy Rig (AI giả) với `cams`; trả (AI bộ/s, fps khung tốt nhỏ nhất của cổng 1–3, fps khung tốt cổng 4, tổng kết)."""
     rig = Rig(cams, RigConfig(checkpoint="m.pt", display_width=16, max_wait_s=max_wait_s),
               make_segmenter=lambda p: FakeSegmenter(p, delay=0.002))
     rig.start()
@@ -823,13 +1157,17 @@ def slow_camera_rig_rates(max_wait_s):
     return s["ai"]["sets_per_s_mean"], min(fps[1], fps[2], fps[3]), fps[4], s
 
 
-def test_ai_keeps_the_fast_cameras_rate_when_one_camera_is_slow():
-    on_rate, fast, slow, on = slow_camera_rig_rates(0.03)            # 1,5 chu kỳ của camera nhanh
-    off_rate, fast_off, slow_off, off = slow_camera_rig_rates(None)
-    assert slow < 0.5 * fast and slow_off < 0.5 * fast_off           # đúng là có một camera chậm
-    assert on_rate > 0.75 * fast, (on_rate, fast, slow)              # bật chờ: gần tốc độ camera nhanh
-    assert off_rate < 1.2 * slow_off, (off_rate, fast_off, slow_off)  # tắt: bằng camera chậm nhất, như trước
-    assert on["sets"]["sets_partial_wait"] > 0 and on["sets"]["lagging_per_port"][4] > 0
+def test_ai_keeps_the_other_cameras_rate_when_one_camera_has_damaged_frames():
+    """Luồng thật: cổng 4 chỉ còn ≈ 1/3 khung tốt (nhịp vẫn 20 ms, khung hỏng được báo). Bật chờ: AI theo nhịp ba camera
+    kia, cổng 4 bị bỏ ở các bộ mà khung đúng lượt của nó hỏng. Tắt: chuỗi chậm theo khung tốt của cổng 4, như trước.
+    (Bản trước của test dùng camera ĐỀU 60 ms làm "camera chậm"; theo quy tắc mới đó là camera khỏe chậm hơn, được chờ —
+    test ngay sau.)"""
+    on_rate, fast, slow, on = rig_rates(damaged_camera_manager(trunc_every=2, torn_every=3), 0.03)
+    off_rate, fast_off, slow_off, off = rig_rates(damaged_camera_manager(trunc_every=2, torn_every=3), None)
+    assert slow < 0.5 * fast and slow_off < 0.5 * fast_off           # đúng là cổng 4 có ít khung tốt
+    assert on_rate > 0.75 * fast, (on_rate, fast, slow)              # bật chờ: gần tốc độ ba camera kia
+    assert off_rate < 1.2 * slow_off, (off_rate, fast_off, slow_off)  # tắt: bằng khung tốt của cổng 4, như trước
+    assert on["sets"]["sets_partial_wait"] > 0 and on["sets"]["lagging_per_port"][4] > 0.4 * on["sets"]["sets_built"]
     assert on["sets"]["lagging_per_port"][1] <= 0.1 * on["sets"]["lagging_per_port"][4]
     assert on["ai"]["batches_partial_wait"] > 0 and on["ai"]["images"] < 4 * on["ai"]["batches"]
     assert off["sets"]["sets_partial_wait"] == 0 and off["ai"]["images"] == 4 * off["ai"]["batches"]
@@ -837,6 +1175,24 @@ def test_ai_keeps_the_fast_cameras_rate_when_one_camera_is_slow():
     assert sum(row["sets_partial_wait_1s"] for row in on["series"]) > 0
     assert sum(row["cam_lagging_1s"][4] for row in on["series"]) > 0
     assert all(row["sets_partial_wait_1s"] == 0 for row in off["series"])
+    cam4 = {c["port"]: c for c in on["cameras"]}[4]
+    assert cam4["period_ms"] == pytest.approx(20.0, rel=0.25) and cam4["truncated"] > 0     # nhịp đo từ mọi lần tới
+
+
+def test_ai_waits_for_a_healthy_slower_camera_instead_of_leaving_it_out():
+    """Luồng thật: cổng 4 KHỎE nhưng chậm hơn (đều 60 ms, như phơi sáng dài ở chỗ tối), ba cổng kia 20 ms. Mỗi camera
+    xét theo nhịp của chính nó: cổng 4 không bị bỏ, nó định nhịp AI (≈ 16,7 bộ/s, bằng khi tắt chờ), mọi lô đủ bốn
+    ảnh. Quy tắc trước bỏ nó ở phần lớn số bộ để giữ nhịp 50 bộ/s của camera nhanh (test cũ ghim đúng điều đó)."""
+    on_rate, fast, slow, on = rig_rates(fake_manager(ports=PORTS4, period=0.02, periods={4: 0.06}), 0.03)
+    assert slow < 0.5 * fast                                          # đúng là cổng 4 chậm hơn
+    assert on_rate == pytest.approx(slow, rel=0.15), (on_rate, fast, slow)
+    st = on["sets"]
+    assert st["lagging_per_port"][4] <= 0.05 * st["sets_built"], st      # dung sai cho luồng bị trễ khi máy bận
+    assert on["ai"]["images"] >= 3.9 * on["ai"]["batches"]
+    assert sum(st["frames_skipped"][p] for p in (1, 2, 3)) > st["sets_built"]   # khung dư của camera nhanh không vào bộ
+    cam = {c["port"]: c for c in on["cameras"]}
+    assert cam[4]["period_ms"] == pytest.approx(60.0, rel=0.15) and cam[1]["period_ms"] == pytest.approx(20.0, rel=0.25)
+    assert st["wait_limit_ms"]["median"] == pytest.approx(90.0, rel=0.15)   # 1,5 × 60 ms của CHÍNH cổng 4
 
 
 def test_rig_runs_cameras_lidar_and_ai_together():
@@ -891,9 +1247,8 @@ def test_set_loop_measures_skew_when_ai_is_off_or_disabled():
         rig.stop()
 
 
-def set_loop_rates(max_wait_s):
-    """AI tắt: luồng nền `_set_loop` tự ghép bộ. Ba camera 20 ms, cổng 4 chu kỳ 60 ms."""
-    cams = fake_manager(ports=(1, 2, 3, 4), period=0.02, periods={4: 0.06})
+def set_loop_rates(cams, max_wait_s):
+    """AI tắt: luồng nền `_set_loop` tự ghép bộ."""
     rig = Rig(cams, RigConfig(ai=False, max_wait_s=max_wait_s))
     rig.start()
     try:
@@ -908,12 +1263,12 @@ def set_loop_rates(max_wait_s):
 
 
 def test_background_set_loop_applies_max_wait_when_ai_is_off():
-    on_rate, fast, slow, on = set_loop_rates(0.03)
-    off_rate, fast_off, slow_off, off = set_loop_rates(None)
-    assert on["ai"] is None and slow < 0.5 * fast                       # đúng là có một camera chậm, không có AI
+    on_rate, fast, slow, on = set_loop_rates(damaged_camera_manager(trunc_every=2, torn_every=3), 0.03)
+    off_rate, fast_off, slow_off, off = set_loop_rates(damaged_camera_manager(trunc_every=2, torn_every=3), None)
+    assert on["ai"] is None and slow < 0.5 * fast                       # đúng là cổng 4 ít khung tốt, không có AI
     assert on["sets"]["sets_partial_wait"] > 0 and on["sets"]["lagging_per_port"][4] > 0
-    assert on_rate > 0.75 * fast, (on_rate, fast, slow)                 # bật chờ: gần tốc độ camera nhanh
-    assert off["sets"]["sets_partial_wait"] == 0 and off_rate < 1.2 * slow_off, (off_rate, slow_off)   # tắt: theo camera chậm
+    assert on_rate > 0.75 * fast, (on_rate, fast, slow)                 # bật chờ: gần tốc độ ba camera kia
+    assert off["sets"]["sets_partial_wait"] == 0 and off_rate < 1.2 * slow_off, (off_rate, slow_off)   # tắt: theo cổng 4
     assert on["policy"]["max_wait_ms"] == 30.0 and on["sets"]["wait_limit_ms"]["n"] > 0
     assert off["sets"]["wait_limit_ms"]["n"] == 0
 
@@ -969,7 +1324,7 @@ def test_model_switch_during_load_ends_on_the_last_choice():
 
 def test_bench_main_writes_summary_json(tmp_path, monkeypatch, capsys):
     def fake_build(args):
-        cams = fake_manager(period=0.02, periods={4: 0.05})
+        cams = damaged_camera_manager(trunc_every=2, torn_every=3)      # cổng 4: ≈ 1/3 khung tốt, nhịp vẫn 20 ms
         return Rig(cams, RigConfig(checkpoint="m.pt", display_width=16, max_wait_s=args.max_wait_ms / 1000.0),
                    make_segmenter=lambda p: FakeSegmenter(p), open_lidar=lambda: FakeLidar(period=0.05))
     monkeypatch.setattr(bench, "build_rig", fake_build)
@@ -982,10 +1337,12 @@ def test_bench_main_writes_summary_json(tmp_path, monkeypatch, capsys):
     assert data["sets"]["sets_partial_wait"] > 0 and data["sets"]["lagging_per_port"]["4"] > 0   # khóa json là chuỗi
     assert data["sets"]["partial_wait_ms"]["n"] > 0 and data["ai"]["batches_partial_wait"] > 0
     assert "sets_partial_wait_1s" in data["series"][0] and "cam_lagging_1s" in data["series"][0]
-    assert data["policy"]["wait_periods_of_fastest"] == 1.5 and data["sets"]["wait_limit_ms"]["n"] > 0
+    assert data["policy"]["wait_periods_of_own"] == 1.5 and data["sets"]["wait_limit_ms"]["n"] > 0
+    assert data["policy"]["wait_rule"] == "own_cadence" and data["policy"]["wait_periods_of_fastest"] == 1.5  # khóa cũ
     assert "sets_regrouped" in data["sets"] and "sets_regrouped_1s" in data["series"][0]
     out = capsys.readouterr().out
-    assert "chờ camera chậm tối đa max(30.0 ms; 1.5 × chu kỳ camera nhanh nhất)" in out
+    assert "chờ camera chậm tối đa max(30.0 ms; 1.5 × chu kỳ của CHÍNH từng camera)" in out
+    assert all(c["period_ms"] is not None for c in data["cameras"])   # nhịp từng camera mà quy tắc chờ đã dùng
     # Dòng trực tiếp: số bộ cổng 4 bị bỏ và tổng số bộ thiếu camera chậm phải là số thật (> 0), không vượt số cuối cùng
     # (bộ đếm tích lũy từ reset_counters; print_line đọc snapshot trước summary nên ≤, không bằng).
     live = re.search(r"p4 [0-9.]+fps cũ\d+ cắt\d+ xé\d+ chậm(\d+)", out)
@@ -996,7 +1353,7 @@ def test_bench_main_writes_summary_json(tmp_path, monkeypatch, capsys):
     assert f"{data['sets']['sets_partial_wait']} bộ dùng thiếu camera chậm" in out
     assert f"{data['ai']['batches_partial_wait']} lô thiếu camera chậm" in out
     assert f"{data['sets']['sets_regrouped']} bộ để dành camera lệch pha" in out
-    assert f"ngưỡng đã dùng trung vị {data['sets']['wait_limit_ms']['median']} ms" in out
+    assert f"ngưỡng lớn nhất trong bộ trung vị {data['sets']['wait_limit_ms']['median']} ms" in out
 
 
 def test_max_wait_flag_sets_the_rig_policy_and_zero_disables_it():
@@ -1008,7 +1365,8 @@ def test_max_wait_flag_sets_the_rig_policy_and_zero_disables_it():
     assert bench.build_rig(p.parse_args(["--index", "0", "--no-ai", "--max-wait-ms", "25"])).cfg.max_wait_s == pytest.approx(0.025)
     rig = bench.build_rig(p.parse_args(["--index", "0", "--no-ai", "--max-wait-ms", "0"]))
     assert rig.cfg.max_wait_s is None and rig.policy()["max_wait_ms"] is None
-    assert rig.policy()["wait_periods_of_fastest"] is None
+    assert rig.policy()["wait_periods_of_fastest"] is None and rig.policy()["wait_periods_of_own"] is None
+    assert rig.policy()["wait_rule"] is None
     assert RigConfig().max_wait_s == pytest.approx(0.06)
 
 

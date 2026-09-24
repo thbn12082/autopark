@@ -1,0 +1,156 @@
+{
+ "created": "2026-09-24",
+ "machine": "máy bàn i9-14900 + RTX 4000 Ada 20 GB (máy phát triển chính)",
+ "note": "máy bàn i9-14900 + RTX 4000 Ada, 24/09/2026 19:08 (tối), lệnh may_moi đầy đủ, mã CHƯA COMMIT trên HEAD 2bd37b6: quy tắc chờ theo nhịp RIÊNG từng camera (policy.wait_rule = own_cadence) và làm nóng AI mọi cỡ lô (warm_up_ms [1482.4, 1447.6, 1552.9, 1410.4]); camera vẫn nhìn chỗ tối như lúc 15:25 nên khung bị cắt ở 720p chỉ đúng cho cảnh đó. Lần này ở 720p cả bốn camera ≈ 23,85 khung/s (lúc 15:25 và 17:56 cổng 1 chạy 29,3): nhịp camera nhanh đổi giữa các lần mở. Bộ bỏ camera khỏe 0 ở 480p (2861 bộ) và 720p (716 bộ). Tệp cũ tham_chieu_20260924.json (15:25, quy tắc cũ, chưa làm nóng) giữ lại để đối chiếu; may_moi dùng tệp đứng cuối theo tên, tức tệp này.",
+ "source_run": "runs/may_moi_20260924_toi (git-ignored)",
+ "policy": {
+  "max_skew_ms": 60.0,
+  "max_wait_ms": 60.0,
+  "wait_rule": "own_cadence",
+  "wait_periods_of_own": 1.5,
+  "wait_periods_of_fastest": 1.5,
+  "stale_after_ms": 500.0
+ },
+ "ai_warm_up_ms": [
+  1482.4,
+  1447.6,
+  1552.9,
+  1410.4
+ ],
+ "digest": {
+  "env": {
+   "created_local": "2026-09-24T19:08:28",
+   "platform": "Windows-11-10.0.26200-SP0",
+   "machine": "AMD64",
+   "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+   "cpu_count": 32,
+   "python": "3.12.10",
+   "ram_gb": 63.7,
+   "opencv": "5.0.0",
+   "torch": "2.11.0+cu128",
+   "cuda_available": true,
+   "gpu": "NVIDIA RTX 4000 Ada Generation",
+   "gpu_vram_gb": 20.0,
+   "cuda_runtime": "12.8",
+   "nvidia_driver": "596.72"
+  },
+  "steps": {
+   "env": true,
+   "usb": true,
+   "lidar": true,
+   "ai": true,
+   "rig480": true,
+   "cam720": true
+  },
+  "errors": {},
+  "usb": {
+   "cameras": 4,
+   "with_hub_port": 4,
+   "hubs": [
+    "Generic SuperSpeed USB Hub",
+    "Generic USB Hub"
+   ]
+  },
+  "lidar": {
+   "port": "COM4",
+   "health": "OK",
+   "rate_hz": 9.985256668002997,
+   "beams_median": 508.0,
+   "no_return_fraction": 0.26532637075718013,
+   "passed": true
+  },
+  "ai": {
+   "total_ms_median": 10.36,
+   "total_ms_p95": 11.39,
+   "model_ms_median": 6.5,
+   "peak_vram_mb": 77.7,
+   "device": "cuda"
+  },
+  "rig480": {
+   "seconds": 120.0,
+   "size": [
+    640,
+    480
+   ],
+   "good_fps": [
+    23.85,
+    23.85,
+    23.85,
+    23.84
+   ],
+   "damaged": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "frames": [
+    2862,
+    2862,
+    2862,
+    2861
+   ],
+   "open_errors": [],
+   "ai_sets_per_s": 23.849,
+   "ai_batch_ms_median": 13.2,
+   "ai_result_age_ms_median": 44.6,
+   "lidar_hz": 10.008,
+   "lidar_errors": 0,
+   "sets": 2861,
+   "sets_partial_wait": 0,
+   "lagging_per_port": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "proc_cpu_cores": 0.774,
+   "gpu_util_pct": 23.883,
+   "gpu_temp_last": 45.0,
+   "stop_alive": []
+  },
+  "cam720": {
+   "seconds": 30.0,
+   "size": [
+    1280,
+    720
+   ],
+   "good_fps": [
+    23.83,
+    23.87,
+    23.87,
+    23.87
+   ],
+   "damaged": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "frames": [
+    715,
+    716,
+    716,
+    716
+   ],
+   "open_errors": [],
+   "ai_sets_per_s": null,
+   "ai_batch_ms_median": null,
+   "ai_result_age_ms_median": null,
+   "lidar_hz": null,
+   "lidar_errors": null,
+   "sets": 716,
+   "sets_partial_wait": 0,
+   "lagging_per_port": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "proc_cpu_cores": 0.624,
+   "gpu_util_pct": 3.7,
+   "gpu_temp_last": 41.0,
+   "stop_alive": []
+  }
+ }
+}

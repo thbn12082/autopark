@@ -154,7 +154,7 @@ def test_lagging_camera_keeps_its_last_overlay_marked_slow_and_snapshot_records_
         assert meta["cameras"]["3"]["frame_from"] == "live_unsynced" and meta["unsynced_ports"] == [3]
         assert meta["cameras"]["1"]["frame_from"] == "this_set" and meta["source"] == "ai_set"
         text = format_metrics(rig.snapshot(), window.threshold)
-        assert "chờ camera chậm tối đa max(60 ms; 1,5 chu kỳ) = 60 ms" in text
+        assert "chờ camera chậm tối đa max(60 ms; 1,5 × nhịp riêng từng cam), lớn nhất trong bộ 60 ms" in text
         assert "bộ thiếu cam chậm 2" in text and "hỏng 0  chậm 2" in text and "để dành lệch pha 0" in text
     finally:
         window.close()
@@ -214,7 +214,9 @@ def test_camera_deferred_for_phase_keeps_its_last_overlay_without_a_slow_alarm(q
 
 
 def test_live_window_with_a_slow_camera_never_drops_its_tile_to_raw_frames(qapp, tmp_path):
-    cams = fake_manager(ports=(1, 2, 3, 4), period=0.02, periods={4: 0.06})
+    # camera "chậm" = lỡ nhịp của CHÍNH nó: cổng 4 cùng nhịp 20 ms nhưng 4/6 khung hỏng (bị cắt/xé). Một camera khỏe đều
+    # 60 ms giữa các camera 20 ms KHÔNG còn bị bỏ từ quy tắc 24/09 (nó định nhịp cả chuỗi, test ngay dưới).
+    cams = fake_manager(ports=(1, 2, 3, 4), period=0.02, port_kw={4: {"trunc_every": 2, "torn_every": 3}})
     rig = Rig(cams, RigConfig(checkpoint="m.pt", display_width=32, max_wait_s=0.03), make_segmenter=lambda p: FakeSegmenter(p))
     window = RigWindow(rig, checkpoints=[], snapshot_dir=tmp_path)
     try:
@@ -230,6 +232,45 @@ def test_live_window_with_a_slow_camera_never_drops_its_tile_to_raw_frames(qapp,
     finally:
         window.close()
     assert not any(w.is_alive() for w in cams.workers.values())
+
+
+def test_live_rig_warms_every_batch_size_before_the_first_set():
+    """Đo 24/09 trên máy bàn: lần đầu gặp một cỡ lô mất 1,2–1,7 s; làm nóng đủ cỡ 4, 3, 2, 1 trước khi nhận bộ ảnh."""
+    cams = fake_manager(ports=(1, 2, 3, 4), period=0.02)
+    rig = Rig(cams, RigConfig(checkpoint="m.pt", display_width=32), make_segmenter=lambda p: FakeSegmenter(p))
+    assert rig.ai.warm_up == (4, 480, 640)
+    rig.start()
+    try:
+        assert rig.wait_model(5.0)
+        deadline = time.monotonic() + 3.0
+        while rig.ai.batches < 3 and time.monotonic() < deadline:
+            time.sleep(0.02)
+        seg = rig.ai.segmenter
+        assert seg.batch_sizes[:4] == [4, 3, 2, 1] and rig.ai.batches >= 3     # lô thật đầu tiên được tính
+        assert rig.ai.stats(rig.clock())["warm_up_ms"] == [3.5] * 4 and rig.ai.first_batch_ms == 3.5
+    finally:
+        assert rig.stop() == []
+
+
+def test_live_window_with_a_healthy_slower_camera_waits_for_it(qapp, tmp_path):
+    """Quy tắc 24/09: camera khỏe mà chậm hơn (đều 60 ms giữa các camera 20 ms) định nhịp cả chuỗi, không bị báo "chậm"."""
+    cams = fake_manager(ports=(1, 2, 3, 4), period=0.02, periods={4: 0.06})
+    rig = Rig(cams, RigConfig(checkpoint="m.pt", display_width=32, max_wait_s=0.03), make_segmenter=lambda p: FakeSegmenter(p))
+    window = RigWindow(rig, checkpoints=[], snapshot_dir=tmp_path)
+    try:
+        # lúc khởi động (chưa đo được nhịp cổng 4, dùng nhịp camera nhanh nhất đã rõ) vài bộ bỏ cổng 4 — đúng thiết kế;
+        # đo 24/09 bằng script: 4 bộ trong 0,5 s đầu rồi 0 trong 3,5 s sau, cả 3 lần
+        pump(qapp, 1.0)
+        sets0, lag0 = rig.cams.sets_built, rig.cams.lagging_per_port.get(4, 0)
+        for _ in range(15):
+            pump(qapp, 0.03)
+            window.tick()
+            assert "chậm:" not in window.tiles[4].detail and "BLOCKED" in window.tiles[4].detail
+        assert rig.cams.sets_built - sets0 > 5 and rig.cams.lagging_per_port.get(4, 0) == lag0
+        row = next(r for r in format_metrics(rig.snapshot(), window.threshold).splitlines() if "cổng 4 " in r)
+        assert 50 <= float(row.split("nhịp ")[1].split(" ms")[0].replace(",", ".")) <= 75, row
+    finally:
+        window.close()
 
 
 def test_failing_ai_is_shown_instead_of_a_frozen_overlay(qapp, tmp_path):

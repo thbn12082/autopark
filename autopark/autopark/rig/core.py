@@ -9,10 +9,10 @@ Luồng chạy (mọi stamp dùng `RIG_CLOCK = time.perf_counter`, xem `video.mu
 - một luồng LiDAR giữ vòng quét mới nhất (stamp của driver là giờ phiên, đổi về đồng hồ chung bằng `t0` của driver —
   driver PHẢI được mở với cùng đồng hồ, `bench.build_rig` làm điều đó);
 - một luồng AI: lấy bộ ảnh đồng bộ mới nhất, suy luận cả lô, công bố kết quả mới nhất (không xếp hàng). Với
-  `RigConfig.max_wait_s` (mặc định 60 ms; là SÀN — ngưỡng thực L = max(max_wait_s, 1,5 × chu kỳ khung TRUNG BÌNH đo
-  được của camera nhanh nhất), ≈ 63 ms ở 24 fps (nhịp xen kẽ 31/48 ms, trung bình 41,9 ms), ≈ 100 ms ở 15 fps; số
-  lagging/sets_partial_wait của phiên bật chờ chạy trước bản sửa ước lượng chu kỳ 24/09 không dùng được, xem
-  `video.multicam`), camera chưa có khung mới chỉ được chờ có giới hạn: bộ được
+  `RigConfig.max_wait_s` (mặc định 60 ms; là SÀN — từ tối 24/09 mỗi camera có ngưỡng RIÊNG L = max(max_wait_s, 1,5 ×
+  chu kỳ khung TRUNG BÌNH đo được của CHÍNH camera đó), ≈ 63 ms ở 24 fps (nhịp xen kẽ 31/48 ms, trung bình 41,9 ms),
+  ≈ 100 ms ở 15 fps; trước đó là một ngưỡng chung theo camera nhanh nhất, bỏ nhầm camera khỏe khi các camera khác nhịp
+  (docs/GIAI_DOAN_2_BAN_THU.md mục 10.1), xem `video.multicam`), camera lỡ nhịp của chính nó chỉ được chờ có giới hạn: bộ được
   chấm không có nó (`FrameSet.lagging`, xem `video.multicam`), cỡ lô thay đổi theo số camera có trong bộ. Camera có khung
   mới thuộc chu kỳ sau cũng có thể được để dành cho bộ sau để sửa lệch pha (`FrameSet.deferred`). Với cả hai, kết quả
   mới nhất CỦA TỪNG camera được giữ lại (`AIResult.carried`) để giao diện vẫn tô lớp AI cũ, có ghi tuổi;
@@ -28,6 +28,11 @@ dữ liệu tới máy KHÔNG đo được ở đây (cần LED nháy hoặc đ�
 
 Số "trực tiếp" (giao diện, chuỗi theo giây) tính trên cửa sổ `LIVE_WINDOW` mẫu cuối; `summary()` tính cả phiên kể từ
 lần đặt lại cuối (`reset_counters`). Đổi mô hình AI thì số AI tự đặt lại và lô đầu (khởi tạo CUDA/cuDNN) được tách riêng.
+
+Ghi và phát lại (từ 24/09, docs/GHI_PHAT_LAI_BAN_THU.md): `Rig` bọc nguồn của từng camera và của LiDAR
+(`rig.recording.CameraTap`, `LidarTap`); `start_recording()` / `stop_recording()` bật tắt việc ghi mọi khung tốt, sự kiện
+đọc hỏng và vòng LiDAR ra thư mục lúc đang chạy. `Rig(..., replay=ReplaySession)` chạy từ một bản ghi thay cho thiết bị:
+đồng hồ phát lại chỉ bắt đầu khi AI đã nạp xong mô hình (hoặc nạp lỗi), và `stop()` đánh thức mọi nguồn phát lại đang chờ.
 """
 from __future__ import annotations
 
@@ -39,9 +44,13 @@ from typing import Callable
 
 import numpy as np
 
+from autopark.rig.recording import CameraTap, LidarTap, RigRecorder
 from autopark.video.multicam import (LIVE_WINDOW, RIG_CLOCK, WAIT_PERIODS, FrameSet, MultiCameraManager, clock_info, dist,
                                      fit_width, tail)
 from autopark.video.sources import Frame
+
+REPLAY_AI_WAIT_S = 180.0      # phát lại: chờ AI nạp mô hình tối đa chừng ấy trước khi chạy đồng hồ phát lại
+RECORD_FINISH_S = 60.0        # stop(): chờ bộ ghi ghi nốt hàng đợi tối đa chừng ấy
 
 
 def _r(x, nd=1):
@@ -219,6 +228,14 @@ class AIWorker(threading.Thread):
         self.first_batch_ms: float | None = None
         self.last_error: str | None = None
         self._skip_first = True
+        # (số camera n, cao, rộng): ngay sau khi nạp mô hình, TRƯỚC khi nhận bộ ảnh, chạy một lô ảnh đen cho MỖI cỡ lô n,
+        # n−1, …, 1. Đo 24/09 trên máy bàn (RTX 4000 Ada, LiveSegmenter 640×480): lần ĐẦU gặp một cỡ lô mất 1,2–1,7 s
+        # (4 ảnh 1665 ms, rồi 3 ảnh 1444, 2 ảnh 1431, 1 ảnh 1265), các lần sau 14–18 ms. Không làm nóng thì lần đầu một
+        # camera bị bỏ khỏi bộ (lô 3 ảnh) AI đứng ≈ 1,4 s — đúng lúc quy tắc chờ camera chậm muốn AI chạy tiếp; khi phát
+        # lại thì phần đầu bản ghi trôi qua không được chấm (o04: 34 khung mỗi camera). Rig đặt giá trị này; None = tắt.
+        self.warm_up: tuple[int, int, int] | None = None
+        self.warm_up_ms: list[float] = []             # thời gian lô làm nóng theo cỡ lô n, n−1, …, 1 (lần nạp gần nhất)
+        self._warm = threading.Event()
         self.reset_stats()
 
     # ---- mô hình ----
@@ -233,6 +250,10 @@ class AIWorker(threading.Thread):
 
     def ready(self) -> bool:
         return self.segmenter is not None and self.enabled.is_set()
+
+    def warmed(self) -> bool:
+        """Mô hình đã nạp và (nếu có `warm_up`) đã chạy xong các lô làm nóng; hoặc nạp lỗi."""
+        return (self.segmenter is not None and (self.warm_up is None or self._warm.is_set())) or self.load_error is not None
 
     def _ensure_model(self) -> None:
         with self.lock:
@@ -251,13 +272,40 @@ class AIWorker(threading.Thread):
             if not newer:
                 self.stop_event.wait(1.0)                       # tránh nạp lại liên tục cùng một file hỏng
             return
+        load_ms = 1000 * (time.perf_counter() - t)
+        self._warm.clear()
+        warm_ms = self._run_warm_up(seg)
         with self.lock:
             self.segmenter, self.checkpoint = seg, want
             self.load_error = None
-            self.load_ms = 1000 * (time.perf_counter() - t)
+            self.load_ms = load_ms
+            self.warm_up_ms = warm_ms or []
             self.by_port = {}                                   # kết quả mang sang phải cùng mô hình
         self.reset_stats()
-        self._skip_first = True
+        # lô làm nóng đã gánh phần khởi tạo: lô thật đầu tiên được tính như mọi lô; làm nóng lỗi thì tách lô đầu như cũ
+        self._skip_first = not warm_ms
+        if warm_ms:
+            self.first_batch_ms = warm_ms[0]
+        self._warm.set()
+
+    def _run_warm_up(self, seg) -> list[float] | None:
+        """Một lô ảnh đen cho mỗi cỡ lô n, n−1, …, 1; trả thời gian từng lô (ms), None nếu tắt/lỗi/đang dừng."""
+        if self.warm_up is None:
+            return None
+        n, h, w = self.warm_up
+        size = fit_width(w, h, self.display_width)
+        out = []
+        try:
+            for k in range(n, 0, -1):
+                if self.stop_event.is_set():
+                    return None
+                _, timing = seg.infer([np.zeros((h, w, 3), np.uint8) for _ in range(k)], [size] * k)
+                out.append(timing.total_ms)
+        except Exception as exc:  # noqa: BLE001
+            with self.lock:
+                self.last_error = f"làm nóng: {type(exc).__name__}: {exc}"
+            return None
+        return out
 
     # ---- số đo ----
     def reset_stats(self) -> None:
@@ -355,7 +403,8 @@ class AIWorker(threading.Thread):
         return {"model": getattr(self.segmenter, "name", None), "checkpoint": checkpoint, "requested": requested,
                 "device": str(getattr(self.segmenter, "device", "")), "amp": getattr(self.segmenter, "amp", None),
                 "enabled": self.enabled.is_set(), "load_error": self.load_error, "load_ms": _r(self.load_ms),
-                "first_batch_ms": _r(self.first_batch_ms), "batches": batches, "images": images,
+                "first_batch_ms": _r(self.first_batch_ms), "warm_up_ms": [_r(x) for x in self.warm_up_ms],
+                "batches": batches, "images": images,
                 "batches_partial_wait": partial_wait, "max_wait_ms": None if not self.max_wait_s or self.max_wait_s <= 0
                 else _r(1000 * self.max_wait_s),
                 "sets_per_s_mean": round(batches / (now - since), 3) if now > since else None,
@@ -448,11 +497,12 @@ class RigConfig:
     fourcc: str = "MJPG"
     exposure: float | None = None
     max_skew_s: float | None = 0.060          # bộ ảnh lệch hơn thế bị bỏ (≈ 1,5 chu kỳ khung ở 24 fps)
-    # SÀN của ngưỡng chờ camera chưa có khung mới; ngưỡng thực L = max(max_wait_s, 1,5 × chu kỳ khung TRUNG BÌNH đo được
-    # của camera nhanh nhất): ≈ 63 ms ở 24 fps (nhịp xen kẽ 31/48 ms, trung bình 41,9 ms), ≈ 100 ms ở 15 fps, để camera
-    # khỏe chạy dưới 16,7 fps không bị bỏ luân phiên. Hết hạn thì chấm bộ không có nó. Sàn 60 ms và hệ số 1,5 là lựa chọn
-    # thiết kế, kiểm bằng mô phỏng đồng hồ giả và phát lại khoảng cách khung đo được (m04) ngày 24/09, CHƯA đo trên phần
-    # cứng. None hoặc ≤ 0 = quy tắc cũ: chờ mọi camera, cả chuỗi chậm theo camera chậm nhất.
+    # SÀN của ngưỡng chờ camera chưa có khung mới; ngưỡng thực RIÊNG từng camera L = max(max_wait_s, 1,5 × chu kỳ khung
+    # TRUNG BÌNH đo được của CHÍNH camera đó): ≈ 63 ms ở 24 fps (nhịp xen kẽ 31/48 ms, trung bình 41,9 ms), ≈ 100 ms ở
+    # 15 fps. Camera khỏe mà chậm hơn định nhịp cả chuỗi, không bị bỏ. Hết hạn thì chấm bộ không có nó. Sàn 60 ms và hệ
+    # số 1,5 là lựa chọn thiết kế, kiểm bằng mô phỏng đồng hồ giả và phát lại khoảng cách khung đo được ngày 24/09
+    # (docs/GIAI_DOAN_2_BAN_THU.md mục 10.1–10.2). None hoặc ≤ 0 = quy tắc cũ: chờ mọi camera, cả chuỗi chậm theo camera
+    # chậm nhất.
     max_wait_s: float | None = 0.060
     display_width: int = 640                  # xác suất AI trả về ở bề rộng này, giữ tỉ lệ từng camera
     ai: bool = True
@@ -464,8 +514,18 @@ class RigConfig:
 class Rig:
     def __init__(self, cams: MultiCameraManager, cfg: RigConfig, *, make_segmenter: Callable[[str], object] | None = None,
                  open_lidar: Callable[[], object] | None = None, monitor: ResourceMonitor | None = None,
-                 clock=RIG_CLOCK):
+                 clock=RIG_CLOCK, replay=None):
         self.cams, self.cfg, self.clock = cams, cfg, clock
+        self.replay = replay                              # rig.replay.ReplaySession khi chạy từ bản ghi
+        self.recorder: RigRecorder | None = None          # bộ ghi đang nhận dữ liệu (None: không ghi)
+        self.last_recorder: RigRecorder | None = None     # lần ghi gần nhất, kể cả đang ghi nốt hay đã xong
+        # Bọc nguồn TRƯỚC khi luồng camera chạy (CameraWorker gọi open_source trong run()): mọi khung/sự kiện đi qua
+        # lớp bọc, lớp bọc chỉ đẩy vào bộ ghi khi self.recorder khác None (tốn một lần đọc thuộc tính mỗi khung khi tắt).
+        for port, worker in cams.workers.items():
+            worker.open_source = self._tap_camera(port, worker.open_source)
+        if open_lidar is not None:
+            inner_lidar = open_lidar
+            open_lidar = lambda: LidarTap(inner_lidar(), lambda: self.recorder, clock)  # noqa: E731
         self.lidar = LidarWorker(open_lidar, clock) if open_lidar is not None else None
         self._lidar_lock = threading.Lock()
         self.lidar_offsets: dict[str, deque] = {k: deque(maxlen=200_000) for k in
@@ -474,6 +534,7 @@ class Rig:
         if cfg.ai and make_segmenter is not None and cfg.checkpoint:
             self.ai = AIWorker(cams, make_segmenter, cfg.checkpoint, cfg.display_width, cfg.max_skew_s,
                                on_set=self._record_set, clock=clock, max_wait_s=cfg.max_wait_s)
+            self.ai.warm_up = (len(cams.specs), cfg.height, cfg.width)     # mọi cỡ lô, trước bộ ảnh đầu (xem AIWorker)
         self.monitor = monitor if monitor is not None else ResourceMonitor(clock=clock)
         self.series: list[dict] = []
         self.t_start: float | None = None
@@ -483,8 +544,15 @@ class Rig:
         self._last_counts: dict = {}
         self._count_lock = threading.Lock()      # đặt lại số đo và dòng chuỗi theo giây không được xen nhau
 
+    def _tap_camera(self, port: int, open_source: Callable) -> Callable:
+        def open_tapped(spec):
+            return CameraTap(open_source(spec), port, lambda: self.recorder, self.clock)
+        return open_tapped
+
     # ---- vòng đời ----
-    def start(self) -> None:
+    def start(self, begin_replay: bool = True) -> None:
+        """`begin_replay` (khi chạy từ bản ghi): bắt đầu đồng hồ phát lại ngay khi AI nạp xong mô hình (luồng nền, không
+        chặn giao diện). False: người gọi tự gọi `self.replay.begin()` (bench: sau phần làm nóng và `reset_counters`)."""
         self.t_start = self.clock()
         self.cams.start()
         for worker in (self.lidar, self.ai, self.monitor):
@@ -495,6 +563,88 @@ class Rig:
             t = threading.Thread(target=target, daemon=True, name=name)
             t.start()
             self._threads.append(t)
+        if self.replay is not None and begin_replay:
+            if self.ai is None:
+                self.replay.begin()
+            else:
+                t = threading.Thread(target=self._begin_replay_when_model_ready, daemon=True, name="replay-begin")
+                t.start()
+                self._threads.append(t)
+
+    def model_ready(self) -> bool:
+        """AI đã nạp xong một mô hình và chạy xong lô làm nóng (hoặc nạp lỗi, hoặc không có AI): không còn gì phải chờ
+        trước khi phát lại."""
+        return self.ai is None or self.ai.warmed()
+
+    def wait_model(self, timeout_s: float = REPLAY_AI_WAIT_S) -> bool:
+        deadline = time.perf_counter() + timeout_s
+        while not self.model_ready() and not self._stop.is_set() and time.perf_counter() < deadline:
+            time.sleep(0.02)
+        return self.model_ready()
+
+    def _begin_replay_when_model_ready(self) -> None:
+        self.wait_model()
+        if not self._stop.is_set():
+            self.replay.begin()
+
+    # ---- ghi phiên ----
+    def recording_meta(self, notes: dict | None = None) -> dict:
+        """Phần meta.json do Rig biết: cấu hình, quy tắc ghép bộ, mode, từng camera (cổng, index, lỗi mở), LiDAR."""
+        stats = {c["port"]: c for c in self.cams.camera_stats()}
+        cameras = []
+        for spec in self.cams.specs:
+            source = self.cams.workers[spec.port].source
+            cameras.append({"port": spec.port, "index": spec.index, "instance_id": spec.instance_id, "name": spec.name,
+                            "source_id": spec.source_id,
+                            "source_rejects_damaged": None if source is None else getattr(source, "check_truncation", None),
+                            "open_error": stats.get(spec.port, {}).get("open_error")})
+        lidar = None
+        if self.lidar is not None:
+            describe = getattr(self.lidar.source, "describe", None) if self.lidar.source is not None else None
+            try:
+                desc = describe() if callable(describe) else None
+            except Exception as exc:  # noqa: BLE001
+                desc = {"error": f"{type(exc).__name__}: {exc}"}
+            lidar = {"port": self.cfg.lidar_port, "describe": desc, "open_error": self.lidar.open_error}
+        return {"config": dict(self.cfg.__dict__), "policy": self.policy(), "camera_mode": dict(self.cams.mode),
+                "cameras": cameras, "lidar_source": lidar,
+                "replay_of": None if self.replay is None else self.replay.describe(), "notes": dict(notes or {})}
+
+    def start_recording(self, folder, *, notes: dict | None = None, **options) -> RigRecorder:
+        """Bắt đầu ghi phiên vào `folder` (phải chưa có hoặc rỗng). `options`: image_format ("jpg"/"png"), jpeg_quality,
+        max_pending_mb, lidar_scans_per_part — xem `rig.recording.RigRecorder`.
+
+        Chỉ MỘT bộ ghi chưa xong tại một thời điểm: bộ ghi trước còn ghi nốt hàng đợi (sau `stop_recording(wait=False)`)
+        thì từ chối (RuntimeError, không tạo thư mục mới). Nhờ vậy `last_recorder` luôn là bộ ghi duy nhất có thể chưa
+        xong — `stop()` chờ đúng nó, giao diện và bench báo đúng trạng thái cuối của nó (xem xét 24/09: trước đó bộ ghi
+        cũ bị "bỏ quên", tiến trình thoát giết luồng ghi nền và bản ghi cũ mất đuôi mà không ai báo)."""
+        if self.recorder is not None:
+            raise RuntimeError(f"đang ghi vào {self.recorder.folder}")
+        prev = self.last_recorder
+        if prev is not None and not prev.finished.is_set():
+            raise RuntimeError(f"bản ghi trước {prev.folder.name} còn đang ghi nốt ({prev.status()['pending_frames']} "
+                               "khung chờ ghi): chờ xong rồi mới ghi phiên mới")
+        rec = RigRecorder(folder, ports=[s.port for s in self.cams.specs], lidar=self.lidar is not None,
+                          meta=self.recording_meta(notes), clock=self.clock, **options)
+        # Gán TRƯỚC start(): lớp bọc thấy bộ ghi ngay khi nó bắt đầu nhận (t_start), không mất khung trong lúc start()
+        # ghi meta.json đầu (3–80 ms đo 24/09). add_* tự bỏ qua dữ liệu khi bộ ghi chưa nhận.
+        self.recorder = rec
+        try:
+            rec.start()
+        except BaseException:
+            self.recorder = None
+            raise
+        self.last_recorder = rec
+        return rec
+
+    def stop_recording(self, wait: bool = True, timeout: float | None = RECORD_FINISH_S) -> dict | None:
+        """Ngừng đưa dữ liệu vào bộ ghi (ngay), rồi để nó ghi nốt; trả trạng thái (None nếu chưa từng ghi)."""
+        rec, self.recorder = self.recorder, None
+        if rec is None:
+            return None if self.last_recorder is None else self.last_recorder.status()
+        rec.set_final_meta(cameras_at_stop=self.cams.camera_stats(),
+                           lidar_at_stop=None if self.lidar is None else self.lidar.stats(self.clock()))
+        return rec.stop(wait=wait, timeout=timeout)
 
     def _set_loop(self) -> None:
         """Ghép bộ khi AI không tiêu thụ (không có, tắt, đang nạp), để độ lệch giữa các camera luôn được đo."""
@@ -528,13 +678,21 @@ class Rig:
             self.monitor.samples.clear()
             self._last_counts = self._counts()
 
-    def stop(self, budget_s: float = 6.0) -> list[str]:
-        """Dừng mọi luồng trong một hạn chung; LiDAR kẹt thì bị đóng cổng cưỡng bức. Trả tên các luồng chưa dừng."""
+    def stop(self, budget_s: float = 6.0, record_timeout_s: float = RECORD_FINISH_S) -> list[str]:
+        """Dừng mọi luồng trong một hạn chung; LiDAR kẹt thì bị đóng cổng cưỡng bức. Trả tên các luồng chưa dừng.
+        Đang ghi thì ngừng nhận ngay, rồi chờ bộ ghi ghi nốt tối đa `record_timeout_s` ("rig-recorder" nếu chưa xong)."""
         self._stop.set()
+        # cả bộ ghi đã được stop_recording(wait=False) mà chưa ghi nốt xong; start_recording bảo đảm không có bộ ghi chưa
+        # xong nào khác ngoài nó
+        rec = self.last_recorder
+        if self.recorder is not None:
+            self.stop_recording(wait=False)
         for worker in (self.ai, self.lidar, self.monitor):
             if worker is not None:
                 worker.stop_event.set()
         self.cams.request_stop()
+        if self.replay is not None:
+            self.replay.stop()                   # nguồn phát lại đang chờ lịch / hết bản ghi trả về ngay
         deadline = time.perf_counter() + budget_s
         alive = self.cams.stop(max(0.5, deadline - time.perf_counter()))
         for worker in [self.ai, self.lidar, self.monitor, *self._threads]:
@@ -543,6 +701,8 @@ class Rig:
         if self.lidar is not None and self.lidar.shutdown_stuck():
             self.lidar.join(2.0)
         alive += [w.name for w in [self.ai, self.lidar, self.monitor, *self._threads] if w is not None and w.is_alive()]
+        if rec is not None and not rec.finished.wait(record_timeout_s):
+            alive.append("rig-recorder")
         self.stop_alive = alive
         return alive
 
@@ -591,18 +751,30 @@ class Rig:
 
     def policy(self) -> dict:
         """Ngưỡng ghép bộ đang dùng (ms; None = tắt), để bảng số đo ghi rõ số đi kèm quy tắc nào. `max_wait_ms` là SÀN;
-        ngưỡng thực từng bộ (max(sàn, wait_periods_of_fastest × chu kỳ camera nhanh nhất)) ở `sets.wait_limit_ms`."""
+        ngưỡng thực RIÊNG từng camera là max(sàn, wait_periods_of_own × chu kỳ của chính camera đó); `sets.wait_limit_ms`
+        là ngưỡng lớn nhất trong bộ, `period_ms` của từng camera nằm ở bảng camera. `wait_rule` ghi quy tắc nào: json ghi
+        trước tối 24/09 không có khóa này, và ở đó `wait_periods_of_fastest` là số chu kỳ của camera NHANH NHẤT. Khóa cũ
+        vẫn được ghi (cùng giá trị với `wait_periods_of_own`) để trình đọc cũ không hỏng."""
         ms = lambda s: None if s is None or s <= 0 else _r(1000 * s)
         wait = ms(self.cfg.max_wait_s)
+        periods = None if wait is None else WAIT_PERIODS
         return {"max_skew_ms": ms(self.cfg.max_skew_s), "max_wait_ms": wait,
-                "wait_periods_of_fastest": None if wait is None else WAIT_PERIODS,
+                "wait_rule": None if wait is None else "own_cadence",
+                "wait_periods_of_own": periods, "wait_periods_of_fastest": periods,
                 "stale_after_ms": ms(self.cams.stale_after_s)}
+
+    def recording_status(self) -> dict | None:
+        return None if self.last_recorder is None else self.last_recorder.status()
+
+    def replay_status(self) -> dict | None:
+        return None if self.replay is None else self.replay.status()
 
     def snapshot(self, window: int | None = LIVE_WINDOW) -> dict:
         now = self.clock()
         return {"t_s": _r(now - (self.t_start or now), 2), "policy": self.policy(), "cameras": self.cams.stats(window),
                 "lidar": None if self.lidar is None else {**self.lidar.stats(now), "vs_set": self._lidar_offset_stats(window)},
-                "ai": None if self.ai is None else self.ai.stats(now, window), "resources": self.monitor.latest()}
+                "ai": None if self.ai is None else self.ai.stats(now, window), "resources": self.monitor.latest(),
+                "recording": self.recording_status(), "replay": self.replay_status()}
 
     def summary(self) -> dict:
         now = self.clock()
@@ -620,4 +792,5 @@ class Rig:
                                              "sets_regrouped", "frames_skipped", "skew_ms")},
                 "lidar": None if self.lidar is None else {**self.lidar.stats(now), "vs_set": self._lidar_offset_stats(None)},
                 "ai": None if self.ai is None else self.ai.stats(now, window=None),
-                "resources": self.monitor.summary(), "stop_alive": self.stop_alive}
+                "resources": self.monitor.summary(), "stop_alive": self.stop_alive,
+                "recording": self.recording_status(), "replay": self.replay_status()}

@@ -387,7 +387,8 @@ Ngoài hai vòng trên: vòng LiDAR trong ảnh chụp trước đây được l
 **Quy tắc mới, mặc định bật** (`--max-wait-ms 60` của `rig.bench` và `rig_app`; `--max-wait-ms 0` là quy tắc cũ):
 
 - Khi một số camera đã có khung mới mà camera khác chưa có, bàn thử chờ tối đa L = max(60 ms; 1,5 × chu kỳ khung đo được
-  của camera nhanh nhất), tức ≈ 62 ms ở 24 khung/s. Hết hạn thì ghép bộ không có camera đó.
+  của camera nhanh nhất), tức ≈ 62 ms ở 24 khung/s. Hết hạn thì ghép bộ không có camera đó. *(Cập nhật 24/09/2026: ngưỡng
+  chung theo camera nhanh nhất đã bị thay bằng ngưỡng riêng theo nhịp của từng camera, xem mục 10.1.)*
 - Camera bị bỏ vì chậm gọi là **"chậm"** (`lagging`), khác với camera **"thiếu"**: camera thiếu là không có khung tốt nào
   trong 0,5 s.
 - AI chỉ chấm các camera có trong bộ. Giao diện giữ lớp tô cũ của camera chậm và ghi "chậm: … cách đây X ms"; lớp tô cũ
@@ -424,7 +425,144 @@ tắt):
   thước JPEG. Nó **không** phải bằng chứng 720p đã dùng được.
 - **Nhược điểm đã biết, từ mô phỏng:** khi nhịp từng camera trôi pha độc lập, mỗi cổng khỏe vẫn bị bỏ 0,2–2,7 % số bộ.
   Chưa sửa. Cần một phiên thật có camera chậm để đo lợi ích và mức bỏ nhầm; so với loạt `20260923_v3` thì phải chạy
-  `--max-wait-ms 0`.
+  `--max-wait-ms 0`. *(Cập nhật 24/09/2026: với quy tắc ở mục 10.1, cùng loại mô phỏng không bỏ "chậm" camera khỏe nào;
+  còn lại 2,1–2,5 % số bộ bị để dành để gom lại pha. Dòng "Không bỏ nhầm camera khỏe" ở trên chỉ đúng khi bốn camera
+  cùng nhịp: mục 10.1.)*
+
+### 10.1. Cập nhật 24/09/2026 (sau phiên `may_moi` lúc 15:25): xét mỗi camera theo nhịp của chính nó
+
+**Phát hiện trên phần cứng.** Phiên `runs/may_moi_20260924_may_ban/m02_720p_chi_camera.rig.json` (máy bàn, 1280×720,
+chỉ camera, 30 s, quy tắc ở trên; bản sao số ở
+[evidence/may_ban/tham_chieu_20260924.json](evidence/may_ban/tham_chieu_20260924.json)): cổng 1 chạy 29,3 khung/s (phơi
+sáng tự động), cổng 2–4 chạy 23,85 khung/s, cả bốn 0 khung bị cắt/xé. Quy tắc ở trên bỏ camera 24 khung/s **khỏe** ở 263
+/ 855 bộ (cổng 2 / 3 / 4: 106 / 137 / 106), 28,5 bộ/s. Ở 640×480 (m01, 120 s, cả bốn ≈ 23,85 khung/s) nó bỏ camera khỏe
+ở 3 / 2861 bộ. Nguyên nhân: ngưỡng chung và điều kiện "khung thuộc nhóm sau" đều tính theo chu kỳ của camera **nhanh**
+nhất. Khung đúng lượt của camera 24 khung/s thường tới sau khung của camera 29 khung/s hơn 34 ms, nên bị coi là thuộc
+nhóm sau. Vì vậy dòng "Không bỏ nhầm camera khỏe" ở trên chỉ đúng khi bốn camera cùng nhịp.
+
+**Quy tắc mới** (người dùng duyệt 24/09; mô tả đầy đủ ở docstring đầu `autopark/video/multicam.py`):
+
+- Mỗi camera có ngưỡng riêng L = max(60 ms; 1,5 × chu kỳ khung đo được của **chính nó**): ≈ 63 ms ở 24 khung/s, ≈ 100 ms
+  ở 15 khung/s. Chu kỳ vẫn đo từ mọi lần khung tới, kể cả khung bị cắt/xé.
+- Camera đang chờ bị bỏ khỏi bộ khi có một trong bốn điều sau:
+  - khung mới cũ nhất đã chờ quá L của nó;
+  - khung "đúng lượt" dự đoán của nó đã trễ quá nửa chu kỳ của nó, tức không có khung tốt mới trong ≈ 1,5 chu kỳ của nó
+    (khung đúng lượt đoán theo khung mới của các camera **cùng nhịp** với nó, sửa tối 24/09, mục 10.2);
+  - khung đúng lượt đã tới nhưng hỏng: bỏ ngay, không chờ thêm;
+  - nó không có lần tới nào (tốt hay hỏng) trong 2,5 chu kỳ của nó (treo): thôi chờ nó ở mọi bộ cho tới lần tới kế.
+- Camera khỏe mà chậm hơn (phơi sáng dài) **không** bị bỏ: nó định nhịp cả chuỗi, khung dư của camera nhanh không vào bộ
+  nào. Hệ quả: một camera chậm cố định (ví dụ 8 khung/s ở chỗ tối) làm AI chậm theo, như quy tắc cũ. Quy tắc chờ chỉ giúp
+  khi một camera lỡ nhịp của chính nó.
+- Khi các camera khác nhịp (chu kỳ chênh quá 15 %), mốc bộ và quy tắc gom lại camera lệch pha chỉ xét các camera cùng
+  nhịp với camera chậm nhất.
+- `--max-wait-ms 0` vẫn đúng quy tắc cũ. Tên trường json giữ nguyên. Từ bản này, `wait_limit_ms` là ngưỡng riêng **lớn
+  nhất** trong các camera của bộ. Mỗi camera có thêm `period_ms`: nhịp đo được lúc lấy số.
+
+**Đã kiểm trong mô phỏng** (đồng hồ giả, phát lại khoảng cách khung **thật** đo ngày 23/09 trong
+`runs/camera_bench/20260923`; pha ngẫu nhiên, 6 hạt, mỗi lần 20 s; **không** phải số đo phần cứng). "Bỏ" gồm cả bộ bị
+để dành để gom lại pha; tỉ lệ là của cổng tệ nhất.
+
+| Kịch bản | Quy tắc ở trên | Quy tắc mới | Tắt chờ |
+|---|---|---|---|
+| 720p: cổng 1 29,3 khung/s + cổng 2–4 23,85 khung/s | camera khỏe bị bỏ 12,4–18,3 % số bộ; 27,1–29,2 bộ/s | 0–0,42 % (chỉ cổng 1); 23,85–23,90 bộ/s | 0 %; 21,6–23,9 bộ/s |
+| 480p: bốn camera (m04) | 0–0,21 % | 0–0,21 % (chỉ để dành) | 0 % |
+| Ba camera 23,85 khung/s + một camera đều 15 khung/s | camera 15 khung/s bị bỏ 36–37 %; 23,8–23,9 bộ/s | 0 %; 15,0 bộ/s | 0 %; 15,0 bộ/s |
+| Cổng 1 hỏng 36 % khung theo đợt 1 s (nguồn báo khung hỏng) | cổng 1 bị bỏ 16–19 %; khung mới chờ lâu nhất 30–55 ms | cổng 1 bị bỏ 16–19 %; chờ lâu nhất 16–38 ms; camera khỏe 0–0,21 % | 18,5–20,0 bộ/s |
+| Cổng 2 treo 0,3 s | chỉ cổng 2 bị bỏ; 23,85 bộ/s | như bên trái | 22,4–23,5 bộ/s |
+| Nhịp Markov 31/48 ms tổng hợp, pha trôi | bỏ "chậm" 1,2–2,1 %; tính cả để dành 2,7–2,9 % | bỏ "chậm" 0 %; để dành 2,1–2,5 % | 0 %; 21,9–22,3 bộ/s |
+
+- **Chỗ còn kém tắt chờ:** khi các camera khác nhịp, độ lệch trong bộ lớn hơn vài ms. Ở kịch bản 720p: trung vị 17–29 ms,
+  p95 31–46 ms, so với 15–28 / 28–40 ms khi tắt.
+- **Test:** `tests/test_multicam_rig.py`. Khoảng cách khung thật đã chép vào test vì `runs/` bị git-ignore. Các test gồm:
+  camera chậm hơn định nhịp; khung đúng lượt bị hỏng; camera 15 khung/s bị treo; luồng thật với FakeCamera có khung hỏng.
+- **Chưa đo trên phần cứng:** chưa chạy lại `rig.bench` hay `may_moi` sau bản này. Sẽ đo lại ở 720p, khi cổng 1 chạy 29,3
+  khung/s. Số `lagging_per_port`, `sets_partial_wait`, `wait_limit_ms` của w01–w05 và m01/m02 là của quy tắc ở trên. Các
+  hệ số 1,5, nửa chu kỳ, 2,5 và 15 % là lựa chọn thiết kế, **chưa** đo trên phần cứng.
+- **Tên trường json:** json ghi từ bản này có `policy.wait_rule = "own_cadence"` và `policy.wait_periods_of_own = 1,5`
+  (số chu kỳ của **chính từng camera**). Khóa cũ `policy.wait_periods_of_fastest` vẫn được ghi cùng giá trị để trình đọc
+  cũ không hỏng. Json ghi trước đó (w01–w05, m01/m02) không có `wait_rule`, và ở đó 1,5 là số chu kỳ của camera nhanh
+  nhất. Chữ in ra của `rig.bench` và bảng số đo của `rig_app` đã đổi theo (tối 24/09): "1,5 × chu kỳ của CHÍNH từng
+  camera", "ngưỡng lớn nhất trong bộ", và cột "nhịp" từng camera.
+
+### 10.2. Sửa sau vòng kiểm tra độc lập (tối 24/09/2026)
+
+Hai lỗi của bản ở mục 10.1, người kiểm tra tìm ra và tái hiện bằng đồng hồ giả; cả hai đã sửa trong
+`autopark/video/multicam.py`. **Không** lỗi nào được đo trên phần cứng.
+
+1. **Đoán khung "đúng lượt" theo camera nhanh.** Khung đúng lượt của camera đang chờ được đoán gần khung mới cũ nhất
+   của **mọi** camera. Khi các camera khác nhịp, khung đó thường là khung dư chưa dùng của camera nhanh (29,3 khung/s),
+   tới sớm hơn nhóm của camera 24 khung/s. Camera 24 khung/s vừa mất một khung hỏng (bị bỏ ngay, đúng) thì ở bộ kế bị so
+   với đúng lượt nó vừa lỡ. Nó bị bỏ thêm một bộ dù khung tốt kế của nó đúng hạn, rồi bị ghép trễ một chu kỳ mãi.
+   - **Sửa:** khung đúng lượt đoán gần khung mới cũ nhất của các camera **cùng nhịp** với nó (chu kỳ chênh ≤ 15 %). Không
+     camera nào cùng nhịp đã có khung mới (ví dụ một camera 15 khung/s giữa các camera 24 khung/s) thì như cũ. Khi mọi
+     camera cùng nhịp, kết quả y hệt bản trước.
+   - **Mô phỏng** (đồng hồ giả, không phải số đo phần cứng): cổng 1 29,3 + cổng 2–4 23,85 khung/s trên lưới đều, cổng 4
+     hỏng 36 % khung theo đợt 1 s, 4 hạt × 3 pha × 20 s: **1169 → 982** bộ bỏ cổng 4 cho 981 khung hỏng. Cùng kịch bản
+     trên khoảng cách khung thật (6 hạt × 20 s): 580 → 513 bộ cho 481 khung hỏng; phần dư ≈ 7 % chưa phân tích hết, dồn
+     ở 2 / 6 hạt. Sáu kịch bản của bảng mục 10.1 cho **đúng** các số cũ sau khi sửa.
+   - **Còn lại, đã biết:** camera cùng nhịp mà lệch pha ≈ nửa chu kỳ so với nhóm thì ghép nhóm tự nó mơ hồ; một khung
+     hỏng ở đó vẫn có thể làm nó thiếu ở hai bộ.
+2. **Đọc "lần tới gần nhất" không cùng lúc với vòng đệm.** Quy tắc "khung đúng lượt đã tới nhưng hỏng" đọc lần tới gần
+   nhất sau khi đã chụp vòng đệm. Nếu khung **tốt** tới giữa hai lần đọc, lần tới đó không có khung trong ảnh chụp, và
+   camera khỏe bị coi là có khung hỏng rồi bị bỏ.
+   - **Sửa:** chụp vòng đệm và lần tới gần nhất trong **cùng** một lần giữ khóa.
+   - **Bằng chứng:** tái hiện tất định. Người kiểm tra còn tái hiện bằng luồng thật khi ép `sys.setswitchinterval`
+     ≤ 100 µs: bỏ camera khỏe ở 157 / 326 và 178 / 339 bộ; với bản chụp cùng khóa: 0 / 286. Ở 1 ms và 5 ms (mặc định)
+     không thấy lần nào trong 4 × 286 bộ. Tần suất trên phần cứng **CHƯA ĐO**.
+
+**Test mới** (`tests/test_multicam_rig.py`):
+
+- `test_slower_camera_losing_one_frame_among_a_faster_camera_misses_exactly_one_set`, 8 bộ tham số: bản trước hỏng 6 / 8.
+- `test_slower_camera_with_damaged_bursts_among_a_faster_camera_is_left_out_once_per_damaged_frame`: bản trước bỏ 52 / 53
+  bộ cho 39 / 42 khung hỏng, 25,0–25,3 bộ/s; bản sửa 39 / 42, 23,8–23,9 bộ/s.
+- `test_good_frame_arriving_while_the_set_is_being_built_is_not_taken_for_a_damaged_due_frame`: lỗi 2.
+- Ghim quy tắc treo: `test_stalled_slow_camera_…` giờ kiểm cả bước từ bộ thiếu thứ hai sang thứ ba, nên đổi hệ số 2,5
+  thành 4,0 là test hỏng. `test_camera_sending_only_damaged_frames_past_the_stall_limit_is_not_stalled` ghim phần "tốt
+  **hay hỏng**": khung hỏng vẫn tính là có tới.
+- Đột biến đã thử trên bản sao: bỏ mốc cùng nhịp, đọc lại lần tới riêng, hệ số treo 4,0, bỏ quy tắc treo, chỉ xét khung
+  tốt khi xét treo. Mỗi đột biến làm ít nhất một test trên hỏng.
+- **Chưa đo lại trên phần cứng** lúc viết mục này. Kết quả đo lại ở mục 10.3.
+
+### 10.3. Đo lại trên phần cứng (tối 24/09/2026, máy bàn)
+
+Cùng máy, hub, bốn camera ở cổng 1–4, LiDAR COM4, cùng chỗ đặt camera như phiên `may_moi` lúc 15:25. Mã: HEAD 2bd37b6 cùng
+các thay đổi **chưa commit** ở mục 10.1–10.2 và ở [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md). Tệp gốc nằm ở
+`runs/rig_bench/20260924_own/` (git-ignore). Bản rút gọn trong git:
+[evidence/rig/cho_nhip_rieng_ghi_phat_lai_20260924.json](evidence/rig/cho_nhip_rieng_ghi_phat_lai_20260924.json).
+
+| Phiên | Cấu hình | Khung tốt/s cổng 1 / 2 / 3 / 4 | Bộ | Bộ bỏ camera khỏe | Độ lệch bộ trung vị / p95 / max (ms) |
+|---|---|---|---|---|---|
+| m02 (15:25, quy tắc cũ) | 720p chỉ camera, 30 s | 29,3 / 23,85 / 23,85 / 23,85 | 855 | **263** (cổng 2 / 3 / 4: 106 / 137 / 106) | 24,5 / 36,0 / 40,3 |
+| **o01** (quy tắc mới) | 720p chỉ camera, 30 s | 29,27 / 23,87 / 23,87 / 23,83 | 715 | **0** | 28,5 / 36,4 / 52,8 |
+| m01 (15:25, quy tắc cũ) | 480p + LiDAR + AI, 120 s | 23,85 cả bốn | 2861 | 3 (cổng 2) | 27,8 / 28,0 / 41,2 |
+| **o02** (quy tắc mới) | 480p + LiDAR + AI, 120 s | 23,85 cả bốn | 2862 | **0** | 23,1 / 23,3 / 25,8 |
+
+- Ở 720p cổng 1 lại chạy 29,3 khung/s, cổng 2–4 chạy 23,85 khung/s, đúng điều kiện đã làm quy tắc cũ hỏng. Quy tắc mới
+  không bỏ camera khỏe nào trong 715 bộ, 23,8 bộ/s: camera 24 khung/s định nhịp, 164 khung dư của cổng 1 không vào bộ nào.
+  Camera chạy ≈ 29 khung/s không cố định một cổng: ngày 23/09 là cổng 3 (s01–s07, t01, t02), nay là cổng 1
+  ([GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.1). Quy tắc mới không giả định cổng nào nhanh.
+  Cái giá là độ lệch trong bộ lớn hơn (trung vị 28,5 so với 24,5 ms, max 52,8 so với 40,3 ms), như mô phỏng mục 10.1 đã
+  báo. Cả bốn camera 0 khung bị cắt/xé ở 720p, vì camera nhìn chỗ tối như lúc 15:25. Đây **không** phải bằng chứng 720p
+  dùng được.
+- Ở 480p AI chấm 23,85 bộ/s, một lô trung vị 12,1 ms (p95 14,5, max 20,8). LiDAR 10,008 Hz, 0 lỗi.
+- **Chưa thử trên phần cứng:** camera thật bị cắt/xé khung hay bị treo giữa phiên. Hai phiên này không có khung hỏng nào,
+  nên nhánh "bỏ camera lỡ nhịp" chỉ được kiểm bằng mô phỏng và test.
+
+**Phát hiện kèm theo: lần đầu gặp một cỡ lô, AI mất 1,2–1,7 s.** Đo 24/09 trên máy bàn, LiveSegmenter 640×480, cùng
+một tiến trình, chạy lần lượt các lô 4, 4, 3, 3, 2, 1, 4, 3 ảnh: 1665, 18, 1444, 15, 1431, 1265, 17, 15 ms. Lô đầu
+**mỗi** cỡ phải trả phần khởi tạo, không chỉ lô đầu của phiên. Hệ quả:
+
+- Khi phát lại ([GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 7), lô đầu làm 34 / 34 / 67 / 34 khung đầu của cổng
+  1 / 2 / 3 / 4 không vào bộ nào (o04; phần dư ≈ 33 khung của cổng 3 chưa tách nguyên nhân). Sau đó một bộ thiếu camera ở giây đầu gây thêm một lần AI đứng 1,27 s (o05).
+- Ở phiên thật trước đây chưa thấy AI đứng như thế: m01 có 3 lô thiếu camera trong cửa sổ đo mà lô chậm nhất chỉ 20,2 ms.
+  Giải thích có lý nhưng **chưa kiểm**: lô thiếu camera đầu tiên rơi vào 5 s làm nóng, lúc chưa biết nhịp camera. Nếu một cỡ
+  lô xuất hiện lần đầu giữa phiên, ví dụ hai camera cùng lỡ nhịp, AI sẽ đứng ≈ 1,4 s.
+- **Sửa** (`AIWorker.warm_up` trong `autopark/rig/core.py`, cả phiên thật lẫn phát lại): ngay sau khi nạp mô hình, trước
+  bộ ảnh đầu, chạy một lô ảnh đen cho mỗi cỡ lô n, n−1, …, 1. `rig.bench` chờ xong việc này rồi mới tính 5 s làm nóng.
+  Json ghi `ai.warm_up_ms`. Trên máy bàn: [1682, 1444, 1468, 1283] ms, tức AI sẵn sàng chậm hơn ≈ 4,2 s so với trước.
+  Phiên thật o07 (480p + LiDAR + AI, 30 s) sau sửa: 715 bộ, 0 bỏ camera, 23,87 bộ/s, lô chậm nhất 18,3 ms. Phát lại o06:
+  xem [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 7.
+- Laptop RTX 3050 Ti: thời gian làm nóng **CHƯA ĐO**.
 
 ## Cách chạy
 
@@ -439,7 +577,7 @@ Từ thư mục `autopark`, trong `.venv-train` (có torch cho AI và PySide6 ch
 .\.venv-train\Scripts\python.exe -X utf8 -m pytest tests/test_multicam_rig.py tests/test_rig_app_ui.py tests/test_perception_live.py tests/test_truncated_frames.py
 ```
 
-Mặc định 640×480 (mục 2.3–2.4) và không chờ camera chậm quá ≈ 62 ms (mục 10); dòng thứ hai mở 720p để xem khung bị cắt; dòng thứ năm tắt quy tắc chờ để so với loạt 20260923_v3. Trong giao diện: chọn mô hình ở hộp "Mô hình" (lượt nền WoodScape đứng đầu), kéo ngưỡng BLOCKED hoặc bấm "0,15 (an toàn)",
+Mặc định 640×480 (mục 2.3–2.4) và không chờ camera chậm quá ≈ 62 ms (mục 10; từ 24/09/2026 là ngưỡng riêng theo nhịp từng camera, ≈ 63 ms ở 24 khung/s, mục 10.1); dòng thứ hai mở 720p để xem khung bị cắt; dòng thứ năm tắt quy tắc chờ để so với loạt 20260923_v3. Trong giao diện: chọn mô hình ở hộp "Mô hình" (lượt nền WoodScape đứng đầu), kéo ngưỡng BLOCKED hoặc bấm "0,15 (an toàn)",
 "Chụp bộ ảnh" lưu vào `runs/rig_snapshots/<thời điểm>/` (ảnh gốc `cam_p<cổng>.png`, `prob_blocked_p<cổng>.png`,
 `overlay_p<cổng>.jpg`, `meta.json` có stamp, mô hình, ngưỡng và vòng LiDAR). Camera luôn được gọi theo cổng hub; nếu
 một cổng không có camera, ô đó báo lỗi mở thay vì làm hỏng cả giao diện. Giao diện tranh CPU với camera, nên số đo

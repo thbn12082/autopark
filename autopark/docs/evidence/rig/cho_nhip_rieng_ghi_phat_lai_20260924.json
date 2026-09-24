@@ -1,0 +1,584 @@
+{
+ "note": "Máy bàn i9-14900 + RTX 4000 Ada, 24/09/2026 tối. Hub UGREEN, bốn camera Sunplus 1BCF:0B09 ở cổng 1–4, RPLIDAR C1 COM4. Mã: HEAD 2bd37b6 + thay đổi CHƯA commit (quy tắc chờ theo nhịp riêng, ghi/phát lại, làm nóng AI mọi cỡ lô). o04/o05 chạy trước khi có làm nóng mọi cỡ lô (o04: không làm nóng; o05: chỉ cỡ 4). Tệp gốc ở runs/ (git-ignore).",
+ "runs": [
+  {
+   "name": "m01 (quy tắc cũ, 15:25)",
+   "file": "runs/may_moi_20260924_may_ban/m01_480p_lidar_ai.rig.json",
+   "duration_s": 120.0,
+   "size": "640x480",
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "good_fps": {
+    "1": 23.85,
+    "2": 23.84,
+    "3": 23.85,
+    "4": 23.85
+   },
+   "damaged": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "sets_built": 2861,
+   "sets_partial_wait": 3,
+   "lagging_per_port": {
+    "1": 0,
+    "2": 3,
+    "3": 0,
+    "4": 0
+   },
+   "frames_skipped": {
+    "1": 0,
+    "2": 3,
+    "3": 0,
+    "4": 0
+   },
+   "skew_ms": {
+    "median": 27.8,
+    "p95": 28.0,
+    "max": 41.2
+   },
+   "lidar_hz": 10.008,
+   "lidar_scans": 1201,
+   "ai": {
+    "batches": 2862,
+    "sets_per_s": 23.85,
+    "first_batch_ms": 1494.8,
+    "warm_up_ms": null,
+    "total_ms": {
+     "median": 12.2,
+     "p95": 15.4,
+     "max": 20.2
+    }
+   }
+  },
+  {
+   "name": "m02 (quy tắc cũ, 15:25)",
+   "file": "runs/may_moi_20260924_may_ban/m02_720p_chi_camera.rig.json",
+   "duration_s": 30.0,
+   "size": "1280x720",
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "good_fps": {
+    "1": 29.3,
+    "2": 23.83,
+    "3": 23.87,
+    "4": 23.83
+   },
+   "damaged": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "sets_built": 855,
+   "sets_partial_wait": 263,
+   "lagging_per_port": {
+    "1": 0,
+    "2": 106,
+    "3": 137,
+    "4": 106
+   },
+   "frames_skipped": {
+    "1": 23,
+    "2": 0,
+    "3": 4,
+    "4": 0
+   },
+   "skew_ms": {
+    "median": 24.5,
+    "p95": 36.0,
+    "max": 40.3
+   }
+  },
+  {
+   "name": "o01",
+   "file": "runs/rig_bench/20260924_own/o01_720p_chi_camera.rig.json",
+   "duration_s": 30.0,
+   "size": "1280x720",
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_rule": "own_cadence",
+    "wait_periods_of_own": 1.5,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "good_fps": {
+    "1": 29.27,
+    "2": 23.87,
+    "3": 23.87,
+    "4": 23.83
+   },
+   "damaged": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "sets_built": 715,
+   "sets_partial_wait": 0,
+   "lagging_per_port": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "frames_skipped": {
+    "1": 164,
+    "2": 0,
+    "3": 1,
+    "4": 0
+   },
+   "skew_ms": {
+    "median": 28.5,
+    "p95": 36.4,
+    "max": 52.8
+   }
+  },
+  {
+   "name": "o02",
+   "file": "runs/rig_bench/20260924_own/o02_480p_lidar_ai.rig.json",
+   "duration_s": 120.0,
+   "size": "640x480",
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_rule": "own_cadence",
+    "wait_periods_of_own": 1.5,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "good_fps": {
+    "1": 23.85,
+    "2": 23.85,
+    "3": 23.85,
+    "4": 23.85
+   },
+   "damaged": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "sets_built": 2862,
+   "sets_partial_wait": 0,
+   "lagging_per_port": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "frames_skipped": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "skew_ms": {
+    "median": 23.1,
+    "p95": 23.3,
+    "max": 25.8
+   },
+   "lidar_hz": 10.008,
+   "lidar_scans": 1201,
+   "ai": {
+    "batches": 2862,
+    "sets_per_s": 23.849,
+    "first_batch_ms": 1640.9,
+    "warm_up_ms": null,
+    "total_ms": {
+     "median": 12.1,
+     "p95": 14.5,
+     "max": 20.8
+    }
+   }
+  },
+  {
+   "name": "o03 (ghi phiên)",
+   "file": "runs/rig_bench/20260924_own/o03_480p_ghi.rig.json",
+   "duration_s": 60.01,
+   "size": "640x480",
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_rule": "own_cadence",
+    "wait_periods_of_own": 1.5,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "good_fps": {
+    "1": 23.85,
+    "2": 23.85,
+    "3": 23.86,
+    "4": 23.85
+   },
+   "damaged": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "sets_built": 1432,
+   "sets_partial_wait": 0,
+   "lagging_per_port": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "frames_skipped": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "skew_ms": {
+    "median": 26.0,
+    "p95": 42.1,
+    "max": 44.8
+   },
+   "lidar_hz": 10.015,
+   "lidar_scans": 601,
+   "ai": {
+    "batches": 1431,
+    "sets_per_s": 23.847,
+    "first_batch_ms": 1666.4,
+    "warm_up_ms": null,
+    "total_ms": {
+     "median": 12.3,
+     "p95": 14.3,
+     "max": 18.4
+    }
+   },
+   "recording": {
+    "state": "xong",
+    "frames": {
+     "1": 1431,
+     "2": 1431,
+     "3": 1431,
+     "4": 1431
+    },
+    "dropped_total": 0,
+    "lidar_scans": 601,
+    "bytes": null,
+    "mb_per_s": 4.98
+   }
+  },
+  {
+   "name": "o04 (phát lại o03, chưa làm nóng)",
+   "file": "runs/rig_bench/20260924_own/o04_phat_lai_o03.rig.json",
+   "duration_s": 60.3,
+   "size": "640x480",
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_rule": "own_cadence",
+    "wait_periods_of_own": 1.5,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "good_fps": {
+    "1": 23.73,
+    "2": 23.73,
+    "3": 23.73,
+    "4": 23.73
+   },
+   "damaged": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "sets_built": 1364,
+   "sets_partial_wait": 0,
+   "lagging_per_port": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "frames_skipped": {
+    "1": 34,
+    "2": 34,
+    "3": 67,
+    "4": 34
+   },
+   "skew_ms": {
+    "median": 26.8,
+    "p95": 27.0,
+    "max": 30.4
+   },
+   "lidar_hz": 9.966,
+   "lidar_scans": 601,
+   "ai": {
+    "batches": 1363,
+    "sets_per_s": 22.602,
+    "first_batch_ms": 1457.6,
+    "warm_up_ms": null,
+    "total_ms": {
+     "median": 11.8,
+     "p95": 13.1,
+     "max": 1457.1
+    }
+   },
+   "replay": {
+    "finished": true,
+    "late_ms_median": {
+     "1": 0.3,
+     "2": 0.3,
+     "3": 0.3,
+     "4": 0.3
+    }
+   }
+  },
+  {
+   "name": "o05 (phát lại o03, làm nóng cỡ 4)",
+   "file": "runs/rig_bench/20260924_own/o05_phat_lai_o03_lam_nong.rig.json",
+   "duration_s": 60.3,
+   "size": "640x480",
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_rule": "own_cadence",
+    "wait_periods_of_own": 1.5,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "good_fps": {
+    "1": 23.73,
+    "2": 23.73,
+    "3": 23.73,
+    "4": 23.73
+   },
+   "damaged": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "sets_built": 1403,
+   "sets_partial_wait": 1,
+   "lagging_per_port": {
+    "1": 0,
+    "2": 0,
+    "3": 1,
+    "4": 0
+   },
+   "frames_skipped": {
+    "1": 0,
+    "2": 0,
+    "3": 29,
+    "4": 0
+   },
+   "skew_ms": {
+    "median": 26.0,
+    "p95": 42.1,
+    "max": 44.8
+   },
+   "lidar_hz": 9.966,
+   "lidar_scans": 601,
+   "ai": {
+    "batches": 1402,
+    "sets_per_s": 23.249,
+    "first_batch_ms": 1665.9,
+    "warm_up_ms": null,
+    "total_ms": {
+     "median": 12.1,
+     "p95": 14.6,
+     "max": 1271.8
+    }
+   },
+   "replay": {
+    "finished": true,
+    "late_ms_median": {
+     "1": 0.3,
+     "2": 0.3,
+     "3": 0.3,
+     "4": 0.3
+    }
+   }
+  },
+  {
+   "name": "o06 (phát lại o03, làm nóng mọi cỡ lô)",
+   "file": "runs/rig_bench/20260924_own/o06_phat_lai_o03_lam_nong_moi_co.rig.json",
+   "duration_s": 60.31,
+   "size": "640x480",
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_rule": "own_cadence",
+    "wait_periods_of_own": 1.5,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "good_fps": {
+    "1": 23.73,
+    "2": 23.73,
+    "3": 23.73,
+    "4": 23.73
+   },
+   "damaged": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "sets_built": 1432,
+   "sets_partial_wait": 1,
+   "lagging_per_port": {
+    "1": 0,
+    "2": 0,
+    "3": 1,
+    "4": 0
+   },
+   "frames_skipped": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "skew_ms": {
+    "median": 26.0,
+    "p95": 42.1,
+    "max": 44.8
+   },
+   "lidar_hz": 9.966,
+   "lidar_scans": 601,
+   "ai": {
+    "batches": 1432,
+    "sets_per_s": 23.745,
+    "first_batch_ms": 1682.9,
+    "warm_up_ms": [
+     1682.9,
+     1444.2,
+     1467.5,
+     1282.9
+    ],
+    "total_ms": {
+     "median": 12.1,
+     "p95": 15.0,
+     "max": 19.7
+    }
+   },
+   "replay": {
+    "finished": true,
+    "late_ms_median": {
+     "1": 0.3,
+     "2": 0.3,
+     "3": 0.3,
+     "4": 0.3
+    }
+   }
+  },
+  {
+   "name": "o07 (đo thật, làm nóng mọi cỡ lô)",
+   "file": "runs/rig_bench/20260924_own/o07_480p_lam_nong.rig.json",
+   "duration_s": 30.0,
+   "size": "640x480",
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_rule": "own_cadence",
+    "wait_periods_of_own": 1.5,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "good_fps": {
+    "1": 23.86,
+    "2": 23.83,
+    "3": 23.86,
+    "4": 23.83
+   },
+   "damaged": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "sets_built": 715,
+   "sets_partial_wait": 0,
+   "lagging_per_port": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "frames_skipped": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "skew_ms": {
+    "median": 26.8,
+    "p95": 27.1,
+    "max": 28.2
+   },
+   "lidar_hz": 9.999,
+   "lidar_scans": 300,
+   "ai": {
+    "batches": 716,
+    "sets_per_s": 23.865,
+    "first_batch_ms": 1681.7,
+    "warm_up_ms": [
+     1681.7,
+     1451.4,
+     1451.7,
+     1284.1
+    ],
+    "total_ms": {
+     "median": 12.1,
+     "p95": 14.8,
+     "max": 18.3
+    }
+   }
+  }
+ ],
+ "batch_size_first_use_ms": {
+  "note": "LiveSegmenter 640×480, cùng tiến trình, lần lượt 4,4,3,3,2,1,4,3 ảnh (scratch, 24/09)",
+  "sequence": [
+   [
+    4,
+    1664.6
+   ],
+   [
+    4,
+    18.1
+   ],
+   [
+    3,
+    1443.6
+   ],
+   [
+    3,
+    14.5
+   ],
+   [
+    2,
+    1431.1
+   ],
+   [
+    1,
+    1264.8
+   ],
+   [
+    4,
+    17.4
+   ],
+   [
+    3,
+    14.7
+   ]
+  ]
+ }
+}

@@ -26,6 +26,16 @@ Thư mục `D:\CHUYEN_SANG_LAPTOP\` (ngoài repo) chứa những thứ laptop c�
 Thư mục này nằm cùng ổ D với bản gốc, nên **chưa phải bản sao lưu thật**. Chép nó sang USB hoặc sang laptop thì mới có
 bản thứ hai ở nơi khác.
 
+**Tham chiếu máy bàn** (trong repo, thư mục [evidence/may_ban/](evidence/may_ban/)):
+
+| Tệp | Đo lúc | Mã | Trạng thái git |
+|---|---|---|---|
+| [tham_chieu_20260924.json](evidence/may_ban/tham_chieu_20260924.json) | 24/09 15:25 | mã lúc đó: quy tắc chờ cũ (ngưỡng theo camera nhanh nhất), chưa làm nóng AI | đã commit (trong `2bd37b6`) |
+| [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json) *(thêm muộn tối 24/09/2026)* | 24/09 19:08 | mã mới chưa commit trên `2bd37b6`: quy tắc chờ theo nhịp riêng từng camera (`policy.wait_rule = "own_cadence"`), làm nóng AI mọi cỡ lô | **chưa commit** |
+
+Lệnh đo lấy tệp đứng cuối theo tên trong thư mục đó, tức tệp 19:08. Tệp 15:25 giữ lại để đối chiếu. Ở cả hai lần, camera
+máy bàn nhìn cùng một chỗ tối.
+
 ## 2. Trên laptop
 
 1. **Lấy mã mới nhất.** Trong cmd:
@@ -33,6 +43,9 @@ bản thứ hai ở nơi khác.
    git clone https://github.com/thbn12082/autopark
    ```
    Nếu laptop đã có repo thì `git pull` trong thư mục đó.
+   *(Cập nhật muộn tối 24/09/2026:)* quy tắc chờ theo nhịp riêng, làm nóng AI và tệp tham chiếu 19:08 **chưa commit**.
+   Laptop chỉ có chúng sau khi người dùng commit và push trên máy bàn, rồi chạy lại `git pull` trên laptop. Chưa push thì
+   laptop chạy mã `2bd37b6` và so với tham chiếu 15:25, tức cặp mã cũ với tham chiếu cũ.
 2. **Chép checkpoint.** Chép thư mục `autopark` trong `D:\CHUYEN_SANG_LAPTOP\` (qua USB) đè vào thư mục `autopark` của repo
    trên laptop. Lệnh này chỉ thêm `runs\ai_woodscape_rtx4000_v1\`. Kiểm mã trong thư mục `autopark` của repo:
    ```cmd
@@ -67,7 +80,18 @@ tiếp bước sau.
 | `rig480` | Bàn thử bốn camera 640×480 + LiDAR + AI, 120 s | `m01_480p_lidar_ai.rig.json` |
 | `cam720` | Bốn camera 1280×720, chỉ camera, 30 s: khung bị cắt | `m02_720p_chi_camera.rig.json` |
 
-`tom_tat.md` đặt từng số cạnh số của máy bàn, lấy từ [evidence/may_ban/](evidence/may_ban/). Tùy chọn:
+`tom_tat.md` đặt từng số cạnh số của máy bàn, lấy từ [evidence/may_ban/](evidence/may_ban/) (tệp đứng cuối theo tên; từ
+muộn tối 24/09/2026 là [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json), mục 1).
+
+*(Thêm muộn tối 24/09/2026)* Bước `ai` và bước `rig480` đo hai thứ khác nhau:
+
+- `ai` tự tạo mô hình, chạy 5 lô 4 ảnh khởi động rồi đo 60 lô 4 ảnh. Nó không dùng phần làm nóng của bàn thử.
+- `rig480` chạy bàn thử. Từ mã tối 24/09, bàn thử làm nóng AI cho mọi cỡ lô 4 / 3 / 2 / 1 ảnh ngay sau khi nạp mô hình
+  (`AIWorker.warm_up`), rồi mới tính 5 s làm nóng của phiên. Thời gian từng lô làm nóng ghi ở `ai.warm_up_ms` trong
+  `m01_480p_lidar_ai.rig.json`; `tom_tat.md` chưa in dòng này. Máy bàn lúc 19:08: 1482 / 1448 / 1553 / 1410 ms, tổng
+  ≈ 5,9 s, tức AI sẵn sàng ≈ 6 s sau khi nạp mô hình.
+
+Tùy chọn:
 
 - `--dry-run`: chỉ in kế hoạch.
 - `--steps ai rig480`: chỉ chạy vài bước.
@@ -88,10 +112,24 @@ hay không đạt. Nên đọc kỹ những điểm sau:
 - **Khung hỏng ở 480p và 720p** trên bộ điều khiển USB của laptop. So với máy bàn thì phải cùng cảnh.
 - **LiDAR:** tốc độ quay ≈ 10 Hz và ≈ 510 tia mỗi vòng như máy bàn. Nếu khác thì do máy hay do cáp/cổng.
 - **CPU và GPU** của tiến trình, và nhiệt GPU cuối phiên.
+- *(Thêm muộn tối 24/09/2026)* **Làm nóng AI** (`ai.warm_up_ms` trong `m01_480p_lidar_ai.rig.json`, mục 3): máy bàn tổng
+  ≈ 5,9 s. Laptop GPU yếu hơn nên có thể lâu hơn: CHƯA ĐO.
+- *(Thêm muộn tối 24/09/2026)* **Nhịp từng camera ở 720p:** có lần mở camera, một camera chạy ≈ 29 khung/s ở phơi sáng
+  tự động, còn các camera kia ≈ 23,85. Camera nào như vậy thay đổi giữa các lần mở: cổng 3 ở s01–s07, t01, t02 (23/09),
+  cổng 1 ở t05 (23/09) và lúc 15:25, 17:56 ngày 24/09, không camera nào lúc 19:08 (tham chiếu hiện dùng). Vì vậy một
+  camera 29 khung/s trên laptop chưa phải khác biệt do máy. Nếu có, xem thêm cột "bộ thiếu camera chậm": với quy tắc chờ
+  theo nhịp riêng, trên máy bàn (o01, 17:56) tình huống này cho 0 bộ bỏ camera khỏe, còn quy tắc cũ (15:25) bỏ 263 / 855
+  bộ ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 10.3).
 
 ## 5. Giới hạn
 
-- Lệnh đo đã chạy trọn trên máy bàn ngày 24/09 (tạo tệp tham chiếu). Nó **chưa chạy trên laptop**.
+- Lệnh đo đã chạy trọn trên máy bàn ngày 24/09 (tạo tệp tham chiếu). Nó **chưa chạy trên laptop**. *(Cập nhật muộn tối
+  24/09/2026:)* chạy trọn hai lần trên máy bàn, lúc 15:25 (mã cũ) và 19:08 (mã mới), mỗi lần một tệp tham chiếu (mục 1).
+  Lần 19:08: 480p + LiDAR + AI 120 s, bốn camera 23,85 khung/s, 0 khung hỏng, 2.861 bộ, 0 bộ thiếu camera khỏe (15:25: 3),
+  AI 23,85 bộ/s, lô trung vị 13,2 ms, LiDAR 10,01 Hz; 720p chỉ camera 30 s, cả bốn ≈ 23,85 khung/s, 716 bộ, 0 bộ bỏ camera
+  (15:25: 263 / 855); bước `ai` trung vị 10,4 ms, p95 11,4 ms, VRAM 78 MB. Vẫn chưa chạy trên laptop.
+- *(Thêm muộn tối 24/09/2026)* Tham chiếu 19:08 đo bằng mã chưa commit. Khi so, laptop phải chạy cùng bản mã đó (sau khi
+  commit, push, `git pull`); ghi mã commit cạnh số của laptop.
 - Lúc tạo tham chiếu, camera máy bàn nhìn vào chỗ tối (gầm bàn). Số khung bị cắt ở 720p của tham chiếu chỉ đúng cho cảnh
   đó.
 - Không đo độ trễ từ sự kiện thật tới lúc khung tới máy; việc này cần LED nháy.

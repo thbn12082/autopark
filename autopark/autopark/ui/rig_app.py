@@ -6,9 +6,10 @@
   BLOCKED, theo ngưỡng xác suất đang chọn. Khi bật AI, ảnh hiển thị là đúng bộ ảnh mà AI đã chấm (trễ hơn ảnh sống một
   lần suy luận) để lớp tô khớp từng pixel với ảnh; nếu AI không có kết quả mới quá 0,5 s (lỗi, đang nạp mô hình) thì
   ô quay về ảnh sống không tô và báo đỏ lý do.
-- Camera chậm (bị bỏ khỏi bộ AI vừa chấm sau khi chờ — ngưỡng thực = max(`--max-wait-ms`, 1,5 × chu kỳ khung của
-  camera nhanh nhất), xem `video.multicam`): ô vẫn hiện khung và lớp tô của lô GẦN NHẤT có camera đó (cùng mô hình), báo
-  đỏ "chậm" kèm số lô và tuổi kết quả; kết quả đó cũ hơn 0,5 s hoặc chưa có thì hiện ảnh sống không tô và nói rõ.
+- Camera chậm (lỡ nhịp của chính nó nên bị bỏ khỏi bộ AI vừa chấm sau khi chờ — ngưỡng riêng = max(`--max-wait-ms`,
+  1,5 × chu kỳ khung của CHÍNH camera đó), xem `video.multicam`): ô vẫn hiện khung và lớp tô của lô GẦN NHẤT có
+  camera đó (cùng mô hình), báo đỏ "chậm" kèm số lô và tuổi kết quả; kết quả đó cũ hơn 0,5 s hoặc chưa có thì hiện
+  ảnh sống không tô và nói rõ.
   Camera được để dành cho bộ sau vì lệch pha (không chậm) cũng hiện lớp tô của lô gần nhất, ghi "lệch pha", không báo
   đỏ. Ghi chú này đứng ĐẦU dải chữ của ô; dải quá dài thì phần số đo phía sau bị rút gọn bằng "…". Đo ngày 24/09 bằng
   cửa sổ ẩn và QFontMetrics (Segoe UI 13 px đậm), chưa nhìn trên màn hình thật: ở cửa sổ mặc định 1600×900 ô rộng 557 px
@@ -23,6 +24,13 @@
   Ảnh ghi qua `cv2.imencode` (imwrite của OpenCV không ghi được vào đường dẫn tiếng Việt trên Windows).
 - Bảng số đo: số trực tiếp trên cửa sổ mẫu gần nhất (ghi rõ trên bảng). Số đo có hồ sơ thì dùng
   `python -m autopark.rig.bench` (không có giao diện tranh CPU).
+- "Ghi phiên" (từ 24/09): bật/tắt việc ghi mọi khung tốt, sự kiện khung hỏng và vòng LiDAR vào
+  `--record-root`/<giờ>/ (docs/GHI_PHAT_LAI_BAN_THU.md). Tắt thì ngừng nhận ngay, phần còn trong hàng đợi được ghi nốt
+  ở nền; bảng số đo ghi trạng thái, số khung bị bỏ và LỖI GHI (đĩa đầy…) bằng chữ, không âm thầm. Trong lúc ghi nốt
+  nút bị làm mờ (một bản ghi chưa xong tại một thời điểm); đóng cửa sổ thì chờ ghi nốt xong.
+- `--replay <thư mục>`: chạy cả giao diện từ một phiên đã ghi, không mở thiết bị nào; tiêu đề và bảng số đo ghi "PHÁT LẠI",
+  hết bản ghi thì mọi ô ghi "HẾT BẢN GHI" (báo đỏ) và camera thành "cũ" sau 0,5 s. Ảnh là JPEG mã hóa lại của khung
+  tốt lúc ghi: chụp bộ ảnh từ phát lại ghi `replay` trong meta để không lẫn với ảnh camera thật.
 
 Mô hình chưa từng được chấm trên ảnh sa bàn: lớp tô là để NHÌN mô hình làm gì, không phải bằng chứng.
 """
@@ -133,10 +141,13 @@ class CameraTile(QWidget):
 
 class RigWindow(QMainWindow):
     def __init__(self, rig, checkpoints: list[Path] | None = None, snapshot_dir: Path = Path("runs/rig_snapshots"),
-                 start: bool = True):
+                 start: bool = True, record_root: Path = Path("runs/rig_recordings"), record_options: dict | None = None):
         super().__init__()
         self.rig, self.clock, self.snapshot_dir = rig, rig.clock, snapshot_dir
-        self.setWindowTitle("Bàn thử — bốn camera, LiDAR, AI")
+        self.record_root, self.record_options = Path(record_root), dict(record_options or {})
+        replay = getattr(rig, "replay", None)
+        self.setWindowTitle("Bàn thử — bốn camera, LiDAR, AI" if replay is None else
+                            f"Bàn thử — PHÁT LẠI {replay.folder.name} ×{replay.speed:g} (không mở thiết bị)")
         self.threshold = 0.5
         self.alpha = 0.45
         self.show_overlay = True
@@ -198,6 +209,10 @@ class RigWindow(QMainWindow):
         self.btn_snap.clicked.connect(self.snapshot)
         self.btn_reset = QPushButton("Đặt lại số đo")
         self.btn_reset.clicked.connect(self.on_reset)
+        self.btn_record = QPushButton("Ghi phiên")
+        self.btn_record.setCheckable(True)
+        self.btn_record.setEnabled(hasattr(rig, "start_recording"))
+        self.btn_record.toggled.connect(self.on_record)
         self.on_threshold(self.thr_slider.value())
 
         controls = QVBoxLayout()
@@ -216,6 +231,7 @@ class RigWindow(QMainWindow):
         row2.addWidget(self.chk_overlay)
         row2.addWidget(self.btn_snap)
         row2.addWidget(self.btn_reset)
+        row2.addWidget(self.btn_record)
         controls.addLayout(row2)
         side = QVBoxLayout()
         side.addWidget(self.scan_view, 3)
@@ -268,6 +284,27 @@ class RigWindow(QMainWindow):
         self.rig.reset_counters()
         self.message = "đã đặt lại số đo"
 
+    def on_record(self, on: bool) -> None:
+        """Bật: ghi vào record_root/<giờ>. Tắt: ngừng nhận ngay, ghi nốt ở nền (không đứng hình giao diện)."""
+        if on:
+            folder = self.record_root / datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+            try:
+                self.rig.start_recording(folder, notes={"from": "ui.rig_app"}, **self.record_options)
+            except Exception as exc:  # noqa: BLE001 - thư mục có sẵn dữ liệu, không tạo được thư mục, …: nói rõ
+                self.message = f"LỖI: không bắt đầu ghi được: {type(exc).__name__}: {exc}"
+                with QSignalBlocker(self.btn_record):
+                    self.btn_record.setChecked(False)
+                return
+            self.btn_record.setText("Dừng ghi")
+            self.message = f"đang ghi phiên vào {folder}"
+        else:
+            status = self.rig.stop_recording(wait=False)
+            self.btn_record.setText("Ghi phiên")
+            if status is not None:
+                self.message = (f"dừng ghi {Path(status['folder']).name}: {status['frames_total']} khung đã ghi, "
+                                f"{status['pending_frames']} khung đang ghi nốt")
+        self.update_metrics()
+
     def _force_redraw(self) -> None:
         self._last_shown.clear()
 
@@ -311,6 +348,8 @@ class RigWindow(QMainWindow):
         now = self.clock()
         cam_stats = {c["port"]: c for c in self.rig.cams.camera_stats()}
         width = getattr(self.rig.cfg, "display_width", 640)
+        replay = getattr(self.rig, "replay", None)
+        ended = replay is not None and replay.finished
         for port, tile in self.tiles.items():
             c = cam_stats.get(port, {})
             frame = frames.get(port)
@@ -318,7 +357,9 @@ class RigWindow(QMainWindow):
                 tile.set_image(None, f"KHÔNG MỞ ĐƯỢC: {c['open_error']}", True)
                 continue
             if frame is None:
-                tile.set_image(None, "chưa có khung", True)
+                waiting = replay is not None and not replay.begun
+                tile.set_image(None, "phát lại chưa bắt đầu (chờ AI nạp mô hình)" if waiting else
+                               ("HẾT BẢN GHI phát lại, camera này không có khung" if ended else "chưa có khung"), True)
                 continue
             prob = probs.get(port)
             blocked = f" · BLOCKED {float((prob >= self.threshold).mean()):.0%}" if prob is not None else ""
@@ -339,7 +380,9 @@ class RigWindow(QMainWindow):
                     note = f"{head}: lớp tô của lô #{held.batch_id}, cách đây {1000 * (now - held.t_done):.0f} ms"
                     done_t = held.t_done
                 detail = f"{note} · {detail}"
-            alert = bool(c.get("stale")) or ai_note is not None or slow
+            if ended:                                                    # đứng đầu hết: ảnh đứng yên là vì bản ghi đã hết
+                detail = f"HẾT BẢN GHI phát lại · {detail}"
+            alert = bool(c.get("stale")) or ai_note is not None or slow or ended
             key = (frame.meta.stamp.t, done_t)   # id() có thể bị dùng lại
             if self._last_shown.get(port) == key:
                 tile.set_image(None, detail, alert)
@@ -372,7 +415,16 @@ class RigWindow(QMainWindow):
                 self.message = f"đã nạp {Path(ai.checkpoint).parent.name}"
             if ai.load_error and self.message.startswith("đang nạp"):
                 self.message = f"nạp lỗi, vẫn chạy {Path(str(ai.checkpoint)).parent.name if ai.checkpoint else '—'}"
-        self.metrics.setText(format_metrics(self.rig.snapshot(), self.threshold, self.message, self.last_snapshot))
+        snap = self.rig.snapshot()
+        rec = snap.get("recording")
+        # bản ghi trước còn ghi nốt: Rig.start_recording sẽ từ chối, nên làm mờ nút tới khi nó xong
+        last = getattr(self.rig, "last_recorder", None)
+        draining = getattr(self.rig, "recorder", None) is None and last is not None and not last.finished.is_set()
+        self.btn_record.setEnabled(hasattr(self.rig, "start_recording") and not draining)
+        if rec is not None and self.message.startswith("dừng ghi") and rec["state"] in ("xong", "LỖI"):
+            self.message = f"đã ghi xong {rec['folder']}: {rec['frames_total']} khung, bỏ {rec['dropped_total']}" \
+                if rec["state"] == "xong" else f"GHI LỖI {rec['folder']}: {rec['error']}"
+        self.metrics.setText(format_metrics(snap, self.threshold, self.message, self.last_snapshot))
 
     # ---- chụp ---------------------------------------------------------------------------------------------------
     def snapshot(self) -> Path | None:
@@ -396,6 +448,10 @@ class RigWindow(QMainWindow):
                 "model": None if result is None else result.model,
                 "checkpoint": None if result is None else result.checkpoint,
                 "ai_note": ai_note, "camera_mode": self.rig.cams.mode, "cameras": {}, "failed_writes": []}
+        replay = getattr(self.rig, "replay", None)
+        if replay is not None:
+            # ảnh là JPEG mã hóa lại của khung tốt lúc ghi, stamp theo đồng hồ phát lại: đừng lẫn với ảnh camera thật
+            meta["replay"] = replay.describe()
         if result is not None:
             meta["missing_ports"] = result.frame_set.missing
             meta["lagging_ports"] = result.frame_set.lagging      # bị bỏ khỏi bộ này vì chậm (khác missing: vẫn có khung tươi)
@@ -473,21 +529,28 @@ class RigWindow(QMainWindow):
 def format_metrics(snap: dict, threshold: float, message: str = "", last_snapshot: Path | None = None) -> str:
     f = lambda x, nd=1: "—" if x is None else f"{x:.{nd}f}".replace(".", ",")
     lines = [f"t = {f(snap['t_s'])} s   (phân vị trên cửa sổ mẫu gần nhất)"]
+    rp = snap.get("replay")
+    if rp is not None:
+        state = "HẾT BẢN GHI" if rp["finished"] else ("chờ AI nạp mô hình" if not rp["begun"] else "đang phát")
+        lines.append(f"PHÁT LẠI ×{f(rp['speed'], 2)}  {state}  {f(rp['position_s'])} / {f(rp['duration_s'])} s")
+        lines.append(f"  {rp['folder']}")
     cams = snap["cameras"]
     lagging = cams.get("lagging_per_port", {})
     lines.append("CAMERA")
     for c in cams["cameras"]:
         state = f"LỖI MỞ: {c['open_error']}" if c["open_error"] else (
             f"{f(c['fps_last2s'])} fps  cũ {c['duplicates']}  cắt {c['truncated']}  xé {c['torn']}  hỏng {c['read_failures']}"
-            f"  chậm {lagging.get(c['port'], 0)}  tuổi {f(c['age_ms'], 0)} ms" + ("  CŨ!" if c["stale"] else ""))
+            f"  chậm {lagging.get(c['port'], 0)}  nhịp {f(c.get('period_ms'))} ms  tuổi {f(c['age_ms'], 0)} ms"
+            + ("  CŨ!" if c["stale"] else ""))
         lines.append(f"  cổng {c['port']} (idx {c['index']}): {state}")
     sk = cams["skew_ms"]
     pol = snap.get("policy") or {}
-    wait_ms, periods = pol.get("max_wait_ms"), pol.get("wait_periods_of_fastest")
+    wait_ms, periods = pol.get("max_wait_ms"), pol.get("wait_periods_of_own")
     limit = (cams.get("wait_limit_ms") or {}).get("median")
     lines.append(f"  bộ ảnh: dùng {cams['sets_built']}  bỏ vì lệch {cams['sets_rejected_skew']}  thiếu cam {cams['sets_partial']}"
                  f"  chặn (chưa đủ khung mới) {cams['sets_blocked_not_new']}")
-    wait_txt = "TẮT" if wait_ms is None else f"tối đa max({f(wait_ms, 0)} ms; {f(periods)} chu kỳ) = {f(limit, 0)} ms"
+    wait_txt = "TẮT" if wait_ms is None else (f"tối đa max({f(wait_ms, 0)} ms; {f(periods)} × nhịp riêng từng cam), "
+                                              f"lớn nhất trong bộ {f(limit, 0)} ms")
     lines.append(f"  chờ camera chậm {wait_txt}:  bộ thiếu cam chậm {cams.get('sets_partial_wait', 0)}"
                  f"  để dành lệch pha {cams.get('sets_regrouped', 0)}")
     lines.append(f"  độ lệch ({cams['skew_window']}): trung vị {f(sk['median'])}  p95 {f(sk['p95'])}  max {f(sk['max'])} ms")
@@ -523,6 +586,17 @@ def format_metrics(snap: dict, threshold: float, message: str = "", last_snapsho
     lines.append("TÀI NGUYÊN")
     lines.append(f"  CPU tiến trình {f(r.get('proc_cpu_cores'), 2)} lõi  CPU máy {f(r.get('sys_cpu_pct'))} %  RAM {f(r.get('proc_rss_mb'), 0)} MB")
     lines.append(f"  GPU {f(r.get('gpu_util_pct'), 0)} %  VRAM {f(r.get('gpu_mem_used_mb'), 0)} MB  {f(r.get('gpu_temp_c'), 0)} °C  {f(r.get('gpu_power_w'))} W")
+    rec = snap.get("recording")
+    if rec is not None:
+        lines.append("GHI PHIÊN")
+        lines.append(f"  {rec['state']}  {rec['frames_total']} khung {rec['image_format']}  bỏ {rec['dropped_total']}"
+                     f"  LiDAR {'—' if rec['lidar_scans'] is None else rec['lidar_scans']} vòng  {f(rec['mb_written'], 0)} MB"
+                     f" ({f(rec['mb_per_s'])} MB/s)  chờ ghi {rec['pending_frames']} khung")
+        lines.append(f"  → {rec['folder']}")
+        if rec["error"]:
+            lines.append(f"  LỖI GHI: {rec['error'][:90]}")
+        elif rec["dropped_total"]:
+            lines.append("  GHI THIẾU: hàng đợi ghi đầy (đĩa chậm?), bản ghi không đủ mọi khung")
     if message:
         lines.append("")
         lines.append(message)
@@ -531,20 +605,31 @@ def format_metrics(snap: dict, threshold: float, message: str = "", last_snapsho
     return "\n".join(lines)
 
 
-def main(argv=None) -> int:
-    from autopark.rig.bench import add_rig_args, build_rig
+def checkpoint_choices(runs) -> list[Path]:
+    from autopark.perception.live import list_checkpoints
+    return list_checkpoints(runs)
+
+
+def build_window(argv=None, start: bool = True) -> RigWindow:
+    """Dựng Rig (thiết bị thật, hay bản ghi với --replay) và cửa sổ từ dòng lệnh; cần QApplication đã có."""
+    from autopark.rig.bench import add_rig_args, build_rig, check_record_args, recording_options
 
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     add_rig_args(p)
     p.add_argument("--snapshots", type=Path, default=Path("runs/rig_snapshots"))
+    p.add_argument("--record-root", type=Path, default=Path("runs/rig_recordings"),
+                   help="nút 'Ghi phiên' ghi vào <thư mục này>/<giờ>/")
     args = p.parse_args(argv)
-    app = QApplication.instance() or QApplication(sys.argv)
+    check_record_args(p, args)          # --jpeg-quality sai báo ngay, không đợi tới lúc bấm "Ghi phiên"
     rig = build_rig(args)
-    checkpoints = []
-    if not args.no_ai:
-        from autopark.perception.live import list_checkpoints
-        checkpoints = list_checkpoints(args.runs)
-    window = RigWindow(rig, checkpoints, args.snapshots)
+    checkpoints = [] if args.no_ai else checkpoint_choices(args.runs)
+    return RigWindow(rig, checkpoints, args.snapshots, start=start, record_root=args.record_root,
+                     record_options=recording_options(args))
+
+
+def main(argv=None) -> int:
+    app = QApplication.instance() or QApplication(sys.argv)
+    window = build_window(argv)
     window.show()
     return app.exec()
 
