@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "notes": "Bảng gán chỉ số ToF trên dây (tof_mm[0..3] của TELEMETRY, VehicleTelemetry.tof_m) → cảm biến và vị trí gá, dùng bởi autopark/fusion/layers.py (TofMountConfig, tof_to_near_field). TOÀN BỘ SỐ LÀ GIẢ ĐỊNH – CHƯA ĐO (24/09/2026): chưa có MN300, ESP32-S3 hay VL53L1X; vị trí gá tính theo kích thước của configs/vehicle_default.json (xe giả định giai đoạn 0: trục trước cách trục sau 0,19 m, mũi 0,06 m, đuôi 0,06 m, rộng 0,14 m), KHÔNG phải MN300. Gán chỉ số nào cho cảm biến nào: ĐỀ XUẤT – CHỜ CHỐT (kế hoạch mục 3: thử 2 VL53L1X trước). Góc nhìn 27° và tầm đo 0,04–1,3 m (chế độ đo ngắn) là hiểu biết về VL53L1X, cần tra datasheet và đo lại trên sa bàn (vật liệu, màu, ánh sáng). Phải đo lại toàn bộ bảng này sau khi gá cảm biến lên xe thật (kế hoạch giai đoạn 7).",
+  "frame": "hệ xe: gốc tại tâm trục sau, x hướng tiến, y sang trái, yaw_deg ngược chiều kim đồng hồ tính từ trục x; min_range_m ≤ khoảng cách dùng được < max_range_m",
+  "vehicle_config": "vehicle_default.json",
+  "sensors": [
+    {"index": 0, "sensor_id": "tof_front", "x_m": 0.25, "y_m": 0.0, "yaw_deg": 0.0, "fov_deg": 27.0,
+     "min_range_m": 0.04, "max_range_m": 1.3, "note": "giữa mũi xe, nhìn thẳng trước (GIẢ ĐỊNH)"},
+    {"index": 1, "sensor_id": "tof_rear", "x_m": -0.06, "y_m": 0.0, "yaw_deg": 180.0, "fov_deg": 27.0,
+     "min_range_m": 0.04, "max_range_m": 1.3, "note": "giữa đuôi xe, nhìn thẳng sau (GIẢ ĐỊNH)"},
+    {"index": 2, "sensor_id": "tof_left", "x_m": 0.095, "y_m": 0.07, "yaw_deg": 90.0, "fov_deg": 27.0,
+     "min_range_m": 0.04, "max_range_m": 1.3, "note": "hông trái, giữa hai trục, nhìn sang trái (GIẢ ĐỊNH)"},
+    {"index": 3, "sensor_id": "tof_right", "x_m": 0.095, "y_m": -0.07, "yaw_deg": -90.0, "fov_deg": 27.0,
+     "min_range_m": 0.04, "max_range_m": 1.3, "note": "hông phải, giữa hai trục, nhìn sang phải (GIẢ ĐỊNH)"}
+  ]
+}

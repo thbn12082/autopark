@@ -712,3 +712,92 @@ def test_unknown_codes_are_counted_not_crashing():
     assert io.stats.bad_values == 1
     parser = FrameParser(accept_types=DEVICE_TO_HOST)
     assert parser.feed(encode_frame(bad)) == [bad]                  # hợp lệ về khung, sai về nghĩa
+
+
+# ---- giới hạn HELLO_ACK so với VehicleConfig (thêm 24/09/2026; chỉ FirmwareModel, không bo thật) -----------------
+from autopark.transport.vehicle_io import VehicleLimits, compare_limits  # noqa: E402
+
+
+def board_limits(**overrides_si) -> VehicleLimits:
+    """Giới hạn đúng như FirmwareConfig mặc định báo (khớp conftest `cfg`), đè một số trường (đơn vị SI)."""
+    base = dict(max_speed_mps=0.300, max_steer_rad=0.524, max_steer_rate_rad_s=1.571, max_accel_mps2=0.300,
+                max_decel_mps2=0.600, stop_decel_mps2=0.600, max_validity_s=0.3, link_timeout_s=0.5)
+    base.update(overrides_si)
+    return VehicleLimits(**base)
+
+
+def test_compare_limits_tolerates_wire_rounding_only(cfg):
+    # 30° = 523,6 mrad → 524 và 90°/s = 1570,8 → 1571 trên dây: lệch < 1 đơn vị, không phải mismatch.
+    check = compare_limits(board_limits(), cfg)
+    assert check.ok and not check.risky and len(check.compared) == 6
+    assert "khớp" in check.describe()
+    assert compare_limits(board_limits(max_speed_mps=0.301), cfg).ok          # đúng 1 mm/s
+    assert compare_limits(board_limits(max_steer_rad=0.5245), cfg).ok          # 0,9 mrad so với 523,6
+    for name, value in (("max_speed_mps", 0.302), ("max_steer_rad", 0.5255), ("max_accel_mps2", 0.2985)):
+        check = compare_limits(board_limits(**{name: value}), cfg)
+        assert [m.name for m in check.mismatches] == [name], name
+
+
+@pytest.mark.parametrize("field_name, value, risky", [
+    ("max_speed_mps", 0.40, True),            # bo cho phép nhanh hơn planner
+    ("max_speed_mps", 0.25, False),           # bo kẹp chặt hơn
+    ("max_steer_rad", 0.60, True),            # bo cho lái gắt hơn
+    ("max_steer_rad", 0.40, True),            # đường đã lập cần góc lái bo không cho
+    ("max_steer_rate_rad_s", 2.0, True),
+    ("max_steer_rate_rad_s", 1.0, False),
+    ("max_accel_mps2", 0.5, True),
+    ("max_accel_mps2", 0.2, False),
+    ("max_decel_mps2", 0.4, True),            # bo phanh yếu hơn hồ sơ tốc độ
+    ("max_decel_mps2", 0.9, False),
+    ("stop_decel_mps2", 0.4, True),           # dốc dừng yếu hơn max_decel của cấu hình
+    ("stop_decel_mps2", 0.9, False),
+])
+def test_compare_limits_classifies_the_dangerous_direction(cfg, field_name, value, risky):
+    check = compare_limits(board_limits(**{field_name: value}), cfg)
+    assert len(check.mismatches) == 1
+    mismatch = check.mismatches[0]
+    assert mismatch.name == field_name and mismatch.risky is risky and mismatch.board == pytest.approx(value)
+    assert bool(check.risky) is risky
+    assert ("NGUY HIỂM" in check.describe()) is risky
+
+
+def test_check_limits_after_connect_emits_limits_mismatch_event(cfg):
+    io, loop, clock = serial_bench()
+    with pytest.raises(VehicleIOError):
+        io.check_limits(cfg)                                     # chưa có HELLO_ACK
+    io.connect()
+    assert io.check_limits(cfg).ok and codes(io.events()) == [] and io.limits_check.ok
+    frames_before = len(loop.written)
+    for fw_speed, action in ((400, "STOP"), (250, "LOG")):
+        io, loop, clock = serial_bench(replace(FAST_FW, max_speed_mm_s=fw_speed))
+        io.connect()
+        check = io.check_limits(cfg)
+        events = io.events()
+        assert codes(events) == ["LIMITS_MISMATCH"] and events[0].action == action
+        assert "tốc độ lớn nhất" in events[0].message and f"bo {fw_speed:.1f} mm/s" in events[0].message
+        assert io.limits_check is check and bool(check.risky) is (action == "STOP")
+        assert io.check_limits(cfg, emit_event=False) == check and io.events() == []
+        io.connect()                                             # phiên mới: kết quả cũ bị xóa
+        assert io.limits_check is None
+    assert frames_before == 1                                    # so giới hạn không gửi gì (chỉ có HELLO)
+
+
+def test_deferred_serial_io_does_not_open_the_port_until_reopen(monkeypatch):
+    import serial
+    opened = []
+
+    def fake_serial(port, baudrate, timeout, write_timeout):
+        opened.append((port, baudrate, timeout, write_timeout))
+        return FirmwareSerialLoopback(FirmwareModel(FAST_FW), ManualClock())
+
+    monkeypatch.setattr(serial, "Serial", fake_serial)
+    io = SerialVehicleIO.deferred("COM99")
+    assert opened == [] and io.transport is None and io.port == "COM99" and not io.connected
+    with pytest.raises(VehicleIOError, match="Cổng chưa mở"):
+        io.connect()
+    assert opened == []
+    io.close()                                                   # đóng khi chưa mở: không lỗi
+    io.reopen()
+    assert opened == [("COM99", 115200, 0.01, 0.05)] and io.transport is not None
+    io.close()
+    assert SerialVehicleIO.open("COM98").port == "COM98" and opened[-1][0] == "COM98"

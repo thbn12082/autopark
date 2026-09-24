@@ -26,6 +26,10 @@ Mất liên lạc phía laptop (`TELEMETRY_STALE`: không có telemetry hợp l�
 gửi DISARM (nếu chiều laptop → bo còn thông thì bo về DISARMED ngay) và `send(enable=True)` bị từ chối tới khi có
 thao tác cho phép mới là `arm()` (hoặc `connect()` mở phiên mới, bo về DISARMED). Telemetry có lại không tự gỡ chốt
 (kế hoạch mục 10 bước 6, mục 13: mất liên lạc không được tự chuyển về RUN).
+
+Giới hạn (thêm 24/09/2026): `check_limits(cfg)` so giới hạn bo báo trong HELLO_ACK với `VehicleConfig` mà planner
+dùng (sai số một đơn vị trên dây) và báo `LIMITS_MISMATCH`; `compare_limits` là phần tính thuần. Mới thử với
+`FirmwareModel` (bo mô phỏng và cổng serial giả), CHƯA THỬ với ESP32-S3.
 """
 from __future__ import annotations
 
@@ -217,6 +221,117 @@ def _max(a: float | None, b: float) -> float:
     return b if a is None else max(a, b)
 
 
+# ---- so giới hạn bo báo trong HELLO_ACK với cấu hình xe mà planner dùng (thêm 24/09/2026) -------------------------
+# Sai số cho phép = một đơn vị trên dây (1 mm/s, 1 mrad, 1 mrad/s, 1 mm/s²): firmware ghi số nguyên nên 30° = 523,6
+# mrad thành 524, 90°/s = 1570,8 mrad/s thành 1571. Lệch hơn thế là hai bên được đặt khác nhau, không phải làm tròn.
+LIMIT_TOLERANCE = 1e-3
+_LIMIT_EPS = 1e-9          # sai số số thực khi trừ hai số đã chia 1000
+
+# (trường VehicleLimits, trường VehicleConfig, nhãn, đơn vị hiển thị, hệ số SI → hiển thị, hướng NGUY HIỂM,
+#  giải thích khi bo cao hơn, giải thích khi bo thấp hơn)
+# Hướng nguy hiểm = bo làm giả định an toàn của đường đã lập sai: bo cho phép chuyển động NHIỀU hơn đường bao mà
+# planner/bộ bám giả định ("higher"), hoặc bo phanh YẾU hơn hồ sơ tốc độ / quãng dừng mà planner giả định, hoặc bo
+# không cho góc lái mà đường đã lập cần ("lower"). Lệch theo hướng còn lại là bo chặt hơn: bo kẹp lệnh, xe chậm hơn
+# hay bám đường kém hơn, chỉ cảnh báo. Không có trường nào của VehicleConfig tương ứng max_validity_ms và
+# link_timeout_ms nên hai trường này không so. `stop_decel` (dốc về 0 khi hết lệnh/DISARM/mất liên lạc) được so với
+# `max_decel` của cấu hình vì phiên dừng bằng enable=0 và mô phỏng giai đoạn 0 phanh theo `max_decel`.
+_LIMIT_SPECS = (
+    ("max_speed_mps", "max_speed", "tốc độ lớn nhất", "mm/s", 1000.0, "higher",
+     "bo cho phép chạy nhanh hơn cấu hình mà planner dùng", "bo kẹp tốc độ thấp hơn: xe chậm hơn đường đã lập"),
+    ("max_steer_rad", "max_steer", "góc lái lớn nhất", "°", math.degrees(1.0), "both",
+     "bo cho phép đánh lái quá góc mà planner giả định",
+     "đường đã lập có thể cần góc lái lớn hơn bo cho phép: xe không theo được đoạn cong gắt nhất"),
+    ("max_steer_rate_rad_s", "max_steer_rate", "tốc độ đổi lái", "°/s", math.degrees(1.0), "higher",
+     "bo cho phép đổi lái nhanh hơn giả định", "bo đổi lái chậm hơn bộ bám giả định: bám đường kém hơn"),
+    ("max_accel_mps2", "max_accel", "gia tốc lớn nhất", "mm/s²", 1000.0, "higher",
+     "bo cho phép tăng tốc gắt hơn giả định", "bo tăng tốc chậm hơn giả định"),
+    ("max_decel_mps2", "max_decel", "giảm tốc khi đang chạy", "mm/s²", 1000.0, "lower",
+     "bo phanh gắt hơn giả định",
+     "bo giảm tốc yếu hơn hồ sơ tốc độ của đường đã lập: có thể vượt quá điểm dừng"),
+    ("stop_decel_mps2", "max_decel", "giảm tốc khi dừng/hết lệnh", "mm/s²", 1000.0, "lower",
+     "bo dốc về 0 gắt hơn giả định",
+     "khi dừng hay hết lệnh bo dốc về 0 chậm hơn giảm tốc mà planner giả định: quãng dừng dài hơn"),
+)
+
+
+@dataclass(frozen=True)
+class LimitMismatch:
+    """Một giới hạn của bo (HELLO_ACK) khác cấu hình xe quá sai số làm tròn trên dây. Số theo đơn vị SI."""
+
+    name: str                  # trường của VehicleLimits
+    config_field: str          # trường của VehicleConfig được so
+    label: str
+    unit: str                  # đơn vị hiển thị
+    scale: float               # SI → đơn vị hiển thị
+    board: float
+    planner: float
+    risky: bool                # True: lệch theo hướng nguy hiểm (xem _LIMIT_SPECS)
+    note: str
+
+    @property
+    def board_higher(self) -> bool:
+        return self.board > self.planner
+
+    def describe(self) -> str:
+        return (f"{self.label}: bo {self.board * self.scale:.1f} {self.unit}, cấu hình xe "
+                f"{self.planner * self.scale:.1f} {self.unit} ({'NGUY HIỂM' if self.risky else 'bo chặt hơn'}: "
+                f"{self.note})")
+
+    def to_dict(self) -> dict:
+        return {"name": self.name, "config_field": self.config_field, "label": self.label, "board": self.board,
+                "planner": self.planner, "board_higher": self.board_higher, "risky": self.risky, "note": self.note}
+
+
+@dataclass(frozen=True)
+class LimitsCheck:
+    """Kết quả so giới hạn của bo với `VehicleConfig`. `risky` không rỗng thì `VehicleLink` từ chối START ở chế độ
+    VEHICLE_IO; lệch không nguy hiểm chỉ cảnh báo (docs/GIAO_THUC_XE.md mục 7)."""
+
+    vehicle_name: str
+    tolerance: float
+    compared: tuple[tuple[str, float, float], ...]    # (trường VehicleLimits, bo, cấu hình) của mọi trường đã so
+    mismatches: tuple[LimitMismatch, ...]
+
+    @property
+    def ok(self) -> bool:
+        return not self.mismatches
+
+    @property
+    def risky(self) -> tuple[LimitMismatch, ...]:
+        return tuple(m for m in self.mismatches if m.risky)
+
+    def describe(self) -> str:
+        if self.ok:
+            return (f"Giới hạn bo khớp cấu hình xe '{self.vehicle_name}' ({len(self.compared)} giới hạn, lệch ≤ một "
+                    f"đơn vị trên dây)")
+        head = (f"Giới hạn bo KHÁC cấu hình xe '{self.vehicle_name}' ({len(self.mismatches)} giới hạn, "
+                f"{len(self.risky)} nguy hiểm)")
+        return head + ": " + "; ".join(m.describe() for m in self.mismatches)
+
+    def to_dict(self) -> dict:
+        return {"vehicle_name": self.vehicle_name, "tolerance": self.tolerance, "ok": self.ok,
+                "risky": bool(self.risky), "compared": [list(c) for c in self.compared],
+                "mismatches": [m.to_dict() for m in self.mismatches]}
+
+
+def compare_limits(limits: VehicleLimits, cfg: VehicleConfig, tolerance: float = LIMIT_TOLERANCE) -> LimitsCheck:
+    """So từng giới hạn bo báo (đã đổi SI) với trường tương ứng của cấu hình xe. Lệch > `tolerance` mới tính."""
+    if not math.isfinite(tolerance) or tolerance < 0:
+        raise ValueError("tolerance must be finite and >= 0")
+    compared, mismatches = [], []
+    for name, cfg_field, label, unit, scale, danger, higher_note, lower_note in _LIMIT_SPECS:
+        board, planner = float(getattr(limits, name)), float(getattr(cfg, cfg_field))
+        compared.append((name, board, planner))
+        diff = board - planner
+        if abs(diff) <= tolerance + _LIMIT_EPS:
+            continue
+        higher = diff > 0
+        risky = danger == "both" or (danger == "higher") == higher
+        mismatches.append(LimitMismatch(name, cfg_field, label, unit, scale, board, planner, risky,
+                                        higher_note if higher else lower_note))
+    return LimitsCheck(cfg.name, tolerance, tuple(compared), tuple(mismatches))
+
+
 # ---- phần chung của hai nhánh -------------------------------------------------------------------------------------
 class VehicleIO:
     """Phía laptop của giao thức: phiên, số thứ tự, chờ ACK, kiểm tra telemetry, sự kiện an toàn.
@@ -256,6 +371,7 @@ class VehicleIO:
         self.tx_seq = 0
         self.connected = False
         self.hello: HelloInfo | None = None
+        self.limits_check: LimitsCheck | None = None    # lần `check_limits()` gần nhất của phiên này
         self.known_boot_id: int | None = None
         self.last_tx_time = -math.inf
         self._connected_at = 0.0
@@ -331,6 +447,7 @@ class VehicleIO:
             self.session_id = self.rng.randrange(1, U32 + 1)
             self.tx_seq = 0
             self.hello = None
+            self.limits_check = None
             self._last_dev_seq = None
             self._latest = None
             self._new.clear()
@@ -364,6 +481,22 @@ class VehicleIO:
             self.connected = True
             self._connected_at = self.now()
             return info
+
+    def check_limits(self, cfg: VehicleConfig, *, emit_event: bool = True) -> LimitsCheck:
+        """So giới hạn bo báo trong HELLO_ACK của phiên này với cấu hình xe mà planner/bộ bám dùng (thêm 24/09/2026).
+
+        Có lệch quá một đơn vị trên dây thì (khi `emit_event`) thêm sự kiện `LIMITS_MISMATCH`: action "STOP" nếu có
+        lệch nguy hiểm (bo cho phép nhiều hơn cấu hình, hoặc phanh yếu hơn, hoặc góc lái nhỏ hơn), "LOG" nếu bo chỉ
+        chặt hơn. Hàm này KHÔNG gửi gì tới bo và không tự từ chối lệnh; quyết định START là của `VehicleLink`
+        (VEHICLE_IO: lệch nguy hiểm → từ chối; OBSERVE: chỉ ghi). CHƯA THỬ với bo thật."""
+        with self._lock:
+            if self.hello is None:
+                raise VehicleIOError("Chưa có HELLO_ACK: gọi connect() trước khi so giới hạn")
+            check = compare_limits(self.hello.limits, cfg)
+            self.limits_check = check
+            if emit_event and not check.ok:
+                self._event("LIMITS_MISMATCH", check.describe(), "STOP" if check.risky else "LOG")
+            return check
 
     def wait_ready(self, timeout_s: float = 3.0) -> State:
         """Chờ tới khi telemetry báo bo đã qua BOOT."""
@@ -654,10 +787,11 @@ class SerialVehicleIO(VehicleIO):
     source_id = "esp32_vehicle"
 
     def __init__(self, transport, *, clock: Callable[[], float] | None = None,
-                 opener: Callable[[], object] | None = None, **kwargs):
+                 opener: Callable[[], object] | None = None, port: str | None = None, **kwargs):
         super().__init__(**kwargs)
         self.transport = transport
         self._opener = opener
+        self.port = port                       # tên cổng (COMx) nếu biết; chỉ để hiển thị và ghi log
         if clock is None:
             # perf_counter chứ không phải monotonic: trên Windows, time.monotonic() là GetTickCount64, độ phân giải
             # 15,625 ms (đo bằng time.get_clock_info trên máy bàn, Python 3.12, 24/09/2026). Session lấy thời gian
@@ -669,12 +803,27 @@ class SerialVehicleIO(VehicleIO):
     @classmethod
     def open(cls, port: str, *, baudrate: int = 115200, read_timeout_s: float = 0.01, write_timeout_s: float = 0.05,
              **kwargs) -> "SerialVehicleIO":
-        import serial  # pyserial
+        """Mở cổng ngay (pyserial) và trả `SerialVehicleIO` chưa có phiên (gọi `connect()` sau)."""
+        opener = cls._port_opener(port, baudrate, read_timeout_s, write_timeout_s)
+        return cls(opener(), opener=opener, port=port, **kwargs)
 
+    @classmethod
+    def deferred(cls, port: str, *, baudrate: int = 115200, read_timeout_s: float = 0.01,
+                 write_timeout_s: float = 0.05, **kwargs) -> "SerialVehicleIO":
+        """Như `open()` nhưng KHÔNG mở cổng: `transport` là None tới khi gọi `reopen()`; `connect()` trước đó báo
+        "Cổng chưa mở". Giao diện dùng cách này khi người dùng mới CHỌN cổng, để việc chọn không mở cổng (mở cổng có
+        thể làm ESP32-S3 khởi động lại qua DTR/RTS: cần tra theo bo thật) và không gửi gì (thêm 24/09/2026)."""
+        return cls(None, opener=cls._port_opener(port, baudrate, read_timeout_s, write_timeout_s), port=port,
+                   **kwargs)
+
+    @staticmethod
+    def _port_opener(port: str, baudrate: int, read_timeout_s: float, write_timeout_s: float):
         def opener():
+            import serial  # pyserial
+
             return serial.Serial(port, baudrate, timeout=read_timeout_s, write_timeout=write_timeout_s)
 
-        return cls(opener(), opener=opener, **kwargs)
+        return opener
 
     def now(self) -> float:
         return self.clock()

@@ -20,6 +20,7 @@ serial GIẢ này.)* Không số nào dưới đây là số đo trên xe hay tr
 | Ô chọn nhánh chạy trong giao diện | [`autopark/ui/main_window.py`](../autopark/ui/main_window.py) (ngăn "Mô phỏng") |
 | Test | [`tests/test_session_vehicle.py`](../tests/test_session_vehicle.py) |
 | Cấu hình bo mô phỏng mà giao diện dùng | [`configs/vehicle_io_sim.json`](../configs/vehicle_io_sim.json) (toàn số GIẢ ĐỊNH) |
+| *(thêm muộn tối 24/09/2026)* So giới hạn bo, bo thật chưa có tư thế, "Kiểm kết nối bo", thẻ "Bo điều khiển" | mã: `vehicle_link.py`, `transport/vehicle_io.py`, `ui/main_window.py`; test: [`tests/test_vehicle_board_ui.py`](../tests/test_vehicle_board_ui.py) |
 
 ## 1. Ba chế độ
 
@@ -73,6 +74,25 @@ Mọi kết quả bám đường trong tài liệu này dùng định vị lý t
    phát, không chạm vật cản). Lỗi ở bước 4–5, kể cả ngoại lệ bất kỳ từ nguồn tư thế, đều thành `SessionError`. Nếu
    đã gửi ARM (kể cả khi ACK hết giờ), lớp nối gửi DISARM trước khi báo lỗi, rồi ghi `START_ABORTED` (và
    `DISARM_FAILED` nếu DISARM không được xác nhận).
+
+*(Thêm muộn tối 24/09/2026; mức bằng chứng: bo mô phỏng và cổng serial GIẢ, CHƯA THỬ với ESP32-S3.)* Hai kiểm tra mới:
+
+- **Bước 0, bo thật chưa có nguồn tư thế.** Nếu nguồn tư thế là `NoPoseSource` (giao diện chọn cổng serial thật,
+  mục 6), START bị từ chối ngay, **trước bước 1**: không mở cổng, không HELLO, không gửi byte nào. Lời báo nêu tên
+  cổng và lý do: chưa có định vị thật, tư thế mô phỏng không được dùng với bo thật. `start_refusals` có dòng
+  `START_NO_POSE_SOURCE`. `SimTruthPose` ghép với một `VehicleIO` khác `SimVehicleIO` của chính nó (bo thật hoặc bo mô
+  phỏng khác) bị từ chối ngay khi tạo `VehicleLink` (ValueError).
+- **Giữa bước 2 và 3, so giới hạn.** Giới hạn trong HELLO_ACK được so với `VehicleConfig` mà planner dùng
+  (`VehicleIO.check_limits`, sai số một đơn vị trên dây; bảng hướng nguy hiểm ở [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 7).
+  Khớp thì chỉ thêm ", giới hạn: khớp" vào `START_CHECK`. Lệch thì có dòng `LIMITS_MISMATCH` trước `START_CHECK`:
+  - `VEHICLE_IO` + lệch nguy hiểm (bo cho phép nhanh hơn, lái gắt hơn, đổi lái hay tăng tốc nhanh hơn, phanh yếu hơn,
+    hoặc góc lái nhỏ hơn đường đã lập cần): dòng có action STOP, START bị từ chối ("Giới hạn của bo lệch cấu hình
+    xe..."), bo không bị ARM.
+  - `VEHICLE_IO` + bo chỉ chặt hơn: dòng LOG "chỉ cảnh báo", START vẫn chạy, thanh trạng thái của giao diện hiện cảnh
+    báo.
+  - `OBSERVE`: luôn chỉ ghi dòng LOG, vì không gửi lệnh nào.
+
+  Kết quả so ghi ở `link.json` (khóa `limits_check`). Quy tắc này là ĐỀ XUẤT – CHỜ CHỐT.
 
 **Lần START bị từ chối không xóa bằng chứng của lần chạy trước.** `commands.csv`, `telemetry.csv`, `events.csv`,
 kết quả và (ở nhánh mô phỏng của giao diện) bo mô phỏng của lần chạy trước giữ nguyên cho tới khi lần mới đã thật
@@ -172,12 +192,47 @@ mục nào; `replay_run` từ chối gói có khóa `vehicle_link` trong snapsho
 Ngăn "Mô phỏng" có ô **"Nhánh chạy khi bấm Bắt đầu đỗ"**. Mặc định là "Mô phỏng giai đoạn 0". Ô này chỉ đổi được
 khi đang chỉnh hoặc sẵn sàng; từ lúc chạy tới lúc đặt lại thì bị khóa. Dưới ô có dòng giải thích cho từng nhánh.
 
-- **VehicleIO → bo mô phỏng: GỬI lệnh.** Mỗi lần START, giao diện tạo một `SimVehicleIO` mới đặt ở điểm xuất
-  phát, theo `configs/vehicle_io_sim.json`. Chỗ này mô phỏng việc người đặt xe vào vị trí.
+- **VehicleIO: GỬI lệnh tới bo** (trước muộn tối 24/09/2026 nhãn là "VehicleIO → bo mô phỏng: GỬI lệnh"). Khi thẻ
+  "Bo điều khiển" để "Bo mô phỏng (mặc định)", mỗi lần START giao diện tạo một `SimVehicleIO` mới đặt ở điểm xuất
+  phát, theo `configs/vehicle_io_sim.json`. Chỗ này mô phỏng việc người đặt xe vào vị trí. Chọn cổng COM thì START
+  bị từ chối (chưa có nguồn tư thế thật).
 - **Quan sát: tính lệnh, KHÔNG gửi.** Khi đang quan sát, phím ↑ ↓ ← → lái xe mô phỏng thay người lái, Space
   phanh, 0 trả lái, Esc kết thúc. Nhãn tiến độ hiện lệnh gợi ý "(không gửi)". Thẻ trạng thái đổi thành "Quan sát".
-- Giao diện **chưa có** lựa chọn cổng serial tới bo thật. Khi có bo và có định vị, phải thêm lựa chọn này. Lúc đó
-  truyền `VehicleLink(mode, SerialVehicleIO.open(...), pose_source=...)`.
+- *(Tới muộn tối 24/09/2026 giao diện chưa có lựa chọn cổng serial; nay đã có ở thẻ "Bo điều khiển", xem dưới. Vẫn
+  chưa có định vị nên START với bo thật luôn bị từ chối. Chỉ kiểm bằng test offscreen với `comports` giả và cổng
+  serial GIẢ; chưa mở cổng thật nào, chưa có ESP32-S3.)*
+
+**Thẻ "Bo điều khiển"** (thêm muộn tối 24/09/2026, ngay dưới ngăn "Mô phỏng"). Nhãn của nhánh `VEHICLE_IO` đổi thành
+"VehicleIO: GỬI lệnh tới bo".
+
+- **Ô chọn bo.** Mặc định là "Bo mô phỏng (mặc định)": hành vi y như trước. Danh sách cổng COM lấy từ
+  `serial.tools.list_ports.comports()`. Cổng chỉ được liệt kê khi mở danh sách hoặc bấm "Quét cổng", không liệt kê lúc
+  dựng cửa sổ. Việc liệt kê không mở cổng. Cổng có VID 303A được ghi thêm "Espressif"; đây chỉ là gợi ý, không dùng để
+  lọc. Cổng đã chọn mà không còn thấy (rút cáp) vẫn được giữ, ghi "(không thấy — đã rút?)"; giao diện không tự đổi
+  sang bo khác.
+- **Chọn một cổng thật** ở `VEHICLE_IO` hay `OBSERVE` tạo `VehicleLink.serial_port(mode, cổng)`, gồm
+  `SerialVehicleIO.deferred` (cổng CHƯA mở) và `NoPoseSource`. Bấm Bắt đầu đỗ thì hiện hộp thoại "Không bắt đầu
+  được": chưa có nguồn tư thế thật, cổng chưa được mở, không gửi gì tới bo (mục 3, bước 0). Tư thế mô phỏng
+  (`SimTruthPose`) không bao giờ được dùng với bo thật: `VehicleLink` báo ValueError khi `SimTruthPose` bọc một xe mô
+  phỏng khác, hoặc khi io không phải `SimVehicleIO` — kể cả `SimTruthPose` dựng quanh chính bo serial (ca này lọt
+  qua trước bản sửa muộn tối 24/09/2026, rồi START hỏng với `AttributeError`).
+- **Nút "Kiểm kết nối bo"** (`probe_board`). Với cổng thật, giao diện hỏi xác nhận trước khi mở: "chỉ tiếp tục nếu
+  cổng là bo ESP32-S3 của xe, không phải LiDAR". Sau đó: mở cổng, HELLO, so giới hạn với cấu hình xe, đọc tới 5 khung
+  telemetry, đóng cổng. Kết quả hiện ngay trong thẻ: phiên bản firmware, `boot_id`, lý do reset, trạng thái, chu kỳ
+  telemetry, các giới hạn, kết quả so giới hạn (`LIMITS_MISMATCH` và START có bị từ chối không), từng khung telemetry
+  (trạng thái, lỗi, tốc độ, lái, E-stop, nguồn, ToF), sự kiện, số COMMAND/REQUEST đã gửi (luôn 0 COMMAND). Nút này
+  **không bao giờ ARM hay gửi lệnh chuyển động**. HELLO đưa bo đang ARMED/RUNNING về DISARMED. Với "Bo mô phỏng", nút
+  chạy cùng hàm trên một `SimVehicleIO` mới, không hỏi xác nhận.
+  *(Sửa muộn tối 24/09/2026 theo rà soát.)* Bo trả HELLO_ACK nhưng `connect()` không nhận phiên (bo chọn chu kỳ
+  telemetry dài hơn `telemetry_timeout_s / 3`, ví dụ 200 hay 400 ms): báo cáo vẫn có firmware, `boot_id`, lý do reset,
+  giới hạn và kết quả so giới hạn, dòng lỗi là "HELLO_ACK nhận được nhưng phiên bị từ chối: Bo chọn chu kỳ telemetry
+  ... ms ...". Trước bản sửa, báo cáo nói "Không nhận được HELLO_ACK." rồi lại báo lỗi chu kỳ của chính HELLO_ACK đó.
+  HELLO_ACK của một phiên cũ (cổng đã đóng) không bao giờ được báo như của lần kiểm mới. Bo trả HELLO_ACK mà không gửi
+  telemetry: vòng đọc dừng sau `frames_timeout_s` (1 s, đồng hồ io), lỗi "Chỉ nhận 0/5 khung", có `TELEMETRY_STALE`
+  và đúng một REQUEST DISARM do `VehicleIO` tự gửi, 0 COMMAND.
+- Ô chọn cổng, "Quét cổng" và "Kiểm kết nối bo" bị khóa từ lúc chạy tới lúc đặt lại.
+- Việc chặn giao diện trong lúc kiểm: hàm chạy trên luồng giao diện (con trỏ chờ), tối đa khoảng 1 s chờ HELLO_ACK
+  cộng 1 s chờ telemetry. Trên bo thật: CHƯA ĐO.
 
 ## 7. Đã kiểm (chỉ mô phỏng và cổng serial giả, 24/09/2026, máy bàn, `.venv`)
 
@@ -242,6 +297,87 @@ Test thêm tối 24/09/2026 (26 trường hợp; vẫn chỉ bo mô phỏng ho�
 | `test_resume_after_hang_keeps_effort_zero_whatever_the_gap_before_the_stop[0/10/20/40]` | Cổng serial giả, `ManualClock`, pha 0, treo 1 s trong khi một vòng đọc telemetry và PING; bo chạy thêm 0/10/20/40 ms trước lệnh dừng đầu tiên (thay cho thời gian tính + trễ USB trên máy thật): không enable=1 nào tới bo, effort 0 ở mọi khoảng. Trước bản sửa: một enable=1 tới trước, effort lên 0/107/115/130 ‰ (mô hình bo, đầu vào đứng yên, không phải số đo). Thay `test_resume_burst_effort_grows_with_gap_between_commands` |
 | `test_command_refuses_enable_while_a_stop_event_is_pending` | Lớp chặn thứ hai: đặt một sự kiện dừng vào hàng chờ của lớp nối rồi gọi thẳng `command()`: trả `HALTED`, không COMMAND nào được gửi, dòng `commands.csv` có `sent=0` |
 
+*(Thêm muộn tối 24/09/2026, máy bàn, `.venv`.)* Test của phần so giới hạn, bo thật chưa có tư thế, "Kiểm kết nối
+bo" và thẻ "Bo điều khiển": [`tests/test_vehicle_board_ui.py`](../tests/test_vehicle_board_ui.py), **26 test, 26 đạt**.
+*(Cập nhật muộn hơn tối 24/09/2026, sau đợt sửa theo rà soát: nay **30 test, 30 đạt**; bốn test mới và phần thêm của
+`test_sim_truth_pose_is_never_paired_with_another_board` được đánh dấu trong bảng.)*
+Bo là `SimVehicleIO` hoặc `FirmwareModel` sau cổng serial GIẢ (`FirmwareSerialLoopback` + `ManualClock`).
+`serial.Serial` bị thay bằng hàm ghi lại mọi lần mở và từ chối; `serial.tools.list_ports.comports` bị thay bằng danh
+sách giả. Không test nào mở hay liệt kê cổng thật.
+
+| Test | Kiểm |
+|---|---|
+| `test_vehicle_io_start_refused_when_board_limits_are_risky[3 trường hợp]` | Firmware 400 mm/s, góc lái 400 mrad (nhỏ hơn 30°), giảm tốc 400 mm/s²: START bị từ chối "Giới hạn của bo", không ARM, 0 COMMAND, bo DISARMED; `start_refusals` = `LIMITS_MISMATCH` (STOP) rồi `START_CHECK` "TỪ CHỐI" |
+| `test_vehicle_io_board_stricter_only_warns_and_runs` | Firmware 250 mm/s < 300: dòng `LIMITS_MISMATCH` LOG "chỉ cảnh báo", `START_CHECK` "Đạt ... lệch 1 (0 nguy hiểm)", chạy và gửi lệnh; `link.json` có `limits_check` |
+| `test_observe_logs_risky_limits_but_does_not_refuse` | Quan sát với firmware 400 mm/s: START đạt, dòng LOG, 0 COMMAND |
+| `test_matching_limits_add_no_row_and_are_reported_in_start_check` | Giới hạn khớp: không có dòng `LIMITS_MISMATCH`, `START_CHECK` ghi "giới hạn: khớp" |
+| `test_real_port_start_is_refused_before_the_port_is_opened[VEHICLE_IO/OBSERVE]` | `VehicleLink.serial_port`: START bị từ chối hai lần "nguồn tư thế thật ... COMx ... Cổng chưa được mở"; không lần mở cổng nào, 0 khung gửi; `START_NO_POSE_SOURCE` |
+| `test_sim_truth_pose_is_never_paired_with_another_board` | `SimTruthPose` ghép với bo serial, bo mô phỏng khác, hay `serial_port`: ValueError. *(Thêm muộn tối 24/09/2026:)* `SimTruthPose` dựng quanh chính bo serial, ở `VEHICLE_IO` và `OBSERVE`: ValueError, 0 khung gửi, bo chưa kết nối |
+| `test_probe_board_says_hello_reads_telemetry_and_closes` | Cổng giả: đúng một HELLO được ghi ra, 5 khung DISARMED, giới hạn khớp, 0 COMMAND/REQUEST, cổng đóng; báo cáo có firmware 1.0, `boot_id` |
+| `test_probe_board_disarms_an_armed_board_and_never_arms` | Bo đang ARMED (chương trình khác): sau khi kiểm, bo DISARMED (`NEW_SESSION`), không COMMAND/REQUEST nào |
+| `test_probe_board_reports_risky_limits` | Firmware 400 mm/s: sự kiện `LIMITS_MISMATCH` STOP, báo cáo "START ở VEHICLE_IO sẽ bị TỪ CHỐI" |
+| `test_probe_board_silent_board_times_out_and_still_closes` | Bo im lặng: lỗi "HELLO_ACK", cổng vẫn đóng, báo cáo có "Không nhận được HELLO_ACK." |
+| `test_probe_board_hello_but_no_telemetry_times_out_disarms_once_and_closes` | *(Thêm muộn tối 24/09/2026.)* Bo trả HELLO_ACK nhưng không gửi telemetry: lỗi "0/5 khung" sau 1 s (đồng hồ io, không đọc quá 1,1 s), `TELEMETRY_STALE`, trên dây đúng HELLO + một REQUEST DISARM, 0 COMMAND, cổng đóng. Bo giả tự báo lỗi nếu vòng đọc chạy quá 10 s, nên bỏ hạn chờ thì test hỏng thay vì treo |
+| `test_probe_board_keeps_hello_when_session_refused_for_long_telemetry_period` | *(Thêm muộn tối 24/09/2026.)* Bo chọn chu kỳ 400 ms, giới hạn 400 mm/s: phiên bị từ chối nhưng báo cáo vẫn có HELLO_ACK (`boot_id`, chu kỳ 400 ms), so giới hạn (nguy hiểm, `LIMITS_MISMATCH` STOP, "sẽ bị TỪ CHỐI"), lỗi "bị từ chối ... 400 ms", không có "Không nhận được HELLO_ACK"; chỉ HELLO trên dây, cổng đóng |
+| `test_probe_board_keeps_hello_when_connect_refuses_the_board_period` | *(Thêm muộn tối 24/09/2026.)* Như trên với chu kỳ 200 ms, giới hạn khớp: báo cáo có firmware 1.0, `boot_id`, "Giới hạn bo", "khớp", dòng "LỖI: HELLO_ACK nhận được nhưng phiên bị từ chối: Bo chọn chu kỳ telemetry 200 ms" |
+| `test_probe_board_does_not_report_an_old_hello_when_the_port_is_closed` | *(Thêm muộn tối 24/09/2026.)* Phiên cũ có HELLO_ACK, cổng đã đóng: lỗi "Cổng chưa mở", báo cáo không mang HELLO_ACK cũ |
+| `test_probe_board_unplug_after_hello_reports_link_error` | Rút cáp giả sau HELLO: `LINK_ERROR`, lỗi "mất phiên hoặc lỗi cổng" |
+| `test_probe_board_on_the_simulated_board` | Kiểm trên `SimVehicleIO`: đạt, báo "MÔ PHỎNG" |
+| `test_list_serial_ports_*` (2) | Sắp theo số cổng (COM3, COM4, COM10), đánh dấu Espressif; liệt kê lỗi thì trả rỗng |
+| `test_window_port_choice_defaults_to_sim_and_lists_ports_on_demand` | Dựng cửa sổ không liệt kê cổng; mở danh sách thì quét; chọn COM10 ở `VEHICLE_IO` → `SerialVehicleIO` chưa mở + `NoPoseSource`; rút cáp: cổng vẫn giữ "(không thấy)"; về bo mô phỏng và SIM được |
+| `test_window_real_port_start_is_refused_with_clear_message[VEHICLE_IO/OBSERVE]` | Bắt đầu đỗ với COM4: hộp thoại "Không bắt đầu được" nêu "nguồn tư thế thật" và COM4; phiên READY; không mở cổng |
+| `test_window_probe_real_port_sends_only_hello` | Nút "Kiểm kết nối bo": hỏi xác nhận có tên cổng, báo cáo firmware/giới hạn/5 khung, chỉ HELLO trên dây, cổng đóng |
+| `test_window_probe_shows_risky_limits` | Firmware góc lái 700 mrad: thẻ hiện `LIMITS_MISMATCH` và "TỪ CHỐI" |
+| `test_window_probe_cancelled_or_failing_open_sends_nothing` | Bấm "No": không mở cổng. Mở cổng lỗi: thẻ hiện "Không mở được COM4" |
+| `test_window_probe_simulated_board_asks_nothing` | Bo mô phỏng: không hỏi, báo "MÔ PHỎNG" |
+| `test_window_start_shows_limits_warning_or_refusal` | Bo mô phỏng của giao diện với firmware 250 mm/s: chạy, thanh trạng thái "LIMITS_MISMATCH (cảnh báo)"; 400 mm/s: hộp thoại từ chối nêu "tốc độ lớn nhất" |
+| `test_window_board_controls_locked_while_running` | Khi chạy: ô cổng và nút kiểm bị khóa, gọi thẳng `_probe_board()` cũng không làm gì |
+
+Thêm vào `tests/test_transport_vehicle_io.py` 15 test (`compare_limits` từng trường và từng hướng, sai số làm tròn,
+sự kiện `check_limits`, `SerialVehicleIO.deferred` không mở cổng). ToF: `tests/test_nearfield_tof.py`, 33 test
+([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12). *(Cập nhật muộn hơn tối 24/09/2026, sau đợt sửa theo rà soát: nay 54 test,
+54 đạt. Test cũ `test_invalid_reading_makes_the_layer_stale_and_marks_nothing` — khẳng định đúng hành vi lỗi "một ToF
+mặt nạ 0 làm cả lớp không hợp lệ" — được thay bằng `test_unusable_tof_drops_only_its_own_arc`; hai ca "tối đa" của
+`test_unusable_values_...` chuyển sang `test_values_at_or_beyond_max_range_are_valid_but_mark_nothing`; thêm test mức
+`fuse()` (camera nói FREE, chỉ ToF trước thấy vật; ba khung trộn; không gian trống với lớp bắt buộc), stamp khung
+không hợp lệ, `required_sensors`, đường nguồn chung, và các ca bảng gá `null`/chuỗi/bool/danh sách.)*
+
+**Đột biến** (muộn tối 24/09/2026, máy bàn, `.venv`; sửa mã trên **bản sao** trong thư mục tạm, không đụng repo;
+mỗi lần một đột biến; chạy các tệp test liên quan trong ba tệp `test_vehicle_board_ui.py`,
+`test_transport_vehicle_io.py`, `test_nearfield_tof.py`; bản gốc trên bản sao: 123 đạt). **31 đột biến, cả 31 bị bắt**:
+- Phần so giới hạn: đảo hướng nguy hiểm; bỏ sai số làm tròn; coi góc lái nhỏ hơn là không nguy hiểm; bỏ so
+  `stop_decel`; đảo action của sự kiện; `connect()` không xóa kết quả cũ.
+- `deferred` mở cổng ngay.
+- `VehicleLink`: không từ chối START khi lệch nguy hiểm; từ chối cả ở quan sát; không so giới hạn lúc START; bỏ chặn
+  `NoPoseSource`; bỏ chặn `SimTruthPose` ghép sai.
+- `probe_board`: gửi enable=0; ARM bo; không đóng cổng.
+- Giao diện: liệt kê cổng lúc dựng; bỏ qua cổng đã chọn; bỏ cổng đã rút; không hỏi trước khi mở cổng; không khóa khi
+  chạy; mở danh sách không quét; không cảnh báo giới hạn lúc START.
+- ToF: nhận số đo đúng tầm tối đa; bỏ kiểm hữu hạn; bỏ tầm tối thiểu; bỏ stamp của khung; đảo chỉ số; yaw không đổi
+  sang radian; không kiểm khóa lạ; `add_readings` cập nhật dở; None thành hợp lệ.
+
+*(Đo lại muộn hơn tối 24/09/2026, sau đợt sửa theo rà soát; máy bàn, `.venv`; cùng cách làm: bản sao trong thư mục
+tạm, không đụng repo, mỗi lần một đột biến, chạy các tệp liên quan trong bốn tệp `test_vehicle_board_ui.py`,
+`test_transport_vehicle_io.py`, `test_nearfield_tof.py`, `test_fusion.py`; bản gốc trên bản sao: 162 đạt.)* Danh sách
+và số ở trên là trước bản sửa. Lần đo lại: **50 đột biến, cả 50 bị bắt**.
+- 30 đột biến cũ chạy lại (neo lại chuỗi ở chỗ mã đã đổi), cả 30 bị bắt. Đột biến "ToF: nhận số đo đúng tầm tối đa"
+  bỏ, vì nay số đo ≥ tầm tối đa có bit hợp lệ là hợp lệ và không đánh dấu ô nào: đổi có chủ ý, xem GIAO_THUC_XE.md
+  mục 12.
+- 20 đột biến mới cho bản sửa, cả 20 bị bắt:
+  - ToF, khung telemetry: quay lại luật "mọi ToF hợp lệ"; bỏ qua stamp khung; `add_telemetry` không truyền stamp khung.
+  - ToF, nguồn chung: `all` thay `any`; luôn hợp lệ.
+  - `required_sensors`: bỏ; cảm biến bắt buộc chưa có số đo không tính; tên lạ không bị từ chối.
+  - Tầm tối đa: số đo ≥ tầm tối đa lại thành không hợp lệ; vẫn đánh dấu cung; bỏ ghi chú "ngoài tầm".
+  - `status()` thiếu `invalid_sensors`.
+  - Bảng gá: nhận `null`/chuỗi qua `float()`; bỏ kiểm `sensor_id` khi đọc JSON; bỏ kiểm `sensor_id` trong
+    `__post_init__`.
+  - `VehicleLink`: chặn `SimTruthPose` chỉ so io (bản cũ).
+  - `probe_board`: bỏ giữ HELLO_ACK khi phiên bị từ chối; báo cả HELLO_ACK cũ; giữ HELLO mà không so giới hạn; bỏ hạn
+    chờ telemetry.
+
+  Đột biến "ép lại `str(sensor_id)`" là đột biến tương đương (sensor_id vừa được kiểm là chuỗi ngay trước đó), nên
+  không tính. Đây vẫn là đột biến trên bản tham chiếu Python, bo mô phỏng và cổng serial giả, không nói gì về bo thật.
+
 **Đột biến để kiểm test.** Đợt đầu (vá tạm trong tiến trình bằng monkeypatch; không sửa tệp nào). Sáu đột biến
 đều bị ít nhất một test bắt:
 
@@ -298,6 +434,18 @@ ngoài repo, không sửa tệp nào; chạy lại khi viết tài liệu này, 
 24/09 và bản sửa khoảng trống; khi đó `tests/test_session_vehicle.py` có 34 test. Nay tệp này có 60 test, 60 đạt (chạy
 lại riêng khi sửa tài liệu). Bộ test đầy đủ chạy lại cuối tối 24/09/2026 trên máy bàn, `.venv`: 895 đạt, 6 bỏ qua
 (mô-đun cần torch), 215 s. Tổng cho đúng nhóm tệp trên thì chưa đếm lại.)*
+*(Thêm muộn tối 24/09/2026, máy bàn, `.venv`, sau phần so giới hạn / "Bo điều khiển" / ToF.)* Chạy chung 17 tệp:
+`test_vehicle_board_ui` 26, `test_nearfield_tof` 33, `test_session_vehicle` 60, bốn tệp `test_transport_*`
+52 + 73 + 64 + 11, `test_ui_smoke` 9, `test_phase0` 13, `test_session` 11, `test_session_run` 11, `test_runtime_safety` 40,
+`test_fusion` 14, `test_fusion_demo` 7, `test_run_store_vehicle` 4, `test_vehicle_editing_ui` 4, `test_lidar_dock_ui` 5.
+Kết quả: **437 đạt, 0 lỗi**, 127 s. Thời gian này đo lúc các agent khác có thể đang chạy song song trên cùng máy, nên
+không dùng làm số đo tốc độ. Bộ test đầy đủ không chạy lại.
+*(Chạy lại muộn hơn tối 24/09/2026, máy bàn, `.venv`, sau đợt sửa theo rà soát.)* 19 tệp: `test_vehicle_board_ui` 30,
+`test_nearfield_tof` 54, `test_session_vehicle` 60, bốn tệp `test_transport_*` 52 + 73 + 64 + 11, `test_ui_smoke` 9,
+`test_phase0` 13, `test_session` 11, `test_session_run` 11, `test_runtime_safety` 40, `test_fusion` 14,
+`test_fusion_demo` 17 (tệp do việc khác sửa cùng tối), `test_run_store_vehicle` 4, `test_vehicle_editing_ui` 4,
+`test_lidar_dock_ui` 5, `test_background_work` 8, `test_scenario_store` 25. Kết quả: **505 đạt, 0 lỗi**, 107 s (đo lúc
+các agent khác có thể đang chạy song song, không dùng làm số đo tốc độ). Bộ test đầy đủ không chạy lại.
 
 **Đồng hồ khi chạy qua `SerialVehicleIO`** (script tạm ngày 24/09, không lưu trong repo; cổng serial GIẢ theo đồng
 hồ tường, bo là `FirmwareModel`, xe đứng yên; vòng giao diện 16 ms trong 3 s; máy bàn):
@@ -364,7 +512,31 @@ hình bo nhanh dùng trong test (`boot_hold_ms` 200), cùng phép thử cho 160 
   `VEHICLE_STOPPED`, pha 0/2/3 ra `VEHICLE_NOT_ARMED`. Vì vậy, sau một lần treo dài, log có `VEHICLE_NOT_ARMED` với lý
   do `LINK_TIMEOUT` là đúng dự kiến, không phải sai lệch. Với bo thật: CHƯA THỬ.)*
 - **Chưa có nguồn tư thế thật.** `SimTruthPose` là định vị lý tưởng. Chưa có định vị LiDAR, và chưa kiểm được yêu
-  cầu "cùng đồng hồ" với bo thật.
+  cầu "cùng đồng hồ" với bo thật. *(Cập nhật muộn tối 24/09/2026:)* vì vậy chọn cổng serial thật trong giao diện chỉ
+  dùng được cho "Kiểm kết nối bo"; Bắt đầu đỗ với bo thật luôn bị từ chối (`NoPoseSource`, mục 3 bước 0, mục 6). Khi
+  có định vị: truyền nguồn tư thế thật vào `VehicleLink.serial_port(..., pose_source=...)`. Lúc đó còn phải thêm bước
+  mở cổng (`reopen()`) trong `begin_run`, vì hiện liên kết tạo từ giao diện chưa bao giờ mở cổng; nếu không, START sẽ bị
+  từ chối "Cổng chưa mở" (`START_NO_LINK`). Việc này CHƯA LÀM.
+- *(Thêm muộn tối 24/09/2026.)* **Giới hạn của kiểm tra giới hạn bo.** Kiểm tra so với `VehicleConfig`, không so với
+  đường đã lập. Bo cho góc lái nhỏ hơn `max_steer` là bị từ chối, kể cả khi đường cụ thể không dùng tới góc đó. Không
+  so `max_validity_ms` và `link_timeout_ms` (không có trường tương ứng) và không so trần effort (bo không báo trần này
+  trong HELLO_ACK). Cấu hình bo mô phỏng của giao diện (`configs/vehicle_io_sim.json`) khớp `vehicle_default.json`.
+  Đổi cấu hình xe mà không đổi mục `firmware` của tệp đó thì START ở `VEHICLE_IO` với bo mô phỏng cũng bị từ chối (hoặc
+  cảnh báo). Đây là hành vi mong muốn: hai bên lệch nhau. Chỉ kiểm với `FirmwareModel`; giới hạn thật của ESP32-S3:
+  CHƯA CHỐT.
+- *(Thêm muộn tối 24/09/2026.)* **"Kiểm kết nối bo" chưa thử với bo thật.** Chưa biết mở cổng có làm ESP32-S3 khởi
+  động lại qua DTR/RTS hay không (cần tra theo bo; nếu có, HELLO_ACK sẽ báo BOOT và lý do reset). Chọn nhầm cổng
+  LiDAR (COM4 trên máy bàn) thì HELLO sẽ được gửi tới RPLIDAR C1 ở 115200 baud; hộp thoại xác nhận chỉ nhắc người
+  dùng, không chặn. Chưa kiểm LiDAR phản ứng thế nào với byte đó.
+- *(Thêm muộn tối 24/09/2026.)* **ToF chưa vào phiên.** `tof_to_near_field` và `NearFieldLayer.add_telemetry` đã có
+  ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12), nhưng `VehicleLink` và `Session` chưa đưa ToF vào hợp nhất hay kiểm va
+  chạm. Vị trí gá trong `configs/tof_mounts_v0.json` là GIẢ ĐỊNH – CHƯA ĐO.
+  *(Sửa muộn tối 24/09/2026 theo rà soát, trước khi ToF vào phiên.)* Luật cũ "lớp gần xe hợp lệ khi MỌI ToF hợp lệ"
+  làm một ToF không thấy gì (bit mặt nạ 0) xóa cung OCCUPIED của các ToF khác khi hợp nhất. Luật mới: với khung
+  telemetry, lớp hợp lệ theo stamp của khung; ToF không dùng được chỉ mất cung của nó và được ghi ở `invalid_sensors`;
+  số đo ≥ tầm tối đa có bit hợp lệ là hợp lệ, không đánh dấu ô nào. Giao thức v1 chưa phân biệt "không có vật trong
+  tầm" với "ToF hỏng" (cả hai là bit 0): ToF chết trông như khoảng trống, chỉ chấp nhận được vì lớp này không bao giờ
+  đánh dấu FREE. Mặt nạ sức khỏe riêng: ĐỀ XUẤT – CHỜ CHỐT ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12).
 - **Chưa có mã đọc encoder và AS5600.** Bo không báo tốc độ hoặc góc lái thì START bị từ chối; chưa có chế độ ước
   lượng tốc độ từ định vị.
 - Cách đấu dây ở chế độ quan sát (ESC nối máy thu RC hay nối ESP32) CHƯA CHỐT. `SimHumanDriver` giả định ESC và

@@ -247,6 +247,33 @@ Tất cả là số nguyên: mục tiêu tốc độ lưu bằng µm/s, góc b�
   mục tiêu (phanh/lùi của ESC là CHƯA CHỐT); tích phân dừng khi đầu ra bão hòa theo hướng sai số (chống bão hòa) và bị
   kẹp `integ_limit`. Không có phản hồi tốc độ → chỉ feedforward (cờ `SPEED_LOOP_CLOSED` = 0).
   Mục tiêu = 0 hoặc FAULT → effort = 0 và xóa tích phân.
+- *(Thêm muộn tối 24/09/2026; mức bằng chứng: chỉ `FirmwareModel` qua bo mô phỏng và cổng serial GIẢ, CHƯA THỬ với
+  ESP32-S3.)* **So giới hạn của bo với cấu hình xe mà planner dùng.** Trước đó không mã nào so giới hạn trong HELLO_ACK
+  với `VehicleConfig`. Nay `VehicleIO.check_limits(cfg)` (phần tính thuần: `compare_limits`) so sáu cặp. Sai số cho phép
+  là một đơn vị trên dây (1 mm/s, 1 mrad, 1 mrad/s, 1 mm/s²), vì firmware ghi số nguyên: 30° = 523,6 mrad thành 524.
+  Lệch quá sai số thì có sự kiện `LIMITS_MISMATCH`.
+
+  | Giới hạn bo (HELLO_ACK) | So với `VehicleConfig` | Bo cao hơn | Bo thấp hơn |
+  |---|---|---|---|
+  | `max_speed_mm_s` | `max_speed` | nguy hiểm | chỉ cảnh báo |
+  | `max_steer_mrad` | `max_steer` | nguy hiểm | nguy hiểm: đường đã lập có thể cần góc lái bo không cho |
+  | `max_steer_rate_mrad_s` | `max_steer_rate` | nguy hiểm | chỉ cảnh báo |
+  | `max_accel_mm_s2` | `max_accel` | nguy hiểm | chỉ cảnh báo |
+  | `max_decel_mm_s2` | `max_decel` | chỉ cảnh báo | nguy hiểm: phanh yếu hơn hồ sơ tốc độ của đường đã lập |
+  | `stop_decel_mm_s2` | `max_decel` | chỉ cảnh báo | nguy hiểm: quãng dừng khi hết lệnh/DISARM dài hơn giả định |
+
+  `max_validity_ms` và `link_timeout_ms` không có trường tương ứng trong `VehicleConfig` nên không so; "Kiểm kết nối bo"
+  vẫn hiển thị hai số này.
+
+  **Quyết định (ĐỀ XUẤT – CHỜ CHỐT, người dùng có thể đổi):** ở `VEHICLE_IO`, lệch nguy hiểm thì START bị từ chối.
+  Sự kiện là `LIMITS_MISMATCH` action STOP, rồi `START_CHECK` "TỪ CHỐI". Lệch chỉ cảnh báo thì START vẫn chạy: có dòng
+  `LIMITS_MISMATCH` action LOG, và giao diện hiện cảnh báo ở thanh trạng thái. Ở `OBSERVE` chỉ ghi dòng LOG, vì không
+  gửi lệnh nào. Chỗ khác đề xuất ban đầu ("bo cho phép NHIỀU hơn thì từ chối, còn lại cảnh báo") có hai điểm.
+  (1) Với giảm tốc, hướng nguy hiểm là bo THẤP hơn: bo phanh yếu hơn giả định. (2) Góc lái nhỏ hơn cũng bị từ chối:
+  planner lập đường theo `max_steer`, bo kẹp nhỏ hơn thì xe không theo được đoạn cong gắt nhất. Kiểm tra hiện chưa
+  xem đường cụ thể có thật sự dùng tới góc đó hay không.
+  Test: `tests/test_transport_vehicle_io.py` (so từng trường, sai số làm tròn, sự kiện) và
+  `tests/test_vehicle_board_ui.py` (START bị từ chối, cảnh báo, quan sát, giao diện).
 
 ## 8. Telemetry
 
@@ -321,7 +348,18 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
   liên lạc" phía laptop; CHỐT: gửi DISARM, `rearm_required = True`, `send(enable=True)` ném `VehicleIOError` tới khi
   `arm()`/`connect()`), `TELEMETRY_RESUMED` (LOG; không gỡ chốt), `VEHICLE_FAULT` (STOP), `VEHICLE_STOPPED` (kèm lý do),
   `SESSION_LOST` (STOP), `FIRMWARE_RESET` (STOP), `LINK_ERROR` (STOP; lỗi cổng/rút cáp), `COMMAND_REJECTED` (báo một
-  lần mỗi loại, đếm mọi lần).
+  lần mỗi loại, đếm mọi lần). *(Thêm muộn tối 24/09/2026:)* `LIMITS_MISMATCH` chỉ sinh khi gọi `check_limits(cfg)`:
+  STOP nếu lệch nguy hiểm, LOG nếu bo chỉ chặt hơn (mục 7). `VehicleIO` không tự từ chối lệnh vì sự kiện này;
+  quyết định START là của `VehicleLink`.
+- *(Thêm muộn tối 24/09/2026.)* `SerialVehicleIO.deferred(port)` tạo nhánh serial mà CHƯA mở cổng (`transport` là
+  None tới `reopen()`); `connect()` trước đó báo "Cổng chưa mở". Giao diện dùng dạng này khi người dùng mới chọn cổng.
+  Việc chọn cổng vì vậy không mở cổng và không gửi byte nào. Mở cổng có thể làm ESP32-S3 khởi động lại qua DTR/RTS:
+  cần tra theo bo thật, CHƯA THỬ. `SerialVehicleIO.port` giữ tên cổng để hiển thị và ghi vào `link.json`.
+- *(Thêm muộn tối 24/09/2026.)* "Kiểm kết nối bo" (`application/vehicle_link.probe_board`, nút trong thẻ "Bo điều
+  khiển" của giao diện): `connect()` (HELLO) → `check_limits` → đọc tới 5 khung telemetry trong 1 s → đóng cổng. Hàm
+  này không gọi `arm()`, `send()` hay `stop()`: không COMMAND nào, kể cả enable=0. REQUEST duy nhất có thể lọt ra là
+  DISARM mà `VehicleIO` tự gửi khi mất liên lạc. HELLO đưa bo đang ARMED/RUNNING về DISARMED (`NEW_SESSION`), đúng hướng
+  an toàn. Test trên cổng serial GIẢ: byte laptop ghi ra chỉ gồm đúng một HELLO. Với ESP32-S3: CHƯA THỬ.
 - `telemetry_timeout_s` phải ≥ 3 × chu kỳ telemetry (mục 8): kiểm ở hàm dựng với chu kỳ xin và ở `connect()` với chu kỳ
   bo trả trong HELLO_ACK; không thỏa thì `connect()` ném lỗi và KHÔNG nhận phiên (`connected` giữ False).
 - `configs/vehicle_io_sim.json`: khóa lạ hoặc gõ sai ở mọi mục (gốc, `link`, `actuator`, `sensors`, `firmware`) bị từ
@@ -457,6 +495,18 @@ Vẫn chỉ là bản tham chiếu Python, bo mô phỏng và cổng serial gi�
 Chạy lại riêng tệp này khi sửa tài liệu (máy bàn, `.venv`): 60 passed. Bốn tệp `test_transport_*` vẫn 184 test (đếm
 bằng `--collect-only`; `take_new()` chưa có test riêng ở đây). Bộ test đầy đủ cuối tối 24/09/2026 (`.venv`): 895 đạt,
 6 bỏ qua (mô-đun cần torch), 215 s.)*
+*(Thêm muộn tối 24/09/2026, máy bàn, `.venv`.)* `tests/test_transport_vehicle_io.py` có 49 test ở commit 9bcc30c.
+Số "48" ở trên là số lúc viết đoạn đó; khác nhau một test, nguồn gốc chưa tra. Nay tệp có thêm 15 test cho
+`compare_limits`/`check_limits` (mục 7) và `SerialVehicleIO.deferred` (mục 10), tổng **64**. Bốn tệp `test_transport_*`:
+**200 test, 200 đạt** (52 + 73 + 64 + 11, đếm bằng `--collect-only`, chạy trong đợt 437 đạt ghi ở
+[CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 7). Test mới ở tệp khác: `tests/test_vehicle_board_ui.py` 26 đạt,
+`tests/test_nearfield_tof.py` 33 đạt. Đột biến trên bản sao: 31 đột biến, cả 31 bị bắt (CHE_DO_QUAN_SAT.md mục 7).
+Vẫn chỉ là bản tham chiếu Python, bo mô phỏng và cổng serial giả.
+*(Đo lại muộn hơn tối 24/09/2026, máy bàn, `.venv`, sau đợt sửa theo rà soát: lớp ToF, chặn `SimTruthPose`,
+`probe_board`, xem mục 12.)* `tests/test_vehicle_board_ui.py` 30 đạt, `tests/test_nearfield_tof.py` 54 đạt,
+`tests/test_transport_vehicle_io.py` vẫn 64 (không thêm test). Chạy chung 19 tệp liên quan: 505 đạt, 0 lỗi. Đột biến đo
+lại trên bản sao: 50 đột biến (30 cũ còn áp dụng + 20 mới), cả 50 bị bắt; đột biến cũ "nhận đúng tầm tối đa" bỏ vì
+hành vi đổi có chủ ý (CHE_DO_QUAN_SAT.md mục 7).
 
 ## 12. Chưa làm / giới hạn
 
@@ -541,6 +591,69 @@ bằng `--collect-only`; `take_new()` chưa có test riêng ở đây). Bộ tes
   hay `max_range_m`; cả bốn số đo dùng chung stamp của khung (thời điểm laptop nhận). Ánh xạ chỉ số →
   `sensor_id`/`max_range_m`/vị trí gắn phải lấy từ cấu hình, hiện chưa có file cấu hình nào ghi; `NearFieldLayer` vẫn
   chỉ chạy với số đo giả.
+  *(Cập nhật muộn tối 24/09/2026: đã có mã, vẫn chưa có ToF thật.)* Tệp
+  [`configs/tof_mounts_v0.json`](../configs/tof_mounts_v0.json) gán chỉ số 0–3 cho `tof_front`, `tof_rear`, `tof_left`,
+  `tof_right`. Mỗi mục có vị trí gá trong hệ xe (gốc tâm trục sau), góc nhìn 27° và tầm dùng được [0,04; 1,3) m. Mọi số
+  là GIẢ ĐỊNH – CHƯA ĐO: vị trí theo kích thước xe giả định `vehicle_default.json`, không phải MN300; gán chỉ số nào
+  cho cảm biến nào là ĐỀ XUẤT – CHỜ CHỐT; góc nhìn và tầm đo của VL53L1X cần tra datasheet. Mã nằm trong
+  `fusion/layers.py`:
+  - `TofMountConfig.load` từ chối khóa lạ, khóa thiếu, chỉ số trùng hay ngoài 0–3, và số không hợp lệ.
+    *(Sửa muộn tối 24/09/2026.)* Trường số là `null`, `true`/`false`, số để trong ngoặc kép (`"0.25"`, `"0,25"`) hay
+    danh sách cũng bị từ chối bằng `ValueError` nêu cảm biến và khóa (vd. "mục ToF tof_front: x_m phải là số JSON"),
+    không còn lọt ra `TypeError` hay lỗi tiếng Anh của `float()`; `sensor_id` phải là chuỗi khác rỗng.
+  - `tof_to_near_field(telemetry, config)` trả một `NearFieldReading` cho mỗi cảm biến có trong bảng. Số đo `None`
+    (bit mặt nạ 0), NaN/vô cực, ≤ 0, dưới tầm tối thiểu, hoặc khung có stamp không hợp lệ đều thành `valid=False`,
+    `range_m` NaN, có ghi lý do (`note`). Không trường hợp nào thành khoảng cách "an toàn" hay ô FREE.
+    *(Sửa muộn tối 24/09/2026; câu cũ "từ tầm tối đa trở lên → `valid=False`" đã bỏ.)* Số đo từ tầm tối đa trở lên
+    mà bit hợp lệ là số đo HỢP LỆ, `range_m` giữ nguyên, `note` "ngoài tầm dùng được..., không đánh dấu"; lớp không
+    đánh dấu ô nào cho nó (không OCCUPIED, không FREE), đúng hợp đồng cũ của `NearFieldLayer` (ca `far` trong
+    `tests/test_fusion.py`). Trần vật lý của VL53L1X (số lớn hơn thì chắc chắn là lỗi firmware) cần tra datasheet,
+    chưa dùng.
+  - `unmapped_tof_indices` báo chỉ số có số đo mà bảng không có.
+  - `NearFieldLayer.from_tof_config` và `add_telemetry` nạp cả khung rồi dựng bản đồ một lần.
+  - *(Luật mới, sửa muộn tối 24/09/2026 theo rà soát.)* **Một ToF không dùng được chỉ mất cung của chính nó.** Trước
+    đây lớp hợp lệ khi MỌI số đo hợp lệ, nên chỉ cần một ToF mặt nạ 0 (không thấy gì trong 1,3 m — chuyện thường ngày
+    trên sa bàn) là cả lớp không hợp lệ: lớp tùy chọn thì `fuse()` bỏ luôn cung OCCUPIED của các ToF khác mà bản đồ
+    hợp nhất vẫn báo hợp lệ (mất vật cản một cách im lặng); lớp bắt buộc thì cả bản đồ bị chặn. Nay:
+    - khung telemetry (`add_telemetry`, hoặc `add_readings(..., frame_stamp=...)`): lớp hợp lệ theo stamp của KHUNG;
+      ToF không dùng được không thêm ô nào và được ghi vào `invalid_sensors` (lý do) và `sensor_notes` (mọi ghi chú,
+      kể cả "ngoài tầm"), cả hai có trong `status()` nên hiện ở `FusionResult.layers["near_field"]`;
+    - số đo từ nguồn chung (`add_reading`/`add_readings` không có khung): lớp không hợp lệ khi không còn số đo nào hợp
+      lệ (một cảm biến duy nhất báo không hợp lệ → lớp không hợp lệ, như trước);
+    - `required_sensors` (tùy chọn, mặc định rỗng): cảm biến trong tập này không dùng được hoặc chưa có số đo thì lớp
+      không hợp lệ. **Chưa nên bật với giao thức v1** (xem gạch đầu dòng dưới): ToF bắt buộc nhìn vào khoảng trống sẽ
+      làm lớp không hợp lệ.
+
+    Test (`tests/test_nearfield_tof.py`, khung telemetry dựng bằng `VehicleTelemetry.from_message` hoặc đi qua cổng
+    serial GIẢ; máy bàn, `.venv`): một ToF thấy vật ở 0,3 m, ba ToF kia mặt nạ 0, camera nói FREE khắp nơi → ô của vật
+    là OCCUPIED trong bản đồ hợp nhất, với lớp ToF tùy chọn lẫn bắt buộc (trước bản sửa: FREE, hoặc cả bản đồ bị chặn);
+    mọi ToF mặt nạ 0 → lớp bắt buộc vẫn hợp lệ, không chặn bản đồ. Chưa có ToF thật nào; ToF vẫn chưa vào phiên.
+
+  Test: `tests/test_nearfield_tof.py`, gồm một phép thử qua dây (`FirmwareModel` với ngõ vào ToF giả → cổng serial
+  GIẢ → `VehicleTelemetry` → `NearFieldLayer`). VehicleIO mô phỏng vẫn không sinh số ToF (mặt nạ luôn 0).
+- *(Thêm muộn tối 24/09/2026, ĐỀ XUẤT – CHỜ CHỐT, CHƯA THỬ.)* **Giao thức v1 không phân biệt "không có vật trong tầm"
+  với "lỗi cảm biến/I2C":** cả hai đều là bit mặt nạ 0 (mục 8: số đo không hợp lệ gửi 0). Vì vậy một ToF chết trông
+  giống hệt khoảng trống. Hiện chấp nhận được chỉ vì lớp gần xe không bao giờ đánh dấu FREE và là lớp tùy chọn: ToF
+  chết chỉ làm mất thông tin, không tạo ra "đường trống" giả. Đề xuất: thêm mặt nạ sức khỏe riêng cho từng ToF (ví dụ
+  `tof_ok_mask`, hoặc gửi các bit `range_status` của VL53L1X) và lỗi "ToF X không báo khỏe quá Y s" theo từng cảm
+  biến; hoặc mặt nạ "không có đích" riêng. Cả hai cách đều đổi bố cục byte nên phải tăng `PROTOCOL_VERSION` và sửa
+  firmware cùng lúc. Ý nghĩa `range_status` của VL53L1X cần tra datasheet; firmware chưa có driver VL53L1X nào. Chỉ khi
+  có mặt nạ sức khỏe thì `required_sensors` của `NearFieldLayer` mới có nghĩa.
+- *(Thêm muộn tối 24/09/2026.)* Giao diện có thẻ **"Bo điều khiển"**: chọn cổng COM (liệt kê bằng
+  `serial.tools.list_ports`, quét lại mỗi lần mở danh sách, không liệt kê lúc dựng cửa sổ, mặc định vẫn là bo mô
+  phỏng) và nút **"Kiểm kết nối bo"** (mục 10). Chọn cổng thật ở `VEHICLE_IO`/`OBSERVE` tạo
+  `VehicleLink.serial_port` với `NoPoseSource`. Vì chưa có nguồn tư thế thật, **START luôn bị từ chối** với lời báo rõ,
+  trước khi mở cổng hay gửi byte nào. `SimTruthPose` không ghép được với bo thật (ValueError khi tạo liên kết).
+  *(Sửa muộn tối 24/09/2026 theo rà soát: trước đó `SimTruthPose` dựng quanh CHÍNH bo serial lọt qua phép kiểm, rồi
+  START gửi HELLO và hỏng với `AttributeError`; nay cũng bị ValueError, không gửi byte nào. Nguồn tư thế khác có
+  `simulated=True` ghép với `SerialVehicleIO` vẫn được nhận, vì test cổng serial GIẢ dùng đúng cách ghép này; muốn
+  chặn trên cổng COM thật thì phải phân biệt cổng thật với cổng giả, CHƯA LÀM.)* Bo trả HELLO_ACK nhưng phiên bị từ
+  chối (chu kỳ telemetry quá dài) thì "Kiểm kết nối bo" vẫn báo firmware, `boot_id`, giới hạn và kết quả so giới hạn
+  (trước bản sửa báo "Không nhận được HELLO_ACK."). Chi tiết: [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 6, 8. Mới
+  kiểm với cổng serial GIẢ, `comports` giả và `serial.Serial` bị chặn trong test; chưa mở cổng thật nào.
+- *(Thêm muộn tối 24/09/2026.)* Khoảng hở còn lại của mục "Bản sửa" trên: bo vừa về ARMED (`COMMAND_TIMEOUT`) mà khung
+  báo điều đó chưa tới laptop. Một cách đóng là chốt phía firmware: sau `COMMAND_TIMEOUT`, bo không nhận enable=1 nữa
+  tới khi có ARM mới. Đây là ĐỀ XUẤT – CHỜ CHỐT: đổi hành vi firmware nên cần người dùng duyệt, **CHƯA LÀM**.
 - Mô hình cơ cấu chấp hành đơn giản: vùng chết đối xứng, tốc độ xác lập tuyến tính theo effort, không có ma sát tĩnh
   khác động, không có phanh ESC, không có độ rơ lái; mọi hệ số là giả định.
 - Chưa có xác thực nguồn gửi (một tiến trình khác mở được cổng có thể gửi HELLO); chấp nhận ở mức bàn thử một laptop.

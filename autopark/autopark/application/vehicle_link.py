@@ -34,13 +34,26 @@ khi đã gửi ARM thì gửi DISARM trước khi báo lỗi. Lần START bị t
 nó được nối vào `start_refusals`.
 
 Hành vi trên bo thật CHƯA KIỂM: mọi test hiện nay chạy qua `SimVehicleIO` + `FirmwareModel` (bản tham chiếu Python).
+
+Thêm 24/09/2026 (chỉ kiểm với bo mô phỏng và cổng serial GIẢ `FirmwareSerialLoopback`, CHƯA THỬ với ESP32-S3):
+
+- Giới hạn: trước START lớp nối so giới hạn bo báo trong HELLO_ACK với `VehicleConfig` của planner
+  (`VehicleIO.check_limits`). Lệch thì ghi dòng `LIMITS_MISMATCH`. Ở VEHICLE_IO, lệch theo hướng nguy hiểm (bo cho
+  phép nhanh hơn/lái gắt hơn/đổi lái hay tăng tốc nhanh hơn, phanh yếu hơn, hoặc góc lái nhỏ hơn đường đã lập cần)
+  thì từ chối START; bo chỉ chặt hơn thì cảnh báo và vẫn chạy. Ở OBSERVE chỉ ghi, vì không gửi lệnh nào.
+- Bo thật: `VehicleLink.serial_port(mode, "COMx")` tạo `SerialVehicleIO.deferred` (chưa mở cổng) với `NoPoseSource`.
+  Khi chưa có nguồn tư thế thật, START bị từ chối ngay đầu `begin_run`, trước khi mở cổng hay gửi byte nào.
+  `SimTruthPose` chỉ nhận `SimVehicleIO` của chính liên kết: ghép nó với bo thật (kể cả `SimTruthPose` dựng quanh
+  chính bo serial) bị từ chối ngay khi tạo liên kết.
+- `probe_board()`: "Kiểm kết nối bo" của giao diện. HELLO, đọc vài khung telemetry, so giới hạn, đóng cổng. Không
+  bao giờ ARM, không gửi COMMAND.
 """
 from __future__ import annotations
 
 import csv
 import json
 import math
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from enum import Enum
 from pathlib import Path
 from typing import Protocol
@@ -51,7 +64,8 @@ from autopark.domain.types import Pose, Scenario, VehicleConfig, VehicleState, c
 from autopark.geometry.footprint import check_motion, check_pose
 from autopark.simulation.world import SimWorld, StepResult
 from autopark.transport.protocol import Fault, State, TelemetryFlag
-from autopark.transport.vehicle_io import SimIOConfig, SimVehicleIO, VehicleIO, VehicleIOError, VehicleTelemetry
+from autopark.transport.vehicle_io import (HelloInfo, LimitsCheck, SerialVehicleIO, SimIOConfig, SimVehicleIO,
+                                           VehicleIO, VehicleIOError, VehicleTelemetry)
 
 
 class DriveMode(str, Enum):
@@ -102,6 +116,27 @@ class SimTruthPose:
 
     def latest(self) -> PoseSample | None:
         return PoseSample(self.io.truth.pose, self.io.now(), self.source_id, True)
+
+
+NO_POSE_SOURCE_REASON = ("Chưa có nguồn tư thế thật: định vị LiDAR chưa nối vào phiên và chưa kiểm yêu cầu cùng "
+                         "đồng hồ với VehicleIO; tư thế mô phỏng (SimTruthPose) không được dùng với bo thật")
+
+
+class NoPoseSource:
+    """Chỗ giữ nguồn tư thế khi chạy với bo THẬT mà chưa có định vị (thêm 24/09/2026).
+
+    `available = False`: `VehicleLink.begin_run` từ chối START ngay đầu, trước khi mở cổng hay gửi gì tới bo. Không
+    thay bằng `SimTruthPose`: tư thế của xe mô phỏng không nói gì về xe thật."""
+
+    source_id = "no_pose_source"
+    simulated = False
+    available = False
+
+    def __init__(self, reason: str = NO_POSE_SOURCE_REASON):
+        self.reason = reason
+
+    def latest(self) -> PoseSample | None:
+        return None
 
 
 class SimHumanDriver:
@@ -229,6 +264,12 @@ class VehicleLink:
             raise ValueError("Chế độ SIM không đi qua VehicleLink (Session.set_vehicle_link(None))")
         if not _simulated and (io is None or pose_source is None):
             raise ValueError("Cần VehicleIO và nguồn tư thế (hoặc dùng VehicleLink.simulated)")
+        if isinstance(pose_source, SimTruthPose) and (pose_source.io is not io or not isinstance(io, SimVehicleIO)):
+            # Tư thế thật của một xe mô phỏng KHÁC, ghép với bo thật, hoặc SimTruthPose dựng quanh chính bo serial
+            # (sửa muộn tối 24/09/2026: trước đó lọt qua rồi START hỏng với AttributeError thay vì từ chối rõ ràng):
+            # không phải tư thế của xe mà io điều khiển.
+            raise ValueError("SimTruthPose chỉ dùng với chính SimVehicleIO của liên kết (bo mô phỏng); không ghép với "
+                             "bo thật hay bo mô phỏng khác")
         self.mode = mode
         self.io = io
         self.pose_source = pose_source
@@ -247,12 +288,22 @@ class VehicleLink:
         self.runs = 0
         self.result: dict | None = None
         self.suggestion: TrackerOutput | None = None
+        self.limits_check: LimitsCheck | None = None    # lần so giới hạn gần nhất lúc START (kể cả lần bị từ chối)
         self._reset_run_state()
 
     @classmethod
     def simulated(cls, mode: DriveMode | str, sim_config: SimIOConfig | None = None, *,
                   params: LinkParams | None = None) -> "VehicleLink":
         return cls(mode, params=params, sim_config=sim_config or SimIOConfig(), _simulated=True)
+
+    @classmethod
+    def serial_port(cls, mode: DriveMode | str, port: str, *, pose_source: PoseSource | None = None,
+                    params: LinkParams | None = None, **io_kwargs) -> "VehicleLink":
+        """Liên kết tới bo THẬT qua cổng `port` (thêm 24/09/2026). Cổng KHÔNG được mở ở đây
+        (`SerialVehicleIO.deferred`). Không truyền nguồn tư thế thì dùng `NoPoseSource`, và START luôn bị từ chối
+        trước khi mở cổng."""
+        io = SerialVehicleIO.deferred(port, **io_kwargs)
+        return cls(mode, io, pose_source=pose_source if pose_source is not None else NoPoseSource(), params=params)
 
     def _reset_run_state(self) -> None:
         self._io_t0 = 0.0
@@ -288,8 +339,10 @@ class VehicleLink:
             "pose_source": source.source_id if source is not None else (
                 SimTruthPose.source_id if self._simulated else None),
             "pose_simulated": self.pose_simulated,
+            "port": getattr(self.io, "port", None),
             "params": asdict(self.params),
             "sim_config": self.sim_config.to_dict() if self.sim_config is not None else None,
+            "limits_check": self.limits_check.to_dict() if self.limits_check is not None else None,
             "evidence": ("simulation_only" if (self._simulated or isinstance(self.io, SimVehicleIO))
                          else "hardware_untested"),
         }
@@ -436,17 +489,41 @@ class VehicleLink:
     def _open_run(self, scenario: Scenario, cfg: VehicleConfig, dt: float) -> MirroredWorld:
         io = self.io
         p = self.params
+        if not getattr(self.pose_source, "available", True):
+            # Bo thật mà chưa có nguồn tư thế thật (24/09/2026): từ chối TRƯỚC mọi I/O (không mở cổng, không HELLO).
+            port = getattr(io, "port", None)
+            message = (f"Không bắt đầu được với bo thật{f' ({port})' if port else ''}: "
+                       f"{getattr(self.pose_source, 'reason', NO_POSE_SOURCE_REASON)}. Cổng chưa được mở, không gửi gì "
+                       f"tới bo; dùng 'Kiểm kết nối bo' để kiểm liên lạc")
+            self._log_event(io.now(), None, "vehicle_link", "START_NO_POSE_SOURCE", "LOG", "before_start", message)
+            raise VehicleLinkError(message)
         try:
             if not io.connected:
                 io.connect(timeout_s=p.connect_timeout_s)
             io.wait_ready(timeout_s=p.ready_timeout_s)
             samples = self._new_telemetry(io.now(), p.start_samples)
+            limits = io.check_limits(cfg, emit_event=False)
         except VehicleIOError as exc:
             self._log_event(io.now(), None, "vehicle_link", "START_NO_LINK", "LOG", "before_start", str(exc))
             raise VehicleLinkError(f"Không có liên lạc với bo: {exc}") from exc
+        self.limits_check = limits
         for ev in io.events():            # sự kiện cũ: ghi lại, không làm dừng lần chạy mới
             self._log_event(ev.stamp.t, None, ev.stamp.source_id, ev.code, ev.action, "before_start", ev.message)
+        refuse_limits = self.mode == DriveMode.VEHICLE_IO and bool(limits.risky)
+        if not limits.ok:
+            # VEHICLE_IO + lệch nguy hiểm → dòng STOP và START bị từ chối (qua START_CHECK); còn lại chỉ cảnh báo.
+            handling = ("TỪ CHỐI START" if refuse_limits else
+                        "chỉ cảnh báo (quan sát: không gửi lệnh)" if self.observe_only else
+                        "chỉ cảnh báo (bo chặt hơn)")
+            self._log_event(io.now(), None, "vehicle_link", "LIMITS_MISMATCH", "STOP" if refuse_limits else "LOG",
+                            "before_start", f"{limits.describe()} → {handling}")
         problems, summary = self._start_problems(samples, scenario, cfg)
+        if refuse_limits:
+            problems.append("Giới hạn của bo lệch cấu hình xe mà planner dùng theo hướng nguy hiểm: "
+                            + "; ".join(m.describe() for m in limits.risky)
+                            + ". Sửa cấu hình xe hoặc firmware cho khớp rồi lập lại đường")
+        summary += ", giới hạn: " + ("khớp" if limits.ok else
+                                     f"lệch {len(limits.mismatches)} ({len(limits.risky)} nguy hiểm)")
         self._log_event(io.now(), None, "vehicle_link", "START_CHECK", "LOG", "before_start",
                         ("TỪ CHỐI: " + "; ".join(problems) + " | " if problems else "Đạt: ") + summary)
         if problems:
@@ -765,3 +842,112 @@ class VehicleLink:
             io.close()
         except OSError:
             pass
+
+
+# ---------------------------------------------------------------------- "Kiểm kết nối bo" (thêm 24/09/2026)
+@dataclass
+class BoardProbe:
+    """Kết quả một lần "Kiểm kết nối bo": HELLO_ACK, vài khung telemetry, so giới hạn, sự kiện, số khung đã gửi."""
+
+    target: str                                   # "COM5" hoặc "bo mô phỏng"
+    simulated: bool
+    hello: HelloInfo | None = None
+    frames: list[VehicleTelemetry] = field(default_factory=list)
+    limits: LimitsCheck | None = None
+    events: list[SafetyEvent] = field(default_factory=list)
+    error: str | None = None
+    commands_sent: int = 0                        # phải luôn 0: kiểm kết nối không gửi COMMAND nào
+    requests_sent: int = 0                        # REQUEST (chỉ có thể là DISARM do VehicleIO tự gửi khi mất liên lạc)
+    frames_wanted: int = 0
+
+    @property
+    def ok(self) -> bool:
+        return self.error is None and self.hello is not None and len(self.frames) >= self.frames_wanted
+
+    def lines(self) -> list[str]:
+        """Báo cáo tiếng Việt, mỗi phần tử một dòng (giao diện hiển thị nguyên văn)."""
+        kind = "bo MÔ PHỎNG (SimVehicleIO + FirmwareModel)" if self.simulated else "bo thật qua cổng serial"
+        out = [f"Kiểm kết nối: {self.target} — {kind}. Chỉ HELLO, không ARM, không gửi lệnh chuyển động."]
+        h = self.hello
+        if h is None:
+            out.append("Không nhận được HELLO_ACK.")
+        else:
+            lim = h.limits
+            out.append(f"HELLO_ACK: firmware {h.firmware_version}, boot_id {h.boot_id:08x}, lý do reset "
+                       f"{h.reset_reason}, trạng thái {h.state.name}, chu kỳ telemetry "
+                       f"{h.telemetry_period_s * 1000:.0f} ms.")
+            out.append(f"Giới hạn bo: {lim.max_speed_mps * 1000:.0f} mm/s, "
+                       f"lái ±{math.degrees(lim.max_steer_rad):.1f}°, "
+                       f"đổi lái {math.degrees(lim.max_steer_rate_rad_s):.0f}°/s, tăng tốc "
+                       f"{lim.max_accel_mps2 * 1000:.0f} mm/s², giảm tốc {lim.max_decel_mps2 * 1000:.0f} / dừng "
+                       f"{lim.stop_decel_mps2 * 1000:.0f} mm/s², hạn lệnh ≤ {lim.max_validity_s * 1000:.0f} ms, "
+                       f"watchdog liên lạc {lim.link_timeout_s * 1000:.0f} ms.")
+        if self.limits is not None:
+            if self.limits.ok:
+                out.append(self.limits.describe() + ".")
+            else:
+                verdict = ("START ở VEHICLE_IO sẽ bị TỪ CHỐI" if self.limits.risky
+                           else "chỉ cảnh báo, START không bị chặn vì giới hạn")
+                out.append(f"LIMITS_MISMATCH ({verdict}): {self.limits.describe()}.")
+        out.append(f"Telemetry: {len(self.frames)}/{self.frames_wanted} khung.")
+        for tel in self.frames:
+            speed = "—" if tel.speed_mps is None else f"{tel.speed_mps:+.3f} m/s"
+            steer = "—" if tel.steer_rad is None else f"{math.degrees(tel.steer_rad):+.1f}°"
+            supply = "—" if tel.supply_v is None else f"{tel.supply_v:.2f} V"
+            tof = " ".join("—" if v is None else f"{v:.3f}" for v in tel.tof_m)
+            out.append(f"  #{tel.sequence} t_bo {tel.device_time_ms} ms: {tel.state.name}, lỗi {tel.fault.name}, "
+                       f"tốc độ {speed}, lái {steer}, E-stop {'NHẤN' if tel.estop_input else 'không'}, "
+                       f"nguồn {supply}, ToF [m] {tof}")
+        for ev in self.events:
+            out.append(f"Sự kiện {ev.code} ({ev.action}): {ev.message}")
+        out.append(f"Đã gửi: {self.commands_sent} COMMAND, {self.requests_sent} REQUEST (HELLO không tính). "
+                   f"Đã đóng kết nối.")
+        if self.error:
+            out.append(f"LỖI: {self.error}")
+        return out
+
+
+def probe_board(io: VehicleIO, cfg: VehicleConfig, *, target: str = "", frames: int = 5,
+                connect_timeout_s: float = 1.0, frames_timeout_s: float = 1.0) -> BoardProbe:
+    """"Kiểm kết nối bo": `connect()` (HELLO; bo về DISARMED hoặc giữ BOOT/FAULT), đọc tới `frames` khung telemetry
+    trong `frames_timeout_s` (đồng hồ io), so giới hạn với `cfg` (`check_limits`, có sự kiện `LIMITS_MISMATCH`), rồi
+    ĐÓNG io. KHÔNG BAO GIỜ gọi `arm()`, `send()` hay `stop()`: không COMMAND nào, kể cả enable=0. REQUEST duy nhất có
+    thể lọt ra là DISARM mà `VehicleIO` tự gửi khi mất liên lạc (TELEMETRY_STALE). Lỗi liên lạc (hết giờ, lỗi cổng)
+    không ném ra mà ghi vào `error`; io luôn được đóng. Bo đã trả HELLO_ACK nhưng `connect()` không nhận phiên (chu kỳ
+    telemetry quá dài): báo cáo vẫn có HELLO_ACK và kết quả so giới hạn, `error` nói phiên bị từ chối. Mới thử với bo
+    mô phỏng và cổng serial GIẢ; CHƯA THỬ với ESP32-S3 (24/09/2026)."""
+    if not isinstance(frames, int) or isinstance(frames, bool) or frames < 1:
+        raise ValueError("frames phải là số nguyên >= 1")
+    simulated = isinstance(io, SimVehicleIO)
+    report = BoardProbe(target or getattr(io, "port", None) or ("bo mô phỏng" if simulated else type(io).__name__),
+                        simulated, frames_wanted=frames)
+    commands0, requests0 = io.stats.commands_sent, io.stats.requests_sent
+    hello_before = io.hello              # HELLO_ACK của phiên cũ (nếu có) không được báo như của lần kiểm này
+    try:
+        report.hello = io.connect(timeout_s=connect_timeout_s)
+        report.limits = io.check_limits(cfg)
+        deadline = io.now() + frames_timeout_s
+        while len(report.frames) < frames and io.now() < deadline and io.connected:
+            report.frames.extend(io.poll())
+        report.frames = report.frames[:frames]
+        if len(report.frames) < frames:
+            report.error = (f"Chỉ nhận {len(report.frames)}/{frames} khung telemetry trong {frames_timeout_s:.1f} s"
+                            + ("" if io.connected else " (mất phiên hoặc lỗi cổng)"))
+    except VehicleIOError as exc:
+        report.error = str(exc)
+        if report.hello is None and io.hello is not None and io.hello is not hello_before:
+            # connect() đã nhận HELLO_ACK của lần kiểm này rồi mới từ chối phiên (vd. bo chọn chu kỳ telemetry quá dài
+            # so với telemetry_timeout_s): vẫn báo firmware/boot_id/giới hạn để chẩn đoán (sửa muộn tối 24/09/2026).
+            # check_limits chỉ đọc hello, không gửi gì tới bo; `ok` vẫn False vì có lỗi.
+            report.hello = io.hello
+            report.limits = io.check_limits(cfg)
+            report.error = f"HELLO_ACK nhận được nhưng phiên bị từ chối: {exc}"
+    finally:
+        report.events = io.events()
+        report.commands_sent = io.stats.commands_sent - commands0
+        report.requests_sent = io.stats.requests_sent - requests0
+        try:
+            io.close()
+        except OSError as exc:
+            report.error = report.error or f"Lỗi khi đóng cổng: {exc}"
+    return report

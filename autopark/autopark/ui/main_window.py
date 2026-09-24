@@ -18,6 +18,7 @@ from typing import Callable
 from PySide6.QtCore import QElapsedTimer, QPointF, QRectF, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QRadialGradient, QTransform
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QComboBox,
     QFrame,
@@ -42,7 +43,7 @@ from PySide6.QtWidgets import (
 )
 
 from autopark.application.session import EDITABLE_STATES, Session, SessionError, SessionState
-from autopark.application.vehicle_link import DriveMode, SimHumanDriver, VehicleLink
+from autopark.application.vehicle_link import BoardProbe, DriveMode, SimHumanDriver, VehicleLink, probe_board
 from autopark.domain.types import Bounds, Obstacle, ParkingMode, ParkingSlot, Pose, wrap_angle
 from autopark.planning.hybrid_astar import PlanResult
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config, save_scenario
@@ -87,17 +88,64 @@ _STATE_TONE = {
 }
 
 # Nhánh chạy chọn trong giao diện (24/09/2026): hai nhánh VehicleIO đều nối với bo MÔ PHỎNG (SimVehicleIO +
-# FirmwareModel) và tư thế lấy từ mô phỏng; giao diện chưa có lựa chọn cổng serial tới bo thật.
+# FirmwareModel) và tư thế lấy từ mô phỏng. (Cập nhật 24/09/2026: thẻ "Bo điều khiển" chọn được cổng serial tới bo
+# thật; với bo thật START luôn bị từ chối vì chưa có nguồn tư thế thật, xem `VehicleLink.serial_port`.)
 DRIVE_MODE_CHOICES = (
     (DriveMode.SIM, "Mô phỏng giai đoạn 0 (mặc định)",
      "Xe ảo chạy thẳng theo lệnh, phản hồi giả như giai đoạn 0."),
-    (DriveMode.VEHICLE_IO, "VehicleIO → bo mô phỏng: GỬI lệnh",
-     "Lệnh bám đường đi qua giao thức tới bo giả (SimVehicleIO + FirmwareModel); tốc độ và góc lái lấy từ "
-     "telemetry, tư thế lấy từ mô phỏng (định vị lý tưởng). Chưa nối bo thật."),
+    (DriveMode.VEHICLE_IO, "VehicleIO: GỬI lệnh tới bo",
+     "Lệnh bám đường đi qua giao thức tới bo chọn ở thẻ Bo điều khiển. Mặc định là bo mô phỏng (SimVehicleIO + "
+     "FirmwareModel): tốc độ và góc lái lấy từ telemetry, tư thế lấy từ mô phỏng (định vị lý tưởng)."),
     (DriveMode.OBSERVE, "Quan sát: tính lệnh, KHÔNG gửi",
      "Người lái cầm lái xe mô phỏng bằng ↑ ↓ ← → (Space phanh, Esc kết thúc). Phần mềm chỉ tính và ghi lệnh "
      "(commands.csv); bo giữ DISARMED, không nhận COMMAND nào. Tư thế lấy từ mô phỏng."),
 )
+SIM_BOARD_LABEL = "Bo mô phỏng (mặc định)"
+ESPRESSIF_VID = 0x303A        # VID USB của Espressif (USB CDC/JTAG gắn liền ESP32-S3); chỉ để gợi ý, không để lọc
+
+
+def list_serial_ports() -> list[tuple[str, str]]:
+    """(tên cổng, mô tả) của các cổng COM mà pyserial liệt kê, sắp theo số cổng. Chỉ LIỆT KÊ (không mở cổng nào).
+
+    Không có pyserial hoặc liệt kê lỗi thì trả danh sách rỗng."""
+    try:
+        from serial.tools import list_ports
+        found = list(list_ports.comports())
+    except Exception:                     # ImportError, lỗi SetupAPI: coi như không có cổng nào
+        return []
+    out = []
+    for info in found:
+        device = str(getattr(info, "device", "") or "")
+        if not device:
+            continue
+        desc = str(getattr(info, "description", "") or "")
+        if getattr(info, "vid", None) == ESPRESSIF_VID:
+            desc = (desc + " · " if desc else "") + "Espressif (VID 303A)"
+        out.append((device, desc))
+
+    def key(item):
+        digits = "".join(ch for ch in item[0] if ch.isdigit())
+        return (item[0].rstrip("0123456789"), int(digits) if digits else -1, item[0])
+
+    return sorted(out, key=key)
+
+
+def _open_serial_io(port: str):
+    """Mở cổng thật cho "Kiểm kết nối bo" (test thay hàm này bằng cổng serial giả)."""
+    from autopark.transport.vehicle_io import SerialVehicleIO
+    return SerialVehicleIO.open(port)
+
+
+class PortCombo(QComboBox):
+    """Ô chọn cổng: liệt kê lại cổng COM mỗi lần người dùng mở danh sách (không liệt kê lúc dựng cửa sổ)."""
+
+    def __init__(self, before_popup: Callable[[], None], parent: QWidget | None = None):
+        super().__init__(parent)
+        self._before_popup = before_popup
+
+    def showPopup(self) -> None:
+        self._before_popup()
+        super().showPopup()
 
 
 class SandboxView(QGraphicsView):
@@ -405,6 +453,33 @@ class MainWindow(QMainWindow):
         self.box_sim.add_layout(theme.row(self.btn_manual, self.btn_export))
         self.box_sim.add(keys)
         layout.addWidget(self.box_sim)
+
+        # Bo nhận lệnh của VEHICLE_IO/OBSERVE (thêm 24/09/2026). Mặc định bo mô phỏng; chọn cổng không mở cổng.
+        self.box_board = Card("Bo điều khiển")
+        self.combo_port = PortCombo(self._refresh_ports)
+        self.combo_port.addItem(SIM_BOARD_LABEL, "")
+        self.combo_port.setToolTip("Mở danh sách để quét lại cổng COM. Chọn cổng không mở cổng và không gửi gì.")
+        self.combo_port.currentIndexChanged.connect(self._on_port_changed)
+        self.btn_ports = QPushButton("Quét cổng")
+        self.btn_ports.setToolTip("Liệt kê lại cổng COM (chỉ liệt kê, không mở cổng)")
+        self.btn_ports.clicked.connect(self._refresh_ports)
+        self.btn_probe = QPushButton("Kiểm kết nối bo")
+        self.btn_probe.setToolTip("Mở cổng, gửi HELLO, đọc vài khung telemetry, so giới hạn với cấu hình xe rồi đóng. "
+                                  "Không ARM, không gửi lệnh chuyển động.")
+        self.btn_probe.clicked.connect(self._probe_board)
+        self.lbl_board_hint = WrapLabel("")
+        self.lbl_board_hint.setObjectName("hint")
+        self.lbl_board_report = WrapLabel("")
+        self.lbl_board_report.setObjectName("hint")
+        self.lbl_board_report.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.box_board.add(self.combo_port)
+        self.box_board.add_layout(theme.row(self.btn_ports, self.btn_probe))
+        self.box_board.add(self.lbl_board_hint, self.lbl_board_report)
+        layout.addWidget(self.box_board)
+        self.serial_io_factory: Callable[[str], object] = _open_serial_io
+        self.last_board_probe: BoardProbe | None = None
+        self._link_port: str | None = None     # cổng của liên kết đang chọn (None: bo mô phỏng)
+        self._refresh_board_hint()
 
         card = Card("Xe")
         self.lbl_vehicle = WrapLabel("")
@@ -905,6 +980,9 @@ class MainWindow(QMainWindow):
         # Hồ sơ phản hồi giả chỉ có tác dụng ở nhánh SIM; nhánh chạy chỉ đổi được khi chưa chạy.
         self.combo_feedback.setEnabled(editable and self.session.vehicle_link is None)
         self.combo_drive.setEnabled(editable)
+        # Cổng và "Kiểm kết nối bo" chỉ dùng khi chưa chạy (không mở cổng song song với một lần chạy).
+        for widget in (self.combo_port, self.btn_ports, self.btn_probe):
+            widget.setEnabled(editable)
         self.btn_inject.setVisible(st == SessionState.RUNNING)
         self.btn_loss.setVisible(st == SessionState.RUNNING)
         self.btn_loss.setEnabled(st == SessionState.RUNNING and self.session.feedback is not None
@@ -1307,17 +1385,109 @@ class MainWindow(QMainWindow):
 
     def _set_drive_mode(self, index: int) -> None:
         mode = DriveMode(self.combo_drive.itemData(index))
-        link = None if mode == DriveMode.SIM else VehicleLink.simulated(mode, self._sim_io_config())
+        port = self.board_port()
+        if mode == DriveMode.SIM:
+            link = None
+        elif port is None:
+            link = VehicleLink.simulated(mode, self._sim_io_config())
+        else:
+            # Bo thật (24/09/2026): cổng CHƯA mở; chưa có nguồn tư thế thật nên START sẽ bị từ chối rõ ràng.
+            link = VehicleLink.serial_port(mode, port)
         try:
             self.session.set_vehicle_link(link)
         except SessionError as exc:
+            if link is not None:
+                link.close()
             with QSignalBlocker(self.combo_drive):
                 self.combo_drive.setCurrentIndex(self.combo_drive.findData(self.session.drive_mode.value))
+            with QSignalBlocker(self.combo_port):
+                self.combo_port.setCurrentIndex(max(0, self.combo_port.findData(self._link_port or "")))
             QMessageBox.warning(self, "Không đổi được nhánh chạy", str(exc))
             return
-        self.lbl_drive_hint.setText(DRIVE_MODE_CHOICES[index][2])
+        self._link_port = port
+        self.lbl_drive_hint.setText(escape(DRIVE_MODE_CHOICES[index][2]))
+        self._refresh_board_hint()
         self._refresh_mode_widgets()
         self._refresh_status()
+
+    # ------------------------------------------------------------------ bo điều khiển (24/09/2026)
+    def board_port(self) -> str | None:
+        """Cổng serial đang chọn ở thẻ "Bo điều khiển"; None = bo mô phỏng (mặc định)."""
+        data = self.combo_port.currentData()
+        return str(data) if data else None
+
+    def _refresh_ports(self) -> None:
+        """Liệt kê lại cổng COM (không mở cổng). Cổng đang chọn mà không còn thấy vẫn được giữ, ghi "(không thấy)":
+        không tự đổi sang bo khác."""
+        current = self.board_port()
+        ports = list_serial_ports()
+        with QSignalBlocker(self.combo_port):
+            self.combo_port.clear()
+            self.combo_port.addItem(SIM_BOARD_LABEL, "")
+            for device, desc in ports:
+                self.combo_port.addItem(f"{device} — {desc}" if desc else device, device)
+            if current is not None and self.combo_port.findData(current) < 0:
+                self.combo_port.addItem(f"{current} (không thấy — đã rút?)", current)
+            self.combo_port.setCurrentIndex(max(0, self.combo_port.findData(current or "")))
+        self.statusBar().showMessage(f"Thấy {len(ports)} cổng COM" if ports else
+                                     "Không thấy cổng COM nào (hoặc pyserial không liệt kê được)", 5000)
+
+    def _on_port_changed(self, _index: int = -1) -> None:
+        if self.board_port() == self._link_port:
+            self._refresh_board_hint()
+            return
+        self.lbl_board_report.setText("")
+        self._set_drive_mode(self.combo_drive.currentIndex())
+
+    def _refresh_board_hint(self) -> None:
+        port = self.board_port()
+        if port is None:
+            text = ("Bo mô phỏng: VehicleIO và Quan sát đi qua SimVehicleIO + FirmwareModel, tư thế lấy từ mô phỏng. "
+                    "Kiểm kết nối bo ở đây dùng bo mô phỏng.")
+        else:
+            text = (f"Bo THẬT qua {port}. Chọn cổng không mở cổng. Bắt đầu đỗ ở VehicleIO hay Quan sát sẽ bị TỪ CHỐI: "
+                    f"chưa có nguồn tư thế thật (định vị LiDAR chưa nối vào phiên); tư thế mô phỏng không dùng với bo "
+                    f"thật. Kiểm kết nối bo chỉ gửi HELLO (bo về DISARMED), đọc telemetry rồi đóng cổng; không ARM, "
+                    f"không gửi lệnh chuyển động.")
+        self.lbl_board_hint.setText(escape(text))
+
+    def _probe_board(self) -> BoardProbe | None:
+        """"Kiểm kết nối bo": HELLO, vài khung telemetry, so giới hạn với cấu hình xe, đóng cổng.
+
+        Không ARM, không COMMAND."""
+        if self.session.state not in EDITABLE_STATES:
+            return None
+        port = self.board_port()
+        cfg = self.session.cfg
+        if port is None:
+            from autopark.transport.vehicle_io import SimVehicleIO
+            io = SimVehicleIO(cfg, self._sim_io_config())
+        else:
+            answer = QMessageBox.question(
+                self, "Kiểm kết nối bo",
+                f"Mở {port}, gửi HELLO và đọc vài khung telemetry?\n\nKhông ARM, không gửi lệnh chuyển động. HELLO đưa "
+                f"bo về DISARMED. Mở cổng có thể làm ESP32-S3 khởi động lại (DTR/RTS, chưa kiểm).\n\nChỉ tiếp tục nếu "
+                f"{port} là bo ESP32-S3 của xe (không phải LiDAR hay thiết bị khác).",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if answer != QMessageBox.StandardButton.Yes:
+                return None
+            try:
+                io = self.serial_io_factory(port)
+            except Exception as exc:          # SerialException (OSError), ValueError, ImportError...
+                self.lbl_board_report.setText(escape(f"Không mở được {port}: {exc}"))
+                self.statusBar().showMessage(f"Không mở được {port}", 6000)
+                return None
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            report = probe_board(io, cfg, target=port or "bo mô phỏng")
+        finally:
+            QApplication.restoreOverrideCursor()
+        self.last_board_probe = report
+        color = theme.OK if report.ok and (report.limits is None or not report.limits.risky) else theme.WARN
+        body = "<br>".join(escape(line) for line in report.lines())
+        self.lbl_board_report.setText(f"<span style='color:{color}'>{body}</span>")
+        self.statusBar().showMessage(f"Kiểm kết nối {report.target}: " + ("đạt" if report.ok else "có lỗi"), 6000)
+        return report
 
     @staticmethod
     def _sim_io_config():
@@ -1421,8 +1591,14 @@ class MainWindow(QMainWindow):
         self._clock.restart()
         self._refresh_mode_widgets()
         self._refresh_status()
-        if self.session.run_link is not None:
-            self.statusBar().showMessage(f"Nhánh chạy: {self.combo_drive.currentText()}", 8000)
+        link = self.session.run_link
+        if link is not None:
+            limits = link.limits_check
+            if limits is not None and not limits.ok:
+                # START đã qua nên lệch chỉ là bo chặt hơn (hoặc quan sát): cảnh báo, chi tiết trong events.csv.
+                self.statusBar().showMessage(f"LIMITS_MISMATCH (cảnh báo): {limits.describe()}", 15000)
+            else:
+                self.statusBar().showMessage(f"Nhánh chạy: {self.combo_drive.currentText()}", 8000)
         self.view.setFocus()
 
     def stop(self) -> None:
