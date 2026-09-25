@@ -40,8 +40,10 @@ cản xe) hay chân vật bị che vẫn lệch. Sai số hiệu chuẩn, sàn n
 **Tình trạng 24/09/2026:** chưa có camera nào được hiệu chuẩn (`calibration/cam_p*.json` chưa có), ngoại tham trong
 `configs/rig/camera_rig_extrinsics_v0.json` là GIẢ ĐỊNH — CHƯA ĐO, chưa có mặt nạ ROI cho camera dự án. Lệnh `snapshot`
 vì vậy từ chối chạy trên bộ ảnh thật; chỉ có bài tổng hợp và bài trên ảnh WoodScape (hiệu chuẩn của Valeo). Mô hình AI
-chưa từng được chấm trên ảnh sa bàn, và giấy phép WoodScape chưa được chốt cho việc nối AI vào costmap/lập đường
-(docs/GIAY_PHEP_DU_LIEU.md): costmap ra đây chỉ để kiểm tọa độ và quy tắc.
+chưa từng được chấm trên ảnh sa bàn. *Cập nhật 25/09/2026:* người làm khóa luận quyết định dùng mô hình huấn luyện trên
+WoodScape trong vòng điều khiển xe; Valeo CHƯA xác nhận cách đọc điều khoản đó (`WOODSCAPE_LICENCE_NOTE`,
+docs/GIAY_PHEP_DU_LIEU.md). BEV đi vào lập đường qua `fusion/camera_ai.py` và chỉ khi dùng được (docs/AI_DIEU_KHIEN_XE.md);
+mô-đun này tự nó vẫn không nối vào planner.
 """
 from __future__ import annotations
 
@@ -97,6 +99,21 @@ MAX_SKEW_MS = 100.0
 BOTTOM_REPEAT_LIMIT = 0.2
 
 LABEL_FREE, LABEL_BLOCKED, LABEL_NONE = 0, 1, 255
+
+# ---- ghi công và giấy phép WoodScape (ghi vào tệp ra; ui/camera_dock.py hiện trên giao diện) — 25/09/2026 ----------
+# Điều khoản buộc ghi công kèm link tới trang web của bộ dữ liệu. Văn bản điều khoản ghi `woodscape.valeo.ai`, README của
+# Valeo ghi `woodscape.valeo.com`; kiểm trên web 25/09/2026: cả hai dẫn tới một trang Valeo không có nội dung WoodScape.
+# Theo đề xuất ở docs/GIAY_PHEP_DU_LIEU.md mục "Ghi công: link tới trang bộ dữ liệu" (ĐỀ XUẤT – CHỜ CHỐT): link chính là
+# repo GitHub của valeoai, địa chỉ cũ ghi dạng chữ để lưu vết. Sửa link ở đây là sửa mọi tệp ra về sau.
+WOODSCAPE_ATTRIBUTION = ("Mô hình AI huấn luyện trên Valeo WoodScape Dataset (https://github.com/valeoai/WoodScape; địa "
+                         "chỉ cũ woodscape.valeo.com / woodscape.valeo.ai, kiểm 25/09/2026 dẫn tới một trang không có "
+                         "nội dung WoodScape)")
+WOODSCAPE_LICENCE_NOTE = ("Valeo WoodScape Dataset (https://github.com/valeoai/WoodScape): chỉ dùng phi thương mại; cùng "
+                          "câu cấm dùng thương mại có vế 'and notably not use or deploy ... any models trained on or "
+                          "refined using the Dataset ... in operation of a vehicle or to assist in the operation of "
+                          "vehicle'. Người làm khóa luận quyết định 25/09/2026 đọc vế này là ví dụ của việc dùng thương "
+                          "mại và dùng mô hình trong vòng điều khiển xe mô hình 1/12 phi thương mại; Valeo CHƯA xác nhận "
+                          "cách đọc này (còn cách đọc: cấm riêng, bất kể thương mại hay không) — docs/GIAY_PHEP_DU_LIEU.md")
 
 # phân loại ô để thống kê và vẽ (costmap chỉ có -1/0/1; mọi loại UNKNOWN đều bị chặn khi lập đường)
 CAT_FREE, CAT_OCCUPIED, CAT_UNCERTAIN, CAT_OCCLUDED, CAT_UNSEEN, CAT_EGO = 0, 1, 2, 3, 4, 5
@@ -382,6 +399,17 @@ def load_rig_extrinsics(path=DEFAULT_EXTRINSICS) -> RigExtrinsics:
     return RigExtrinsics(str(path), str(data.get("status", "")), cameras, ego, tuple(data.get("ghi_chu", ())))
 
 
+def acceptance_flag(record: dict) -> bool | None:
+    """`acceptance.all_pass` của tệp nội tham: None khi tệp không có kết quả tiêu chí; True CHỈ khi là true của JSON.
+    Giá trị khác (tệp sửa tay: chuỗi "false", 1, khối acceptance không phải object…) coi là CHƯA ĐẠT (False) — không ép
+    kiểu bằng bool(), vì bool("false") là True (25/09/2026)."""
+    block = record.get("acceptance")
+    if block is None:
+        return None
+    value = block.get("all_pass") if isinstance(block, dict) else False
+    return value if value is None or isinstance(value, bool) else False
+
+
 def load_rig(extrinsics_path=DEFAULT_EXTRINSICS, calibration_dir=DEFAULT_CALIBRATION_DIR,
              sizes: dict | None = None, *, roi_dir=None,
              skip_uncalibrated: bool = False) -> tuple[dict, RigExtrinsics, dict]:
@@ -413,7 +441,7 @@ def load_rig(extrinsics_path=DEFAULT_EXTRINSICS, calibration_dir=DEFAULT_CALIBRA
         try:
             intrinsics = load_intrinsics(intr_path, width=width, height=height)
             record = load_calibration(intr_path)
-            acceptance = (record.get("acceptance") or {}).get("all_pass")
+            acceptance = acceptance_flag(record)
         except (OSError, ValueError, KeyError) as exc:
             errors.append((name, f"không nạp được nội tham {intr_path}: {exc}"))
             continue
@@ -431,7 +459,7 @@ def load_rig(extrinsics_path=DEFAULT_EXTRINSICS, calibration_dir=DEFAULT_CALIBRA
                                                   ("nội tham", intrinsics_is_synthetic(record))) if flag)
         cameras[name] = BevCamera(name, CameraCalibration(name, intrinsics, pose.extrinsics), roi, pose.measured,
                                   pose.direction, str(intr_path), roi_source,
-                                  None if acceptance is None else bool(acceptance), synthetic)
+                                  acceptance, synthetic)
     if errors and not skip_uncalibrated:
         raise RigConfigError("không dựng được rig camera:\n" + "\n".join(f"  - {msg}" for _, msg in errors))
     skipped.update({name: msg for name, msg in errors})
@@ -1151,8 +1179,8 @@ def bev_from_snapshot(folder, *, extrinsics=DEFAULT_EXTRINSICS, calibration_dir=
              "max_skew_ms": max_skew_ms, "bottom_repeat_limit": bottom_repeat_limit,
              "frame_damage_check": damage_checks,
              "unusable_reasons": reasons,
-             "caveats": ["AI chưa từng được chấm trên ảnh sa bàn",
-                         "giấy phép WoodScape chưa chốt cho việc nối AI vào costmap/lập đường (GIAY_PHEP_DU_LIEU.md)"]}
+             "caveats": ["AI chưa từng được chấm trên ảnh sa bàn", WOODSCAPE_LICENCE_NOTE],
+             "attribution": WOODSCAPE_ATTRIBUTION}
     return result, ordered, stamp, extra
 
 
@@ -1427,8 +1455,7 @@ def _cmd_woodscape(args) -> int:
                        "roi": None if args.no_roi else str(args.roi),
                        "ego": "không có hộp thân xe (ROI loại pixel thân xe trong ảnh)"},
              "unusable_reasons": reasons,
-             "license": "Valeo WoodScape Dataset (https://woodscape.valeo.com): điều khoản cấm dùng mô hình huấn luyện "
-                        "trên nó để vận hành phương tiện — xem docs/GIAY_PHEP_DU_LIEU.md"}
+             "attribution": WOODSCAPE_ATTRIBUTION, "license": WOODSCAPE_LICENCE_NOTE}
     out = args.out or DEFAULT_OUT_ROOT / ("woodscape_" + "_".join(ids))
     paths = write_outputs(out, result, cameras, stamp, extra=extra, title="BEV WoodScape " + " ".join(ids))
     _print_summary(result, stamp, paths, reasons)

@@ -1,4 +1,4 @@
-# Python 3.12.10 / Windows; .venv-train (torch cu128) as installed on 2026-09-23, incl. rig packages (PySide6, pyserial, pygrabber, psutil, nvidia-ml-py) — companion of requirements-phase0.lock
+# Python 3.12.10 / Windows; .venv-train (torch cu128) as installed on 2026-09-23, incl. rig packages (PySide6, pyserial, pygrabber, psutil, nvidia-ml-py; shapely added 2026-09-25 so the parking session and the camera AI run in one process) — companion of requirements-phase0.lock
 # Install: python -m pip install -r requirements-train.lock --index-url https://download.pytorch.org/whl/cu128 --extra-index-url https://pypi.org/simple
 Jinja2==3.1.6
 MarkupSafe==3.0.3
@@ -32,6 +32,7 @@ pygrabber==0.2
 pyserial==3.5
 pytest==9.1.1
 setuptools==78.1.0
+shapely==2.1.2
 shiboken6==6.11.2
 sympy==1.14.0
 torch==2.11.0+cu128

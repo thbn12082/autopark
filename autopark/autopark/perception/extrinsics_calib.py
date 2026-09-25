@@ -509,9 +509,11 @@ def load_camera_intrinsics(path, port: int | None = None) -> CameraIntrinsics:
         raise ExtrinsicsError(f"{path} là nội tham của camera cổng {hub}, không phải cổng {port}")
     K, D, size = fc.camera_model(record)
     fov = record.get("field_of_view_deg") or {}
-    acc = (record.get("acceptance") or {}).get("all_pass")
+    # cùng quy tắc với BEV (25/09/2026): chỉ true của JSON là đạt; chuỗi "false", 1, khối lạ… là CHƯA đạt
+    from .bev import acceptance_flag     # nhập muộn như các chỗ khác: bev nhập lại mô-đun này
+    acc = acceptance_flag(record)
     return CameraIntrinsics(hub, str(path), K, D, (int(size[0]), int(size[1])), record,
-                            None if acc is None else bool(acc), fov.get("theta_observed_max_deg"))
+                            acc, fov.get("theta_observed_max_deg"))
 
 
 def default_intrinsics_path(port: int, size=fc.DEFAULT_SIZE, calibration_dir=PROJECT / "calibration") -> Path:

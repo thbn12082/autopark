@@ -736,3 +736,13 @@ def test_corner_theta_beyond_intrinsics_coverage_warns(intr, tmp_path):
         path.write_text(json.dumps(rec), encoding="utf-8")
         res = ec.solve_extrinsics(inputs([0, 1]), SPEC, ec.load_camera_intrinsics(path, 1))
         assert res.ok and any("vượt θ lớn nhất" in w for w in res.warnings) == warned, (theta_obs, worst, res.warnings)
+
+
+@pytest.mark.parametrize("value, expected", [(True, True), (False, False), (None, None), ("false", False), (1, False)])
+def test_intrinsics_acceptance_flag_is_read_strictly_like_bev(tmp_path, value, expected):
+    """25/09/2026: như `bev.acceptance_flag` — chỉ true của JSON là đạt; trước đó bool("false") thành True."""
+    path = write_intrinsics(tmp_path / "calibration")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    record["acceptance"]["all_pass"] = value
+    path.write_text(json.dumps(record), encoding="utf-8")
+    assert ec.load_camera_intrinsics(path, 1).acceptance_all_pass is expected

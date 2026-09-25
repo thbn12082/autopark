@@ -1,7 +1,9 @@
 # BEV chiếm chỗ từ AI nhiều camera (giai đoạn 2, bước 7) — 24/09/2026
 
 > **Ghi công theo giấy phép dữ liệu:** mô hình AI và bài minh họa ở đây dùng **Valeo WoodScape Dataset**
-> (<https://woodscape.valeo.com>). Giới hạn sử dụng: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
+> (<https://github.com/valeoai/WoodScape>; địa chỉ cũ `woodscape.valeo.com` / `woodscape.valeo.ai`, kiểm 25/09/2026 dẫn
+> tới một trang không có nội dung WoodScape). Giới hạn sử dụng: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
+> *(Đổi link 25/09/2026 theo đề xuất ở GIAY_PHEP_DU_LIEU.md mục "Ghi công: link tới trang bộ dữ liệu", CHỜ CHỐT.)*
 
 **Tình trạng (24/09/2026):** đã có phần mềm và kiểm thử trên rig tổng hợp. **Chưa chạy được trên camera của dự án**,
 vì ba thứ còn thiếu:
@@ -14,6 +16,12 @@ vì ba thứ còn thiếu:
 có tệp v0, `configs/roi/` chỉ có `woodscape_v1`. Công cụ đo ngoại tham và dựng ROI thì đã có và đã commit
 (`65b7127`, [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md)), còn chờ nội tham và gá camera. BEV vẫn chưa nối vào bàn
 thử, hợp nhất cảm biến hay planner.)*
+
+*(Cập nhật 25/09/2026, chưa commit:)* BEV nay được nối vào phiên đỗ xe như **một nguồn vật cản** qua
+`fusion/camera_ai.py` và ngăn "AI camera" (`ui/camera_dock.py`, `lidar_app --camera-ai`), sau quyết định giấy phép
+ngày 25/09/2026 của người làm khóa luận. Valeo chưa xác nhận cách đọc điều khoản. Chỉ BEV **dùng được** (mục 2,
+quy tắc 9) mới tạo vật cản, nên với ba điều còn thiếu ở trên, AI chưa tạo vật cản nào trên bàn thật. Chi tiết, mức
+bằng chứng và giới hạn: [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md).
 
 Mọi con số dưới đây là của rig tổng hợp hoặc ảnh WoodScape. Không con số nào là số đo sai số BEV trên sa bàn. Điều kiện
 "vật mẫu xuất hiện tại vị trí có thể đối chiếu trên BEV" của kế hoạch mục 6 **chưa kiểm**.
@@ -134,8 +142,16 @@ Mọi camera dùng chung một `GridSpec`.
   `tests/test_extrinsics_calib.py::test_bev_projects_board_corners_where_the_camera_saw_them`.
 
 Ngoài ra còn các trường hợp: không camera nào có dữ liệu, dữ liệu tổng hợp, ảnh WoodScape. Hiện nay **mọi** BEV từ tệp rig
-v0 đều không dùng được. Việc nối AI vào lập đường còn chờ quyết định về giấy phép WoodScape
-([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). `stats.json` ghi điều đó ở `caveats`, không tự chặn.
+v0 đều không dùng được. *(Cập nhật 25/09/2026:)* việc nối AI vào lập đường không còn chờ quyết định giấy phép. Người làm
+khóa luận đã quyết định dùng mô hình WoodScape trong vòng điều khiển; Valeo chưa xác nhận cách đọc điều khoản
+([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). `stats.json` của lệnh `snapshot` ghi ghi chú giấy phép ở `caveats` và
+dòng ghi công ở `attribution` (hằng `WOODSCAPE_LICENCE_NOTE`, `WOODSCAPE_ATTRIBUTION`), không tự chặn. Việc chặn nằm ở
+nguồn vật cản `fusion/camera_ai.py`: chỉ BEV có `stamp.valid` như trên mới được tạo vật cản, và nguồn đó chặt hơn ở hai
+chỗ. Tệp nội tham không có `acceptance.all_pass` bị chặn. Khung khác cỡ ảnh đã hiệu chuẩn cũng bị chặn
+([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3). Cũng từ 25/09/2026, `load_rig` đọc `acceptance.all_pass` qua
+`acceptance_flag`: chỉ `true` của JSON mới là đạt; chuỗi `"false"`, số `1` hay khối `acceptance` không phải object thành
+"chưa đạt" (trước đó `bool("false")` là đạt). Điều này áp cho cả lệnh `bev` lẫn nguồn vật cản; kiểm bằng tệp viết tay
+trong `tests/test_camera_ai_layer.py`.
 
 ## 3. Giả định mặt sàn phẳng và giới hạn với vật cao
 
@@ -607,7 +623,10 @@ Mười hai đột biến mới:
      một tiến trình.
    - BEV chưa chạy song song giữa các camera. Chưa cần, vì mỗi camera ≈ 1,2–2,7 ms.
 7. **Nối vào bàn thử / hợp nhất** (`CameraSemanticLayer`, kế hoạch giai đoạn 3): chưa làm. Chờ các mục trên, và chờ
-   quyết định giấy phép WoodScape cho việc nối AI vào lập đường.
+   quyết định giấy phép WoodScape cho việc nối AI vào lập đường. *(Cập nhật 25/09/2026: phần mềm đã làm, chưa commit,
+   [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md). Quyết định giấy phép đã có, Valeo chưa xác nhận. Có lọc 2/3 lô trong hệ
+   bản đồ. Còn chờ mục 1–4 thì AI mới tạo được vật cản trên bàn thật. Chỉ kiểm bằng nguồn giả, rig tổng hợp và bản ghi
+   phát lại.)*
 8. Lọc theo thời gian, bù chuyển động xe giữa các camera: chưa có. Mọi stamp là lúc khung tới máy, không phải lúc phơi
    sáng.
 9. AI **chưa từng được chấm trên ảnh sa bàn**. Hai ngưỡng 0,15 / 0,50 chưa kiểm trên sa bàn. Mọi lỗi của mô hình đi
