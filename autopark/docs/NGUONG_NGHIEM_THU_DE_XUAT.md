@@ -1,7 +1,10 @@
 # Ngưỡng nghiệm thu V1 — bản đề xuất cho kế hoạch mục 16.2 (24/09/2026)
 
 > **Ghi công theo giấy phép dữ liệu:** các số AI trích ở mục 8 là của mô hình huấn luyện trên **Valeo WoodScape Dataset**
-> (<https://woodscape.valeo.com>). Giới hạn sử dụng: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
+> (<https://github.com/valeoai/WoodScape>; địa chỉ cũ `woodscape.valeo.com` / `woodscape.valeo.ai`, kiểm 25/09/2026 dẫn
+> tới một trang không có nội dung WoodScape). Giới hạn sử dụng: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
+> *(Đổi link 25/09/2026 theo đề xuất ở GIAY_PHEP_DU_LIEU.md mục "Ghi công: link tới trang bộ dữ liệu", CHỜ CHỐT; trước đó
+> link là `https://woodscape.valeo.com`.)*
 
 **Kế hoạch đối chiếu:** [v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 16.2 (bảy nhóm ngưỡng "cần chốt"), 16.1 (mốc
 thử khởi đầu), 16.4 (điều kiện hoàn thành V1), 13 (giai đoạn 9), 14 (định nghĩa cách đo và thành công/thất bại trước khi
@@ -16,6 +19,11 @@ Tình trạng làm nền (24/09/2026, theo [TONG_HOP_DU_AN.md](../../TONG_HOP_DU
 dừng; firmware C++ chưa biên dịch; AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape); định vị LiDAR
 mới chạy offline, chưa có tham chiếu độc lập. Mọi số đo phần cứng hiện có là trên **máy bàn** i9-14900 + RTX 4000 Ada
 (22–24/09/2026). Trên laptop RTX 3050 Ti (máy nộp đồ án) chỉ có hồ sơ mô phỏng giai đoạn 0 (20/09/2026).
+*(Cập nhật 25/09/2026, chưa commit: câu "AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape)" đã lỗi thời.
+Ngày 25/09/2026 người làm khóa luận quyết định dùng mô hình WoodScape trong vòng điều khiển; Valeo chưa xác nhận cách đọc
+điều khoản ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). Phần mềm đưa AI camera vào phiên đỗ xe làm nguồn vật cản đã có
+([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)), chỉ kiểm bằng nguồn giả, rig tổng hợp và phát lại; chưa camera nào được hiệu
+chuẩn nên trên bàn thật AI chưa tạo vật cản nào.)*
 
 ## 0. Cách đọc
 
@@ -129,7 +137,7 @@ cho tiếp tục mù".
 | N-T1 | Telemetry xe trong phiên đỗ | 0,15 s | `LinkParams.max_state_age_s` = 0,15 s, bằng 3 chu kỳ telemetry 50 ms (CHE_DO_QUAN_SAT.md mục 9) | Chu kỳ telemetry thật: CHƯA ĐO (chưa có bo) | |
 | N-T2 | Tư thế xe | CHƯA CHỐT, hai phương án: 0,15 s nếu nguồn tư thế nội suy giữa hai vòng quét (encoder, IMU); 0,25 s nếu tư thế chỉ lấy từ định vị LiDAR 10 Hz | Dùng chung `max_state_age_s` = 0,15 s | LiDAR 100,3 ms/vòng (u01); định vị một vòng trên cảnh khớp: trung vị 10,6–11,1 ms, đo trước bản sửa kiểm xuyên tường; sau bản sửa ≈ 13,3 ms trung vị (live_headless, đo khi có tác vụ khác chạy song song) ([DINH_VI_LIDAR.md](DINH_VI_LIDAR.md) mục 5, bảng thứ hai) | TÍNH: nếu tư thế chỉ đổi mỗi vòng quét thì tuổi lúc nhịp điều khiển dao động 0–0,1 s cộng thời gian định vị. Một vòng không OK là tuổi vượt 0,2 s, phiên dừng `STALE_POSE`. Nếu đóng dấu tư thế theo giữa vòng quét (sớm hơn lúc vòng về máy ≈ 50 ms) thì tuổi có thể vượt 0,15 s ngay cả khi không mất vòng nào. Ở 0,10 m/s, tư thế 0,25 s tuổi ứng ≈ 2,5 cm. Nguồn tư thế thật: CHƯA CÓ (CHE_DO_QUAN_SAT.md mục 2, 8) |
 | N-T3 | LiDAR (lớp bắt buộc) | 0,3 s | `LiveLidarLayer` `max_age_s` = 0,3 s ([fusion/layers.py](../autopark/fusion/layers.py)); `fusion.demo --max-age` mặc định 0,3 | 26 phiên 22–24/09: 33.932 vòng, 0 vòng bị bỏ; ba phiên 10 phút: 6.006 / 6.005 / 6.006 vòng, 0 vòng mất (GIAI_DOAN_1_LIDAR.md mục 3, 7) | 0,3 s = 3 vòng: mất một vòng không làm dừng, mất hai vòng liên tiếp thì có thể |
-| N-T4 | Lớp camera/AI (lớp tùy chọn) | 0,5 s | `CameraSemanticLayer` `max_age_s` = 0,5 s | Tuổi kết quả AI so với khung cũ nhất, trung vị / p95: 34,8 / 74,9 ms (u01), 65,5 / 84,9 ms (u04) (GIAI_DOAN_2_BAN_THU.md mục 3.3); 36,6–42,3 / 39,9–45,1 ms ở ba phiên bật quy tắc chờ w01, w03, w05 (mục 10) | Nếu nối BEV thì cộng thời gian `build_bev` (4 camera 640×480, lưới 6 × 6 m ô 5 cm, supersample 2): ≈ 11,8–12,0 ms trung vị sau khi tăng tốc (tối 24/09/2026, máy bàn, rig tổng hợp, đo khi các tác tử khác đang chạy song song; [BEV.md](BEV.md) mục 6b). Bản trước khi tăng tốc: 69,5 ms (mục 6). → tuổi trung vị ≈ 0,05–0,08 s, p95 ≈ 0,05–0,1 s (TÍNH, cộng trung vị BEV vào số đo tuổi ở cột trước; laptop CHƯA ĐO), vẫn dưới 0,5 s |
+| N-T4 | Lớp camera/AI (lớp tùy chọn) | 0,5 s | `CameraSemanticLayer` `max_age_s` = 0,5 s | Tuổi kết quả AI so với khung cũ nhất, trung vị / p95: 34,8 / 74,9 ms (u01), 65,5 / 84,9 ms (u04) (GIAI_DOAN_2_BAN_THU.md mục 3.3); 36,6–42,3 / 39,9–45,1 ms ở ba phiên bật quy tắc chờ w01, w03, w05 (mục 10) | Nếu nối BEV thì cộng thời gian `build_bev` (4 camera 640×480, lưới 6 × 6 m ô 5 cm, supersample 2): ≈ 11,8–12,0 ms trung vị sau khi tăng tốc (tối 24/09/2026, máy bàn, rig tổng hợp, đo khi các tác tử khác đang chạy song song; [BEV.md](BEV.md) mục 6b). Bản trước khi tăng tốc: 69,5 ms (mục 6). → tuổi trung vị ≈ 0,05–0,08 s, p95 ≈ 0,05–0,1 s (TÍNH, cộng trung vị BEV vào số đo tuổi ở cột trước; laptop CHƯA ĐO), vẫn dưới 0,5 s. *(25/09/2026, chưa commit: BEV đã nối vào phiên đỗ xe qua ngăn AI camera, nên câu "nếu nối BEV" nay là hiện trạng. Ngăn tự áp giới hạn này: `AI_MAX_AGE_S` = 0,5 s trong [fusion/camera_ai.py](../autopark/fusion/camera_ai.py), tuổi tính theo khung cũ nhất của lô mới nhất; quá tuổi lúc xe chạy thì mặc định chỉ cảnh báo, ô "AI bắt buộc" thì dừng xe (TK). Tuổi lô lúc ngăn dùng khi phát lại o03 với rig TỔNG HỢP: trung vị 75 ms, p95 97 ms (máy bàn, tải không kiểm soát, đo trước các bản sửa cùng ngày, trong đó có bản sửa thứ tự đọc đồng hồ, chưa chạy lại; [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2). Với rig thật mọi lô bị chặn nên không có số tuổi. Laptop CHƯA ĐO)* |
 | N-T5 | Tuổi kết quả AI, p95 | ≤ 0,15 s trên máy nghiệm thu, tính cả BEV nếu đã nối | — | Xem N-T4 (máy bàn) | Đề xuất; laptop CHƯA ĐO |
 | N-T6 | Thời gian một lô AI bốn ảnh | p95 ≤ 42 ms (một chu kỳ khung ở 23,85 khung/s); mọi cỡ lô phải làm nóng xong trước START | — | o02: trung vị 12,1 ms, p95 14,5 ms, lớn nhất 20,8 ms (GIAI_DOAN_2_BAN_THU.md mục 10.3); u01: p95 36,7 ms, lớn nhất 64,7 ms (mục 3.3). Lô đầu của mỗi cỡ lô 1,2–1,7 s (mục 10.3) | Laptop CHƯA ĐO |
 | N-T7 | Định vị một vòng quét | p95 ≤ 50 ms (nửa vòng quét) | — | Trước bản sửa kiểm xuyên tường (máy bàn, không tải nặng khác): cảnh khớp trung vị 10,6–11,1 ms, p95 12,4–13,1 ms; cảnh không khớp (k01) 84,6 / 103,7 ms. Sau bản sửa (máy bàn, đo khi có tác vụ khác chạy song song, chỉ có trung vị): live_headless ≈ 13,3 ms, k01 ≈ 93,7 ms; p95 sau bản sửa CHƯA ĐO (DINH_VI_LIDAR.md mục 5, bảng thứ hai) | Cảnh không khớp cho FAILED nên tư thế đằng nào cũng không được dùng. Laptop CHƯA ĐO |
@@ -179,6 +187,10 @@ hình AI (kế hoạch 16.2: thêm tên lớp không bảo đảm nhận ra mọ
 kiện V1 thứ ba ("AI/CV cung cấp thông tin cục bộ cho planner, có đo sai số/nhầm lẫn", kế hoạch 16.4) không đạt được với mô
 hình hiện tại; người dùng cần chọn hướng khác (huấn luyện lại không dùng WoodScape, v.v.). Mọi số dưới đây là trên **bộ dữ
 liệu công khai**; chưa có ảnh sa bàn nào có nhãn (TONG_HOP_DU_AN.md mục 4.2, 4.7).
+*(Cập nhật 25/09/2026: về phía giấy phép, mục này nay áp dụng: người làm khóa luận đã quyết định nối AI vào vòng điều khiển
+ngày 25/09/2026 (cách đọc A), Valeo chưa xác nhận. Còn điều kiện tập chấm sa bàn có nhãn, và hiệu chuẩn thật để AI tạo được
+vật cản ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3). Câu "nếu không nối AI" ở trên nay là phương án dự phòng khi cách
+đọc bị phản bác.)*
 
 | Mã | Đại lượng | Ngưỡng đề xuất | Căn cứ | Mức | Đo bằng |
 |---|---|---|---|---|---|
@@ -244,7 +256,7 @@ thời gian của một đồ án, V1 **không chứng minh được độ tin c
 |---|---|---|
 | Camera | N-C1 … N-C5, N-T4 … N-T6 | Số trên máy nghiệm thu; LED đo trễ; mode camera đã chốt (hiện 640×480) |
 | Hình học | N-G1 … N-G3 | Hiệu chuẩn nội tham bốn camera, ngoại tham đo, ROI ([BEV.md](BEV.md) mục 8) |
-| AI | N-A1 … N-A4 | Quyết định giấy phép WoodScape; tập chấm sa bàn có nhãn |
+| AI | N-A1 … N-A4 | Quyết định giấy phép WoodScape; tập chấm sa bàn có nhãn *(25/09/2026: quyết định giấy phép đã có, Valeo chưa xác nhận; còn tập chấm sa bàn và hiệu chuẩn thật)* |
 | Định vị | N-L0 … N-L5, N-T2, N-T7 | Bảy lần đặt hộp; tham chiếu độc lập (DV-1, DV-2); nguồn tư thế trong phiên |
 | Điều khiển | N-K1 … N-K5, N-V1 | MN300, encoder, AS5600, ESP32-S3; bảng B2–B8 |
 | Tự đỗ | N-D1 … N-D9, N-V1 | Tất cả ở trên, cộng tham chiếu trên cao đã kiểm (TC-1) |
@@ -272,9 +284,9 @@ thời gian của một đồ án, V1 **không chứng minh được độ tin c
 | Duyệt từng mã N-…: giữ, sửa số, hay bỏ | Người dùng + GVHD | Ghi ngày chốt cạnh từng mã; sau đó điền bảng 16.2 của kế hoạch (tệp kế hoạch không thuộc phạm vi tệp này) |
 | Chọn máy chạy khi nghiệm thu; đo lại N-T4 … N-T7, N-C1 … N-C3 trên máy đó | Người dùng | Quy tắc chung 4 |
 | Chọn một trong hai phương án N-T2 (tuổi tư thế) | Người dùng, khi nối định vị LiDAR vào phiên | Ảnh hưởng tới việc có cần encoder/IMU nội suy |
-| Mất camera có làm xe dừng không (N-P9) | Người dùng | Lớp camera và lớp ToF đang là lớp tùy chọn (GIAI_DOAN_6_CHUAN_BI.md mục 6) |
+| Mất camera có làm xe dừng không (N-P9) | Người dùng | Lớp camera và lớp ToF đang là lớp tùy chọn (GIAI_DOAN_6_CHUAN_BI.md mục 6). *(25/09/2026: với AI camera đã nối vào phiên, ô "AI bắt buộc" của ngăn AI camera là chỗ chọn: mặc định tắt, AI không dùng được lúc chạy chỉ cảnh báo; tích thì dừng xe; [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 5, ĐỀ XUẤT – CHỜ CHỐT)* |
 | Sau vật cản thông thường: xe tự tiếp tục hay chờ xác nhận | Người dùng | Kế hoạch 17.2; ảnh hưởng VC-5 |
-| Hướng giấy phép WoodScape | Người dùng | Quyết định mục 8 có áp dụng không |
+| Hướng giấy phép WoodScape | Người dùng | Quyết định mục 8 có áp dụng không. *(25/09/2026: đã quyết định dùng mô hình WoodScape trong vòng điều khiển, nên mục 8 áp dụng về phía giấy phép; Valeo chưa xác nhận; [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md))* |
 | Tỉ lệ độ chính xác 3:1 và số lần lặp ở mục 10 | Người dùng + GVHD | Tỉ lệ áp lên giá trị lớn nhất (quy tắc 3). Nếu không dựng được tham chiếu hướng ≤ 0,67° (thước thẳng ≥ 0,65 m) thì phương án khác là nới N-L2 thành trung vị ≤ 1,5°, lớn nhất ≤ 3° (tham chiếu ≤ 1°) và sửa theo N-L3 (6°), N-L5 (lớn nhất 4°); cách này kiểm độ lệch +4,33° (N-L4, N-D2) kém hơn nên không ưu tiên |
 | Công cụ còn thiếu cho phép đo: ghi sự kiện dừng của phiên (T13), dấu đồng bộ video–log (T14), nút CLEAR_FAULT (T15), GPIO gỡ lỗi khi xếp khung FAULT trong firmware (N-P5(a)) | Người phát triển | [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7; chưa có T13/T14 thì N-P1, N-P7 … N-P9 chưa chấm được phần thời gian video–log |
 | Đo các số còn thiếu trước khi chốt: B1–B8 (GIAI_DOAN_4_CHUAN_BI.md), N-L0 (đặt hộp), DV-1, DV-2, TC-1 (kiểm tham chiếu trên cao), LED đo trễ camera | Người dùng (cần người thao tác) | DV-1, DV-2 và TC-1 làm được ngay với LiDAR và camera đang có |

@@ -1,8 +1,14 @@
 # Kịch bản nghiệm thu V1 trên sa bàn mô hình — bản nháp (24/09/2026)
 
 > **Ghi công theo giấy phép dữ liệu:** các kịch bản nhận thức (nhóm NT) dùng mô hình AI huấn luyện trên **Valeo WoodScape
-> Dataset** (<https://woodscape.valeo.com>). Giới hạn sử dụng, gồm điều khoản cấm dùng mô hình đó để vận hành hoặc hỗ trợ
-> vận hành phương tiện: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
+> Dataset** (<https://github.com/valeoai/WoodScape>; địa chỉ cũ `woodscape.valeo.com` / `woodscape.valeo.ai`, kiểm
+> 25/09/2026 dẫn tới một trang không có nội dung WoodScape). Giới hạn sử dụng, gồm câu điều khoản về vận hành phương tiện
+> và quyết định 25/09/2026 dùng mô hình trong vòng điều khiển xe (Valeo chưa xác nhận cách đọc):
+> [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
+> *(Sửa 25/09/2026: link đổi từ `https://woodscape.valeo.com` sang repo GitHub theo đề xuất ở GIAY_PHEP_DU_LIEU.md mục
+> "Ghi công: link tới trang bộ dữ liệu", CHỜ CHỐT. Bản trước viết "điều khoản cấm dùng mô hình đó để vận hành hoặc hỗ trợ
+> vận hành phương tiện", mạnh hơn văn bản: điều khoản chỉ cho dùng phi thương mại và có vế không cho dùng mô hình trong vận
+> hành phương tiện; dự án đọc vế đó là ví dụ của việc dùng thương mại.)*
 
 **Kế hoạch đối chiếu:** [v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 16.3 (bộ kịch bản nghiệm thu, năm nhóm), 16.4
 (điều kiện V1), 16.1 (mốc thử khởi đầu), 1.2 (phạm vi V1), 13 (giai đoạn 9: tự đỗ thật, luồng phản ứng với vật cản), 14
@@ -15,6 +21,12 @@ biến lên xe; định vị LiDAR mới chạy offline, chưa có tham chiếu 
 giấy phép WoodScape); chưa có camera trên cao hay công cụ tham chiếu độc lập nào. Mọi ngưỡng ở tệp kia là ĐỀ XUẤT – CHỜ
 CHỐT. Tệp này không thêm số đo mới; mọi độ chính xác "kỳ vọng" của phương pháp đo là **ước tính hoặc phép tính**, ghi rõ ở
 từng chỗ, và phải được đo lại ở phép kiểm tham chiếu TC-1 (mục 3.7) trước khi dùng.
+*(Cập nhật 25/09/2026, chưa commit: câu "AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape)" đã lỗi
+thời. Ngày 25/09/2026 người làm khóa luận quyết định dùng mô hình WoodScape trong vòng điều khiển; Valeo chưa xác nhận cách
+đọc điều khoản ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). Phần mềm đưa AI camera vào phiên đỗ xe làm nguồn vật cản
+thứ hai đã có: ngăn "AI camera" của `ui.lidar_app --camera-ai` ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)), chỉ kiểm bằng
+nguồn giả, rig tổng hợp và phát lại. Chưa camera nào được hiệu chuẩn, nên trên bàn thật AI chưa tạo vật cản nào; điều
+kiện hiệu chuẩn và tập chấm sa bàn của ĐK-AI (mục 1.3) vẫn còn.)*
 
 Mọi lệnh viết trên **một dòng**, chạy trong `D:\ap\autopark`, dán được vào cmd.exe. Thay `<ngay>`, `<ten>`… bằng giá trị thật
 trước khi chạy, và dùng tên **không dấu** (OpenCV trên Windows không đọc/ghi được đường dẫn có dấu). Lệnh có `--port COM4`,
@@ -78,7 +90,7 @@ M3: trên sàn, tốc độ thấp, người giám sát cầm nút dừng). Kị
 | Mã | Nội dung |
 |---|---|
 | ĐK-XT | Điều kiện của mọi lần chạy có động lực trên sàn: giai đoạn 4 (có `vehicle_measured`, bảng B1–B8 của [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md)); giai đoạn 5 (điều khiển có phản hồi, có mã đọc encoder và AS5600: thiếu tốc độ hoặc góc lái đo thì START bị từ chối, [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 8); **giai đoạn 6 đạt** (kế hoạch mục 10: "phải đạt trước giai đoạn chạy tự động trên sàn"); giai đoạn 7 (cảm biến gá trên xe, ngoại tham đo, footprint đo lại); giai đoạn 8 (hợp nhất trên xe chuyển động, định vị trong phiên); AT-5 (quan sát) đạt; TC-1 đạt; ngưỡng liên quan đã chốt; các công cụ T1–T3 ở mục 7 đã có |
-| ĐK-AI | Thêm cho kịch bản dựa vào camera/AI: quyết định giấy phép WoodScape cho phép nối AI (TONG_HOP_DU_AN.md mục 5.1); hiệu chuẩn nội tham bốn camera, ngoại tham đo, mặt nạ ROI ([BEV.md](BEV.md) mục 8); tập chấm sa bàn có nhãn tô tay ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md)) |
+| ĐK-AI | Thêm cho kịch bản dựa vào camera/AI: quyết định giấy phép WoodScape cho phép nối AI (TONG_HOP_DU_AN.md mục 5.1); hiệu chuẩn nội tham bốn camera, ngoại tham đo, mặt nạ ROI ([BEV.md](BEV.md) mục 8); tập chấm sa bàn có nhãn tô tay ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md)). *(Cập nhật 25/09/2026: phần giấy phép đạt từ 25/09/2026 theo quyết định của người làm khóa luận (cách đọc A), Valeo chưa xác nhận; hai điều kiện còn lại vẫn thiếu. Phần mềm nối AI vào phiên đã có (ngăn "AI camera", [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md), chưa commit) nhưng chỉ tạo vật cản khi đã có nội tham đạt tiêu chí, ngoại tham đo và ROI như điều kiện ở trên.)* |
 | ĐK-BT | Cho phần bàn thử: thiết bị đang có (LiDAR C1 ở COM4, bốn camera qua hub), người thao tác |
 
 ### 1.4. Kết quả một lần chạy và phân loại nguyên nhân
@@ -600,6 +612,10 @@ Các kịch bản NT dựa vào camera và AI. Nếu hướng giấy phép WoodS
 LiDAR; khi đó kết quả phải ghi đúng như vậy, và điều kiện V1 thứ ba cần hướng khác (xem
 [NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md) mục 8). Phần tĩnh làm khi xe đứng yên, bo DISARMED, nên an toàn
 hơn và làm được từ giai đoạn 7.
+*(Cập nhật 25/09/2026: hướng giấy phép đã quyết ngày 25/09/2026 là cho nối AI (Valeo chưa xác nhận), nên câu điều kiện "nếu
+… không cho nối AI" ở trên nay là **phương án dự phòng** (hướng 1 của GIAY_PHEP_DU_LIEU.md): nếu cách đọc bị phản bác thì
+chạy `ui.lidar_app` không có `--camera-ai`, chỉ còn phần LiDAR và ghi kết quả đúng như vậy. Công cụ đưa AI vào phiên:
+[AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md); chưa camera nào được hiệu chuẩn nên AI chưa tạo vật cản trên bàn thật.)*
 
 **NT-1 — Ba mức ánh sáng**
 
@@ -952,7 +968,7 @@ vẫn đúng như bảng; T10 phần lớn đã có từ trước khi viết b�
 |---|---|---|---|
 | T1 | Giao diện chọn cổng serial tới bo thật | Mọi kịch bản XT | [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 6 ở HEAD 9bcc30c: giao diện chưa có lựa chọn này (đang thêm song song, xem trên). *(Cập nhật 25/09/2026: đã có từ `6db5087`: thẻ "Bo điều khiển" chọn cổng COM, nút "Kiểm kết nối bo" chỉ HELLO + đọc telemetry, không ARM. START với cổng thật luôn bị từ chối (`START_NO_POSE_SOURCE`) tới khi có T2, và `begin_run` còn phải thêm bước mở cổng (`reopen()`), CHE_DO_QUAN_SAT.md mục 6, 8. Chỉ kiểm bằng cổng serial giả)* |
 | T2 | Định vị LiDAR làm nguồn tư thế của phiên, cùng đồng hồ với `VehicleIO` | Mọi kịch bản XT, CB-6, DV-3 | Hiện phiên dùng `SimTruthPose` (định vị lý tưởng; CHE_DO_QUAN_SAT.md mục 2). Chọn N-T2 cùng lúc |
-| T3 | Ghi cảm biến (bốn camera + LiDAR) trong phiên đỗ xe, cùng đồng hồ | GD3, DV-3, phân tích lỗi | Hiện bàn thử (`rig`) và phiên đỗ xe là hai chương trình; hai tiến trình khó mở chung một camera (suy luận, chưa thử) |
+| T3 | Ghi cảm biến (bốn camera + LiDAR) trong phiên đỗ xe, cùng đồng hồ | GD3, DV-3, phân tích lỗi | Hiện bàn thử (`rig`) và phiên đỗ xe là hai chương trình; hai tiến trình khó mở chung một camera (suy luận, chưa thử) *(25/09/2026, chưa commit: lý do trên đã lỗi thời. `ui.lidar_app --camera-ai` dựng `Rig` bốn camera + AI ngay trong cửa sổ phiên đỗ xe, cùng tiến trình với ngăn LiDAR (`ui/camera_dock.py`; [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)); mới chạy với nguồn giả và bản ghi phát lại, với camera thật CHƯA THỬ. Ngăn AI camera và ngăn LiDAR đều chưa có chức năng ghi phiên, nên T3 vẫn còn)* |
 | T4 | Công cụ tham chiếu trên cao (đề xuất có giao diện): hiệu chuẩn camera trên cao, khớp mặt sàn từ mốc, kiểm trên điểm kiểm tra, trích tư thế từ video marker, xuất tệp tư thế | R1, TC-1 | `cv2.aruco` có sẵn trong `.venv` (OpenCV 5.0.0, kiểm bằng import ngày 24/09/2026) |
 | T5 | Công cụ chấm một lần chạy: đọc log + tệp tư thế tham chiếu + bố trí tham chiếu, tính các đại lượng N-D, N-P, ghi dòng biên bản | GD6, mọi kịch bản | Tránh chấm tay dễ sai |
 | T6 | Tiêm lỗi có kiểm soát: camera đứng hình, nguồn tư thế ngừng, vòng điều khiển treo | CB-2, CB-5 (b), CB-6 | Script treo vòng điều khiển: L7 ở GIAI_DOAN_6_CHUAN_BI.md ghi "script chưa có" |
@@ -975,7 +991,7 @@ vẫn đúng như bảng; T10 phần lớn đã có từ trước khi viết b�
 | Nơi lưu biên bản (`runs\nghiem_thu\`, `docs\evidence\bien_ban_nghiem_thu_<ngay>.csv`) | Người dùng | Mục 2.3: CSV đặt trong thư mục con của `docs\evidence\` bị git bỏ qua |
 | Chính sách sau vật cản thông thường: tự tiếp tục hay chờ xác nhận | Người dùng | Kế hoạch 17.2; VC-5 |
 | Mất camera hay ToF có làm xe dừng không | Người dùng | CB-1, CB-4 |
-| Hướng giấy phép WoodScape | Người dùng | Nhóm NT; điều kiện V1 thứ ba |
+| Hướng giấy phép WoodScape | Người dùng | Nhóm NT; điều kiện V1 thứ ba. *(25/09/2026: đã quyết định dùng mô hình WoodScape trong vòng điều khiển, Valeo chưa xác nhận; vế nháp AI khi gán nhãn chưa quyết, [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md))* |
 | Cách đấu dây ở chế độ quan sát | Người dùng | AT-5; CHE_DO_QUAN_SAT.md mục 8 |
 | Số lần E-stop ở M3 | Người dùng + GVHD | AT-2 |
 | Máy chạy khi nghiệm thu | Người dùng | LD-1 và mọi ngưỡng thời gian |

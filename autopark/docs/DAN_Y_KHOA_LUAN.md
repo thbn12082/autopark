@@ -1,14 +1,18 @@
 # Dàn ý khóa luận đề xuất — xe mô hình tự đỗ (bản nháp 24/09/2026, cập nhật tối, muộn tối, khuya 24/09/2026 và 25/09/2026)
 
 > **Ghi công bắt buộc theo giấy phép dữ liệu:** nghiên cứu nhận thức trong dự án này được thực hiện với **Valeo WoodScape
-> Dataset** (<https://woodscape.valeo.com>, [repo](https://github.com/valeoai/WoodScape)). Giới hạn sử dụng:
+> Dataset** (<https://github.com/valeoai/WoodScape>; địa chỉ cũ `woodscape.valeo.com` / `woodscape.valeo.ai`, kiểm
+> 25/09/2026 dẫn tới một trang không có nội dung WoodScape). Giới hạn sử dụng:
 > [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md). Khóa luận nhắc tới nghiên cứu dùng bộ dữ liệu này thì phải hiển thị rõ
-> dòng ghi công này.
+> dòng ghi công này. *(Đổi link 25/09/2026 theo đề xuất ở GIAY_PHEP_DU_LIEU.md mục "Ghi công: link tới trang bộ dữ liệu",
+> CHỜ CHỐT; trước đó link chính là `https://woodscape.valeo.com`.)*
 
 **Trạng thái commit (25/09/2026):** mọi việc tới khuya 24/09/2026, kể cả chính tệp dàn ý này (bản khuya 24/09, trong
 `54cb3e2`), đã commit và push, `origin/main` = `54cb3e2` (đợt tối 24/09: `bfcbfc2` … `9bcc30c`; đợt khuya: `65b7127` …
 `54cb3e2`). Chữ "chưa commit" trong tệp là trạng thái lúc viết đoạn đó; commit của từng việc đợt khuya ở đoạn "Cập nhật
-25/09/2026" cuối các ghi chú đầu tệp.
+25/09/2026" cuối các ghi chú đầu tệp. *(Cập nhật 25/09/2026, đợt AI camera: `origin/main` nay là `89cd58f` (đợt rà tài
+liệu lúc 02:54 ngày 25/09, gồm các ghi chú 25/09 trước đoạn "đợt AI camera" dưới). Đợt AI camera sau đó, kể cả các ghi chú
+có chữ "đợt AI camera" trong tệp này, **CHƯA COMMIT**, nằm trên `89cd58f`.)*
 
 **Tệp này là gì:** dàn ý **đề xuất** cho khóa luận, dựng từ các biên bản đã có trong repo tới 24/09/2026. Nó không phải
 khóa luận, không thêm số đo hay kết quả mới. Mọi con số dưới đây chép từ một tài liệu hoặc tệp đo được nêu kèm. Chỗ nào
@@ -106,11 +110,26 @@ commit (nằm trong `10a4735`; 4.2). Toàn bộ bộ test chạy lại ngày 25/
 0 hỏng; `.venv-train` 386 đạt (đầu TONG_HOP_DU_AN.md); không còn `xfail`. Kiểm lại lúc rà: số test đếm bằng
 `--collect-only` ở `54cb3e2` khớp các số test của đợt khuya ghi trong tệp này; lệnh năm tệp ở cuối mục 8 chạy lại được
 269 đạt (mục 8). **(3) Không đổi:** laptop RTX 3050 Ti vẫn chưa chạy gì ngoài giai đoạn 0 (nay `git pull` là có mọi thứ
-ở trên); chưa có nội tham, ngoại tham đo hay ROI cho camera nào; AI chưa nối vào lập đường; chốt firmware sau
+ở trên); chưa có nội tham, ngoại tham đo hay ROI cho camera nào; AI chưa nối vào lập đường *(đợt AI camera 25/09/2026:
+phần mềm nối AI vào phiên đỗ xe đã có, chưa commit, đoạn dưới)*; chốt firmware sau
 `COMMAND_TIMEOUT` vẫn chờ người dùng duyệt, CHƯA LÀM. Đã sửa (giữ câu cũ, thêm ghi chú có ngày): phần 0, mục 1 (ý 9,
 11), M.4, M.5, 1.6, 3.6, 3.6b, 3.8b, 3.9, 3.10, 3.11, 3.12b, 3.14, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.8, 4.9b, 4.10, 4.11,
 4.12, 5.1, mục 4, 5 (D4), 7 (việc 9, 14, 21, 22, 23), 8. Các ghi chú ngày 25/09/2026 trong tệp (banner, đoạn này, các
-ghi chú inline) là thay đổi chưa commit trên `54cb3e2` lúc viết.
+ghi chú inline) là thay đổi chưa commit trên `54cb3e2` lúc viết. *(Đợt AI camera 25/09/2026: các ghi chú đó đã vào
+`89cd58f`, đã push.)*
+
+*Cập nhật 25/09/2026, đợt AI camera (sau `89cd58f`, **chưa commit**; không có phiên đo mới trên thiết bị):* đọc thêm
+[AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md), mục mới "WoodScape trong vòng điều khiển: quyết định 25/09/2026" của
+[GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md), phần sửa 25/09 của [BEV.md](BEV.md), `fusion/camera_ai.py`,
+`ui/camera_dock.py`, `ui/lidar_app.py` và hai tệp test mới. Hai việc mới: **(1) quyết định giấy phép:** người làm khóa
+luận quyết định dùng mô hình huấn luyện trên WoodScape trong vòng điều khiển xe mô hình 1/12, đọc vế "in operation of a
+vehicle" là ví dụ của việc dùng thương mại bị cấm (cách đọc A); **Valeo chưa xác nhận**; **(2) AI camera làm nguồn vật cản
+thứ hai** trong phiên đỗ xe (ngăn "AI camera", `ui.lidar_app --camera-ai`), mức **TH** (nguồn giả, rig tổng hợp) cộng
+phát lại một bản ghi BT (o03) với mô hình thật; chưa camera nào được hiệu chuẩn nên trên bàn thật AI chưa tạo vật cản nào.
+`.venv-train` có thêm shapely 2.1.2. Đã sửa (giữ câu cũ, thêm ghi chú có ngày): dòng ghi công và trạng thái commit đầu
+tệp, phần 0 (dòng BT, TH), mục 1 (ý 3, 4), 3.8, 3.8b, 3.10, 3.11, bảng 4.12 dòng 3 và 8, mục 4 (giấy phép của ảnh), 5.1
+(D1), 5.4, mục 6, mục 7 (việc 2, thêm việc 26), mục 8; thêm 3.11b. Không thêm số đo nào ngoài số trong các tài liệu kể
+trên và lần chạy test ghi ở mục 8.
 
 **Cách đọc mỗi mục ở phần 3:** *Viết được* (nội dung đã có cơ sở) · *Nguồn* (tài liệu, mục) · *Mức* (mức bằng chứng, phần
 0) · *Hình/bảng* (có sẵn ở đâu) · *Còn thiếu* (trước khi viết được) · *Giới hạn phải nói* (câu bắt buộc có trong khóa luận).
@@ -126,8 +145,8 @@ ba nhãn để tách những thứ kế hoạch không gọi tên riêng:
 |---|---|---|
 | **MP** | Mô phỏng phần mềm, thông số xe giả định | Giai đoạn 0 ĐẠT sáu điều kiện ở mức mô phỏng (20/09, laptop i7-12700H); `VehicleIO` mô phỏng (24/09); *tối 24/09:* `VehicleIO` nối vào phiên đỗ xe và chế độ quan sát, chỉ với bo mô phỏng hoặc cổng serial giả, tư thế lý tưởng ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md)); có một khoảng trống an toàn đã biết khi có `Heartbeat`, chưa sửa (3.12b; *muộn tối 24/09/2026:* đã sửa, vẫn chỉ MP); *khuya 24/09/2026 (chưa commit):* phép thử độ nhạy theo kích thước xe với sa bàn cố định (hai lượt, dưới tải), kiểm lại nhãn 16 ca khó bằng đường chứng, thẻ "Bo điều khiển" và so giới hạn bo (bo mô phỏng, cổng serial giả) |
 | **DL** | Chạy offline trên dữ liệu công khai lưu sẵn (WoodScape, ACDC, RoadObstacle21, AVM-SS, DROW v2) | AI huấn luyện và chấm trên máy bàn (21–23/09); *tối 24/09:* BEV minh họa trên ảnh WoodScape (`00000_FV`, thêm một lần ba ảnh khác thời điểm), không có nhãn mặt sàn để chấm ([BEV.md](BEV.md) mục 6); *khuya 24/09/2026 (chưa commit):* chấm RoadAnomaly21 (10 ảnh có nhãn, ba seed); odometry khớp scan trên DROW v2 (so với `.odom2`, không phải ground truth); phần so manifest của `evaluate.py --train-overlap` trên WoodScape val (0 trùng với 5.764 ảnh train) và AVM-SS val của `ai_ws_avm` (1.050/1.050 ảnh thuộc split chọn checkpoint), [HUAN_LUYEN.md](../../HUAN_LUYEN.md) cuối mục 8 |
-| **BT** | Thiết bị thật nằm trên bàn, chưa gá, đo trên **máy bàn** i9-14900 + RTX 4000 Ada | LiDAR C1 (22–24/09), bốn camera USB (23–24/09), bàn thử bốn camera + LiDAR + AI (23–24/09); *tối 24/09:* đo lại quy tắc ghép theo nhịp riêng và làm nóng AI (o01, o02, o07), ghi và phát lại một phiên thật (o03–o06); định vị LiDAR chạy **offline** trên bản ghi BT có sẵn, chỉ cho độ nhất quán; *khuya 24/09/2026:* **không có phiên đo mới**; chỉ chạy offline trên bản ghi BT có sẵn: độ lặp lại khoảng cách LiDAR (`lidar/repeatability.py`), odometry khớp scan trên sáu bản ghi C1 **đứng yên** |
-| **TH** | Chỉ kiểm bằng ảnh tổng hợp hoặc thiết bị giả trong test | Công cụ hiệu chuẩn camera, công cụ gán nhãn (24/09); *tối 24/09:* BEV trên rig bốn camera tổng hợp, định vị LiDAR trên phòng tổng hợp, ghi/phát lại với nguồn giả, nhánh "camera lỡ nhịp" của quy tắc ghép (đồng hồ giả); *khuya 24/09/2026:* công cụ ngoại tham và ROI (ảnh tổng hợp, camera giả), BEV tăng tốc (rig tổng hợp), cầu nối ToF → `NearFieldReading`, "Kiểm kết nối bo" (cổng serial giả), chốt chấm ảnh đã học và `labels import --exclude` (dữ liệu giả; riêng phần so manifest của chốt chấm ảnh đã học đã chạy trên dữ liệu thật, là **DL**, xem dòng DL), demo hợp nhất bỏ ≥ 22 vòng (nguồn giả), `may_moi` tóm tắt lại (bản sao kết quả máy bàn) |
+| **BT** | Thiết bị thật nằm trên bàn, chưa gá, đo trên **máy bàn** i9-14900 + RTX 4000 Ada | LiDAR C1 (22–24/09), bốn camera USB (23–24/09), bàn thử bốn camera + LiDAR + AI (23–24/09); *tối 24/09:* đo lại quy tắc ghép theo nhịp riêng và làm nóng AI (o01, o02, o07), ghi và phát lại một phiên thật (o03–o06); định vị LiDAR chạy **offline** trên bản ghi BT có sẵn, chỉ cho độ nhất quán; *khuya 24/09/2026:* **không có phiên đo mới**; chỉ chạy offline trên bản ghi BT có sẵn: độ lặp lại khoảng cách LiDAR (`lidar/repeatability.py`), odometry khớp scan trên sáu bản ghi C1 **đứng yên**; *đợt AI camera 25/09/2026 (chưa commit):* **không có phiên đo mới**; bản ghi o03 phát lại qua ngăn AI camera với mô hình thật (offline): với rig thật mọi lô bị chặn vì chưa hiệu chuẩn, 0 vật cản ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2) |
+| **TH** | Chỉ kiểm bằng ảnh tổng hợp hoặc thiết bị giả trong test | Công cụ hiệu chuẩn camera, công cụ gán nhãn (24/09); *tối 24/09:* BEV trên rig bốn camera tổng hợp, định vị LiDAR trên phòng tổng hợp, ghi/phát lại với nguồn giả, nhánh "camera lỡ nhịp" của quy tắc ghép (đồng hồ giả); *khuya 24/09/2026:* công cụ ngoại tham và ROI (ảnh tổng hợp, camera giả), BEV tăng tốc (rig tổng hợp), cầu nối ToF → `NearFieldReading`, "Kiểm kết nối bo" (cổng serial giả), chốt chấm ảnh đã học và `labels import --exclude` (dữ liệu giả; riêng phần so manifest của chốt chấm ảnh đã học đã chạy trên dữ liệu thật, là **DL**, xem dòng DL), demo hợp nhất bỏ ≥ 22 vòng (nguồn giả), `may_moi` tóm tắt lại (bản sao kết quả máy bàn); *đợt AI camera 25/09/2026 (chưa commit):* AI camera làm nguồn vật cản trong phiên đỗ xe (camera giả, rig bốn camera TỔNG HỢP, tệp hiệu chuẩn viết tay; 68 mục test) |
 | **TK** | Chỉ có thiết kế/đặc tả hoặc mã chưa chạy | Firmware C++ ESP32-S3 (chưa biên dịch), ngõ vào E-stop (chưa lắp); *tối 24/09:* bản nháp đo MN300 (giai đoạn 4), phiếu kiểm kê MN300, bảng tải, sơ đồ nguồn/dừng và 16 kịch bản thử lỗi (giai đoạn 6), mọi số CHƯA ĐO, mọi phép thử CHƯA THỬ; *khuya 24/09/2026:* bộ kịch bản nghiệm thu và ngưỡng đề xuất (CHỜ CHỐT), so sánh phương án định vị (đề xuất, CHỜ CHỐT) |
 | **XT** | Xe thật | **Chưa có.** Chưa nhận MN300, ESP32-S3, phần nguồn/dừng |
 
@@ -147,9 +166,21 @@ Những điều sau phải có mặt trong khóa luận, ở chương thực ngh
 2. **Chưa có kết quả trên xe thật.** Mọi kết luận về tự đỗ, dừng, E-stop, quãng dừng hiện chỉ ở mức MP.
 3. **AI chưa từng được chấm trên ảnh sa bàn có nhãn.** Các số mIoU là của ảnh đường phố trong bộ dữ liệu công khai
    ([HUAN_LUYEN.md](../../HUAN_LUYEN.md)). Trên camera thật, lớp tô AI mới chỉ để nhìn và đo thời gian.
+   *(Đợt AI camera 25/09/2026, chưa commit:* nay có phần mềm đưa AI vào phiên đỗ xe làm nguồn vật cản (3.11b), nhưng chưa
+   camera nào được hiệu chuẩn nên trên bàn thật AI chưa tạo vật cản nào; câu "chưa chấm trên ảnh sa bàn" vẫn đúng, và vì
+   thế tỉ lệ báo giả của nguồn vật cản đó trên sa bàn CHƯA ĐO.)
 4. **Giấy phép WoodScape** cấm dùng mô hình huấn luyện trên nó để vận hành hoặc hỗ trợ vận hành phương tiện. Người làm
    khóa luận chọn cách hiểu ngày 22/09 (xe 1/12 trên sa bàn thuộc "personal experimentation" và "academic research"),
    **Valeo chưa xác nhận**. Hướng xử lý cho khóa luận chưa chốt ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md); TONG_HOP mục 5.1).
+   *(Sửa và cập nhật ở đợt AI camera 25/09/2026:* câu đầu mạnh hơn văn bản, giữ lại làm lịch sử. Viết đúng hơn: điều
+   khoản WoodScape chỉ cho dùng phi thương mại (nghiên cứu, giảng dạy, benchmark, thử nghiệm cá nhân) và, cùng câu cấm
+   dùng thương mại, có vế không cho dùng bộ dữ liệu hay mô hình huấn luyện trên nó trong vận hành phương tiện. **Ngày
+   25/09/2026 hướng xử lý đã chốt** ở vế nối AI: người làm khóa luận dùng mô hình trong vòng điều khiển xe mô hình, đọc vế
+   đó là ví dụ của việc dùng thương mại (cách đọc A). **Valeo chưa xác nhận cách đọc nào**; cách đọc B (lệnh cấm riêng,
+   bất kể thương mại) không loại trừ được, và hội đồng có thể nghiêng về B. Khóa luận phải nêu cả hai cách đọc và nói rõ
+   chưa được xác nhận; ĐỀ XUẤT – CHỜ CHỐT: nên có kết quả dự phòng khi tắt AI camera (chỉ LiDAR). Đoạn đề xuất cho khóa
+   luận và phương án dự phòng: GIAY_PHEP_DU_LIEU.md mục "Khóa luận nên viết gì". Quyết định không phủ checkpoint có
+   AVM-SS và chưa nói về nhãn nháp AI khi gán nhãn sa bàn. Nên báo GVHD trước khi viết (mục 7, việc 2).)
 5. **Khung MJPEG bị cắt** khi ba–bốn camera chạy chung qua hub UGREEN (nhánh USB 2.0) ở 720p/1080p: bốn camera thì hai–ba
    camera mất phần lớn khung; ba camera ở 720p thì một camera (r03, r05); ba camera ở 1080p chưa có phiên đếm khung bị
    cắt. Ở 640×480 vẫn có đợt hỏng ở cổng 1 (23/09). Cấu hình dùng được hiện là 640×480 kèm bộ dò khung hỏng, và bộ dò có
@@ -491,7 +522,8 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
 - *Viết được:* các hợp đồng `VehicleState`, `GoalPose`, `CameraFrame`, `LidarScan`, `Telemetry`, `Costmap`, `Trajectory`,
   `SafetyEvent`, mỗi nguồn có nhận dạng, thời gian, trạng thái hợp lệ; hai môi trường `.venv` (mô phỏng, giao diện, không
   torch) và `.venv-train` (torch, bàn thử); khóa phiên bản ([requirements-phase0.lock](../requirements-phase0.lock),
-  [requirements-train.lock](../requirements-train.lock)).
+  [requirements-train.lock](../requirements-train.lock)). *(Đợt AI camera 25/09/2026:* `.venv-train` nay có cả Shapely
+  2.1.2, nên phiên đỗ xe và AI camera chạy chung một tiến trình (3.11b); `.venv` vẫn không có torch.)
 - *Nguồn:* [domain/types.py](../autopark/domain/types.py), [domain/sensors.py](../autopark/domain/sensors.py);
   GIAI_DOAN_0 mục "Môi trường"; autopark/README.
 
@@ -586,7 +618,9 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   json ghi `ai.warm_up_ms`. BEV từ đầu ra AI ở 3.8b.
 - *Giới hạn phải nói:* đầu ra AI **chưa nối** vào costmap/planner (`CameraSemanticLayer` chưa được khởi tạo ở đâu); ROI và
   costmap mới có cho rig WoodScape; giấy phép (mục 1, ý 4). *Cập nhật tối 24/09/2026:* BEV đã tạo được `Costmap` và test
-  đặt nó vào `CameraSemanticLayer`, nhưng bàn thử, hợp nhất và planner vẫn **không** dùng nó.
+  đặt nó vào `CameraSemanticLayer`, nhưng bàn thử, hợp nhất và planner vẫn **không** dùng nó. *(Đợt AI camera 25/09/2026,
+  chưa commit:* "chưa nối" đã lỗi thời ở mức phần mềm: ngăn AI camera đưa BEV vào phiên đỗ xe làm nguồn vật cản (3.11b),
+  mức TH cộng phát lại; trên bàn thật chưa tạo vật cản nào vì chưa hiệu chuẩn. Lớp tô của `rig_app` vẫn chỉ để nhìn.)
 
 **3.8b. BEV chiếm chỗ từ AI nhiều camera** *(thêm tối 24/09/2026; kế hoạch giai đoạn 2 bước 7)*
 - *Viết được:* đầu vào mỗi camera (bản đồ P(BLOCKED) cùng tỉ lệ khung với ảnh đã hiệu chuẩn, nội tham + ngoại tham trong
@@ -614,7 +648,11 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   thử (chờ các việc trên và quyết định giấy phép WoodScape). *(Cập nhật khuya 24/09/2026, chưa commit (cập nhật 25/09/2026: đã commit, `65b7127`):* "chưa có công cụ"
   đo ngoại tham đã lỗi thời: công cụ ngoại tham và ROI đã có, mức TH (3.9). "Tăng tốc" đã làm: phần hình học dựng một lần
   rồi nhớ, kết quả trùng từng bit với bản cũ, ≈ 7–12 ms cho 4 camera trên rig tổng hợp ([BEV.md](BEV.md) mục 6b; số ở
-  4.9b). Còn: dựng bảng lúc khởi động khi nối vào bàn thử, đo trên laptop.)
+  4.9b). Còn: dựng bảng lúc khởi động khi nối vào bàn thử, đo trên laptop.) *(Đợt AI camera 25/09/2026, chưa commit:*
+  "nối vào `CameraSemanticLayer`/bàn thử" đã làm ở mức phần mềm, và quyết định giấy phép đã có (Valeo chưa xác nhận):
+  ngăn AI camera dựng bảng lúc bật AI, đặt BEV vào lưới sa bàn, lọc 2/3 lô rồi đưa vào phiên (3.11b). Từ 25/09,
+  `acceptance.all_pass` chỉ đạt khi là `true` của JSON (`bev.acceptance_flag`, [BEV.md](BEV.md) mục 2). Còn nguyên: hiệu
+  chuẩn, ngoại tham, ROI, đo sai số BEV, laptop.)
 - *Giới hạn phải nói:* giả định sàn phẳng z = 0, **không phải footprint chính xác** (vật nhô, chân vật bị che, sàn nghiêng,
   vật mảnh ở xa); ngoại tham v0 là **GIẢ ĐỊNH — CHƯA ĐO**, đặt cho xe 0,40 × 0,20 m, khác kích thước giả định 0,31 × 0,14 m
   của `vehicle_default.json`; mọi BEV từ tệp rig v0 đều không dùng được cho lập đường; hai ngưỡng chưa kiểm trên ảnh sa
@@ -649,7 +687,9 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
 - *Nguồn:* [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md). *Mức:* TH (thêm 8 ảnh thật chụp 23/09 lúc camera nằm trên bàn, chỉ để
   thử nhập/export).
 - *Giới hạn phải nói:* chưa gán nhãn ảnh thật nào; tốc độ gán nhãn chưa đo; nhãn sửa từ nháp của mô hình WoodScape có chịu
-  điều khoản Valeo không thì **chưa đánh giá**.
+  điều khoản Valeo không thì **chưa đánh giá**. *(Đợt AI camera 25/09/2026:* quyết định giấy phép ngày 25/09 chỉ nói về
+  dùng mô hình trong vòng điều khiển, chưa nói về nhãn nháp; ĐỀ XUẤT – CHỜ CHỐT của GIAY_PHEP_DU_LIEU.md: nhập ảnh huấn
+  luyện bằng `--no-draft` ngay từ đầu để phương án huấn luyện lại không dính WoodScape còn dùng được.)
 - *Thêm khuya 24/09/2026 (chưa commit, cập nhật 25/09/2026: đã commit, `77eb51f`; TH trên dữ liệu giả, riêng phần so manifest của `evaluate.py` là DL: HUAN_LUYEN
   cuối mục 8):* hai chốt chống rò rỉ tập chấm: `labels import --exclude` (không
   nhập khung trùng sha256, tên bộ ảnh hay giờ chụp với một dự án/cache khác) và `evaluate.py --train-overlap refuse` (mặc
@@ -671,7 +711,38 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   cầu nối `VehicleTelemetry` → `NearFieldReading` đã có với bảng gá ToF GIẢ ĐỊNH `configs/tof_mounts_v0.json`, một ToF không
   dùng được chỉ mất cung của nó, lớp gần xe không bao giờ đánh dấu FREE; ToF vẫn chỉ có số đo giả và chưa vào phiên
   ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12). Giới hạn phải nói thêm: giao thức v1 không phân biệt "không có vật trong
-  tầm" với "ToF hỏng".)
+  tầm" với "ToF hỏng".) *(Đợt AI camera 25/09/2026, chưa commit:* "lớp camera chưa có khung thật đi qua" và BEV "chưa nối
+  vào hợp nhất" đã lỗi thời ở mức phần mềm: 3.11b. Khung thật mới đi qua ở dạng phát lại bản ghi o03, mọi lô bị chặn.)
+
+**3.11b. AI camera làm nguồn vật cản trong phiên đỗ xe** *(thêm ở đợt AI camera 25/09/2026, chưa commit; kế hoạch giai
+đoạn 3, 8, 9)*
+- *Viết được:* luồng 4 camera (hay bản ghi phiên) → `Rig`/`AIWorker` của bàn thử → lô AI mới nhất → chặn nếu BEV không
+  dùng được → BEV hệ xe → đặt vào lưới sa bàn theo tư thế (mỗi ô lấy mẫu 3 × 3 điểm, không mất ô vật cản khi xoay, đổi lại
+  phình tối đa một ô) → lọc ≥ 2 trong 3 lô → `CameraSemanticLayer` → hợp nhất → `ObstacleBridge` riêng (tiền tố
+  `camera_ai`) → phiên đỗ xe. **AI chỉ thêm vật cản**, không xóa vật của LiDAR hay người dùng; FREE của camera không mở
+  đường. Lúc chạy, hộp AI mới chạm hành lang quỹ đạo → MAP_CHANGED, xe dừng và chờ lập lại đường. Điều kiện chặn (nội tham
+  đạt, ngoại tham đo, ROI, không tổng hợp, đúng cỡ khung), lý do chặn theo trình tự nội tham → ngoại tham → ROI. Mặt nạ thân
+  xe trên BEV hệ xe và trong hệ bản đồ ở tư thế của từng lô. AI cũ lúc chạy: mặc định cảnh báo, "AI bắt buộc" thì dừng. Hai
+  cách đặt camera (cố định trên bàn, gắn trên xe). Không có `--camera-ai` thì cửa sổ như trước (phương án dự phòng chỉ
+  LiDAR).
+- *Nguồn:* [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md); [autopark/fusion/camera_ai.py](../autopark/fusion/camera_ai.py),
+  [autopark/ui/camera_dock.py](../autopark/ui/camera_dock.py); quyết định giấy phép ở
+  [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md). *Mức:* **TH** (camera giả, rig bốn camera TỔNG HỢP, tệp hiệu chuẩn viết
+  tay; 68 mục test; đột biến 46/46 theo AI_DIEU_KHIEN_XE mục 8.1) cộng phát lại một bản ghi **BT** (o03, cảnh tối, không
+  phải sa bàn) với mô hình thật: rig thật 1163 lô bị chặn, 0 vật cản; rig TỔNG HỢP tối đa 22 hộp ở vị trí vô nghĩa.
+- *Hình:* chưa có hình nào trong repo hay `docs/evidence/`; ảnh chụp màn hình ngăn khi phát lại có thể tạo lại bằng lệnh ở
+  AI_DIEU_KHIEN_XE mục 7 (lệnh 2, 3; không mở thiết bị).
+- *Còn thiếu:* hiệu chuẩn nội tham, ngoại tham đo, ROI (không có thì AI không tạo vật cản nào); chạy với camera thật đang
+  mở; chấm AI trên ảnh sa bàn có nhãn để chốt `t_blocked` 0,15, lọc 2/3, tuổi 0,5 s, lề 5 cm (mọi số ĐỀ XUẤT – CHỜ CHỐT);
+  đo độ trễ từ lúc vật xuất hiện tới lúc xe dừng, sai số vị trí hộp AI, tỉ lệ báo giả/bỏ sót; laptop; xe.
+- *Giới hạn phải nói:* quyết định giấy phép theo cách đọc A, **Valeo chưa xác nhận** (mục 1, ý 4); AI chưa từng được chấm
+  trên ảnh sa bàn, ngưỡng 0,15 đổi lấy ít bỏ sót nhưng nhiều báo giả nên có thể dừng giả; BEV giả định sàn phẳng; AI không
+  bù chỗ bỏ sót (chỉ LiDAR bảo vệ); vật trong lề quanh xe vô hình với AI; ngăn chỉ xét lô mới nhất mỗi 50 ms; "camera gắn
+  trên xe" không nội suy tư thế về lúc chụp, sai số CHƯA ĐO; phát lại bản ghi phiên chỉ cấp ảnh, LiDAR và AI không cùng
+  cảnh; ô "Mô hình" nhận cả checkpoint có AVM-SS mà quyết định giấy phép không phủ.
+- *Câu nên viết:* "Phần mềm đưa AI của bốn camera vào phiên đỗ xe như một nguồn vật cản phụ bên cạnh LiDAR; mới kiểm bằng
+  nguồn giả, rig tổng hợp và phát lại một bản ghi; chưa camera nào được hiệu chuẩn nên trên bàn thật AI chưa tạo vật cản
+  nào; việc dùng mô hình WoodScape trong vòng điều khiển dựa trên cách đọc điều khoản chưa được Valeo xác nhận."
 
 **3.12. Giao thức xe, `VehicleIO`, firmware ESP32-S3**
 - *Viết được:* bảy loại thông điệp, bố cục byte, phiên/số thứ tự, thời hạn lệnh (laptop gửi 150 ms, bo kẹp ≤ 300 ms),
@@ -1316,12 +1387,12 @@ Không điều kiện nào được đánh dấu đạt (kế hoạch 17.4, 24/0
 |---:|---|---|---|
 | 1 | Bản đồ/định vị LiDAR hoạt động trong khu vực thử | Bản đồ lưới tĩnh từ một vị trí (BT). *Tối 24/09:* định vị trên bản đồ tĩnh, nhất quán trên bản ghi đứng yên cùng chỗ và báo hỏng khi đã dời chỗ (TH + BT offline). *Khuya 24/09 (chưa commit):* odometry khớp scan (TH + DL + BT offline, C1 đứng yên) và đề xuất phương án (TK, CHỜ CHỐT) | Tham chiếu độc lập cho định vị (bản đầu ghi "Định vị"); định vị khi cảm biến di chuyển; bản đồ của phương án SLAM (nếu cần); chốt ngưỡng; *khuya 24/09:* người dùng chọn phương án; ghép (a) + (b) và nối vào phiên |
 | 2 | Bốn camera cùng hoạt động, hiệu chuẩn đúng gá | Chạy chung ở 640×480 trên máy bàn (BT); *tối 24/09:* quy tắc ghép theo nhịp riêng đo lại (BT); *khuya 24/09 (chưa commit):* công cụ ngoại tham và ROI (TH) | Hiệu chuẩn, gá, ngoại tham; laptop |
-| 3 | AI/CV cho thông tin cục bộ cho planner, có đo sai số/nhầm lẫn | Đo trên dữ liệu công khai (DL); chạy trực tiếp để quan sát (BT); *tối 24/09:* BEV trên rig tổng hợp và ảnh WoodScape (TH, DL); *khuya 24/09 (chưa commit):* BEV ≈ 7–12 ms trên rig tổng hợp (TH); RoadAnomaly21 (DL) | Hiệu chuẩn, ngoại tham, ROI để chạy BEV trên camera dự án; đo sai số BEV; nối vào costmap/planner; chấm trên sa bàn; quyết định giấy phép |
+| 3 | AI/CV cho thông tin cục bộ cho planner, có đo sai số/nhầm lẫn | Đo trên dữ liệu công khai (DL); chạy trực tiếp để quan sát (BT); *tối 24/09:* BEV trên rig tổng hợp và ảnh WoodScape (TH, DL); *khuya 24/09 (chưa commit):* BEV ≈ 7–12 ms trên rig tổng hợp (TH); RoadAnomaly21 (DL); *đợt AI camera 25/09/2026 (chưa commit):* AI camera nối vào phiên đỗ xe làm nguồn vật cản (TH; phát lại bản ghi o03: mọi lô bị chặn vì chưa hiệu chuẩn), 3.11b | Hiệu chuẩn, ngoại tham, ROI để chạy BEV trên camera dự án; đo sai số BEV; nối vào costmap/planner; chấm trên sa bàn; quyết định giấy phép. *(Đợt AI camera 25/09/2026: "nối vào costmap/planner" đã làm ở mức phần mềm; "quyết định giấy phép" đã có (cách đọc A, Valeo chưa xác nhận); các việc còn lại giữ nguyên)* |
 | 4 | Chọn vị trí/hướng, xem trước, ra lệnh bắt đầu | Có trong giao diện mô phỏng (MP) | Trên xe thật |
 | 5 | Quỹ đạo xét giới hạn lái và toàn thân xe | Có, với thông số giả định (MP). *Khuya 24/09 (chưa commit):* độ nhạy theo kích thước xe và đường chứng của 16 ca khó, kiểm độc lập với planner (MP) | Thông số MN300 đo được; *khuya 24/09:* tiêu chí số lần đổi chiều CHƯA CHỐT |
 | 6 | Xe thực thi có phản hồi tốc độ/góc | Vòng tốc độ trong mô phỏng `VehicleIO` (MP); *tối 24/09:* `VehicleIO` nối vào phiên đỗ xe, đỗ xong với bo mô phỏng và tư thế lý tưởng; chế độ quan sát không gửi COMMAND nào (MP) | Encoder, AS5600, ESP32-S3, xe; nguồn tư thế thật |
 | 7 | Hoàn thành các bài đỗ theo tiêu chí đã chốt | — *(khuya 24/09: bản đề xuất tiêu chí N-D… và kịch bản DO, TK, chưa duyệt)* | Tiêu chí chưa chốt; xe |
-| 8 | Vật cản/dữ liệu không hợp lệ làm dừng hoặc từ chối chạy | Dừng khi có vật mới trên đường hoặc mất LiDAR: chỉ kiểm bằng mô phỏng và nguồn quét kịch bản (MP). LiDAR thật đứng yên (22/09) chỉ cho thấy đỗ xong với 0 dừng giả trên cảnh tĩnh (BT), không phải bằng chứng về hành vi dừng. *Tối 24/09:* phiên đỗ xe qua `VehicleIO` mô phỏng dừng khi telemetry/tư thế cũ và từ chối START khi trạng thái thật không khớp (MP) | Đưa tay/hộp và rút cáp với LiDAR thật khi xe ảo đang chạy (cần người); trên xe. *Tối 24/09:* sửa khoảng trống an toàn khi có `Heartbeat` (một COMMAND enable=1 sau khi bo đã về ARMED, chỉ thấy trên mô phỏng; 3.12b), CHƯA LÀM. *Muộn tối 24/09:* đã sửa ở mức MP; còn thử trên bo thật. *(Cập nhật muộn tối 24/09/2026:)* còn một khoảng hở suy ra từ mã, chưa có test: bo vừa về ARMED mà khung báo điều đó chưa tới laptop (≈ 50 ms + trễ USB) thì vẫn có thể có một enable=1 (GIAO_THUC_XE mục 12; 3.12b). Xử lý rút cáp LiDAR trong phần mềm có test với cổng giả (TH, 4.4); rút cáp thật chưa thử. *(Khuya 24/09/2026:)* START bị từ chối khi giới hạn bo lệch nguy hiểm so với cấu hình và khi chọn bo thật mà chưa có nguồn tư thế (MP, cổng giả, 3.12b); cầu nối ToF (TH). Chốt firmware sau `COMMAND_TIMEOUT` để đóng khoảng hở trên: chờ người dùng duyệt, CHƯA LÀM |
+| 8 | Vật cản/dữ liệu không hợp lệ làm dừng hoặc từ chối chạy | Dừng khi có vật mới trên đường hoặc mất LiDAR: chỉ kiểm bằng mô phỏng và nguồn quét kịch bản (MP). LiDAR thật đứng yên (22/09) chỉ cho thấy đỗ xong với 0 dừng giả trên cảnh tĩnh (BT), không phải bằng chứng về hành vi dừng. *Tối 24/09:* phiên đỗ xe qua `VehicleIO` mô phỏng dừng khi telemetry/tư thế cũ và từ chối START khi trạng thái thật không khớp (MP). *Đợt AI camera 25/09/2026 (chưa commit):* hộp AI camera mới trên đường làm xe ảo dừng qua MAP_CHANGED; AI không dùng được lúc chạy thì cảnh báo, hay dừng khi tích "AI bắt buộc" (camera giả, MP; 3.11b) | Đưa tay/hộp và rút cáp với LiDAR thật khi xe ảo đang chạy (cần người); trên xe. *Tối 24/09:* sửa khoảng trống an toàn khi có `Heartbeat` (một COMMAND enable=1 sau khi bo đã về ARMED, chỉ thấy trên mô phỏng; 3.12b), CHƯA LÀM. *Muộn tối 24/09:* đã sửa ở mức MP; còn thử trên bo thật. *(Cập nhật muộn tối 24/09/2026:)* còn một khoảng hở suy ra từ mã, chưa có test: bo vừa về ARMED mà khung báo điều đó chưa tới laptop (≈ 50 ms + trễ USB) thì vẫn có thể có một enable=1 (GIAO_THUC_XE mục 12; 3.12b). Xử lý rút cáp LiDAR trong phần mềm có test với cổng giả (TH, 4.4); rút cáp thật chưa thử. *(Khuya 24/09/2026:)* START bị từ chối khi giới hạn bo lệch nguy hiểm so với cấu hình và khi chọn bo thật mà chưa có nguồn tư thế (MP, cổng giả, 3.12b); cầu nối ToF (TH). Chốt firmware sau `COMMAND_TIMEOUT` để đóng khoảng hở trên: chờ người dùng duyệt, CHƯA LÀM |
 | 9 | Nguồn, watchdog, E-stop đã kiểm chứng | Watchdog ở bản tham chiếu Python (MP); ngõ vào E-stop đã chọn (TK); *tối 24/09:* bảng tải, sơ đồ nguồn/dừng, 16 kịch bản thử lỗi soạn nháp (TK, CHƯA THỬ) | Toàn bộ phần cứng nguồn/dừng |
 | 10 | Có dữ liệu, cấu hình, hướng dẫn tái hiện | Replay mô phỏng; hồ sơ đo bàn thử; hướng dẫn laptop; *tối 24/09:* ghi/phát lại phiên bàn thử, một phiên thật phát lại đúng số bộ (BT) | Sao lưu `runs/`; chạy lại trên laptop và bản mã cuối; commit việc tối 24/09 (*khuya 24/09/2026:* đã commit và push lúc 20:22, `bfcbfc2` … `9bcc30c`; còn commit đợt khuya (*cập nhật 25/09/2026:* đã commit và push, `65b7127` … `54cb3e2`); kết quả độ nhạy và RA21 hiện chỉ ở `runs/` hoặc thư mục tạm) |
 
@@ -1438,7 +1509,12 @@ mục 3 nếu cần.)
   Valeo WoodScape Dataset, kèm link tới trang bộ dữ liệu. Bản này **không có điều khoản riêng** cho phép hay cấm in lại ảnh
   → việc in ảnh trong khóa luận là cách hiểu điều khoản, **cần GVHD chốt** (CHƯA CHỐT). Lưu ý link: LICENSE.pdf ghi bộ dữ
   liệu có tại `woodscape.valeo.ai`, còn README của repo WoodScape và dòng ghi công đầu tệp này dùng `woodscape.valeo.com`;
-  link đưa vào khóa luận: **cần tra** trang nào đang là trang chính.
+  link đưa vào khóa luận: **cần tra** trang nào đang là trang chính. *(Trả lời 25/09/2026, đợt AI camera:* kiểm trên web
+  ngày 25/09, `woodscape.valeo.ai` chuyển 301 tới `woodscape.valeo.com`, còn `.com` là một trang Valeo không có nội dung
+  WoodScape; không địa chỉ nào còn là trang bộ dữ liệu. ĐỀ XUẤT – CHỜ CHỐT: link trong khóa luận là
+  <https://github.com/valeoai/WoodScape>, ghi địa chỉ cũ dạng chữ để lưu vết; Valeo chưa xác nhận đây là "Dataset website".
+  Dòng ghi công đầu tệp này đã đổi theo. Chi tiết: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md) mục "Kiểm trên web ngày
+  25/09/2026" và "Ghi công: link tới trang bộ dữ liệu".)
 - Ảnh ACDC: chỉ mục đích phi thương mại (License.pdf mục 1.1), ảnh đã ẩn danh (`_anon`).
 - Ảnh RoadObstacle21: giấy phép **chưa xác minh** → không đưa ảnh vào khóa luận khi chưa tra.
 - Ảnh AVM-SS: không có giấy phép (tác giả giữ toàn quyền) → không in lại ảnh khi chưa hỏi tác giả.
@@ -1449,6 +1525,8 @@ mục 3 nếu cần.)
   dựng từ phần `reha` thì theo CC BY-NC-SA 3.0. *(Thêm khuya 24/09/2026:)* các ảnh `odometry_khop_scan_drow_*.png` trong
   `evidence/lidar/` cũng dựng từ DROW v2 (chuỗi `10-34-20-a`, `13-47-42`, thuộc bản tải về không có phần `reha`) nên theo
   cùng quy tắc MIT và trích cả hai bài; [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md) chưa ghi việc dùng hình mới này.
+  *(Kiểm ở đợt AI camera 25/09/2026: câu này đã lỗi thời; ở `89cd58f` GIAY_PHEP_DU_LIEU.md mục "DROW: ghi công khi dùng
+  hình" đã liệt kê bốn hình `odometry_khop_scan_drow_*`.)*
 - Ảnh tự chụp trên bàn/sa bàn: không vướng giấy phép dữ liệu.
 - *Thêm tối 24/09/2026:* BEV minh họa dựng từ ảnh WoodScape (lệnh `woodscape` của `perception.bev`) theo cùng quy tắc với
   ảnh WoodScape ở trên. `bev.png` của rig tổng hợp và `overlay.png` của bộ định vị (dựng từ bản ghi LiDAR tự ghi; gồm
@@ -1464,7 +1542,7 @@ dàn ý nhớ, **chưa đối chiếu** với bản gốc; phải tra trước k
 
 | Mã | Tài liệu | Dùng ở đâu | Điều đã biết (nguồn) | Trạng thái |
 |---|---|---|---|---|
-| D1 | **WoodScape** (Valeo) | Huấn luyện lượt nền; ROI; kiểm quy ước calibration; costmap trên ảnh | 8.234 cặp RGB–semantic; bài báo Yogamani và cs., "WoodScape: A multi-task, multi-camera fisheye dataset for autonomous driving", arXiv:1905.01489, 2019; README ghi ICCV 2019 (Oral), BibTeX tác giả đề nghị trỏ arXiv:1905.01489 (`@article`, `datasets/woodscape_metadata/README.md`); giấy phép Valeo riêng (toàn văn: `datasets/woodscape_metadata/LICENSE.pdf`), MIT của mã không áp dụng cho ảnh; bắt buộc ghi công; cấm dùng mô hình để vận hành phương tiện (GIAY_PHEP_DU_LIEU) | Trích được (bản arXiv hoặc ICCV 2019 theo README); số trang/DOI kỷ yếu ICCV: **cần tra** |
+| D1 | **WoodScape** (Valeo) | Huấn luyện lượt nền; ROI; kiểm quy ước calibration; costmap trên ảnh | 8.234 cặp RGB–semantic; bài báo Yogamani và cs., "WoodScape: A multi-task, multi-camera fisheye dataset for autonomous driving", arXiv:1905.01489, 2019; README ghi ICCV 2019 (Oral), BibTeX tác giả đề nghị trỏ arXiv:1905.01489 (`@article`, `datasets/woodscape_metadata/README.md`); giấy phép Valeo riêng (toàn văn: `datasets/woodscape_metadata/LICENSE.pdf`), MIT của mã không áp dụng cho ảnh; bắt buộc ghi công; cấm dùng mô hình để vận hành phương tiện (GIAY_PHEP_DU_LIEU). *(Sửa ở đợt AI camera 25/09/2026: chữ "cấm" mạnh hơn văn bản; viết: …bắt buộc ghi công; điều khoản chỉ cho dùng phi thương mại và có câu không cho dùng mô hình trong vận hành phương tiện; dự án đọc câu đó là ví dụ của dùng thương mại (quyết định 25/09/2026), Valeo chưa xác nhận (GIAY_PHEP_DU_LIEU). Link trích: <https://github.com/valeoai/WoodScape>, ĐỀ XUẤT – CHỜ CHỐT)* | Trích được (bản arXiv hoặc ICCV 2019 theo README); số trang/DOI kỷ yếu ICCV: **cần tra** |
 | D2 | **ACDC** (ETH Zürich) | Chấm ngoài miền (val 406 ảnh, val_ref); cache huấn luyện phần III | 4.006 ảnh sương/đêm/mưa/tuyết, 19 lớp (DANH_MUC B06); License.pdf mục 1.1 phi thương mại, không có điều khoản phương tiện; README trong `datasets/training/acdc/gt/` nêu Christos Sakaridis, Haoran Wang, Dengxin Dai và yêu cầu trích theo trang citation của ACDC | Mục trích dẫn chính xác: **cần tra** |
 | D3 | **RoadObstacle21** (benchmark SegmentMeIfYouCan) | Chấm vật lạ, 30 ảnh validation | Bài báo Chan, Lis, Uhlemeyer, Blum, Honari, Siegwart, Fua, Salzmann, Rottmann, "SegmentMeIfYouCan: A Benchmark for Anomaly Segmentation", NeurIPS 2021 Datasets and Benchmarks Track (BibTeX trong README mã benchmark đã tải, `datasets/benchmark_tools/`) | Trích bài báo được; **giấy phép dữ liệu chưa xác minh** |
 | D4 | RoadAnomaly21 (cùng benchmark) | Đã tải, **chưa dùng** trong kết quả nào *(cập nhật 25/09/2026: đã dùng từ khuya 24/09: chấm 10 ảnh `validation*` có nhãn, 4.3; mã trong `77eb51f`)* | Giấy phép theo từng ảnh (`LICENSE.txt`) | Chỉ trích nếu dùng *(cập nhật 25/09/2026: nay đã dùng nên phải trích; bài báo SMIYC như D3; in ảnh thì theo giấy phép từng ảnh, chưa tra)* |
@@ -1520,6 +1598,9 @@ Python 3.12.10; PyTorch 2.11.0+cu128, torchvision 0.26.0+cu128; OpenCV (`opencv-
 2.1.2; PySide6 6.11.2; pyserial 3.5; pygrabber 0.2; onnx 1.23.0, onnxruntime 1.30.0; psutil 7.2.2; nvidia-ml-py 13.610.43;
 pytest 9.1.1; coverage 7.16.1 (các tệp khóa [requirements-phase0.lock](../requirements-phase0.lock),
 [requirements-train.lock](../requirements-train.lock)). Trích phần mềm hay không, và trích thế nào: theo mẫu trường.
+*(Đợt AI camera 25/09/2026:* Shapely 2.1.2 trước đây chỉ có trong `.venv`; ngày 25/09/2026 được cài thêm vào `.venv-train`
+với sự đồng ý của người dùng, và `requirements-train.lock` đã có dòng `shapely==2.1.2` (chưa commit), để phiên đỗ xe và
+AI camera chạy chung một tiến trình.)
 
 ### 5.5. Tài liệu nội bộ
 
@@ -1533,7 +1614,8 @@ hoặc dẫn như hồ sơ thí nghiệm (kèm commit), theo mẫu trường.
 | "Hệ thống tự đỗ được xe MN300" | Chưa có xe | "Tự đỗ mới kiểm chứng trong mô phỏng với thông số xe giả định (20/09/2026)" |
 | "Tỉ lệ đỗ thành công 25/240" | 240 phiên là chiến dịch cố tình chèn lỗi | "240 phiên kín vòng có lỗi giả: 25 COMPLETED, 185 STOPPED đúng logic, 30 FAULT do chèn vật quá gần" |
 | "Mô hình đạt mIoU 0,969" (không kèm điều kiện) | Trong phân phối, split nội bộ, không phải split chính thức, không phải sa bàn | "mIoU 0,9692 trên tập test giữ riêng của split nội bộ WoodScape; chưa chấm trên ảnh sa bàn" |
-| "AI phát hiện vật cản quanh xe" | Chưa nối vào costmap/planner; lớp tô chỉ để nhìn | "Mô hình chạy trực tiếp trên bốn camera để đo thời gian; đầu ra chưa dùng cho lập đường" |
+| "AI phát hiện vật cản quanh xe" | Chưa nối vào costmap/planner; lớp tô chỉ để nhìn | "Mô hình chạy trực tiếp trên bốn camera để đo thời gian; đầu ra chưa dùng cho lập đường". *Cập nhật ở đợt AI camera 25/09/2026:* lý do "chưa nối" đã lỗi thời ở mức phần mềm, nhưng câu cần tránh vẫn sai: chưa camera nào được hiệu chuẩn, AI chưa tạo vật cản nào trên bàn thật và chưa được chấm trên ảnh sa bàn. Viết: "Phần mềm đưa AI camera vào phiên đỗ xe làm nguồn vật cản phụ đã có, mới kiểm bằng nguồn giả, rig tổng hợp và phát lại; chưa chạy với camera đã hiệu chuẩn, chưa đo phát hiện hay báo giả trên sa bàn" (3.11b) |
+| "Giấy phép WoodScape cho phép dùng mô hình trên xe" hay "giấy phép cấm dùng mô hình trên xe" (*thêm ở đợt AI camera 25/09/2026*) | Văn bản không tự phân định hai cách đọc; Valeo chưa xác nhận | "Điều khoản chỉ cho dùng phi thương mại và có vế không cho dùng mô hình trong vận hành phương tiện; khóa luận đọc vế đó là ví dụ của dùng thương mại; cách đọc này chưa được Valeo xác nhận" (mục 1, ý 4; GIAY_PHEP_DU_LIEU.md mục "Khóa luận nên viết gì") |
 | "Camera 130°, 30 fps" | 130° là số nhà bán; 30 fps là mode công bố; số FPS thật khác nhau giữa camera và giữa phiên | "Góc nhìn chưa đo; ở phơi sáng tự động thường đo được ≈ 23,85 khung/s, riêng camera cổng 1 có phiên ≈ 29 khung/s (t05 23/09, tham chiếu 24/09); chưa đạt 30 fps đều ở chế độ nào; cơ chế chưa xác định". *Cập nhật muộn tối 24/09/2026:* bỏ chữ "cổng 1", vì camera nhanh không cố định một cổng (cổng 3 ở s01–s07, t01, t02 ngày 23/09; cổng 1 ở t05 (23/09) và lúc 15:25, 17:56 ngày 24/09; không camera nào lúc 19:08); viết: "…ở phơi sáng tự động thường ≈ 23,85 khung/s; ở một số lần mở, một camera chạy ≈ 29 khung/s, camera nào thì thay đổi giữa các lần mở; …" |
 | "Bốn camera chạy được ở 720p" | 23/09 cảnh sáng: hai–ba camera bị cắt phần lớn khung; w03/w04 (và o01, tối 24/09) chỉ là cảnh tối | "Qua hub này, bốn camera dùng được ở 640×480 kèm bộ dò khung hỏng" |
 | "Quy tắc không chờ giảm độ trễ AI" | Cơ chế chưa giải thích; không phiên nào có camera chậm; có trường hợp bỏ camera khỏe (263/855 bộ, tham chiếu 24/09) | Nêu cả số đo w01–w05 và trường hợp tham chiếu, kèm "lợi ích chính chưa thấy trên phần cứng". *Cập nhật tối 24/09/2026:* nêu thêm quy tắc theo nhịp riêng và số đo lại o01/o02 (dòng dưới) |
@@ -1565,7 +1647,7 @@ hoặc dẫn như hồ sơ thí nghiệm (kèm commit), theo mẫu trường.
 | # | Việc | Cần | Mở khóa |
 |---:|---|---|---|
 | 1 | Hỏi GVHD/khoa: mẫu trình bày, kiểu trích dẫn, giới hạn trang, quy định khai báo công cụ AI, phạm vi tối thiểu để bảo vệ | Người | Mọi phần |
-| 2 | Quyết định hướng giấy phép WoodScape (TONG_HOP 5.1); hỏi GVHD về việc in ảnh WoodScape trong khóa luận (mục 4) | Người dùng | 3.8, 4.3, 5 |
+| 2 | Quyết định hướng giấy phép WoodScape (TONG_HOP 5.1); hỏi GVHD về việc in ảnh WoodScape trong khóa luận (mục 4). *(Đợt AI camera 25/09/2026: vế nối AI vào vòng điều khiển đã quyết (cách đọc A, Valeo chưa xác nhận; GIAY_PHEP_DU_LIEU.md); còn: báo GVHD về quyết định và hai cách đọc trước khi viết; hỏi GVHD về in ảnh WoodScape; quyết định có dùng nháp AI khi gán nhãn sa bàn không; hỏi Valeo hay không là việc người dùng tự quyết và tự gửi)* | Người dùng | 3.8, 3.11b, 4.3, 5 |
 | 3 | Sao lưu `autopark/runs/`, checkpoint và bản giải nén dataset ra ngoài ổ D | Người | Mọi hình/bảng lấy từ `runs/` |
 | 4 | Lập BOM thực mua mỗi khi hàng về. Bắt đầu với LiDAR C1, bốn camera và hub đã nhận: ghi nơi mua, ngày nhận, giá theo hóa đơn/đơn hàng | Người | 3.2, Phụ lục J |
 | 5 | Ghi lại lý do các lựa chọn chưa có biên bản (bỏ camera Wi-Fi, chọn L-RASPP), kèm ngày | Người dùng | 1.2, 1.4 |
@@ -1589,6 +1671,7 @@ hoặc dẫn như hồ sơ thí nghiệm (kèm commit), theo mẫu trường.
 | 23 | *(thêm khuya 24/09/2026)* Commit và push đợt khuya (người dùng quyết định); trước đó sửa `tests/test_planner_hard_cases.py` theo nhãn mới (hai trường hợp đang hỏng) và chạy lại toàn bộ bộ test, ghi số kèm commit. *(Cập nhật 25/09/2026: đã làm: test sửa và đổi tên thành `test_ca_rat_chat_khong_bao_thanh_cong_gia`; toàn bộ bộ test `.venv` 1242 đạt, 7 bỏ qua, `.venv-train` 386 đạt; commit lúc 00:54 ngày 25/09, `65b7127` … `54cb3e2`, đã push. Còn: ghi mã commit cạnh số khi viết khóa luận)* | Người dùng + phần mềm | Mọi mục có ghi "khuya 24/09" |
 | 24 | *(thêm khuya 24/09/2026)* Quyết định: phương án định vị (việc 12); chốt firmware sau `COMMAND_TIMEOUT` (đổi hành vi firmware, chờ duyệt, CHƯA LÀM); chính sách so giới hạn bo; mặt nạ sức khỏe ToF và bộ đếm quãng đường (đổi giao thức); tiêu chí số lần đổi chiều | Người dùng | 1.6, 3.11, 3.12b, 4.2, 4.12 |
 | 25 | *(thêm khuya 24/09/2026)* Làm các phép "làm được ngay" của bộ kịch bản: DV-1, DV-2 cùng buổi đặt hộp, LD-1 chạy dài 30 phút; chạy lại độ nhạy khi máy rảnh (`--workers 1`) để có số thời gian dùng được | Người + thiết bị; phần mềm | 4.4, 4.6, 4.11 |
+| 26 | *(thêm ở đợt AI camera 25/09/2026)* Commit và push đợt AI camera (người dùng quyết định), chạy lại toàn bộ bộ test và ghi số kèm commit; sau hiệu chuẩn (việc 10) chạy ngăn AI camera với camera thật và đặt vật mẫu ở vị trí đo bằng thước; chốt tham số và chính sách "AI bắt buộc" sau khi chấm AI trên sa bàn (việc 11); chọn checkpoint cho vòng điều khiển (chỉ lượt chỉ WoodScape, ĐỀ XUẤT – CHỜ CHỐT) | Người dùng + người + thiết bị | 3.11b, 4.12 dòng 3, 8 |
 
 ## 8. Việc phần mềm làm song song (yêu cầu của người dùng ngày 24/09/2026; đã có biên bản, cập nhật tối 24/09/2026)
 
@@ -1675,3 +1758,20 @@ hỏng của `tests/test_planner_hard_cases.py` đã sửa (4.2).)
 | RoadAnomaly21; `evaluate.py --train-overlap`; `labels import --exclude` | [HUAN_LUYEN.md](../../HUAN_LUYEN.md) cuối mục 8; [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md) mục 2 bước 7 | RA21: **DL** (10 ảnh có nhãn, ba seed, máy bàn); hai chốt: **TH** (dữ liệu giả; phần so manifest thử trên dữ liệu thật) | 3.10, 4.3, bảng 4.12 dòng 3, mục 6 | Recall RA21 không chứng minh nhận ra vật lạ; số AVM-SS val của `ai_ws_avm` là val chọn checkpoint của chính nó |
 | Demo hợp nhất bỏ ≥ 22 vòng khởi động, `--warmup` | [GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md) mục 2 | **TH**: nguồn giả, C1 giả; số tia/vòng của vòng nền tính lại trên ba bản ghi có sẵn (BT offline) | 3.11 | CHƯA chạy với C1 thật; ảnh hưởng lên bản đồ nền CHƯA ĐO |
 | `may_moi`: dòng mới của `tom_tat.md`, tóm tắt lại thư mục đã có | [MAY_NOP_DO_AN.md](MAY_NOP_DO_AN.md) mục 2, 4, 4.1 | **TH**: bản sao hai lần chạy máy bàn (15:25, 19:08); 21 test | 4.10, mục 7 việc 22 | Laptop CHƯA CHẠY; dòng mới chỉ có trên laptop sau khi commit đợt khuya (cập nhật 25/09/2026: đã commit, `77eb51f`, và push; laptop `git pull` là có) |
+
+### Đợt AI camera: việc làm 25/09/2026 (sau `89cd58f`, chưa commit)
+
+Hai việc; **không có phiên đo mới trên thiết bị**, không mở camera, LiDAR hay cổng COM. Chưa việc nào chạy trên laptop RTX
+3050 Ti. Số test đếm bằng `--collect-only` và chạy lại khi cập nhật dàn ý (dưới bảng).
+
+| Việc | Biên bản | Mức bằng chứng thật (25/09) | Đã cập nhật ở | Lưu ý khi viết |
+|---|---|---|---|---|
+| Quyết định giấy phép: dùng mô hình huấn luyện trên WoodScape trong vòng điều khiển xe mô hình (cách đọc A) | [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md) mục "WoodScape trong vòng điều khiển: quyết định 25/09/2026" | Quyết định của người làm khóa luận, không phải số đo; kiểm trên web 25/09 (địa chỉ trang bộ dữ liệu, issue #14); **Valeo chưa xác nhận** | mục 1 ý 4, 3.8, 3.8b, 3.10, 3.11b, bảng 4.12 dòng 3, mục 4, 5.1 (D1), mục 6, mục 7 việc 2 | Nêu cả hai cách đọc và phương án dự phòng chỉ LiDAR; không viết "được phép" hay "bị cấm" như điều đã chắc; không phủ checkpoint có AVM-SS và nhãn nháp AI |
+| AI camera làm nguồn vật cản thứ hai trong phiên đỗ xe (`fusion/camera_ai.py`, ngăn "AI camera", `ui.lidar_app --camera-ai`); `bev.acceptance_flag`; shapely trong `.venv-train` | [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md); [BEV.md](BEV.md) mục 2, mục 8 việc 7 | **TH**: camera giả, rig bốn camera TỔNG HỢP, tệp hiệu chuẩn viết tay; `tests/test_camera_ai_layer.py` 21 hàm / 45 mục, `tests/test_camera_dock_ui.py` 20 hàm / 23 mục; đột biến 46/46 (AI_DIEU_KHIEN_XE mục 8.1). Phát lại bản ghi **BT** o03 với mô hình thật (máy bàn, tải không kiểm soát): rig thật 1163/1163 lô bị chặn, 0 vật cản; rig TỔNG HỢP 969 lô dùng được, vị trí hộp vô nghĩa; số phát lại đo trước các bản sửa cùng ngày, chưa chạy lại | phần 0, mục 1 ý 3, 3.8, 3.8b, 3.11, 3.11b, bảng 4.12 dòng 3 và 8, 5.4, mục 6, mục 7 việc 26 | Chưa camera nào được hiệu chuẩn nên AI chưa tạo vật cản nào trên bàn thật; chưa chạy với camera thật đang mở, chưa trên xe; mọi tham số ĐỀ XUẤT – CHỜ CHỐT; AI chưa chấm trên ảnh sa bàn |
+
+**Kiểm lại khi cập nhật dàn ý** (đợt AI camera 25/09/2026, máy bàn, offscreen, chỉ nguồn giả, không đụng phần cứng; cây làm
+việc chưa commit trên `89cd58f`; không kiểm máy có rảnh không): hai tệp test mới **68 đạt** ở cả `.venv` lẫn `.venv-train`;
+bộ 15 tệp liên quan (hai tệp mới cùng `test_lidar_dock_ui`, `test_bev`, `test_fusion`, `test_fusion_demo`, `test_session`,
+`test_session_run`, `test_session_vehicle`, `test_phase0`, `test_ui_smoke`, `test_rig_replay`, `test_extrinsics_calib`,
+`test_roi_tool`, `test_fisheye_calib`) **343 đạt** ở `.venv-train` (129 s) và **343 đạt** ở `.venv` (127 s). Toàn bộ bộ
+test chưa chạy lại sau đợt này; mọi số phải chạy lại ngay trước commit và dẫn kèm mã commit (mục 7 việc 26).

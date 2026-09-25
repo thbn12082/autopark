@@ -61,6 +61,12 @@ máy bàn nhìn cùng một chỗ tối.
    - `autopark\cai_dat_train.cmd` tạo `.venv-train` (torch CUDA 12.8, bàn thử, hiệu chuẩn, gán nhãn) theo
      `requirements-train.lock`. Cuối lệnh in `CUDA True` và tên GPU. Nếu in `CUDA False`: cập nhật driver NVIDIA. Torch
      bản cu128 cần driver hỗ trợ CUDA 12.8; máy bàn đang dùng driver 596.72.
+     *(Cập nhật 25/09/2026:)* trên máy bàn `.venv-train` được cài thêm **shapely 2.1.2** ngày 25/09/2026, với sự đồng ý
+     của người dùng, và `requirements-train.lock` đã có dòng `shapely==2.1.2`. Nhờ vậy phiên đỗ xe, planner và AI camera
+     chạy chung một tiến trình (`ui.lidar_app --camera-ai`, [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)); trước đó
+     `.venv-train` không có shapely. Tệp khóa mới **chưa commit** lúc viết: laptop chỉ có shapely sau khi commit, push,
+     `git pull` rồi chạy lại `cai_dat_train.cmd` (lệnh cài theo tệp khóa cả khi `.venv-train` đã có). Ngăn AI camera trên
+     laptop: CHƯA CHẠY.
 4. **Driver LiDAR:** cài driver cầu nối CP210x của Silicon Labs nếu Device Manager chưa thấy "Silicon Labs CP210x USB to
    UART Bridge (COMx)". Máy bàn dùng bản 11.6.0.420.
 5. **Cắm thiết bị:** hub UGREEN với bốn camera ở đúng các cổng 1–4 như máy bàn, và LiDAR cắm thẳng vào laptop. Đóng mọi
