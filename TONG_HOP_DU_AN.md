@@ -58,6 +58,28 @@ Máy bàn i9-14900 / RTX 4000 Ada 20 GB / RAM 64 GB dùng phát triển, huấn 
 
 ### 4.1. Mô phỏng và lập đường
 
+**Cách một đường đi được chấp nhận** — sơ đồ rút gọn của cấu hình mặc định:
+
+```mermaid
+flowchart TD
+    I["Xuất phát, đích, vật cản và cấu hình xe"] --> G{"Đích hợp lệ?"}
+    G -->|Không| R["Báo lỗi để chỉnh lại"]
+    G -->|Có| P["Thử bộ tìm đường và bộ tham số"]
+    P --> C{"Có đường ứng viên?"}
+    C -->|Có| V["Cho xe mô phỏng bám thử đường"]
+    V --> A{"Đạt dung sai chấp nhận?"}
+    A -->|Có| K["Giữ ứng viên đạt; có thể tìm đường tốt hơn"]
+    A -->|Không| N{"Còn nấc tìm kiếm và thời gian?"}
+    C -->|Không| N
+    N -->|Có| P
+    N -->|Không| O{"Có ứng viên đã qua kiểm?"}
+    K --> O
+    O -->|Có| Y["Trả quỹ đạo hợp lệ để xem trước / chạy"]
+    O -->|Không| Z["Báo chưa tìm được đường dùng được"]
+```
+
+Hết thời gian hoặc chưa tìm ra đường không chứng minh bài toán vô nghiệm.
+
 Có chỉnh sa bàn, đặt đích, xem trước, tiến/lùi, lái tay và xuất log. Điểm vào `planning/parking.py` mặc định thử nhiều bộ tìm đường và kiểm bằng mô phỏng trước khi nhận quỹ đạo.
 
 Hồ sơ 20/09 ghi 220 test đạt và 2.880 trường hợp theo seed không vi phạm các điều kiện đã đặt. Trong 240 phiên có lỗi giả: 25 hoàn thành, 185 dừng đúng logic, 30 FAULT do chèn vật quá gần. Không cộng ba nhóm thành số lần đỗ thành công.
@@ -103,6 +125,22 @@ Số đo thuộc máy bàn, chưa thay được phép đo trên laptop trình di
 Có bảng in, công cụ chụp/tính nội tham fisheye, đo ngoại tham và vẽ ROI. Công cụ mới được kiểm chủ yếu bằng ảnh tổng hợp; chưa camera dự án nào có đủ hiệu chuẩn thật.
 
 Thứ tự: **nội tham → ngoại tham theo gá → ROI → kiểm sai số bằng vật có vị trí đo được**.
+
+```mermaid
+flowchart TD
+    A["Chốt camera, mode ảnh và vị trí gá"] --> B["Chụp bảng ô vuông để tính nội tham"]
+    B --> C{"Nội tham đạt tiêu chí?"}
+    C -->|Chưa| B
+    C -->|Đạt| D["Đo vị trí và góc camera: ngoại tham"]
+    D --> E["Vẽ ROI: loại thân xe và vùng không dùng"]
+    E --> F["Chiếu BEV; đặt vật ở vị trí đã đo"]
+    F --> G{"Sai số trong ngưỡng đã chốt?"}
+    G -->|Chưa| H["Xác định lỗi ở gá, phép đo, nội tham hoặc ROI"]
+    H --> A
+    G -->|Đạt| I["Có bằng chứng hình học để xét dùng trên xe"]
+```
+
+Nhánh cuối là mục tiêu kiểm chứng; hồ sơ hiện chưa có bộ hiệu chuẩn thật hoàn chỉnh.
 
 [Nội tham](autopark/docs/HIEU_CHUAN_CAMERA.md), [ngoại tham và ROI](autopark/docs/NGOAI_THAM_VA_ROI.md).
 
@@ -167,6 +205,27 @@ Có nháp 37 kịch bản trong chín nhóm, cách đo độc lập và ngưỡn
 [Kịch bản](autopark/docs/KICH_BAN_NGHIEM_THU.md), [ngưỡng đề xuất](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md).
 
 ### 4.16. AI camera trong vòng điều khiển
+
+**Từ ảnh tới vật cản** trong phần mềm hiện có:
+
+```mermaid
+flowchart TD
+    A["Ảnh camera hoặc bản ghi"] --> B["AI tính xác suất BLOCKED từng pixel"]
+    B --> C{"Hiệu chuẩn, ROI, mode và lô dữ liệu dùng được?"}
+    C -->|Không| X["Chặn lô; báo lý do; không thêm vật cản mới"]
+    C -->|Có| D["Chiếu BEV và loại vùng thân xe"]
+    D --> E["Đặt vào hệ bản đồ theo tư thế xe / rig"]
+    E --> F["Lọc theo thời gian: ít nhất 2 trong 3 lô"]
+    F --> G["Tạo vật cản riêng của AI camera"]
+    G --> H{"Vật mới chạm đường đang chạy?"}
+    H -->|Có| S["MAP_CHANGED: dừng và chờ đánh giá lại"]
+    H -->|Không| K["Cập nhật lớp vật cản"]
+    X --> Q{"Đang chạy và bật AI bắt buộc?"}
+    Q -->|Có| S2["Yêu cầu dừng vì AI không dùng được"]
+    Q -->|Không| W["Cảnh báo; giữ vật cản đã biết"]
+```
+
+Sơ đồ bỏ bớt chi tiết lọc/đồng bộ. Rig tổng hợp chỉ được ngoại lệ khi thử bằng replay hoặc nguồn giả, không dùng cho camera live. Quy tắc cảnh báo/dừng cũng áp dụng khi AI không có dữ liệu hoặc dữ liệu quá cũ.
 
 Ngăn **AI camera** của `ui.lidar_app --camera-ai` chuyển ô vật cản BEV vào phiên đỗ bên cạnh LiDAR. Nó không xóa vật cản LiDAR hoặc vật do người dùng đặt.
 

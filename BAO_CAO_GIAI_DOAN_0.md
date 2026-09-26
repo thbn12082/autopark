@@ -42,13 +42,25 @@ Nhánh VehicleIO được thêm sau đợt này; kết quả 220 test không bao
 
 ## 4. Luồng vận hành
 
-```text
-Chỉnh sa bàn → Kiểm đích → Tìm và kiểm đường → Xem trước → Bắt đầu
-                                                             ↓
-                                             Bám đường có phản hồi
-                                                             ↓
-Vật cản / dữ liệu hỏng → Hủy đường → Phanh về 0 → Chờ đánh giá lại
+```mermaid
+flowchart TD
+    E["Chỉnh sa bàn và đặt đích"] --> P["Kiểm đích, tìm và kiểm đường"]
+    P --> G{"Có quỹ đạo hợp lệ?"}
+    G -->|Không| E
+    G -->|Có| R["Sẵn sàng"]
+    R --> V["Xem trước riêng trong mô phỏng"]
+    V --> R
+    R -->|Người dùng bấm Bắt đầu| X["Chạy và nhận phản hồi"]
+    X --> C{"Trạng thái phiên?"}
+    C -->|Đạt dung sai đỗ| OK["COMPLETED: đỗ xong"]
+    C -->|Vật cản hoặc dữ liệu hỏng| S["Hủy đường, phanh về 0"]
+    C -->|Va chạm| F["FAULT: ghi lỗi"]
+    C -->|Chưa xong, không lỗi| X
+    S --> W["STOPPED: chờ đánh giá lại"]
+    W -->|Người dùng chọn lại, lấy vị trí vừa dừng| E
 ```
+
+Sơ đồ rút gọn các nhánh thường gặp trong mô phỏng. Xem trước là tùy chọn trên giao diện; hoàn tất xem trước không tự cho xe chạy. Nhánh hết thời gian chạy được mô tả ngay dưới đây.
 
 Sau sự kiện dừng, hệ thống không tự chạy tiếp. Đường mới lấy xuất phát tại vị trí vừa dừng. `COMPLETED` đòi đạt dung sai; đi hết danh sách điểm chưa đủ. Hết thời gian chạy phải phanh trước khi kết thúc FAULT.
 
@@ -101,6 +113,22 @@ Không dùng số của lõi để đại diện toàn repo. Coverage cao không
 [Báo cáo chi tiết](autopark/docs/KIEM_THU_DO_BEN_GIAI_DOAN_0.md), [JUnit](autopark/docs/evidence/robustness_pytest.xml), [coverage toàn bộ](autopark/docs/evidence/coverage_robustness.json), [coverage lõi](autopark/docs/evidence/coverage_core.json).
 
 ## 7. Năm phiên mẫu và replay
+
+**Cách giữ bằng chứng để kiểm lại:**
+
+```mermaid
+flowchart TD
+    A["Kịch bản, cấu hình và seed"] --> B["Chạy mô phỏng"]
+    B --> C["Lưu quỹ đạo, sự kiện, trạng thái và kết quả"]
+    B --> D["Lưu môi trường và snapshot mã nguồn"]
+    C --> R["Replay bằng quỹ đạo đã lưu"]
+    D --> R
+    R --> Q{"Khớp bản ghi tham chiếu?"}
+    Q -->|Có| Y["Xác nhận tái hiện phiên đó"]
+    Q -->|Không| N["Tìm sai khác ở mã, môi trường hoặc dữ liệu"]
+```
+
+Replay không gọi planner tìm một đường mới. Luồng này dành cho phiên mô phỏng giai đoạn 0; không áp dụng cho phiên VehicleIO.
 
 | Phiên | Kết quả | Thời gian mô phỏng | Sai số vị trí cuối | Replay |
 |---|---|---:|---:|---|

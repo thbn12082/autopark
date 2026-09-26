@@ -34,6 +34,26 @@ Các số này ở ngưỡng 0,50. Tập test của checkpoint nền được ch
 
 ## 2. Dữ liệu, cấu hình và quá trình huấn luyện
 
+**Luồng huấn luyện và đánh giá:**
+
+```mermaid
+flowchart TD
+    D["Ảnh và nhãn gốc"] --> C["Mapping nhãn, chia nhóm, tạo và xác minh cache"]
+    C --> TR["Train: cập nhật trọng số"]
+    C --> VA["Validation: chọn checkpoint và ngưỡng"]
+    C --> TE["Test: giữ riêng"]
+    TR --> M["Mô hình sau từng epoch"]
+    M --> VA
+    VA --> R{"Đã chốt cấu hình và mô hình?"}
+    R -->|Chưa| TR
+    R -->|Rồi| B["Chốt checkpoint và quy tắc chấm"]
+    B --> EV["Đánh giá cuối, lưu cả lỗi và giới hạn"]
+    TE --> EV
+    EV --> N["Không dùng test để chỉnh ngược lại mô hình"]
+```
+
+Validation và test không cập nhật gradient. Đây là luồng quy trình; lịch sử các lần chấm test thực tế của baseline được ghi ở mục 1.
+
 ### 2.1. Môi trường
 
 Máy bàn i9-14900, RTX 4000 Ada 20 GB, RAM 64 GB, Windows 11; Python 3.12.10. Cài theo [hướng dẫn môi trường AI](autopark/README.md) và `requirements-train.lock`, không chép nguyên venv từ máy khác.
@@ -152,6 +172,20 @@ Không định nghĩa mIoU/precision/báo động giả theo cách chấm này; 
 Ngưỡng 0,50. Trung bình test mIoU 0,9693 ± 0,0001. Khi so mô hình, cần nhiều seed và xem cả lỗi theo lớp; không kết luận từ một cải thiện nhỏ của một lượt.
 
 ## 10. Ngưỡng quyết định
+
+**Một pixel được phân loại như thế nào?**
+
+```mermaid
+flowchart TD
+    I["Ảnh đầu vào"] --> P["Mạng trả xác suất BLOCKED"]
+    P --> Q{"Xác suất lớn hơn hoặc bằng ngưỡng?"}
+    Q -->|Có| B["BLOCKED: dự đoán vật cản"]
+    Q -->|Không| F["FREE: ứng viên vùng trống"]
+    B --> E["So với nhãn thật để tính bỏ sót / báo nhầm"]
+    F --> E
+```
+
+Sơ đồ mô tả phân lớp ảnh. Vật cản trên bản đồ còn cần hiệu chuẩn, ROI, phép chiếu BEV và kiểm thời gian dữ liệu; FREE trên ảnh chưa cho phép xe đi qua.
 
 Quét ngưỡng trên validation và chọn theo F2 của BLOCKED, ưu tiên recall, cho **0,15**. Chọn theo mIoU cho 0,50.
 

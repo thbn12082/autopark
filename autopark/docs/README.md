@@ -4,6 +4,21 @@
 
 Trang này giúp tìm tài liệu theo việc cần làm. Các biên bản chuyên sâu giữ ngày đo và lịch sử thử nghiệm; khi cần biết trạng thái hiện tại tại mốc mã `9d68257`, đọc bản tổng quan.
 
+**Bản đồ đọc tài liệu:**
+
+```mermaid
+flowchart TD
+    A["README: hiểu mục tiêu"] --> B["Tổng quan: biết đã có và còn thiếu gì"]
+    B --> C{"Bạn đang cần làm gì?"}
+    C -->|Mở phần mềm| D["Hướng dẫn cài và chạy"]
+    C -->|Làm phần cứng| E["Kế hoạch, kiểm kê và điều kiện chuyển bước"]
+    C -->|Xử lý cảm biến| F["Camera / LiDAR / hiệu chuẩn / hợp nhất"]
+    C -->|Làm AI| G["Dữ liệu / huấn luyện / gán nhãn"]
+    C -->|Viết hoặc nghiệm thu| H["Báo cáo, kịch bản, ngưỡng và bằng chứng"]
+```
+
+Sơ đồ được đặt ngay cạnh phần giải thích tương ứng trong tài liệu. Chữ trong ô nói rõ bước làm hoặc điều kiện; mũi tên không tự có nghĩa bước đó đã hoàn thành trên xe thật.
+
 ## Cài, chạy và mang đi trình diễn
 
 | Tài liệu | Dùng khi |

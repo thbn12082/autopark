@@ -46,20 +46,58 @@ Nguồn/dừng phải chuẩn bị trước khi thử chấp hành; giai đoạn
 
 ### 2.1. Luồng khi hoàn chỉnh
 
-```text
-LiDAR → Bản đồ/định vị ───────────────┐
-Camera → AI + BEV cục bộ ────────────┼→ Trạng thái/bản đồ hợp nhất
-ESP32 → Phản hồi chuyển động/ToF ────┘             ↓
-Đích → Kiểm tra → Tìm đường → Xem trước → Bám đường → ESP32 → Xe
-                                                    ↑         │
-                                                    └ Phản hồi┘
+```mermaid
+flowchart TD
+    L["LiDAR"]
+    C["Bốn camera"]
+    F["Phản hồi chuyển động / ToF qua ESP32"]
+    subgraph PC["Xử lý trên laptop"]
+        M["Bản đồ và định vị"]
+        A["AI và BEV cục bộ"]
+        H["Hợp nhất trạng thái và môi trường"]
+        P["Kiểm đích và tìm đường"]
+        V["Xem trước và kiểm điều kiện chạy"]
+        T["Bám đường"]
+    end
+    L --> M --> H
+    C --> A --> H
+    F --> H
+    H --> P --> V --> T
+    U["Đích người dùng chọn"] --> P
+    T --> E["ESP32"]
+    E --> X["ESC / servo và xe"]
+    X --> F
+    H -.-> T
 ```
+
+Các mũi tên thể hiện luồng dữ liệu/lệnh của hệ thống hoàn chỉnh; chưa biểu thị toàn bộ nhánh đã chạy trên xe thật.
 
 Giám sát lỗi chạy cùng vòng điều khiển. E-stop vật lý là đường dừng riêng với giao diện laptop.
 
 ### 2.2. Những việc có thể làm đồng thời
 
 Mô phỏng/AI từ dữ liệu sẵn có; kiểm cảm biến/bàn thử; đo xe/điều khiển/nguồn. Ba nhánh gặp nhau ở tích hợp và nghiệm thu. Đợt mua không tương đương giai đoạn phần mềm.
+
+**Các nhánh công việc và điểm tích hợp:**
+
+```mermaid
+flowchart TD
+    A["GĐ 0: mô phỏng và giao diện"] --> H["GĐ 8: hợp nhất khi xe chuyển động"]
+    B["GĐ 1: LiDAR và camera mẫu"] --> C["GĐ 2: bốn camera và BEV"]
+    C --> D["GĐ 3: hợp nhất trên bàn"]
+    E["GĐ 4: nhận và đo xe"] --> F["GĐ 5: điều khiển có phản hồi"]
+    P["Chuẩn bị nguồn và dừng cho thử chấp hành"] --> F
+    P --> G["GĐ 6: xác nhận nguồn và dừng toàn hệ thống"]
+    D --> R["GĐ 7: gá cảm biến lên xe"]
+    E --> R
+    R --> H
+    F --> H
+    H --> I["GĐ 9: tự đỗ thật và vật cản"]
+    G --> I
+    I --> J["GĐ 10: nghiệm thu và khóa luận"]
+```
+
+Sơ đồ chỉ các phụ thuộc chính khi tích hợp. Phần mềm, thiết kế và hồ sơ nghiệm thu có thể chuẩn bị sớm; các bước thử chấp hành vẫn phải có nguồn/dừng phù hợp trước khi thực hiện.
 
 ### 2.3. Cách ghi tiến độ
 

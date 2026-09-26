@@ -30,6 +30,23 @@ autopark/                    ← gốc repository
 
 Các lệnh dưới dùng PowerShell, gọi trực tiếp Python của từng môi trường nên không cần activate.
 
+**Chọn đường chạy phù hợp:**
+
+```mermaid
+flowchart TD
+    A["Đứng tại thư mục có pyproject.toml"] --> B{"Muốn chạy gì?"}
+    B -->|Mô phỏng tự đỗ| C["Cài .venv bằng cai_dat.cmd"]
+    C --> D["Mở chay_app.cmd"]
+    B -->|LiDAR / camera không AI| E["Cài .venv; chọn thiết bị hoặc bản ghi"]
+    E --> F["Theo hướng dẫn mục 7"]
+    B -->|AI hoặc huấn luyện| G["Cài .venv-train bằng cai_dat_train.cmd"]
+    G --> H{"Chạy mô hình có sẵn hay train?"}
+    H -->|Có sẵn| I["Chép checkpoint và chuẩn bị ảnh / camera / bản ghi"]
+    H -->|Train| J["Chuẩn bị dataset và xác minh cache"]
+    I --> K["Chạy mục 6 hoặc 7; kiểm hiệu chuẩn nếu tạo vật cản"]
+    J --> L["Theo HUAN_LUYEN.md"]
+```
+
 ## 2. Cài và mở mô phỏng
 
 Cách nhanh: chạy `cai_dat.cmd` rồi `chay_app.cmd`.
@@ -199,6 +216,19 @@ Phát lại bằng rig tổng hợp để thử luồng phần mềm:
 Tham số từng công cụ: `python -m <tên_module> --help` bằng đúng môi trường.
 
 ## 9. Chế độ điều khiển
+
+```mermaid
+flowchart TD
+    A["Chọn nhánh chạy"] --> B{"Chế độ?"}
+    B -->|Mô phỏng| S["Controller gửi lệnh vào mô hình xe ảo"]
+    B -->|Quan sát| O["Tính lệnh và ghi log; không gửi COMMAND chạy"]
+    B -->|VehicleIO| V["Chọn bo mô phỏng hoặc cổng serial"]
+    V --> G{"Đủ tư thế, telemetry và điều kiện START?"}
+    G -->|Không| N["Từ chối bắt đầu và báo lý do"]
+    G -->|Có| R["Gửi lệnh qua giao thức tới bo đã chọn"]
+```
+
+Cấu hình cổng serial hiện chưa có nguồn tư thế thật, nên đi vào nhánh từ chối START. Nút kiểm kết nối chỉ kiểm liên lạc, không thay các điều kiện chạy.
 
 | Chế độ | Hành vi |
 |---|---|

@@ -27,15 +27,24 @@ Biên tập ngày **26/09/2026**, dựa trên mã nguồn và hồ sơ đến co
 
 Luồng mục tiêu khi tích hợp đầy đủ:
 
-```text
-LiDAR + camera + phản hồi xe → Bản đồ và vị trí xe
-                                         ↓
-Đích do người dùng chọn → Tìm đường → Bám đường → ESP32 → Xe
-                                         ↑               │
-                                         └── Phản hồi ───┘
-
-Vật cản mới hoặc dữ liệu không hợp lệ → Dừng → Đánh giá lại
+```mermaid
+flowchart TD
+    L["LiDAR: đo môi trường"] --> M["Bản đồ và vị trí xe"]
+    C["Bốn camera: nhận diện vật cản"] --> M
+    F["Phản hồi chuyển động từ xe"] --> M
+    U["Người dùng chọn vị trí và hướng đỗ"] --> P["Tìm đường tiến / lùi"]
+    M --> P
+    P --> V["Xem trước và kiểm điều kiện chạy"]
+    V --> T["Bám đường: tính tốc độ và góc lái"]
+    T --> E["ESP32 điều khiển ESC / servo"]
+    E --> X["Xe chuyển động"]
+    X --> F
+    M --> S{"Vật cản mới hoặc dữ liệu không hợp lệ?"}
+    S -->|Có| D["Dừng và đánh giá lại"]
+    D --> W["Chờ người dùng lập đường / cho chạy lại"]
 ```
+
+Sơ đồ mô tả kiến trúc V1 dự kiến. Nhánh ESP32 → xe thật chưa được nghiệm thu.
 
 AI nhận diện vật cản. Bộ tìm đường và bộ bám đường tính quỹ đạo, tốc độ và góc lái.
 
