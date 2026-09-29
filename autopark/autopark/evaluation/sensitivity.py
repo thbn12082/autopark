@@ -23,7 +23,7 @@ Quy ước (đọc kỹ trước khi dùng kết quả):
 
 Không có số nào ở đây là số đo trên xe thật hay trên MN300.
 
-Dùng (chạy trong D:/ap/autopark; mỗi lệnh là MỘT dòng, dán thẳng vào cmd.exe):
+Dùng (chạy trong thư mục `autopark` của repo, thư mục có pyproject.toml; mỗi lệnh là MỘT dòng, dán thẳng vào cmd.exe):
     .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.sensitivity --list
     .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.sensitivity --scenes parallel_160,uturn_w55 --params width --levels 10 --combos none --out runs\\do_nhay_xe\\thu_nhanh
     .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.sensitivity --workers 4 --recheck-time-limit 20

@@ -1,6 +1,9 @@
 """Phiên đo không giao diện: bốn camera + LiDAR + AI chạy đồng thời trong T giây, ghi số đo ra json.
 
-    python -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 120 --name u01_4cam_lidar_ai_480p --out runs/rig_bench/20260923_v3
+    python -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 120 --name u01_4cam_lidar_ai_480p --out runs/rig_bench/20260923_v3
+
+`--lidar` không kèm giá trị: LiDAR ở `lidar_port` của configs/thiet_bi.json (29/09/2026; lidar/port.py); `--lidar COMx`
+ghi đè; không có `--lidar`: chạy không LiDAR.
 
 Chạy trong `.venv-train` (cần torch cho AI; `--no-ai` thì chạy được cả trong `.venv`). Camera được chọn theo CỔNG HUB
 (index OpenCV đổi sau khởi động lại). Kết quả: `<name>.rig.json` gồm cấu hình, số đo từng camera, độ lệch bộ ảnh,
@@ -18,7 +21,7 @@ camera khỏe khi các camera khác nhịp (docs/GIAI_DOAN_2_BAN_THU.md mục 10
 
 Ghi và phát lại (docs/GHI_PHAT_LAI_BAN_THU.md):
 
-    python -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 120 --name g01 --record runs/rig_recordings/g01
+    python -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 120 --name g01 --record runs/rig_recordings/g01
     python -m autopark.rig.bench --replay runs/rig_recordings/g01 --name g01_phat_lai --out runs/rig_bench/phat_lai
 
 `--record <thư mục>` ghi mọi khung tốt (JPEG q95, hoặc `--record-format png`), sự kiện khung hỏng và vòng LiDAR của đúng
@@ -37,6 +40,7 @@ from pathlib import Path
 import sys
 import time
 
+from autopark.lidar.port import LidarPortError
 from autopark.rig.core import Rig, RigConfig
 from autopark.video.multicam import RIG_CLOCK, CameraSpec, MultiCameraManager, resolve_ports
 
@@ -64,7 +68,7 @@ def build_rig(args) -> Rig:
     notes = {"name": getattr(args, "name", None), "note": getattr(args, "note", "")}
     if getattr(args, "replay", None):
         from autopark.rig.replay import ReplaySession
-        if args.index is not None or args.lidar:
+        if args.index is not None or args.lidar is not None:
             raise ValueError("--replay chạy từ bản ghi: không dùng cùng --index hay --lidar (--ports thì chọn cổng trong bản ghi)")
         replay = ReplaySession(args.replay, speed=args.replay_speed, ports=args.ports, clock=clock)
         mode = replay.camera_mode()
@@ -76,18 +80,22 @@ def build_rig(args) -> Rig:
         lidar_port = ((replay.meta.get("lidar_source") or {}).get("port")) if replay.has_lidar else None
         notes.update({"replay": str(args.replay), "replay_speed": replay.speed})
     else:
+        open_lidar = None
+        lidar_port = None
+        if args.lidar is not None:           # "" = "--lidar" không kèm giá trị → configs/thiet_bi.json
+            from autopark.lidar.port import lidar_port as resolve_lidar_port
+            from autopark.lidar.rplidar_c1 import RplidarC1Source
+
+            # TRƯỚC khi tra/dựng camera: tệp cấu hình hỏng thì báo ngay, chưa chạm thiết bị nào
+            lidar_port = resolve_lidar_port(args.lidar)     # LidarPortError (ValueError) nếu không xác định được
+
+            def open_lidar():
+                return RplidarC1Source.open(lidar_port, mirror=args.mirror, clock=clock, first_revolution_timeout_s=4.0)
         specs = resolve_ports(args.ports) if args.index is None else \
             [CameraSpec(port=p, index=i) for p, i in zip(args.ports or range(len(args.index)), args.index)]
         width, height, fps, fourcc, exposure = args.width, args.height, args.fps, args.fourcc, args.exposure
         cams = MultiCameraManager(specs, width=width, height=height, fps=fps, fourcc=fourcc,
                                   exposure=exposure, ring=args.ring, clock=clock)
-        open_lidar = None
-        lidar_port = args.lidar
-        if args.lidar:
-            from autopark.lidar.rplidar_c1 import RplidarC1Source
-
-            def open_lidar():
-                return RplidarC1Source.open(args.lidar, mirror=args.mirror, clock=clock, first_revolution_timeout_s=4.0)
     make_segmenter, checkpoint = segmenter_factory(args)
     cfg = RigConfig(width=width, height=height, fps=fps, fourcc=fourcc, exposure=exposure,
                     max_skew_s=None if args.max_skew_ms <= 0 else args.max_skew_ms / 1000.0,
@@ -159,7 +167,9 @@ def add_rig_args(p: argparse.ArgumentParser) -> None:
                    help="sàn của ngưỡng chờ camera lỡ nhịp; ngưỡng thực riêng từng camera = max(giá trị này, 1,5 × chu "
                         "kỳ khung trung bình của chính camera đó): ≈ 63 ms ở 24 fps, ≈ 100 ms ở 15 fps; hết hạn thì "
                         "chấm bộ không có camera đó; ≤ 0 để tắt (chờ mọi camera, như loạt 20260923_v3)")
-    p.add_argument("--lidar", default=None, help="cổng COM của RPLIDAR C1, ví dụ COM4")
+    p.add_argument("--lidar", nargs="?", const="", default=None, metavar="COMx",
+                   help="dùng RPLIDAR C1; không kèm giá trị thì cổng lấy từ lidar_port của configs/thiet_bi.json, kèm "
+                        "COMx (hoặc auto) thì ghi đè; không có --lidar: không LiDAR")
     p.add_argument("--mirror", action="store_true")
     p.add_argument("--no-ai", action="store_true")
     p.add_argument("--checkpoint", default=None, help="mặc định: runs/ai_woodscape_rtx4000_v1/best.pt")
@@ -199,7 +209,10 @@ def main(argv=None) -> int:
     if args.switch_interval_ms is not None:
         sys.setswitchinterval(args.switch_interval_ms / 1000.0)
 
-    rig = build_rig(args)
+    try:
+        rig = build_rig(args)
+    except LidarPortError as exc:
+        p.error(str(exc))
     replay = rig.replay
     warmup = args.warmup if args.warmup is not None else (0.0 if replay is not None else LIVE_WARMUP_S)
     if args.seconds is not None:

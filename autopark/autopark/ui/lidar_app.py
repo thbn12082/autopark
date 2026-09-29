@@ -1,9 +1,12 @@
 """Cửa sổ đỗ xe giai đoạn 0 kèm ngăn LiDAR thật (bàn thử giai đoạn 1–3).
 
-    python -m autopark.ui.lidar_app --port COM4
+    python -m autopark.ui.lidar_app
     python -m autopark.ui.lidar_app --recording runs/lidar_bench/20260922/p07_nen_phong.npz
-    python -m autopark.ui.lidar_app --port COM4 --scenario scenarios/sa_ban_3x2_hai_hop.json
-    python -m autopark.ui.lidar_app --port COM4 --vehicle-config configs/vehicle_measured.json
+    python -m autopark.ui.lidar_app --scenario scenarios/sa_ban_3x2_hai_hop.json
+    python -m autopark.ui.lidar_app --vehicle-config configs/vehicle_measured.json
+
+Cổng LiDAR: không có `--port` thì lấy `lidar_port` trong configs/thiet_bi.json (đổi máy chỉ sửa tệp đó, 29/09/2026;
+autopark/lidar/port.py); `--port COMx` ghi đè cho một lần chạy.
 
 Cấu hình xe: không có `--vehicle-config` thì như cũ (sa bàn mặc định dùng configs/vehicle_default.json, GIẢ ĐỊNH –
 CHƯA ĐO; `--scenario` dùng tệp xe mà kịch bản trỏ tới). Có `--vehicle-config` thì tệp đó thay cho cả hai, và vẫn giữ
@@ -17,7 +20,7 @@ Kết nối → vật cản LiDAR hiện ngay và bám theo cảm biến → Tì
 
 AI camera làm nguồn vật cản thứ hai (thêm 25/09/2026, docs/AI_DIEU_KHIEN_XE.md; cần .venv-train vì AI dùng torch):
 
-    .venv-train\\Scripts\\python.exe -X utf8 -m autopark.ui.lidar_app --port COM4 --camera-ai --cam-ports 1 2 3 4
+    .venv-train\\Scripts\\python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --cam-ports 1 2 3 4
     .venv-train\\Scripts\\python.exe -X utf8 -m autopark.ui.lidar_app --no-connect --camera-ai --cam-replay runs/rig_recordings/<phiên>
     .venv-train\\Scripts\\python.exe -X utf8 -m autopark.ui.lidar_app --no-connect --camera-ai --cam-replay runs/rig_recordings/<phiên> --camera-ai-test-rig
 
@@ -64,7 +67,7 @@ class BenchWindow(MainWindow):
     `camera_ai` (dict tham số của `CameraAIDock`, hay None): thêm ngăn AI camera, xếp thành thẻ cạnh ngăn LiDAR. None thì
     không nhập mô-đun ngăn camera, cửa sổ đúng như trước 25/09/2026."""
 
-    def __init__(self, session: Session, scenario_path: Path | None, *, port: str, recording: Path | None,
+    def __init__(self, session: Session, scenario_path: Path | None, *, port: str | None, recording: Path | None,
                  vehicle_override: VehicleConfigFile | None = None, camera_ai: dict | None = None):
         super().__init__(session, scenario_path)
         self.vehicle_override = vehicle_override    # --vehicle-config: giữ cả khi "Mở kịch bản" trong cửa sổ
@@ -116,7 +119,7 @@ class BenchWindow(MainWindow):
         super().closeEvent(event)
 
 
-def build_window(scenario_path: Path | None, *, port: str, recording: Path | None,
+def build_window(scenario_path: Path | None, *, port: str | None, recording: Path | None,
                  vehicle_config: Path | None = None, camera_ai: dict | None = None) -> tuple[BenchWindow, LidarDock]:
     """`vehicle_config` (nếu có) thay cấu hình xe của sa bàn mặc định hoặc của kịch bản, kể cả kịch bản mở sau đó
     bằng "Mở kịch bản" trong cửa sổ. `camera_ai`: tham số của ngăn AI camera (xem `camera_ai_options`), None = không có
@@ -177,7 +180,8 @@ def camera_ai_options(parser: argparse.ArgumentParser, args) -> dict | None:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--port", default="COM4")
+    parser.add_argument("--port", default=None,
+                        help="cổng COM của RPLIDAR C1 (hoặc auto); mặc định lidar_port trong configs/thiet_bi.json")
     parser.add_argument("--recording", type=Path, default=None, help="phát lại bản ghi .npz thay vì cổng COM")
     parser.add_argument("--scenario", type=Path, default=None)
     parser.add_argument("--no-connect", action="store_true", help="mở cửa sổ nhưng chưa kết nối (cả LiDAR lẫn AI camera)")

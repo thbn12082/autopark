@@ -2,6 +2,7 @@
 rem Cai moi truong .venv-train (torch CUDA 12.8, ban thu, hieu chuan, gan nhan) theo requirements-train.lock.
 rem Can Python 3.12 va driver NVIDIA ho tro CUDA 12.8. Xem docs\MAY_NOP_DO_AN.md.
 cd /d "%~dp0"
+call "%~dp0kiem_venv.cmd" .venv-train || goto end
 if not exist ".venv-train\Scripts\python.exe" (
   where py >nul 2>nul && (py -3.12 -m venv .venv-train) || (python -m venv .venv-train)
 )

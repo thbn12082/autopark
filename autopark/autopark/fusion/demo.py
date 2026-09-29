@@ -1,8 +1,11 @@
 """Thử nghiệm bàn: LiDAR thật (hoặc bản ghi) → lớp LiveLidar → bản đồ hợp nhất → phiên đỗ mô phỏng giai đoạn 0.
 
-    python -m autopark.fusion.demo --port COM4 --seconds 30
+    python -m autopark.fusion.demo --seconds 30
     python -m autopark.fusion.demo --recording runs/lidar_bench/20260922/p07_nen_phong.npz --seconds 10
-    python -m autopark.fusion.demo --port COM4 --seconds 30 --warmup 4.5
+    python -m autopark.fusion.demo --seconds 30 --warmup 4.5
+
+Không có `--recording` thì mở LiDAR thật ở `--port`, hoặc (không có `--port`) ở `lidar_port` của configs/thiet_bi.json
+(29/09/2026; autopark/lidar/port.py).
 
 Xe ảo đứng ở xuất phát của sa bàn 3 × 2 m, hướng +x; LiDAR thật ĐỨNG YÊN tại đúng vị trí xuất phát đó, cùng hướng
 xe, và quan sát sa bàn như một cảm biến cố định: vật thật cách LiDAR 1 m phía trước là vật cách xuất phát 1 m.
@@ -267,8 +270,8 @@ def _close_quietly(source) -> str | None:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    where = parser.add_mutually_exclusive_group(required=True)
-    where.add_argument("--port", help="COM port of the RPLIDAR C1")
+    where = parser.add_mutually_exclusive_group()
+    where.add_argument("--port", help="COM port of the RPLIDAR C1 (or auto); default: lidar_port in configs/thiet_bi.json")
     where.add_argument("--recording", type=Path, help="replay a .npz recording at real-time pace")
     parser.add_argument("--seconds", type=float, default=30.0)
     parser.add_argument("--max-age", type=float, default=0.3)
@@ -284,16 +287,22 @@ def main(argv=None) -> int:
     # kiểm TRƯỚC khi mở cổng: sau `start()` mô-tơ C1 đã quay. `not (0 <= x < inf)` loại cả NaN và vô cực
     if args.initial_skip < 0 or not (0.0 <= args.warmup < math.inf):
         parser.error("--initial-skip phải ≥ 0 và --warmup phải là số hữu hạn ≥ 0")
-    if args.port:
+    if args.recording is None:
+        from autopark.lidar.port import LidarPortError, lidar_port
         from autopark.lidar.rplidar_c1 import RplidarC1Source
         from autopark.lidar.rplidar_protocol import ProtocolError
 
+        try:
+            port = lidar_port(args.port)
+        except LidarPortError as exc:
+            print(f"không xác định được cổng LiDAR: {exc}", file=sys.stderr)
+            return 1
         source = None
         try:
-            source = RplidarC1Source.open(args.port, mirror=args.mirror)
+            source = RplidarC1Source.open(port, mirror=args.mirror)
             source.start()
         except (OSError, ProtocolError) as exc:        # cổng không có/đang bận, thiết bị không trả lời đúng
-            print(f"không mở được LiDAR trên {args.port}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            print(f"không mở được LiDAR trên {port}: {type(exc).__name__}: {exc}", file=sys.stderr)
             if source is not None:
                 problem = _close_quietly(source)
                 if problem:

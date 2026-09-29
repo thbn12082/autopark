@@ -1,6 +1,8 @@
 """Giao diện bàn thử: bốn camera có lớp tô AI, LiDAR, số đo trực tiếp.
 
-    .\\.venv-train\\Scripts\\python.exe -X utf8 -m autopark.ui.rig_app --lidar COM4
+    .\\.venv-train\\Scripts\\python.exe -X utf8 -m autopark.ui.rig_app --lidar
+
+`--lidar` không kèm giá trị: cổng lấy từ `lidar_port` của configs/thiet_bi.json (29/09/2026); `--lidar COMx` ghi đè.
 
 - Bốn ô camera, gọi theo CỔNG HUB (index OpenCV đổi sau khởi động lại). Lớp tô: xanh = mô hình gọi là FREE, đỏ =
   BLOCKED, theo ngưỡng xác suất đang chọn. Khi bật AI, ảnh hiển thị là đúng bộ ảnh mà AI đã chấm (trễ hơn ảnh sống một
@@ -621,7 +623,12 @@ def build_window(argv=None, start: bool = True) -> RigWindow:
                    help="nút 'Ghi phiên' ghi vào <thư mục này>/<giờ>/")
     args = p.parse_args(argv)
     check_record_args(p, args)          # --jpeg-quality sai báo ngay, không đợi tới lúc bấm "Ghi phiên"
-    rig = build_rig(args)
+    from autopark.lidar.port import LidarPortError
+
+    try:
+        rig = build_rig(args)
+    except LidarPortError as exc:
+        p.error(str(exc))
     checkpoints = [] if args.no_ai else checkpoint_choices(args.runs)
     return RigWindow(rig, checkpoints, args.snapshots, start=start, record_root=args.record_root,
                      record_options=recording_options(args))

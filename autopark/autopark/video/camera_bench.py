@@ -35,6 +35,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from autopark.image_io import imwrite
 from autopark.video.sources import torn_bands, truncated_rows
 
 DEFAULT_FOURCC = "MJPG"
@@ -463,7 +464,7 @@ def record(index: int, width: int, height: int, seconds: float, out_dir: Path, n
             frame_times.append(t_frame)
             if t_frame - last_snapshot >= snapshot_every:
                 snap = out_dir / f"{name}_{t_frame:05.1f}s{SNAPSHOT_EXT}"
-                cv2.imwrite(str(snap), image)
+                imwrite(snap, image)
                 snapshots.append(snap.name)
                 last_snapshot = t_frame
         elapsed = time.perf_counter() - t0

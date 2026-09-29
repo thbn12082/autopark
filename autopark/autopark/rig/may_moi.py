@@ -45,22 +45,17 @@ import traceback
 
 import numpy as np
 
-CP210X_VID, CP210X_PID = 0x10C4, 0xEA60
-STEPS = ("env", "usb", "lidar", "ai", "rig480", "cam720")
+from autopark.lidar.port import CP210X_PID, CP210X_VID  # noqa: F401 - giữ tên cũ của mô-đun này
+from autopark.lidar.port import find_cp210x_port as find_lidar_port
+
+STEPS =("env", "usb", "lidar", "ai", "rig480", "cam720")
 REFERENCE_GLOB = "docs/evidence/may_ban/tham_chieu_*.json"
 
 
 # ----------------------------------------------------------------------------------------------- từng bước
 
-def find_lidar_port(comports=None) -> str | None:
-    """Cổng COM của bộ chuyển CP210x (RPLIDAR C1). Số COM khác nhau giữa các máy (máy bàn: COM4)."""
-    if comports is None:
-        from serial.tools import list_ports
-        comports = list_ports.comports()
-    for port in comports:
-        if getattr(port, "vid", None) == CP210X_VID and getattr(port, "pid", None) == CP210X_PID:
-            return port.device
-    return None
+# find_lidar_port (= lidar.port.find_cp210x_port): lệnh này LUÔN tự tìm cổng CP210x, không đọc configs/thiet_bi.json,
+# vì máy mới chưa biết số COM; `--lidar COMx` ghi đè.
 
 
 def env_report() -> dict:
@@ -327,7 +322,8 @@ def reference_digest(reference: dict | None) -> dict:
     - `tham_chieu_20260924_toi.json` (19:08): `policy` và `ai_warm_up_ms` ở tầng ngoài, digest chưa có → chép `policy`
       vào rig480 và cam720 (cùng một lần may_moi, cả hai bước dùng mặc định của rig.bench; hai json gốc trong
       runs/may_moi_20260924_toi có cùng `policy`), `ai_warm_up_ms` vào rig480. Độ lệch bộ ảnh không có → '—'.
-    - tệp tạo từ `may_moi.json` của mã này: digest đã có sẵn mọi khóa, tầng ngoài không đè lên."""
+    - tệp tạo từ `may_moi.json` của mã này (như `tham_chieu_20260929.json`): digest đã có sẵn mọi khóa, tầng ngoài
+      không đè lên."""
     reference = reference or {}
     ref = copy.deepcopy(reference.get("digest") or {})
     policy, warm = reference.get("policy"), reference.get("ai_warm_up_ms")
@@ -506,7 +502,9 @@ def main(argv=None) -> int:
 
     def lidar_port() -> str:
         if "lidar_port" not in context:
-            context["lidar_port"] = args.lidar or find_lidar_port()
+            chosen = (args.lidar or "").strip()
+            # "auto" đổi ra COMx ở đây: lệnh con nhận cổng cụ thể, không thấy CP210x thì là RuntimeError của bước này
+            context["lidar_port"] = find_lidar_port() if chosen.lower() in ("", "auto") else chosen
         if not context["lidar_port"]:
             raise RuntimeError("không thấy bộ chuyển CP210x của LiDAR (cắm LiDAR, cài driver CP210x, hoặc truyền --lidar COMx)")
         return context["lidar_port"]

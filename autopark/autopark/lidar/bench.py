@@ -1,7 +1,7 @@
 """Phiên đo tĩnh LiDAR: ghi từng lần đặt vật, tính số đo, vẽ hình, gộp báo cáo (bước 2–3 "Khi nhận LiDAR").
 
-    python -m autopark.lidar.bench record --port COM4 --out runs/lidar_bench/20260922 --name p01_truoc_0.5m \
-        --seconds 15 --expected-distance 0.5 --expected-angle 0 [--warmup 120] [--mirror]
+    python -m autopark.lidar.bench record --out runs/lidar_bench/20260922 --name p01_truoc_0.5m \
+        --seconds 15 --expected-distance 0.5 --expected-angle 0 [--warmup 120] [--mirror] [--port COMx]
     python -m autopark.lidar.bench analyze runs/lidar_bench/20260922/p01_truoc_0.5m.npz --expected-distance 0.5 --expected-angle 0
     python -m autopark.lidar.bench report runs/lidar_bench/20260922
 
@@ -20,9 +20,9 @@ from pathlib import Path
 import sys
 import time
 
-import cv2
 import numpy as np
 
+from autopark.image_io import imwrite
 from autopark.perception.paths import atomic_write_json, utc_now
 
 from .recording import Recording, ScanRecorder, default_meta, read_recording, summarize
@@ -112,7 +112,7 @@ def render_placement(recording: Recording, path, expected_distance: float | None
     title = f"{recording.path.stem}  scan {index + 1}/{len(recording)}  beams {recording.n_beams[index]}"
     image = render_scan(scan, size=700, max_range=max_range, detections=detections, title=title)
     path = Path(path)
-    cv2.imwrite(str(path), image)
+    imwrite(path, image)
     return path
 
 
@@ -208,7 +208,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     r = sub.add_parser("record", help="record one placement from the device and analyse it")
-    r.add_argument("--port", required=True)
+    r.add_argument("--port", default=None, help="cổng COM (hoặc auto); mặc định lidar_port trong configs/thiet_bi.json")
     r.add_argument("--out", type=Path, required=True)
     r.add_argument("--name", required=True, help="file stem, e.g. p01_truoc_0.5m")
     r.add_argument("--seconds", type=float, default=15.0)
@@ -230,6 +230,12 @@ def main(argv=None) -> int:
     p.add_argument("directory", type=Path)
     args = parser.parse_args(argv)
     if args.command == "record":
+        from .port import LidarPortError, lidar_port
+
+        try:
+            args.port = lidar_port(args.port)        # bản ghi lưu cổng thật đã mở
+        except LidarPortError as exc:
+            parser.error(str(exc))
         return record(args)
     if args.command == "analyze":
         return analyze_command(args)

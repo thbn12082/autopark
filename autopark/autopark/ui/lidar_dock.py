@@ -34,6 +34,7 @@ from autopark.fusion.fuse import fuse
 from autopark.fusion.layers import LiveLidarLayer, sensor_pose_in_map
 from autopark.fusion.obstacles import count_objects
 from autopark.lidar.live_view import PacedReplay, ScanReader, ScanStreamEnded
+from autopark.lidar.port import CONFIG_PATH, LidarPortError, configured_lidar_port, lidar_port
 from autopark.perception.costmap import GridSpec
 from autopark.safety.freshness import FreshnessMonitor, SourcePolicy
 from autopark.ui import theme
@@ -88,7 +89,8 @@ class LidarPointsItem(QGraphicsItem):
 
 
 class LidarDock(QDockWidget):
-    def __init__(self, window, *, port: str = "COM4", recording: Path | None = None, parent=None):
+    def __init__(self, window, *, port: str | None = None, recording: Path | None = None, parent=None):
+        """`port` None: ô cổng điền sẵn `lidar_port` của configs/thiet_bi.json; ô để trống lúc kết nối cũng lấy từ đó."""
         super().__init__("LiDAR", parent or window)
         self.window = window
         self.session = window.session
@@ -122,8 +124,12 @@ class LidarDock(QDockWidget):
         layout.setSpacing(12)
 
         card = Card("Kết nối")
-        self.edit_port = QLineEdit(port)
-        self.edit_port.setPlaceholderText("COM4")
+        try:
+            shown = port or configured_lidar_port()
+        except LidarPortError:
+            shown = ""                  # tệp cấu hình hỏng: ô trống, lỗi hiện khi bấm Kết nối
+        self.edit_port = QLineEdit(shown)
+        self.edit_port.setPlaceholderText(f"COMx hoặc auto; trống = {CONFIG_PATH.parent.name}/{CONFIG_PATH.name}")
         self.btn_connect = QPushButton("Kết nối")
         self.btn_connect.clicked.connect(self.toggle_connection)
         self.chk_mirror = QCheckBox("Đảo chiều góc")
@@ -329,7 +335,7 @@ class LidarDock(QDockWidget):
             else:
                 from autopark.lidar.rplidar_c1 import RplidarC1Source
 
-                source = RplidarC1Source.open(self.edit_port.text().strip() or "COM4")
+                source = RplidarC1Source.open(lidar_port(self.edit_port.text()))
                 source.start()
         except Exception as exc:  # noqa: BLE001 - mọi lỗi mở cổng phải hiện ra cho người dùng
             self.lbl_device.setText(f"Không kết nối được: {exc}")

@@ -39,6 +39,7 @@ import cv2
 import numpy as np
 
 from autopark.evaluation.dataset_audit import avm_to_project
+from autopark.image_io import imread
 
 from .data import BKTree, UnionFind, letterbox, perceptual_hashes, read_image
 from .paths import PROJECT
@@ -233,12 +234,12 @@ def prepare_acdc(args) -> int:
     started = time.perf_counter()
     for index, (split, item) in enumerate(items):
         image = read_image(item["image"])
-        label = cv2.imread(str(item["label"]), cv2.IMREAD_UNCHANGED)
+        label = imread(item["label"], cv2.IMREAD_UNCHANGED)
         if image is None or label is None or image.shape[:2] != label.shape[:2]:
             raise SystemExit(f"Cặp hỏng: {item['id']}")
         binary = lookup[label]
         if item["invalid"] is not None and Path(item["invalid"]).exists():
-            invalid = cv2.imread(str(item["invalid"]), cv2.IMREAD_UNCHANGED)
+            invalid = imread(item["invalid"], cv2.IMREAD_UNCHANGED)
             if invalid is not None and invalid.shape == binary.shape:
                 binary[invalid > 0] = 255                       # ACDC tự đánh dấu pixel không tin được
         prepared, target, box = letterbox(image, binary, args.height, args.width)

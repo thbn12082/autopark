@@ -240,6 +240,21 @@ def test_both_reference_files_shipped_in_repo_render(tmp_path):
     assert WARN_RULE in text and WARN_REF_WARM in text
 
 
+def test_reference_20260929_shipped_in_repo_renders_every_cell(tmp_path):
+    """Tệp tạo từ may_moi.json (máy bàn từ 29/09/2026): digest có sẵn quy tắc chờ, làm nóng AI, độ lệch bộ ảnh."""
+    new = may_moi.Path(may_moi.__file__).resolve().parents[2] / "docs" / "evidence" / "may_ban" / "tham_chieu_20260929.json"
+    if not new.exists():
+        pytest.skip("thiếu tệp tham chiếu máy bàn 29/09")
+    digest = make_digest(tmp_path, rig_json(640, 23.85, 0), rig_json(1280, 23.85, 0, ai=False))
+    text = may_moi.summary_markdown(digest, may_moi.load_json(new))
+    rows = table(text)
+    assert rows[WARM_ROW][0][1] == "4 ảnh 1522 / 3 ảnh 1469 / 2 ảnh 1658 / 1 ảnh 1414"
+    assert rows[RULE_480][0][1] == OWN_LABEL and rows[RULE_720][0][1] == OWN_LABEL
+    assert rows[SKEW_ROW][0][1] == "17,1 / 32,0 / 35,9" and rows[SKEW_ROW][1][1] == "26,0 / 30,2 / 32,8"
+    assert "CẢNH BÁO" not in text
+    assert "- Tham chiếu máy bàn: máy bàn Dell Precision 3680" in text      # `_file` chỉ có khi qua find_reference
+
+
 def _analysis(folder, rate, beams):
     """Tệp phân tích LiDAR như lidar.bench ghi: <folder>/lidar/l01_tinh.analysis.json."""
     (folder / "lidar").mkdir(parents=True, exist_ok=True)
@@ -404,6 +419,21 @@ def test_main_keeps_going_when_every_step_fails(tmp_path, monkeypatch, capsys):
     assert set(saved["results"]) == set(may_moi.STEPS) and not any(v["ok"] for v in saved["results"].values())
     assert "không có checkpoint" in saved["results"]["ai"]["error"]
     assert (tmp_path / "kq" / "tom_tat.md").exists()
+
+
+def test_lidar_auto_without_cp210x_fails_only_that_step(tmp_path, monkeypatch):
+    # 29/09/2026: "--lidar auto" phải đổi ra COMx trong may_moi; không thấy CP210x thì bước lỗi, lệnh chạy tiếp
+    def boom(*a, **k):
+        raise RuntimeError("không có thiết bị")
+    monkeypatch.setattr(may_moi, "env_report", boom)
+    monkeypatch.setattr(may_moi, "find_lidar_port", lambda: None)
+    monkeypatch.setattr(may_moi, "camera_selection", boom)
+    import autopark.video.camera_bench as cb
+    monkeypatch.setattr(cb, "main", lambda argv: 2)
+    code = may_moi.main(["--out", str(tmp_path / "kq"), "--runs", str(tmp_path / "khong_co_runs"), "--lidar", "auto"])
+    assert code == 1
+    saved = json.loads((tmp_path / "kq" / "may_moi.json").read_text(encoding="utf-8"))
+    assert "CP210x" in saved["results"]["lidar"]["error"] and (tmp_path / "kq" / "tom_tat.md").exists()
 
 
 def test_dry_run_touches_nothing(tmp_path):

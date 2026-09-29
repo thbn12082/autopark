@@ -5,7 +5,7 @@ Safety invariants decide pass/fail. Completion, safe stops, unavoidable collisio
 and planner rejection are counted separately; a safe rejection is not a parking success.
 
 Xe gốc của chiến dịch lấy từ `--vehicle-config` (mặc định configs/vehicle_default.json, GIẢ ĐỊNH – CHƯA ĐO), ví dụ
-(một dòng, chạy trong D:/ap/autopark):
+(một dòng, chạy trong thư mục `autopark` của repo, thư mục có pyproject.toml):
     .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.robustness --out runs\\robustness_do --vehicle-config configs\\vehicle_measured.json
 Lưu ý (24/09/2026): chỉ một phần xe lấy từ tệp.
 - Ca pose/swept/runtime (`varied_config`): giữ TỈ LỆ footprint của tệp (chiều dài cơ sở, bề rộng, nhô trước/sau) nhưng

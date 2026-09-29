@@ -27,6 +27,7 @@ import numpy as np
 
 from autopark.domain.sensors import Costmap, SourceStamp
 from autopark.domain.types import Pose
+from autopark.image_io import imwrite
 
 from .calibration import CameraCalibration, load_woodscape_calibration
 from .paths import PROJECT, atomic_write_json, utc_now
@@ -268,9 +269,9 @@ def main(argv=None) -> int:
         "costmap": costmap_to_dict(costmap)})
     colors = np.zeros_like(image)
     colors[labels == 0], colors[labels == 1], colors[labels == 255] = (0, 170, 0), (40, 40, 220), (110, 110, 110)
-    cv2.imwrite(str(args.out / "labels_overlay.jpg"), cv2.addWeighted(image, 0.5, colors, 0.5, 0))
-    cv2.imwrite(str(args.out / "costmap.png"), render(states, grid, calibration))
-    cv2.imwrite(str(args.out / "costmap_textured.png"), render(states, grid, calibration, image))
+    imwrite(args.out / "labels_overlay.jpg", cv2.addWeighted(image, 0.5, colors, 0.5, 0))
+    imwrite(args.out / "costmap.png", render(states, grid, calibration))
+    imwrite(args.out / "costmap_textured.png", render(states, grid, calibration, image))
     print(f"{image_id}: free {int((states == FREE).sum())} occupied {int((states == OCCUPIED).sum())} "
           f"unknown {int((states == UNKNOWN).sum())} cells -> {args.out}", flush=True)
     return 0

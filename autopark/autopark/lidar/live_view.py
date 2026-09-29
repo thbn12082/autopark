@@ -1,7 +1,9 @@
 """Màn hình scan trực tiếp từ RPLIDAR C1, hoặc phát lại một bản ghi `.npz`, với giám sát dữ liệu cũ và ghi phiên.
 
-    python -m autopark.lidar.live_view --port COM4 [--max-age 0.3] [--record runs/lidar_bench/<ngày>/live] [--mirror]
+    python -m autopark.lidar.live_view [--port COMx] [--max-age 0.3] [--record runs/lidar_bench/<ngày>/live] [--mirror]
     python -m autopark.lidar.live_view --recording runs/lidar_bench/20260922/p07_nen_phong.npz [--speed 1]
+
+Không có `--port` lẫn `--recording` thì mở LiDAR ở `lidar_port` của configs/thiet_bi.json (29/09/2026; lidar/port.py).
 
 Luồng đọc chạy ở thread riêng (đọc cổng nối tiếp chặn tới 50 ms) và đẩy scan vào hàng đợi; timer Qt 20 ms lấy
 ra, gọi `FreshnessMonitor.observe(now)` rồi `check(now)` trên đồng hồ phiên của nguồn, nên STALE_DATA vẫn được
@@ -166,8 +168,8 @@ class LiveWindow(QMainWindow):
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    where = parser.add_mutually_exclusive_group(required=True)
-    where.add_argument("--port", help="COM port of the RPLIDAR C1")
+    where = parser.add_mutually_exclusive_group()
+    where.add_argument("--port", help="COM port of the RPLIDAR C1 (or auto); default: lidar_port in configs/thiet_bi.json")
     where.add_argument("--recording", type=Path, help="replay a .npz written by autopark.lidar.recording")
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--max-age", type=float, default=0.3, help="STALE_DATA after this many seconds without a scan")
@@ -177,15 +179,20 @@ def main(argv=None) -> int:
     parser.add_argument("--record", type=Path, default=None, help="file stem to record the live session into")
     args = parser.parse_args(argv)
     recorder = None
-    if args.port:
+    if args.recording is None:
+        from .port import LidarPortError, lidar_port
         from .rplidar_c1 import RplidarC1Source
 
-        source = RplidarC1Source.open(args.port, mirror=args.mirror)
+        try:
+            port = lidar_port(args.port)
+        except LidarPortError as exc:
+            parser.error(str(exc))
+        source = RplidarC1Source.open(port, mirror=args.mirror)
         source.start()
         if args.record:
             described = source.describe()
             described.pop("source_id", None)
-            recorder = ScanRecorder(args.record, default_meta(source.source_id, port=args.port, **described))
+            recorder = ScanRecorder(args.record, default_meta(source.source_id, port=port, **described))
     else:
         source = PacedReplay(args.recording, speed=args.speed)
     app = QApplication.instance() or QApplication(sys.argv)

@@ -20,6 +20,8 @@ import sys
 import cv2
 import numpy as np
 
+from autopark.image_io import imread, imwrite
+
 from .data import label_lookup, letterbox, polygon_mask, read_image
 from .dataset import CAMERAS
 from .paths import PROJECT, atomic_write_json, utc_now
@@ -33,7 +35,7 @@ def apply_roi(labels: np.ndarray, roi: np.ndarray, ignore: int = 255) -> np.ndar
 
 
 def load_roi(path, shape=None) -> np.ndarray:
-    roi = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+    roi = imread(path, cv2.IMREAD_GRAYSCALE)
     if roi is None:
         raise ValueError(f"Cannot read ROI {path}")
     if shape is not None and roi.shape != tuple(shape):
@@ -83,10 +85,10 @@ def build(args) -> int:
         dark_frequency = dark / max(1, dark_n)
         usable = (ego_frequency < args.ego_threshold) & (dark_frequency < args.dark_fraction)
         roi = np.where(usable, 255, 0).astype(np.uint8)
-        cv2.imwrite(str(args.out / f"roi_{camera}.png"), roi)
+        imwrite(args.out / f"roi_{camera}.png", roi)
         small = roi_to_model_size(roi, args.height, args.width)
-        cv2.imwrite(str(args.out / f"roi_{camera}_{args.width}x{args.height}.png"), small)
-        cv2.imwrite(str(args.out / f"ego_frequency_{camera}.png"), np.round(ego_frequency * 255).astype(np.uint8))
+        imwrite(args.out / f"roi_{camera}_{args.width}x{args.height}.png", small)
+        imwrite(args.out / f"ego_frequency_{camera}.png", np.round(ego_frequency * 255).astype(np.uint8))
         report["cameras"][camera] = {
             "images": len(ids), "dark_samples": dark_n, "native_size": [int(roi.shape[0]), int(roi.shape[1])],
             "excluded_fraction_native": float((roi == 0).mean()),

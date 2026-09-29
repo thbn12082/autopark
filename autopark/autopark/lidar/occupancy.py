@@ -24,10 +24,10 @@ import math
 from pathlib import Path
 import sys
 
-import cv2
 import numpy as np
 
 from autopark.domain.sensors import Costmap, LidarScan, SourceStamp
+from autopark.image_io import imwrite
 from autopark.perception.costmap import FREE, OCCUPIED, UNKNOWN, GridSpec, costmap_to_dict, render, to_costmap
 from autopark.perception.paths import atomic_write_json, utc_now
 
@@ -136,7 +136,7 @@ def write_outputs(counts: OccupancyCounts, states: np.ndarray, out: Path, *, sou
         "created_utc": utc_now(), "source": source, "grid": counts.grid.__dict__, "summary": summary,
         "method": "ray casting per beam; passes vs hits per cell; NaN beams ignored; no pose estimation",
         **(extra or {}), "costmap": costmap_to_dict(costmap)})
-    cv2.imwrite(str(out / "map.png"), render(states, counts.grid, None, None, scale=max(1, int(400 / max(states.shape)))))
+    imwrite(out / "map.png", render(states, counts.grid, None, None, scale=max(1, int(400 / max(states.shape)))))
     np.savez_compressed(out / "counts.npz", passes=counts.passes, hits=counts.hits)
     return summary
 

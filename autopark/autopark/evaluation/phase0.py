@@ -1,6 +1,6 @@
 """Sinh bằng chứng giai đoạn 0: các phiên chạy, replay, video mô phỏng.
 
-Chạy trong D:/ap/autopark, mỗi lệnh một dòng:
+Chạy trong thư mục `autopark` của repo (thư mục có pyproject.toml), mỗi lệnh một dòng:
     .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.phase0 --out runs\\phase0_moi
     .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.phase0 --out runs\\phase0_xe_do --vehicle-config configs\\vehicle_measured.json
 
@@ -27,6 +27,8 @@ DEFAULT_VEHICLE_CONFIG = PROJECT_ROOT / "configs" / "vehicle_default.json"
 def render_video(session, directory: Path):
     import cv2
     import numpy as np
+
+    from autopark.image_io import imwrite
     width, height, fps = 960, 680, 20
     video = cv2.VideoWriter(str(directory / "simulation.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
     if not video.isOpened():
@@ -67,7 +69,7 @@ def render_video(session, directory: Path):
                 event_text = session.state.value
             cv2.putText(frame, event_text, (25, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (100, 190, 240), 1)
             video.write(frame)
-        cv2.imwrite(str(directory / "final_frame.png"), frame)
+        imwrite(directory / "final_frame.png", frame)
     finally:
         video.release()
     capture = cv2.VideoCapture(str(directory / "simulation.mp4"))

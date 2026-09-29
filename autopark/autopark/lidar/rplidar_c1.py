@@ -1,7 +1,9 @@
 """Driver RPLIDAR C1 qua UART 460800 (pyserial), chế độ quét Standard, theo hợp đồng `LidarScan`.
 
-    python -m autopark.lidar.rplidar_c1 info --port COM4
-    python -m autopark.lidar.rplidar_c1 stream --port COM4 --seconds 5
+    python -m autopark.lidar.rplidar_c1 info
+    python -m autopark.lidar.rplidar_c1 stream --seconds 5
+
+Không có `--port` thì mở `lidar_port` của configs/thiet_bi.json (29/09/2026; lidar/port.py).
 
 Đã kiểm chứng trên thiết bị của dự án ngày 22/09/2026 (COM4, model 0x41, firmware 1.2, phần cứng 18):
 - Thiết bị công bố hai chế độ quét: 0 "Standard" (200 µs/mẫu, xa nhất 16 m, kiểu trả lời 0x81) và
@@ -268,13 +270,20 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     info = sub.add_parser("info", help="device info, health and the scan modes the device announces")
-    info.add_argument("--port", required=True)
+    port_help = "COM port (or auto); default: lidar_port in configs/thiet_bi.json"
+    info.add_argument("--port", default=None, help=port_help)
     stream = sub.add_parser("stream", help="print one line per revolution for a few seconds")
-    stream.add_argument("--port", required=True)
+    stream.add_argument("--port", default=None, help=port_help)
     stream.add_argument("--seconds", type=float, default=5.0)
     stream.add_argument("--mirror", action="store_true")
     args = parser.parse_args(argv)
-    source = RplidarC1Source.open(args.port, mirror=getattr(args, "mirror", False))
+    from .port import LidarPortError, lidar_port
+
+    try:
+        port = lidar_port(args.port)
+    except LidarPortError as exc:
+        parser.error(str(exc))
+    source = RplidarC1Source.open(port, mirror=getattr(args, "mirror", False))
     try:
         if args.command == "info":
             source.stop_output()

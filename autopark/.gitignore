@@ -22,3 +22,4 @@ datasets/benchmark_tools/
 .coverage*
 htmlcov/
 .venv-train.hong-tu-may-cu/
+.venv.hong-tu-may-cu/
