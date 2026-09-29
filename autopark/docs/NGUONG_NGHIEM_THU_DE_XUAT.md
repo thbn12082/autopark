@@ -19,7 +19,7 @@ Tình trạng làm nền (24/09/2026, theo [TONG_HOP_DU_AN.md](../../TONG_HOP_DU
 dừng; firmware C++ chưa biên dịch; AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape); định vị LiDAR
 mới chạy offline, chưa có tham chiếu độc lập. Mọi số đo phần cứng hiện có là trên **máy bàn** i9-14900 + RTX 4000 Ada
 (22–24/09/2026). Trên laptop RTX 3050 Ti (máy nộp đồ án) chỉ có hồ sơ mô phỏng giai đoạn 0 (20/09/2026).
-*(Cập nhật 25/09/2026, chưa commit: câu "AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape)" đã lỗi thời.
+*(Cập nhật 25/09/2026, `9d68257`: câu "AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape)" đã lỗi thời.
 Ngày 25/09/2026 người làm khóa luận quyết định dùng mô hình WoodScape trong vòng điều khiển; Valeo chưa xác nhận cách đọc
 điều khoản ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). Phần mềm đưa AI camera vào phiên đỗ xe làm nguồn vật cản đã có
 ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)), chỉ kiểm bằng nguồn giả, rig tổng hợp và phát lại; chưa camera nào được hiệu
@@ -196,7 +196,7 @@ vật cản ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3). Câu "nếu kh
 |---|---|---|---|---|---|
 | N-A1 | Tỉ lệ pixel vật cản bị gọi FREE, ngưỡng 0,15, trong ROI, trên tập chấm sa bàn tô tay từ đầu (`--no-draft`, [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md)) | ≤ 2 % | Ở ngưỡng 0,15: WoodScape test 0,69 %, ACDC (thời tiết xấu) 2,28 %, RoadObstacle21 (vật lạ nhỏ) 18,2 % ([HUAN_LUYEN.md](../../HUAN_LUYEN.md) mục 10). Trên sa bàn: CHƯA ĐO | DL | Tập chấm sa bàn |
 | N-A2 | Theo từng vật thử đã khai báo trong vùng làm việc: vật có ≥ 50 % pixel BLOCKED | Ở ≥ 95 % số khung có vật trong vùng làm việc | RoadObstacle21 ở ngưỡng 0,15: 19 / 30 ảnh thấy ≥ ½ vật (HUAN_LUYEN.md mục 10), tức vật lạ nhỏ là điểm yếu. Vì vậy phải khai báo loại và cỡ vật thử (kế hoạch 16.3 cuối mục) | DL | NT-1 … NT-4 |
-| N-A3 | Báo động giả (FREE → BLOCKED) trên sàn trống | ≤ 5 % pixel | Ở ngưỡng 0,15: WoodScape test 3,97 %, ACDC 7,70 % (HUAN_LUYEN.md mục 10). Ảnh camera thật đầu tiên (23/09, chưa có nhãn, ngưỡng 0,50): 11 / 31 / 39 / 60 % pixel BLOCKED ở cổng 1–4; ở cổng 2–4, nhìn bằng mắt, phần lớn vùng đó là thảm hoa văn, tức báo động giả (TONG_HOP_DU_AN.md mục 4.2). Vì vậy vật liệu mặt sàn sa bàn có thể quyết định nhiều (chưa kiểm) | DL, quan sát | Tập chấm sa bàn |
+| N-A3 | Báo động giả (FREE → BLOCKED) trên sàn trống | ≤ 5 % pixel | Ở ngưỡng 0,15: WoodScape test 3,97 %, ACDC 7,70 % (HUAN_LUYEN.md mục 10). Ảnh camera thật đầu tiên (23/09, chưa có nhãn, ngưỡng 0,50): 11 / 31 / 39 / 60 % pixel BLOCKED ở cổng 1–4; ở cổng 2–4, nhìn bằng mắt, phần lớn vùng đó là thảm hoa văn, tức báo động giả ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md) mục 4). Vì vậy vật liệu mặt sàn sa bàn có thể quyết định nhiều (chưa kiểm) | DL, quan sát | Tập chấm sa bàn |
 | N-A4 | Vùng không chắc (0,15 < p < 0,50) | Tuyệt đối: là UNKNOWN, không bao giờ FREE | [BEV.md](BEV.md) mục 2 | TK | Test + NT-5 |
 
 ## 9. Điều khiển (dòng "Điều khiển") — chưa đề xuất số

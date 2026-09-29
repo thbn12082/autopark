@@ -458,7 +458,8 @@ Cột cuối là ghi nhớ của người viết, **CHƯA KIỂM**, chỉ để 
 
 Tích hợp vào dự án, suy ra từ cấu trúc hiện tại (không phải kết quả thử):
 - Thư viện chạy qua ROS/Linux cần thêm WSL 2 + Ubuntu + ROS (chưa có) hoặc Docker.
-- LiDAR C1 đang đọc qua COM4 trong Windows (`lidar/rplidar_c1.py`). Muốn chạy thư viện trong WSL thì phải chuyển USB vào
+- LiDAR C1 đang đọc qua cổng COM trong Windows (`lidar/rplidar_c1.py`), số cổng đặt ở `configs/thiet_bi.json`: COM3 trên
+  máy bàn từ 29/09/2026 (máy bàn tới 25/09/2026 dùng COM4) ([chuyển máy](CHUYEN_MAY_BAN.md)). Muốn chạy thư viện trong WSL thì phải chuyển USB vào
   WSL (cần tra) hoặc gửi vòng quét qua mạng. Việc này thêm một tầng trễ và một điểm hỏng. Phải có giám sát dữ liệu cũ ở
   cả hai phía, theo nhánh giám sát ở kế hoạch mục 2 ("dữ liệu cũ → dừng").
 - Thư viện nào bắt buộc odometry (nghi là GMapping, slam_toolbox) thì **chưa dùng được** cho tới khi có (d). Kế hoạch
@@ -556,7 +557,8 @@ vào cmd.exe.
    - Dán cố định C1 trên một tấm ván phẳng, đánh dấu tâm quay và vạch hướng.
    - Trên sàn dán băng: một đoạn thẳng 1,5 m, rẽ 90° rồi đi thêm 1 m, và 4–6 điểm mốc đo bằng thước (vị trí + hướng).
    - Đẩy tấm ván chậm, cỡ 0,1–0,3 m/s; dừng 3–5 s ở mỗi mốc; cuối cùng quay về mốc xuất phát.
-   - Ghi bằng `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --port COM4 --out runs/lidar_bench/<ngày> --name d10_di_chuyen_bang --seconds 60`.
+   - Ghi bằng `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --out runs/lidar_bench/<ngày> --name d10_di_chuyen_bang --seconds 60`.
+     Cổng LiDAR lấy từ `configs/thiet_bi.json`; thêm `--port COMx` để ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
    - Chạy offline `scan_odometry` và `localize --track` rồi so với mốc: lệch ở từng mốc, lệch khi quay về gốc, trôi theo m.
    - Đếm vòng AMBIGUOUS `degenerate` (và `edge_along_axis`): ở sa bàn đủ cấu trúc phải gần 0; nếu không, dọc trục của
      (b) ở các vòng đó là "không biết" (mục 3.2) và điều kiện tiên quyết ở mục 7 không đạt.

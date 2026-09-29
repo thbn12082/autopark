@@ -2,7 +2,7 @@
 
 [Cần biết tiến độ?](../TONG_HOP_DU_AN.md) · [Tài liệu kỹ thuật](docs/README.md)
 
-Biên tập 26/09/2026 theo mã tại `9d68257`. Lệnh được đối chiếu với mã/script; lần sửa tài liệu này chưa cài môi trường hay chạy lại ứng dụng.
+Biên tập 26/09/2026 theo mã tại `9d68257`; cập nhật 29/09/2026 sau khi chuyển sang máy bàn mới ([biên bản](docs/CHUYEN_MAY_BAN.md)). Lệnh được đối chiếu với mã/script. Ngày 29/09/2026 đã cài lại hai môi trường và chạy toàn bộ test trên máy bàn hiện tại (mục 4); sau khi đổi cách lấy cổng LiDAR, trong các lệnh mở thiết bị ở mục 7 mới chạy lại `lidar.rplidar_c1 info` với thiết bị thật.
 
 Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. [Hồ sơ giấy phép](docs/GIAY_PHEP_DU_LIEU.md).
 
@@ -49,7 +49,7 @@ flowchart TD
 
 ## 2. Cài và mở mô phỏng
 
-Cách nhanh: chạy `cai_dat.cmd` rồi `chay_app.cmd`.
+Cách nhanh: chạy `cai_dat.cmd` rồi `chay_app.cmd`. `cai_dat.cmd` gọi `kiem_venv.cmd` chạy thử Python của `.venv` có sẵn; venv chép từ máy khác mà không chạy được thì được đổi tên thành `.venv.hong-tu-may-cu` rồi tạo mới (tên đó đã có thì script dừng và báo).
 
 Hoặc chạy tuần tự:
 
@@ -61,7 +61,7 @@ python -m venv .venv
 ./.venv/Scripts/python.exe -X utf8 run_app.py
 ```
 
-Nếu `python --version` không chạy được, cài/sửa đường dẫn Python trước. Cài thư viện cần mạng. Mô phỏng cơ bản không cần checkpoint AI.
+Nếu `python --version` không chạy được, cài/sửa đường dẫn Python trước. Cài thư viện cần mạng. `requirements-phase0.lock` có cả `pyserial` để đọc LiDAR. Mô phỏng cơ bản không cần checkpoint AI.
 
 ## 3. Thử một lượt đỗ
 
@@ -87,7 +87,9 @@ $env:QT_QPA_PLATFORM = "offscreen"
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-Test cần torch có thể bỏ qua trong `.venv`. Chạy test có ngân sách tìm đường khi máy rảnh, tách khỏi coverage và các chiến dịch tải CPU.
+Test cần torch được bỏ qua trong `.venv`; chạy cùng lệnh bằng `./.venv-train/Scripts/python.exe` để gồm cả chúng. Chạy test có ngân sách tìm đường khi máy rảnh, tách khỏi coverage và các chiến dịch tải CPU.
+
+Lần chạy toàn bộ gần nhất: 29/09/2026, máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), bằng lệnh trên (offscreen), mã sau các sửa đổi của đợt chuyển máy: `.venv` 1353 đạt, 8 bỏ qua (cần torch), 0 hỏng; `.venv-train` 1415 đạt, 0 hỏng. Số test đổi theo mã; tệp kết quả và lần chạy đối chứng trên mã cũ ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2–3.
 
 Tạo phiên mẫu rồi phát lại:
 
@@ -108,15 +110,15 @@ Kiểm mở rộng:
 
 ## 5. Cài môi trường AI và lấy dữ liệu
 
-Chạy `cai_dat_train.cmd`. Script tạo `.venv-train`, cài lock với torch CUDA 12.8 và kiểm GPU. Môi trường này có Shapely để AI chạy cùng phiên đỗ. Môi trường tham chiếu dùng Python 3.12 và GPU NVIDIA.
+Chạy `cai_dat_train.cmd`. Script tạo `.venv-train`, cài lock với torch CUDA 12.8 và kiểm GPU; `.venv-train` chép từ máy khác mà không chạy được thì được đổi tên thành `.venv-train.hong-tu-may-cu` rồi tạo mới, như mục 2. Môi trường này có Shapely để AI chạy cùng phiên đỗ. Môi trường tham chiếu dùng Python 3.12 và GPU NVIDIA.
 
-[Chuyển môi trường/checkpoint sang laptop](docs/MAY_NOP_DO_AN.md).
+[Chuyển môi trường/checkpoint sang laptop](docs/MAY_NOP_DO_AN.md). Chép cả dự án sang máy bàn khác: làm theo mục 5 của [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md).
 
 Bản clone không có:
 
 | Tệp/dữ liệu | Cách có |
 |---|---|
-| `runs/ai_woodscape_rtx4000_v1/best.pt` | Chép từ máy huấn luyện hoặc huấn luyện lại |
+| `runs/ai_woodscape_rtx4000_v1/best.pt` | Chép từ máy bàn rồi so SHA-256 với [MAY_NOP_DO_AN.md](docs/MAY_NOP_DO_AN.md) mục 1, hoặc huấn luyện lại |
 | `datasets/prepared/` | Chuẩn bị cache từ dataset |
 | `runs/rig_recordings/` | Chép bản ghi hoặc ghi phiên mới |
 | `calibration/cam_p<cổng>.json` | Hiệu chuẩn từng camera |
@@ -160,19 +162,27 @@ Lệnh không tự mở LiDAR/camera. **Bật AI camera** mở camera; **Kết n
 
 ### Kết nối và ghi thiết bị thật
 
-Thay COM4 bằng cổng đúng trên máy:
+Cổng LiDAR đặt ở một chỗ: khóa `lidar_port` trong [configs/thiet_bi.json](configs/thiet_bi.json), hiện là `"COM3"` của máy bàn. Đổi máy thì sửa dòng này theo Device Manager (mục "Silicon Labs CP210x USB to UART Bridge (COMx)"), hoặc ghi `"auto"` để tự tìm bộ chuyển CP210x; `auto` lấy cổng CP210x đầu tiên, nên tránh khi cắm thêm bo khác cũng qua CP210x. Lệnh LiDAR không có `--port` lấy cổng từ tệp; `--port COMx` ghi đè cho một lần chạy. Tệp thiếu hoặc hỏng thì lệnh báo lỗi trước khi mở thiết bị (giao diện hiện lỗi ở ngăn LiDAR lúc kết nối).
+
+Kiểm cổng, chỉ đọc thông tin và tình trạng C1:
 
 ```powershell
-./.venv/Scripts/python.exe -X utf8 -m autopark.ui.lidar_app --port COM4
+./.venv/Scripts/python.exe -X utf8 -m autopark.lidar.rplidar_c1 info
 ```
 
-Ghi bốn camera + LiDAR + AI, cần checkpoint:
+Mở giao diện và kết nối LiDAR ở cổng của tệp:
 
 ```powershell
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 60 --name phien_moi --out runs/rig_bench/phien_moi --record runs/rig_recordings/phien_moi
+./.venv/Scripts/python.exe -X utf8 -m autopark.ui.lidar_app
 ```
 
-Lệnh mở thiết bị thật. Mặc định 640×480; chất lượng bốn luồng phải đo chung trên đúng hub/máy.
+Ghi bốn camera + LiDAR + AI, cần checkpoint. `--lidar` không kèm giá trị lấy cổng của tệp; `--lidar COMx` ghi đè; bỏ `--lidar` thì không dùng LiDAR:
+
+```powershell
+./.venv-train/Scripts/python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name phien_moi --out runs/rig_bench/phien_moi --record runs/rig_recordings/phien_moi
+```
+
+Lệnh mở thiết bị thật. Mặc định 640×480; chất lượng bốn luồng phải đo chung trên đúng hub/máy. Ngày 29/09/2026 trên máy bàn, cách lấy cổng từ tệp mới được thử với thiết bị thật bằng `lidar.rplidar_c1 info` (mở đúng COM3, đọc được C1); `ui.lidar_app` và `rig.bench --lidar` chưa chạy lại với thiết bị thật sau thay đổi này ([biên bản](docs/CHUYEN_MAY_BAN.md) mục 3).
 
 ### Phát lại bản ghi
 
@@ -188,7 +198,7 @@ Không mở thiết bị. Lệnh thứ hai chỉ xem, không chạy AI. [Ghi/ph�
 Cần checkpoint và nội tham/ngoại tham/ROI thật đạt kiểm tra; nếu thiếu, giao diện báo lý do chặn.
 
 ```powershell
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.ui.lidar_app --port COM4 --camera-ai --cam-ports 1 2 3 4
+./.venv-train/Scripts/python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --cam-ports 1 2 3 4
 ```
 
 Lệnh mở LiDAR và camera thật. Nhánh kết hợp này chưa được thử với camera live trong hồ sơ tại `9d68257`.
@@ -267,7 +277,10 @@ Cấu hình cổng serial hiện chưa có nguồn tư thế thật, nên đi v�
 | Thiếu torch | Cài và dùng `.venv-train` |
 | Thiếu `best.pt` | Chép checkpoint hoặc train lại |
 | AI bị chặn hiệu chuẩn | Làm nội tham → ngoại tham → ROI, đọc lý do trên UI |
-| LiDAR không kết nối | Xác định COM, tránh nhầm cổng bo xe |
+| LiDAR không kết nối | Xem số COM trong Device Manager (không thấy cổng thì cài driver CP210x), sửa `lidar_port` trong `configs/thiet_bi.json` (mục 7); tránh nhầm cổng bo xe |
+| Venv báo `No Python at ...` sau khi chép từ máy khác | Chạy lại `cai_dat.cmd` / `cai_dat_train.cmd` (mục 2, 5) |
+| Traceback hiện đường dẫn của máy cũ sau khi chép repo | Xóa các thư mục `__pycache__` ngoài venv |
+| Ảnh không đọc/ghi được khi đường dẫn có dấu | Mã dự án đã xử lý qua `autopark/image_io.py` hoặc hàm tương đương; mã mới dùng `image_io` thay vì gọi thẳng `cv2.imread/imwrite`, vốn hỏng lặng lẽ với đường dẫn như `D:\gấp\...` ([biên bản](docs/CHUYEN_MAY_BAN.md) mục 3) |
 | AI không đủ bốn luồng | Kiểm khung hỏng, nhịp camera và USB |
 | Test planner đôi lúc TIMEOUT | Chạy khi máy rảnh, tách khỏi coverage |
 

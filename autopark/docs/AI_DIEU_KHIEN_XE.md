@@ -5,7 +5,7 @@
 > tới một trang không có nội dung WoodScape). Giới hạn sử dụng và quyết định dùng trong vòng điều khiển:
 > [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
 
-**Tình trạng (25/09/2026, chưa commit):** đã có phần mềm nối AI của các camera vào phiên đỗ xe như **một nguồn vật cản
+**Tình trạng (25/09/2026, mã ở `b01dea4`):** đã có phần mềm nối AI của các camera vào phiên đỗ xe như **một nguồn vật cản
 thứ hai bên cạnh LiDAR**, theo đúng khuôn của ngăn LiDAR. Đã kiểm bằng nguồn giả, rig tổng hợp và bản ghi phát lại
 (mục 8). **Trên bàn thật AI hiện KHÔNG tạo vật cản nào**, vì chưa camera nào được hiệu chuẩn: nó chỉ hiện lý do bị chặn
 (mục 3). CHƯA THỬ với camera thật đang chạy, CHƯA THỬ trên xe.
@@ -167,8 +167,10 @@ Vì thế `camera_ai` không dùng hàm đó (mục 10).
 
 ## 7. Cách chạy (mỗi lệnh một dòng, cmd.exe, từ thư mục `autopark`)
 
+Lệnh 1 mở LiDAR ở cổng ghi trong `configs/thiet_bi.json`; thêm `--port COMx` để ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
+
 ```
-.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --port COM4 --camera-ai --cam-ports 1 2 3 4
+.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --cam-ports 1 2 3 4
 .venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --no-connect --camera-ai --cam-replay runs\rig_recordings\o03_20260924
 .venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --no-connect --camera-ai --cam-replay runs\rig_recordings\o03_20260924 --camera-ai-test-rig
 ```

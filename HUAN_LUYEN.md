@@ -2,7 +2,7 @@
 
 **Kết luận hiện tại:** checkpoint tham chiếu vẫn là `runs/ai_woodscape_rtx4000_v1/best.pt`. Mô hình có kết quả tốt trên WoodScape nội bộ, nhưng bỏ sót vật nhỏ, yếu ở cảnh tối và chưa được chấm bằng ảnh sa bàn có nhãn.
 
-Biên tập 26/09/2026 từ hồ sơ tại `9d68257`. Số liệu thuộc các đợt 21–24/09; không huấn luyện hoặc đo lại trong lần sửa tài liệu.
+Biên tập 26/09/2026 từ hồ sơ tại `9d68257`; cập nhật 29/09/2026 phần máy và cài đặt sau khi chuyển sang máy bàn mới ([biên bản](autopark/docs/CHUYEN_MAY_BAN.md)). Số liệu thuộc các đợt 21–24/09 trên máy bàn trước; không huấn luyện hoặc đo lại trong lần sửa tài liệu.
 
 Nghiên cứu sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. Quyết định dùng mô hình trong vòng điều khiển ngày 25/09 là quyết định của người làm khóa luận; Valeo chưa xác nhận cách diễn giải điều khoản. Không áp dụng quyết định này cho checkpoint dùng AVM-SS hoặc nhãn nháp AI. [Hồ sơ giấy phép](autopark/docs/GIAY_PHEP_DU_LIEU.md).
 
@@ -56,7 +56,9 @@ Validation và test không cập nhật gradient. Đây là luồng quy trình; 
 
 ### 2.1. Môi trường
 
-Máy bàn i9-14900, RTX 4000 Ada 20 GB, RAM 64 GB, Windows 11; Python 3.12.10. Cài theo [hướng dẫn môi trường AI](autopark/README.md) và `requirements-train.lock`, không chép nguyên venv từ máy khác.
+Các lượt huấn luyện, đánh giá và đo độ trễ của tài liệu này (21–24/09/2026) chạy trên máy bàn trước, dùng tới 25/09/2026: i9-14900, RTX 4000 Ada 20 GB, RAM 64 GB, Windows 11; Python 3.12.10. Máy bàn hiện tại (từ 29/09/2026, Dell Precision 3680) cùng CPU, GPU và RAM; trên máy này chưa huấn luyện hay đo lại các số của tài liệu. [Biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md).
+
+Cài bằng `autopark\cai_dat_train.cmd` theo [hướng dẫn môi trường AI](autopark/README.md) và `requirements-train.lock`, không chép nguyên venv từ máy khác. `.venv-train` chép sang mà không chạy được thì script đổi tên thành `.venv-train.hong-tu-may-cu` rồi tạo mới. Máy chưa có trọng số pretrained của Torchvision trong `%USERPROFILE%\.cache\torch` thì lần train, benchmark hay `--resume` đầu tiên cần mạng.
 
 ### 2.2. Dữ liệu đã xác minh
 
@@ -78,7 +80,7 @@ Hồ sơ 21/09 ghi 29 test đạt cho dữ liệu/huấn luyện, gồm resume g
 
 Trên GPU tham chiếu, batch 8/16/32 đạt tương ứng 200/247/226 ảnh train mỗi giây. Chọn **batch 16**, đỉnh VRAM giữ chỗ 2,38 GB trong phép benchmark đó.
 
-`channels_last` từng làm train chậm trên tổ hợp phần mềm của máy này và đã bỏ. Không suy rộng kết quả đó sang mọi GPU/phần mềm.
+`channels_last` từng làm train chậm trên tổ hợp phần mềm của máy bàn trước và đã bỏ. Không suy rộng kết quả đó sang mọi GPU/phần mềm.
 
 ### 2.6. Kiểm trước lượt dài
 
@@ -205,7 +207,7 @@ Lượt WoodScape có trọng số khoảng 0,83/1,26 giảm bỏ sót validatio
 
 Đã xuất ONNX opset 17, 12,9 MB; đối chiếu 16 ảnh val, lệch logit tối đa 7×10⁻⁵ và argmax trùng 99,9999%.
 
-p50 của 200 lượt sau làm nóng, máy bàn i9/RTX 4000 Ada khi GPU rảnh:
+p50 của 200 lượt sau làm nóng, máy bàn trước i9/RTX 4000 Ada (dùng tới 25/09/2026) khi GPU rảnh:
 
 | Cách chạy | Thời gian/ảnh |
 |---|---:|

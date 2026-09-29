@@ -1,7 +1,7 @@
 # Giai đoạn 2 — bàn thử chạy chung bốn camera, LiDAR và AI (23/09/2026)
 
 Máy bàn i9-14900 + RTX 4000 Ada, Windows 11, **chưa phải laptop RTX 3050 Ti mang đi nộp đồ án**. Bốn camera "HD Camera" qua hub UGREEN
-(bus-powered, nhánh USB 2.0), RPLIDAR C1 trên COM4, mô hình AI tham chiếu `runs/ai_woodscape_rtx4000_v1/best.pt`.
+(bus-powered, nhánh USB 2.0), RPLIDAR C1 trên COM4, mô hình AI tham chiếu `runs/ai_woodscape_rtx4000_v1/best.pt`. Số đo trong tệp này làm trên máy bàn dùng tới 25/09/2026; máy bàn từ 29/09/2026 là máy khác cùng cấu hình, LiDAR ở COM3 ([chuyển máy](CHUYEN_MAY_BAN.md)).
 Camera nằm trên bàn, chưa gá, chưa hiệu chuẩn. Kế hoạch v3.1, giai đoạn 2 "Khi đủ bốn camera":
 
 - bước 2: *"Ghi FPS/độ trễ/mất hình riêng từng camera; chạy đồng thời với LiDAR và AI, không chỉ thử mở bốn cửa sổ."*
@@ -317,7 +317,7 @@ Phiên 10 phút s07 cho cùng kết luận ổn định: AI 15,4 ms/lô, nhiệt
 
 ## 7. Giao diện trực tiếp
 
-`python -m autopark.ui.rig_app --lidar COM4` mở một cửa sổ:
+`python -m autopark.ui.rig_app --lidar` mở một cửa sổ:
 
 - Bốn ô camera theo cổng hub, có lớp tô AI (xanh = mô hình gọi là FREE, đỏ = BLOCKED theo ngưỡng đang chọn). Góc trên mỗi
   ô ghi FPS, số khung cũ, số khung bị cắt/xé, tỉ lệ BLOCKED. Camera không có khung tốt trong 0,5 s thì ô báo đỏ.
@@ -580,13 +580,15 @@ một tiến trình, chạy lần lượt các lô 4, 4, 3, 3, 2, 1, 4, 3 ảnh:
 Từ thư mục `autopark`, trong `.venv-train` (có torch cho AI và PySide6 cho giao diện; `pip install -e .[rig]` nếu dựng lại môi trường):
 
 ```powershell
-.\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar COM4
-.\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar COM4 --width 1280 --height 720
-.\.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 120 --name <ten> --out runs/rig_bench/<ngay>
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar --width 1280 --height 720
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 120 --name <ten> --out runs/rig_bench/<ngay>
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --no-ai --seconds 60 --name <ten> --out runs/rig_bench/<ngay>
-.\.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 120 --max-wait-ms 0 --name <ten> --out runs/rig_bench/<ngay>
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 120 --max-wait-ms 0 --name <ten> --out runs/rig_bench/<ngay>
 .\.venv-train\Scripts\python.exe -X utf8 -m pytest tests/test_multicam_rig.py tests/test_rig_app_ui.py tests/test_perception_live.py tests/test_truncated_frames.py
 ```
+
+`--lidar` không kèm giá trị dùng cổng LiDAR trong `configs/thiet_bi.json`; `--lidar COMx` ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
 
 Mặc định 640×480 (mục 2.3–2.4) và không chờ camera chậm quá ≈ 62 ms (mục 10; từ 24/09/2026 là ngưỡng riêng theo nhịp từng camera, ≈ 63 ms ở 24 khung/s, mục 10.1); dòng thứ hai mở 720p để xem khung bị cắt; dòng thứ năm tắt quy tắc chờ để so với loạt 20260923_v3. Trong giao diện: chọn mô hình ở hộp "Mô hình" (lượt nền WoodScape đứng đầu), kéo ngưỡng BLOCKED hoặc bấm "0,15 (an toàn)",
 "Chụp bộ ảnh" lưu vào `runs/rig_snapshots/<thời điểm>/` (ảnh gốc `cam_p<cổng>.png`, `prob_blocked_p<cổng>.png`,

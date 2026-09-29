@@ -4,7 +4,7 @@
 
 | Máy | Vai trò |
 |---|---|
-| Máy bàn i9-14900 + RTX 4000 Ada 20 GB | Máy phát triển chính. Mọi số đo trong các tài liệu đến 24/09 là trên máy này. |
+| Máy bàn i9-14900 + RTX 4000 Ada 20 GB | Máy phát triển chính; từ 29/09/2026 là Dell Precision 3680 cùng cấu hình, LiDAR ở COM3 ([chuyển máy](CHUYEN_MAY_BAN.md)). Mọi số đo cảm biến, AI và bàn thử trong các tài liệu tới 25/09/2026 là trên máy bàn trước. |
 | Laptop i7-12700H + RTX 3050 Ti Laptop 4 GB | Máy mang đi nộp và trình diễn đồ án. Đã chạy giai đoạn 0 (mô phỏng, 20/09). Chưa đo LiDAR, camera hay AI trực tiếp trên máy này. |
 
 Số dùng cho khóa luận phải đo trên máy trình diễn. Hai máy khác nhau ở những chỗ ảnh hưởng thẳng tới kết quả:
@@ -12,7 +12,9 @@ Số dùng cho khóa luận phải đo trên máy trình diễn. Hai máy khác 
 - **GPU:** 4 GB VRAM so với 20 GB, và chậm hơn. Thời gian AI phải đo lại.
 - **Bộ điều khiển USB và số cổng:** khác máy bàn. Hiện tượng khung MJPEG bị cắt khi bốn camera chạy chung
   ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2) có thể nhẹ hơn hoặc nặng hơn.
-- **Cổng COM của LiDAR:** Windows cấp số COM theo từng máy (máy bàn là COM4). Lệnh đo tự tìm.
+- **Cổng COM của LiDAR:** Windows cấp số COM theo từng máy (máy bàn tới 25/09/2026: COM4; từ 29/09/2026: COM3). Lệnh đo
+  `may_moi` tự tìm. Các lệnh LiDAR khác lấy cổng từ [configs/thiet_bi.json](../configs/thiet_bi.json), khóa `lidar_port`,
+  nên trên laptop sửa dòng đó theo số COM của laptop hoặc ghi `"auto"` ([chuyển máy](CHUYEN_MAY_BAN.md)).
 
 ## 1. Chuẩn bị trên máy bàn (đã làm 24/09)
 
@@ -24,7 +26,9 @@ Thư mục `D:\CHUYEN_SANG_LAPTOP\` (ngoài repo) chứa những thứ laptop c�
 - `DOC_TRUOC.txt`: tóm tắt các bước dưới đây.
 
 Thư mục này nằm cùng ổ D với bản gốc, nên **chưa phải bản sao lưu thật**. Chép nó sang USB hoặc sang laptop thì mới có
-bản thứ hai ở nơi khác.
+bản thứ hai ở nơi khác. Thư mục đó chỉ có trên máy bàn trước; trên máy bàn từ 29/09/2026, checkpoint gốc ở
+`runs\ai_woodscape_rtx4000_v1\best.pt` trong thư mục `autopark` của repo, SHA-256 khớp mã trên (kiểm 29/09/2026,
+[chuyển máy](CHUYEN_MAY_BAN.md) mục 1).
 
 **Tham chiếu máy bàn** (trong repo, thư mục [evidence/may_ban/](evidence/may_ban/)):
 
@@ -32,9 +36,12 @@ bản thứ hai ở nơi khác.
 |---|---|---|---|
 | [tham_chieu_20260924.json](evidence/may_ban/tham_chieu_20260924.json) | 24/09 15:25 | mã lúc đó: quy tắc chờ cũ (ngưỡng theo camera nhanh nhất), chưa làm nóng AI | đã commit (trong `2bd37b6`) |
 | [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json) *(thêm muộn tối 24/09/2026)* | 24/09 19:08 | mã mới chưa commit trên `2bd37b6`: quy tắc chờ theo nhịp riêng từng camera (`policy.wait_rule = "own_cadence"`), làm nóng AI mọi cỡ lô | *(cập nhật khuya 24/09/2026)* đã commit trong `bfcbfc2` (20:22 24/09), có trên `origin/main` |
+| [tham_chieu_20260929.json](evidence/may_ban/tham_chieu_20260929.json) | 29/09 12:59, máy bàn hiện tại | `9d68257`: quy tắc chờ theo nhịp riêng, làm nóng AI; `digest` có sẵn độ lệch bộ ảnh | vào Git cùng đợt chuyển máy 29/09/2026 |
 
-Lệnh đo lấy tệp đứng cuối theo tên trong thư mục đó, tức tệp 19:08. Tệp 15:25 giữ lại để đối chiếu. Ở cả hai lần, camera
-máy bàn nhìn cùng một chỗ tối.
+Lệnh đo lấy tệp đứng cuối theo tên trong thư mục đó, tức tệp 29/09: người dùng chọn lượt `may_moi` ngày 29/09/2026 trên
+máy bàn hiện tại làm tham chiếu, kể cả khi chạy trên laptop ([chuyển máy](CHUYEN_MAY_BAN.md) mục 2). Hai tệp 24/09 đo trên
+máy bàn trước, giữ lại để đối chiếu; ở cả hai lần đó camera nhìn cùng một chỗ tối. Lượt 29/09 không ghi camera nhìn cảnh
+nào, nên dòng khung hỏng ở 720p chỉ so được khi đặt camera laptop nhìn cùng cảnh với lần đo lại trên máy bàn.
 
 ## 2. Trên laptop
 
@@ -50,8 +57,9 @@ máy bàn nhìn cùng một chỗ tối.
    commit `77eb51f` và đã push (`origin/main` = `54cb3e2`), nên `git pull` trên laptop là có đủ; kiểm bằng
    `git branch --contains 77eb51f` (phải in nhánh đang dùng, thường là `main`). Laptop đo bằng mã cũ hơn thì mang kết quả
    về máy bàn rồi tóm tắt lại (mục 4).
-2. **Chép checkpoint.** Chép thư mục `autopark` trong `D:\CHUYEN_SANG_LAPTOP\` (qua USB) đè vào thư mục `autopark` của repo
-   trên laptop. Lệnh này chỉ thêm `runs\ai_woodscape_rtx4000_v1\`. Kiểm mã trong thư mục `autopark` của repo:
+2. **Chép checkpoint.** Trên máy bàn, chép `best.pt` và `config_resolved.json` trong `runs\ai_woodscape_rtx4000_v1\` của
+   thư mục `autopark` của repo (qua USB) vào cùng đường dẫn trong thư mục `autopark` của repo trên laptop; thư mục
+   `D:\CHUYEN_SANG_LAPTOP\` ở mục 1 chỉ có trên máy bàn trước. Kiểm mã trong thư mục `autopark` của repo:
    ```cmd
    certutil -hashfile runs\ai_woodscape_rtx4000_v1\best.pt SHA256
    ```
@@ -60,7 +68,7 @@ máy bàn nhìn cùng một chỗ tối.
    - `autopark\cai_dat.cmd` tạo `.venv` (mô phỏng, giao diện, test) theo `requirements-phase0.lock`.
    - `autopark\cai_dat_train.cmd` tạo `.venv-train` (torch CUDA 12.8, bàn thử, hiệu chuẩn, gán nhãn) theo
      `requirements-train.lock`. Cuối lệnh in `CUDA True` và tên GPU. Nếu in `CUDA False`: cập nhật driver NVIDIA. Torch
-     bản cu128 cần driver hỗ trợ CUDA 12.8; máy bàn đang dùng driver 596.72.
+     bản cu128 cần driver hỗ trợ CUDA 12.8; máy bàn dùng driver 596.71 từ 29/09/2026 (máy bàn trước: 596.72).
      *(Cập nhật 25/09/2026:)* trên máy bàn `.venv-train` được cài thêm **shapely 2.1.2** ngày 25/09/2026, với sự đồng ý
      của người dùng, và `requirements-train.lock` đã có dòng `shapely==2.1.2`. Nhờ vậy phiên đỗ xe, planner và AI camera
      chạy chung một tiến trình (`ui.lidar_app --camera-ai`, [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)); trước đó
@@ -68,7 +76,8 @@ máy bàn nhìn cùng một chỗ tối.
      `git pull` rồi chạy lại `cai_dat_train.cmd` (lệnh cài theo tệp khóa cả khi `.venv-train` đã có). Ngăn AI camera trên
      laptop: CHƯA CHẠY.
 4. **Driver LiDAR:** cài driver cầu nối CP210x của Silicon Labs nếu Device Manager chưa thấy "Silicon Labs CP210x USB to
-   UART Bridge (COMx)". Máy bàn dùng bản 11.6.0.420.
+   UART Bridge (COMx)". Máy bàn dùng bản 11.2.0.167 từ 29/09/2026, cài qua Windows Update vì tải từ silabs.com bị chặn
+   (máy bàn trước: 11.6.0.420; [chuyển máy](CHUYEN_MAY_BAN.md)).
 5. **Cắm thiết bị:** hub UGREEN với bốn camera ở đúng các cổng 1–4 như máy bàn, và LiDAR cắm thẳng vào laptop. Đóng mọi
    chương trình đang dùng camera. Để camera nhìn **cùng một cảnh** như khi đo trên máy bàn, vì khung bị cắt ở 720p phụ
    thuộc cảnh.
@@ -91,7 +100,7 @@ tiếp bước sau.
 | `cam720` | Bốn camera 1280×720, chỉ camera, 30 s: khung bị cắt | `m02_720p_chi_camera.rig.json` |
 
 `tom_tat.md` đặt từng số cạnh số của máy bàn, lấy từ [evidence/may_ban/](evidence/may_ban/) (tệp đứng cuối theo tên; từ
-muộn tối 24/09/2026 là [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json), mục 1).
+29/09/2026 là [tham_chieu_20260929.json](evidence/may_ban/tham_chieu_20260929.json), mục 1).
 
 *(Thêm muộn tối 24/09/2026)* Bước `ai` và bước `rig480` đo hai thứ khác nhau:
 
@@ -137,15 +146,15 @@ hay không đạt. Nên đọc kỹ những điểm sau:
 
 Từ bản `autopark/rig/may_moi.py` sửa khuya 24/09/2026 (chưa commit lúc viết, mục 2 bước 1; *25/09/2026: đã commit và
 push trong `77eb51f`*), `tom_tat.md` có thêm các dòng sau. Cột máy bàn lấy từ tệp tham chiếu hiện dùng
-([tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json)):
+([tham_chieu_20260929.json](evidence/may_ban/tham_chieu_20260929.json), mục 1); cột 24/09 là tệp dùng tới 25/09/2026:
 
-| Dòng trong `tom_tat.md` | Lấy từ | Máy bàn, 19:08 ngày 24/09 |
-|---|---|---|
-| Bàn thử 480p: làm nóng AI theo cỡ lô (ms); … tổng làm nóng AI (s) | `ai.warm_up_ms` của `m01_480p_lidar_ai.rig.json`: một lô cho mỗi cỡ 4, 3, 2, 1 ảnh | 4 ảnh 1482 / 3 ảnh 1448 / 2 ảnh 1553 / 1 ảnh 1410; tổng 5,9 s |
-| Bàn thử 480p: quy tắc chờ camera chậm; 720p chỉ camera: quy tắc chờ camera chậm | `policy` của từng `.rig.json` (`wait_rule`, `wait_periods_of_own`, sàn `max_wait_ms`) | nhịp riêng: max(60 ms; 1,5 × chu kỳ của chính từng camera), cả hai bước |
-| … độ lệch bộ ảnh trung vị / p95 / max (ms), ở 480p và ở 720p | `sets.skew_ms` của từng `.rig.json` | "—": tệp tham chiếu không lưu số này (xem dưới) |
+| Dòng trong `tom_tat.md` | Lấy từ | Máy bàn hiện tại, 12:59 ngày 29/09 | Máy bàn trước, 19:08 ngày 24/09 |
+|---|---|---|---|
+| Bàn thử 480p: làm nóng AI theo cỡ lô (ms); … tổng làm nóng AI (s) | `ai.warm_up_ms` của `m01_480p_lidar_ai.rig.json`: một lô cho mỗi cỡ 4, 3, 2, 1 ảnh | 4 ảnh 1522 / 3 ảnh 1469 / 2 ảnh 1658 / 1 ảnh 1414; tổng 6,1 s | 4 ảnh 1482 / 3 ảnh 1448 / 2 ảnh 1553 / 1 ảnh 1410; tổng 5,9 s |
+| Bàn thử 480p: quy tắc chờ camera chậm; 720p chỉ camera: quy tắc chờ camera chậm | `policy` của từng `.rig.json` (`wait_rule`, `wait_periods_of_own`, sàn `max_wait_ms`) | nhịp riêng: max(60 ms; 1,5 × chu kỳ của chính từng camera), cả hai bước | như cột trái |
+| … độ lệch bộ ảnh trung vị / p95 / max (ms), ở 480p và ở 720p | `sets.skew_ms` của từng `.rig.json` | 480p 17,1 / 32,0 / 35,9; 720p 26,0 / 30,2 / 32,8 | "—": tệp tham chiếu không lưu số này (xem dưới) |
 
-Tệp tham chiếu 19:08 lưu `policy` và `ai_warm_up_ms` ở tầng ngoài, không trong `digest`; lệnh đo tự đọc cả hai chỗ và không
+Tệp 29/09 tạo từ `may_moi.json` nên `digest` có sẵn cả ba loại số. Tệp tham chiếu 19:08 lưu `policy` và `ai_warm_up_ms` ở tầng ngoài, không trong `digest`; lệnh đo tự đọc cả hai chỗ và không
 sửa tệp. Tệp 15:25 ([tham_chieu_20260924.json](evidence/may_ban/tham_chieu_20260924.json)) không lưu cả ba loại số, nên cột
 máy bàn là "—". Độ lệch bộ ảnh của máy bàn chỉ có trong tệp gốc, git-ignore, chỉ có trên máy bàn (đọc 24/09/2026):
 

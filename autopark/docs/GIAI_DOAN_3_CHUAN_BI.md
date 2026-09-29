@@ -13,7 +13,7 @@
 | Hợp nhất | `fusion/fuse.py`: OCCUPIED nếu bất kỳ lớp tươi nào OCCUPIED, FREE nếu có lớp tươi FREE, còn lại UNKNOWN; lớp bắt buộc không tươi → `stamp.valid = False`, mọi ô bị chặn, có lý do | test quy tắc từng ô, lớp cũ, lớp tùy chọn, lưới khác nhau |
 | Đường đang hợp lệ → thêm vật cản → hủy hợp lệ → dừng → lập lại hoặc chờ | `fusion/obstacles.py` (ô bị chặn → hình chữ nhật phủ chính xác; chỉ thông tin mới) + `fusion/bridge.py` (`sync` khi chỉnh sa bàn, `inject` khi chạy, dừng khi bản đồ không hợp lệ) nối vào `Session` giai đoạn 0 | test: vật 0,6 m trước xe đang chạy → STOPPING → STOPPED, không va chạm, `MAP_CHANGED`, `WAIT_REPLAN`, lập lại đường được; mất LiDAR → dừng với lý do; vật ngoài hành lang → ghi nhớ, không dừng |
 | Lưu/nạp bản đồ | `read_costmap_json` / `write_costmap_json`; lớp tĩnh nạp `costmap.json` của `lidar/occupancy.py` | test vòng tròn ghi → nạp bằng nhau |
-| Thử trên bàn với LiDAR thật | `fusion/demo.py` (dòng lệnh) và `ui/lidar_dock.py` (giao diện): LiDAR ở COM4 đứng yên tại vị trí xuất phát → sa bàn 3 × 2 m → xe ảo lập đường quanh đồ vật thật rồi chạy; vật mới trên đường → dừng | `tests/test_fusion_demo.py`, `tests/test_lidar_dock_ui.py` với nguồn quét kịch bản; chạy thật: mục 3 (đỗ xong quanh đồ vật thật; **chưa thử** đưa tay hay rút cáp khi xe ảo đang chạy) |
+| Thử trên bàn với LiDAR thật | `fusion/demo.py` (dòng lệnh) và `ui/lidar_dock.py` (giao diện): LiDAR đứng yên tại vị trí xuất phát → sa bàn 3 × 2 m → xe ảo lập đường quanh đồ vật thật rồi chạy; vật mới trên đường → dừng. Cổng LiDAR: COM4 trên máy bàn tới 25/09/2026; trên máy bàn từ 29/09/2026 lấy từ `configs/thiet_bi.json`, hiện COM3 ([chuyển máy](CHUYEN_MAY_BAN.md)) | `tests/test_fusion_demo.py`, `tests/test_lidar_dock_ui.py` với nguồn quét kịch bản; chạy thật: mục 3 (đỗ xong quanh đồ vật thật; **chưa thử** đưa tay hay rút cáp khi xe ảo đang chạy) |
 | Bản đồ bám cảm biến theo thời gian thực | `bridge.sync_incremental`: giữ hộp còn bị chặn, bỏ hộp đã trống, thêm hộp mới sau mỗi vòng quét; bản đồ hợp nhất không hợp lệ thì KHÔNG đổi gì (không có bằng chứng ≠ trống) | test: vật đổi góc → hộp cũ bị xóa, hộp mới thêm, id không trùng; hết vật → sa bàn trống; sau khi lập đường thì `sync_incremental` ném lỗi |
 
 14 test mới (`test_fusion.py` 11, `test_fusion_demo.py` 3). Bộ test toàn dự án sau khi thêm: 284 đạt, 4 bỏ qua trong 54 s (`.venv`, máy rảnh). *Cập nhật 24/09/2026: cả hai số trên đều không mô tả bản đã commit. So với commit cha `e845f60`, commit `6dba1a6` (22/09) thêm 22 test: `test_fusion.py` 14, `test_fusion_demo.py` 3, `tests/test_lidar_dock_ui.py` 5. Ngày 24/09 đã chạy lại toàn bộ test trên bản xuất ra từ đúng hai commit này (`git archive`, `.venv`, `QT_QPA_PLATFORM=offscreen`): `e845f60` cho 270 đạt, 4 bỏ qua; `6dba1a6` cho 292 đạt, 4 bỏ qua (4 mô-đun cần torch bị bỏ qua cả mô-đun). Vì 284 = 270 + 14, lượt chạy 284/4 có lẽ là trên cây làm việc trước khi thêm 3 test fusion và 5 test giao diện cuối; không còn nhật ký của lượt chạy đó nên không kiểm được.*
@@ -89,14 +89,16 @@ Sau khi sửa, chạy lại demo trên bàn: 28 vật cản nền, planner báo 
 
 Giao diện (khuyên dùng): cửa sổ đỗ xe giai đoạn 0 có thêm ngăn LiDAR bên phải (`ui/lidar_dock.py`, `ui/lidar_app.py`). **Bản đồ là thời gian thực, không có bước "quét nền"**: vừa kết nối là các hộp trên sa bàn đã bám theo LiDAR, xoay cảm biến hay dời đồ vật thì hộp đi theo trong vòng vài trăm mili giây. Trình tự: **Kết nối** → nhìn sa bàn khớp với thực tế (chỉnh "vòng gộp", "lần thấy mới tính", "cm quanh xe bỏ" nếu cần) → **Tìm đường đỗ** (bản đồ được CHỐT tại đây để lập đường) → **Bắt đầu đỗ** → đưa tay vào trước LiDAR cách ≥ 40 cm: kỳ vọng xe ảo dừng, ngăn LiDAR ghi "Vật mới trên đường". Rút cáp khi đang chạy: kỳ vọng xe dừng với lý do mất LiDAR. Hai hành vi này mới được kiểm bằng test chạy ẩn với nguồn quét kịch bản (`tests/test_lidar_dock_ui.py`, 5 test); **chưa thử với tay và cáp thật** (mục 3).
 
+Lệnh `ui.lidar_app` và `fusion.demo` không kèm `--recording` mở LiDAR ở cổng ghi trong `configs/thiet_bi.json`; thêm `--port COMx` để ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
+
 ```powershell
 # trong thư mục autopark, .venv
-.\.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --port COM4
+.\.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app
 .\.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --recording runs/lidar_bench/20260922/p07_nen_phong.npz
 .\.venv\Scripts\python.exe -X utf8 -m pytest tests/test_fusion.py tests/test_fusion_demo.py
-.\.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --port COM4 --seconds 30      # đưa tay vào trước LiDAR lúc xe chạy
+.\.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --seconds 30      # đưa tay vào trước LiDAR lúc xe chạy
 .\.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --recording runs/lidar_bench/20260922/p07_nen_phong.npz --seconds 10
-.\.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --port COM4 --seconds 30 --warmup 4.5
+.\.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --seconds 30 --warmup 4.5
 ```
 
 ## 6. Chưa làm / giới hạn

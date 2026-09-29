@@ -392,7 +392,7 @@ Mã/commit, môi trường, cấu hình xe, hiệu chuẩn, nguồn dữ liệu/
 
 ### 17.2. Các lựa chọn còn mở
 
-Nguồn tư thế thật; gá/encoder/nguồn/E-stop; đường điều khiển laptop–bo; ngưỡng nghiệm thu; chốt firmware sau `COMMAND_TIMEOUT`; sức khỏe ToF; chính sách AI bắt buộc và nhãn nháp AI. Đọc [tổng quan](TONG_HOP_DU_AN.md) và tài liệu chuyên đề trước khi thay.
+Nguồn tư thế thật; gá/encoder/nguồn/E-stop; đường điều khiển laptop–bo; ngưỡng nghiệm thu; chốt firmware sau `COMMAND_TIMEOUT`; sức khỏe ToF; xe tự tiếp tục hay chờ xác nhận sau vật cản thông thường; chính sách AI bắt buộc và nhãn nháp AI. Đọc [tổng quan](TONG_HOP_DU_AN.md) và tài liệu chuyên đề trước khi thay.
 
 ### 17.3. Năm việc làm tiếp
 
@@ -430,4 +430,4 @@ Các liên kết dưới giữ từ kế hoạch gốc để đối chiếu. L�
 | Cầu chì/đế | https://shopee.vn/product/265439065/18077814935 | Không chốt 15 A chỉ từ link. |
 | XT60 dây sẵn | https://shopee.vn/product/27693865/40306450328 | Kiểm tra tương thích đầu nối hệ nguồn. |
 
-[Bản kế hoạch trước biên tập](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) giữ toàn bộ danh sách thao tác, tên đầu ra dự kiến và nhật ký tiến độ cũ.
+[Bản kế hoạch trước biên tập](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) giữ toàn bộ danh sách thao tác, tên đầu ra dự kiến và nhật ký tiến độ cũ. Số mục 1–18 giữ như bản đó; các biên bản chuyên sâu dẫn “mục X bước N”, tên đoạn như “Khi chưa có xe” hoặc trích nguyên văn kế hoạch theo bản đó.

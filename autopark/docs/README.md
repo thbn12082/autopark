@@ -2,7 +2,7 @@
 
 **Mới đọc dự án:** [README](../../README.md) → [Tổng quan và tiến độ](../../TONG_HOP_DU_AN.md) → [Cài đặt và chạy](../README.md).
 
-Trang này giúp tìm tài liệu theo việc cần làm. Các biên bản chuyên sâu giữ ngày đo và lịch sử thử nghiệm; khi cần biết trạng thái hiện tại tại mốc mã `9d68257`, đọc bản tổng quan.
+Trang này giúp tìm tài liệu theo việc cần làm. Các biên bản chuyên sâu giữ ngày đo và lịch sử thử nghiệm; khi cần biết trạng thái hiện tại (biên tập theo mã tại `9d68257`, cập nhật 29/09/2026 theo đợt chuyển sang máy bàn mới), đọc bản tổng quan.
 
 **Bản đồ đọc tài liệu:**
 
@@ -25,6 +25,7 @@ Sơ đồ được đặt ngay cạnh phần giải thích tương ứng trong t
 |---|---|
 | [Hướng dẫn chạy](../README.md) | Cài môi trường, mô phỏng, test, AI và bàn thử |
 | [Máy nộp đồ án](MAY_NOP_DO_AN.md) | Chép checkpoint, cài/đo lại trên laptop, so máy bàn |
+| [Chuyển máy bàn](CHUYEN_MAY_BAN.md) | Chép dự án sang máy khác: venv hỏng, cổng LiDAR ở `configs/thiet_bi.json`, đường dẫn có dấu; kết quả kiểm máy bàn hiện tại ngày 29/09/2026 |
 | [Kế hoạch v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) | Xem phụ thuộc, đợt mua và điều kiện chuyển bước |
 | [Kiểm kê phần cứng](hardware_inventory.md) | Đối chiếu thiết bị đã nhận |
 | [Cổng giai đoạn 1](gate_01.md) | Xem lý do chưa đủ điều kiện chuyển bước |
@@ -65,6 +66,8 @@ Làm theo thứ tự: kiểm camera → nội tham → ngoại tham/ROI → BEV 
 | [So sánh định vị/SLAM](SO_SANH_DINH_VI_SLAM.md) | Các phương án, scan odometry và giới hạn bằng chứng |
 
 Đọc scan, tạo bản đồ và định vị lại là ba kết quả riêng. Độ lặp lại khoảng cách chưa cho biết sai số so với thước.
+
+Các lệnh LiDAR lấy cổng COM từ khóa `lidar_port` trong [configs/thiet_bi.json](../configs/thiet_bi.json) khi không có `--port` (`rig.bench`, `ui.rig_app`: khi `--lidar` không kèm giá trị; `rig.may_moi` tự tìm bộ chuyển CP210x, `--lidar COMx` ghi đè); đổi máy thì sửa ở đó ([Chuyển máy bàn](CHUYEN_MAY_BAN.md) mục 3).
 
 ## Bàn thử và hợp nhất cảm biến
 
@@ -135,4 +138,4 @@ Viết trạng thái mới vào đúng đoạn hiện tại; đưa lịch sử v
 
 Mỗi kết quả cần ghi nguồn, ngày, môi trường, cách đo và giới hạn. Hướng dẫn chạy cần ghi thư mục làm việc, môi trường và tệp phải có. Tệp ngoài Git ghi dạng đường dẫn và cách lấy, tránh tạo liên kết như thể đã có trong repo.
 
-Sáu tài liệu chính được biên tập lại ngày 26/09/2026. [Bản tại 9d68257](https://github.com/thbn12082/autopark/tree/9d68257) giữ đầy đủ nội dung trước biên tập; các biên bản kỹ thuật chuyên sâu được giữ để đối chiếu.
+Sáu tài liệu chính được biên tập lại ngày 26/09/2026; những chỗ nói về máy bàn, cài đặt và cổng LiDAR được cập nhật ngày 29/09/2026 theo đợt chuyển máy ([biên bản](CHUYEN_MAY_BAN.md)). [Bản tại 9d68257](https://github.com/thbn12082/autopark/tree/9d68257) giữ đầy đủ nội dung trước biên tập; các biên bản kỹ thuật chuyên sâu được giữ để đối chiếu.

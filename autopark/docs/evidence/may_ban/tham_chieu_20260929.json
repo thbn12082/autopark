@@ -1,0 +1,177 @@
+{
+ "created": "2026-09-29",
+ "machine": "máy bàn Dell Precision 3680, i9-14900 + RTX 4000 Ada 20 GB (máy phát triển chính từ 29/09/2026)",
+ "note": "máy bàn Dell Precision 3680 (i9-14900 + RTX 4000 Ada, driver NVIDIA 596.71), 29/09/2026 12:59, lệnh may_moi đầy đủ (do_may_moi.cmd), mã 9d68257, trước các sửa đổi chuyển máy (docs/CHUYEN_MAY_BAN.md mục 3); LiDAR ở COM3; quy tắc chờ theo nhịp riêng từng camera (own_cadence), có làm nóng AI và độ lệch bộ ảnh. Camera nhìn cảnh nào lúc đo KHÔNG ghi lại, nên số khung hỏng ở 720p chỉ so được khi cùng cảnh. Người dùng chọn lượt này làm tham chiếu ngày 29/09/2026 (docs/CHUYEN_MAY_BAN.md mục 2); hai tệp 24/09 của máy bàn trước giữ lại để đối chiếu; may_moi dùng tệp đứng cuối theo tên, tức tệp này.",
+ "source_run": "runs/may_moi_20260929_may_moi_chep (git-ignored); bản chép: docs/evidence/chuyen_may_20260929/may_moi/",
+ "digest": {
+  "env": {
+   "created_local": "2026-09-29T12:59:49",
+   "platform": "Windows-11-10.0.26200-SP0",
+   "machine": "AMD64",
+   "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+   "cpu_count": 32,
+   "python": "3.12.10",
+   "ram_gb": 63.7,
+   "opencv": "5.0.0",
+   "torch": "2.11.0+cu128",
+   "cuda_available": true,
+   "gpu": "NVIDIA RTX 4000 Ada Generation",
+   "gpu_vram_gb": 20.0,
+   "cuda_runtime": "12.8",
+   "nvidia_driver": "596.71"
+  },
+  "steps": {
+   "env": true,
+   "usb": true,
+   "lidar": true,
+   "ai": true,
+   "rig480": true,
+   "cam720": true
+  },
+  "errors": {},
+  "usb": {
+   "cameras": 4,
+   "with_hub_port": 4,
+   "hubs": [
+    "Generic SuperSpeed USB Hub",
+    "Generic USB Hub"
+   ]
+  },
+  "lidar": {
+   "port": "COM3",
+   "health": "OK",
+   "rate_hz": 10.0,
+   "beams_median": 508.0,
+   "no_return_fraction": 0.2432351719123299,
+   "passed": true
+  },
+  "ai": {
+   "total_ms_median": 10.77,
+   "total_ms_p95": 12.07,
+   "model_ms_median": 6.81,
+   "peak_vram_mb": 77.7,
+   "device": "cuda"
+  },
+  "rig480": {
+   "seconds": 120.0,
+   "size": [
+    640,
+    480
+   ],
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_rule": "own_cadence",
+    "wait_periods_of_own": 1.5,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "wait_rule": "own_cadence",
+   "skew_ms": {
+    "median": 17.1,
+    "p95": 32.0,
+    "max": 35.9
+   },
+   "ai_warm_up_ms": [
+    1522.2,
+    1469.3,
+    1658.0,
+    1414.4
+   ],
+   "good_fps": [
+    23.85,
+    24.37,
+    23.85,
+    23.84
+   ],
+   "damaged": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "frames": [
+    2862,
+    2925,
+    2862,
+    2861
+   ],
+   "open_errors": [],
+   "ai_sets_per_s": 23.849,
+   "ai_batch_ms_median": 14.1,
+   "ai_result_age_ms_median": 35.9,
+   "lidar_hz": 10.008,
+   "lidar_errors": 0,
+   "sets": 2861,
+   "sets_partial_wait": 0,
+   "lagging_per_port": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "proc_cpu_cores": 0.81,
+   "gpu_util_pct": 23.37,
+   "gpu_temp_last": 43.0,
+   "stop_alive": []
+  },
+  "cam720": {
+   "seconds": 30.0,
+   "size": [
+    1280,
+    720
+   ],
+   "policy": {
+    "max_skew_ms": 60.0,
+    "max_wait_ms": 60.0,
+    "wait_rule": "own_cadence",
+    "wait_periods_of_own": 1.5,
+    "wait_periods_of_fastest": 1.5,
+    "stale_after_ms": 500.0
+   },
+   "wait_rule": "own_cadence",
+   "skew_ms": {
+    "median": 26.0,
+    "p95": 30.2,
+    "max": 32.8
+   },
+   "ai_warm_up_ms": null,
+   "good_fps": [
+    23.83,
+    23.83,
+    23.87,
+    23.83
+   ],
+   "damaged": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "frames": [
+    715,
+    715,
+    716,
+    715
+   ],
+   "open_errors": [],
+   "ai_sets_per_s": null,
+   "ai_batch_ms_median": null,
+   "ai_result_age_ms_median": null,
+   "lidar_hz": null,
+   "lidar_errors": null,
+   "sets": 715,
+   "sets_partial_wait": 0,
+   "lagging_per_port": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "proc_cpu_cores": 0.681,
+   "gpu_util_pct": 0.0,
+   "gpu_temp_last": 40.0,
+   "stop_alive": []
+  }
+ }
+}

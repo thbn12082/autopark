@@ -1,0 +1,103 @@
+{
+  "pnp": [
+    {
+      "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&2C402FB5&0&0000",
+      "friendly_name": "HD Camera",
+      "status": "OK",
+      "parent": "USB\\VID_1BCF&PID_0B09\\6&896ff29&0&1",
+      "hub": "USB\\VID_05E3&PID_0610\\5&27bf20e7&0&8",
+      "hub_port": 1,
+      "parent_location": "Port_#0001.Hub_#0003",
+      "location_info": "0000.0014.0000.008.001.000.000.000.000",
+      "location_paths": "PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)#USB(1)#USBMI(0) | PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)#USB(1)#USB(1) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(HS08)#USB(1)#USBMI(0) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(HS08)#USB(1)#USB(1)"
+    },
+    {
+      "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&19867F10&0&0000",
+      "friendly_name": "HD Camera",
+      "status": "OK",
+      "parent": "USB\\VID_1BCF&PID_0B09\\6&896ff29&0&2",
+      "hub": "USB\\VID_05E3&PID_0610\\5&27bf20e7&0&8",
+      "hub_port": 2,
+      "parent_location": "Port_#0002.Hub_#0003",
+      "location_info": "0000.0014.0000.008.002.000.000.000.000",
+      "location_paths": "PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)#USB(2)#USBMI(0) | PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)#USB(2)#USB(2) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(HS08)#USB(2)#USBMI(0) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(HS08)#USB(2)#USB(2)"
+    },
+    {
+      "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&6CCCE6B&0&0000",
+      "friendly_name": "HD Camera",
+      "status": "OK",
+      "parent": "USB\\VID_1BCF&PID_0B09\\6&896ff29&0&3",
+      "hub": "USB\\VID_05E3&PID_0610\\5&27bf20e7&0&8",
+      "hub_port": 3,
+      "parent_location": "Port_#0003.Hub_#0003",
+      "location_info": "0000.0014.0000.008.003.000.000.000.000",
+      "location_paths": "PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)#USB(3)#USBMI(0) | PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)#USB(3)#USB(3) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(HS08)#USB(3)#USBMI(0) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(HS08)#USB(3)#USB(3)"
+    },
+    {
+      "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&2FADE7CD&0&0000",
+      "friendly_name": "HD Camera",
+      "status": "OK",
+      "parent": "USB\\VID_1BCF&PID_0B09\\6&896ff29&0&4",
+      "hub": "USB\\VID_05E3&PID_0610\\5&27bf20e7&0&8",
+      "hub_port": 4,
+      "parent_location": "Port_#0004.Hub_#0003",
+      "location_info": "0000.0014.0000.008.004.000.000.000.000",
+      "location_paths": "PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)#USB(4)#USBMI(0) | PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)#USB(4)#USB(4) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(HS08)#USB(4)#USBMI(0) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(HS08)#USB(4)#USB(4)"
+    }
+  ],
+  "hubs": [
+    {
+      "instance_id": "USB\\VID_05E3&PID_0626\\5&27BF20E7&0&18",
+      "friendly_name": "Generic SuperSpeed USB Hub",
+      "bus_reported_desc": "USB3.1 Hub",
+      "parent": "USB\\ROOT_HUB30\\4&1c643236&0&0",
+      "location_info": "Port_#0018.Hub_#0001",
+      "root_port": 18,
+      "location_paths": "PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(18) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(SS02)"
+    },
+    {
+      "instance_id": "USB\\VID_05E3&PID_0610\\5&27BF20E7&0&8",
+      "friendly_name": "Generic USB Hub",
+      "bus_reported_desc": "USB2.1 Hub",
+      "parent": "USB\\ROOT_HUB30\\4&1c643236&0&0",
+      "location_info": "Port_#0008.Hub_#0001",
+      "root_port": 8,
+      "location_paths": "PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8) | ACPI(_SB_)#ACPI(PC00)#ACPI(XHCI)#ACPI(RHUB)#ACPI(HS08)"
+    }
+  ],
+  "dshow_index_to_port": [
+    {
+      "index": 0,
+      "name": "HD Camera",
+      "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&6CCCE6B&0&0000",
+      "hub": "USB\\VID_05E3&PID_0610\\5&27bf20e7&0&8",
+      "hub_port": 3,
+      "device_path": "\\\\?\\usb#vid_1bcf&pid_0b09&mi_00#7&6ccce6b&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\\global"
+    },
+    {
+      "index": 1,
+      "name": "HD Camera",
+      "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&2C402FB5&0&0000",
+      "hub": "USB\\VID_05E3&PID_0610\\5&27bf20e7&0&8",
+      "hub_port": 1,
+      "device_path": "\\\\?\\usb#vid_1bcf&pid_0b09&mi_00#7&2c402fb5&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\\global"
+    },
+    {
+      "index": 2,
+      "name": "HD Camera",
+      "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&2FADE7CD&0&0000",
+      "hub": "USB\\VID_05E3&PID_0610\\5&27bf20e7&0&8",
+      "hub_port": 4,
+      "device_path": "\\\\?\\usb#vid_1bcf&pid_0b09&mi_00#7&2fade7cd&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\\global"
+    },
+    {
+      "index": 3,
+      "name": "HD Camera",
+      "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&19867F10&0&0000",
+      "hub": "USB\\VID_05E3&PID_0610\\5&27bf20e7&0&8",
+      "hub_port": 2,
+      "device_path": "\\\\?\\usb#vid_1bcf&pid_0b09&mi_00#7&19867f10&0&0000#{65e8773d-8f56-11d0-a3b9-00a0c9223196}\\global"
+    }
+  ],
+  "created_utc": "2026-09-29T05:59:55+00:00"
+}

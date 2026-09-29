@@ -1,8 +1,10 @@
 # Firmware ESP32-S3 — nhận lệnh, giới hạn, watchdog, telemetry (giai đoạn 5, "khi chưa đủ phần cứng")
 
 **Trạng thái (24/09/2026): mã nguồn viết trước khi có mạch. CHƯA BIÊN DỊCH, CHƯA NẠP, CHƯA CHẠY trên bo nào.**
-Máy phát triển hiện tại không có trình biên dịch C/C++ (không gcc/clang/MSVC) và không có PlatformIO, nên kể cả
-bộ test C++ trên máy tính (`test/host`) cũng chưa từng được biên dịch. Phần đã kiểm là **bản tham chiếu Python**
+Máy bàn dùng tới 25/09/2026 không có trình biên dịch C/C++ (không gcc/clang/MSVC) và không có PlatformIO, nên kể cả
+bộ test C++ trên máy tính (`test/host`) cũng chưa từng được biên dịch; máy bàn từ 29/09/2026 có g++ 16.1.0 và cmake
+4.4.1 trên PATH nhưng chưa thử biên dịch ([chuyển máy](../../docs/CHUYEN_MAY_BAN.md) mục 4).
+Phần đã kiểm là **bản tham chiếu Python**
 (`autopark/transport/firmware_model.py`) — mã C++ này được viết để khớp từng dòng với nó, và bộ test C++ sẽ
 kiểm điều đó bằng vector mẫu chung khi có trình biên dịch.
 
@@ -149,7 +151,7 @@ KHÔNG làm được / chưa chứng minh:
 ## Cách kiểm khi có trình biên dịch
 
 ```bash
-# 1) Sinh lại / kiểm vector từ bản tham chiếu Python (trong D:/ap/autopark)
+# 1) Sinh lại / kiểm vector từ bản tham chiếu Python (trong thư mục autopark của repo, thư mục có pyproject.toml)
 python -X utf8 -m autopark.transport.vectors --check
 
 # 2) Test lõi C++ trên máy tính (trong firmware/esp32_vehicle)

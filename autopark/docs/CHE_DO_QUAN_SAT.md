@@ -538,8 +538,9 @@ hình bo nhanh dùng trong test (`boot_hold_ms` 200), cùng phép thử cho 160 
   CHƯA CHỐT.
 - *(Thêm muộn tối 24/09/2026.)* **"Kiểm kết nối bo" chưa thử với bo thật.** Chưa biết mở cổng có làm ESP32-S3 khởi
   động lại qua DTR/RTS hay không (cần tra theo bo; nếu có, HELLO_ACK sẽ báo BOOT và lý do reset). Chọn nhầm cổng
-  LiDAR (COM4 trên máy bàn) thì HELLO sẽ được gửi tới RPLIDAR C1 ở 115200 baud; hộp thoại xác nhận chỉ nhắc người
-  dùng, không chặn. Chưa kiểm LiDAR phản ứng thế nào với byte đó.
+  LiDAR (cổng `lidar_port` trong `configs/thiet_bi.json`; COM3 trên máy bàn từ 29/09/2026) thì HELLO sẽ được gửi tới
+  RPLIDAR C1 ở 115200 baud; hộp thoại xác nhận chỉ nhắc người dùng, không chặn. Chưa kiểm LiDAR phản ứng thế nào với
+  byte đó.
 - *(Thêm muộn tối 24/09/2026.)* **ToF chưa vào phiên.** `tof_to_near_field` và `NearFieldLayer.add_telemetry` đã có
   ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12), nhưng `VehicleLink` và `Session` chưa đưa ToF vào hợp nhất hay kiểm va
   chạm. Vị trí gá trong `configs/tof_mounts_v0.json` là GIẢ ĐỊNH – CHƯA ĐO.

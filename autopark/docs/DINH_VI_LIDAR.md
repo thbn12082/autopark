@@ -314,8 +314,9 @@ trên laptop RTX 3050 Ti** (máy nộp đồ án).
    nên dùng thước thẳng ≥ 0,65 m đặt dọc vạch hướng, xem [NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md)
    dòng N-L2.)* Mỗi điểm ghi 10–15 s. So `ok_pose_median` với số đo thước để có sai số vị trí/hướng (hướng trong tóm tắt là
    thống kê vòng, mục 3; so hướng theo hiệu đã quấn về ±180°). Lệnh ghi dùng
-   `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --port COM4 --out runs/lidar_bench/<ngày> --name d01_... --seconds 15`
+   `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --out runs/lidar_bench/<ngày> --name d01_... --seconds 15`
    (thay `<ngày>` bằng ngày thật trước khi dán vào cmd)
    (theo [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 6).
+   Cổng LiDAR lấy từ `configs/thiet_bi.json`; thêm `--port COMx` để ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
 3. Làm cùng buổi với 7 lần đặt hộp (mục 6 của tài liệu đó) để chốt dấu góc trái/phải.
 4. Sau đó chốt các ngưỡng ở mục 6 và ghi vào bảng 16.2 của kế hoạch (dòng "Định vị").

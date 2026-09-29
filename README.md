@@ -4,7 +4,7 @@ AutoPark là đồ án xe mô hình tự đỗ trên sa bàn. Người dùng ch�
 
 **Hiện trạng:** phần mô phỏng đã được kiểm thử; LiDAR và bốn camera đã chạy trên bàn thử. Dự án chưa hoàn thành tích hợp và nghiệm thu xe thật.
 
-Biên tập ngày **26/09/2026**, dựa trên mã nguồn và hồ sơ đến commit `9d68257`. Ngày biên tập không phải ngày đo lại thiết bị.
+Biên tập ngày **26/09/2026**, dựa trên mã nguồn và hồ sơ đến commit `9d68257`; cập nhật **29/09/2026** sau khi chuyển sang máy bàn mới ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md)). Ngày biên tập không phải ngày đo; mỗi số đo ghi ngày và máy đo trong hồ sơ gốc.
 
 ## Bắt đầu từ đâu?
 
@@ -65,13 +65,15 @@ AI nhận diện vật cản. Bộ tìm đường và bộ bám đường tính 
 
 Mở thư mục `autopark` bên trong repository:
 
-1. Chạy `cai_dat.cmd` để tạo môi trường và cài thư viện.
+1. Chạy `cai_dat.cmd` để tạo môi trường và cài thư viện. Nếu thư mục được chép từ máy khác và `.venv` chép kèm không chạy được, lệnh tự đổi tên nó thành `.venv.hong-tu-may-cu` rồi tạo môi trường mới.
 2. Chạy `chay_app.cmd`.
 3. Chọn đích → **Tìm đường đỗ** → **Xem trước** → **Bắt đầu đỗ**.
 
 Dự án yêu cầu Python từ 3.11; môi trường đã kiểm trong hồ sơ dùng Python 3.12.10. [Hướng dẫn PowerShell và xử lý lỗi](autopark/README.md).
 
 Bản clone không kèm môi trường Python, checkpoint AI, dataset đầy đủ hoặc phiên trong `runs/`. Cần tạo hoặc chuyển các tệp này từ máy đã làm dự án. Mô phỏng cơ bản không cần checkpoint AI.
+
+Khi chép cả thư mục sang máy khác, chạy lại `cai_dat.cmd` và `cai_dat_train.cmd`: venv chép sang mà hỏng được đổi tên thành `*.hong-tu-may-cu` rồi tạo lại. Cổng COM của LiDAR đặt ở một chỗ, khóa `lidar_port` trong [autopark/configs/thiet_bi.json](autopark/configs/thiet_bi.json) (số COM của máy đó, hoặc `"auto"` để tự tìm bộ chuyển CP210x); đổi máy thì sửa dòng này. Các bước đổi máy và kết quả kiểm trên máy bàn hiện tại: [biên bản chuyển máy 29/09/2026](autopark/docs/CHUYEN_MAY_BAN.md).
 
 ## Dữ liệu và ghi công
 

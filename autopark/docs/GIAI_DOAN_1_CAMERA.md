@@ -271,7 +271,7 @@ Hệ quả cho mục 4.2–4.5:
 2. ~~Khởi động lại máy~~ — đã làm 12:35 ngày 23/09: InstanceId giữ nguyên, index đổi. Mã vận hành phải chọn camera theo cổng/InstanceId.
 3. **Đặt camera ở độ cao và góc chúc dự kiến trên xe**, bày hộp/thành/xe mô hình, chụp bằng nút "Chụp bộ ảnh" của bàn
    thử (`autopark.ui.rig_app`, 640×480, bật AI để bộ ảnh có xác suất làm nháp) — ảnh sa bàn đầu tiên cho nhánh AI
-   (HUAN_LUYEN.md phần III, mục 18); nhập và gán nhãn theo [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md). *(Sửa 24/09/2026:
+   (HUAN_LUYEN.md mục 18); nhập và gán nhãn theo [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md). *(Sửa 24/09/2026:
    bản 23/09 ghi "ghi ảnh bằng `record`"; đầu ra của `camera_bench record` (AVI + PNG, không có `meta.json` hay
    `cam_p<cổng>.png`) không nhập được vào công cụ gán nhãn.)*
 4. **In bảng ô vuông** có kích thước đo được để hiệu chuẩn 130°; mã hiệu chuẩn cho ống kính thật đã có từ 24/09 (`perception/fisheye_calib.py`, giao diện `ui/calib_app.py`, bảng in sẵn trong `calibration/bang_in/`, hướng dẫn [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md)), mới kiểm trên ảnh tổng hợp, chưa hiệu chuẩn camera nào

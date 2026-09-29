@@ -21,16 +21,20 @@ biến lên xe; định vị LiDAR mới chạy offline, chưa có tham chiếu 
 giấy phép WoodScape); chưa có camera trên cao hay công cụ tham chiếu độc lập nào. Mọi ngưỡng ở tệp kia là ĐỀ XUẤT – CHỜ
 CHỐT. Tệp này không thêm số đo mới; mọi độ chính xác "kỳ vọng" của phương pháp đo là **ước tính hoặc phép tính**, ghi rõ ở
 từng chỗ, và phải được đo lại ở phép kiểm tham chiếu TC-1 (mục 3.7) trước khi dùng.
-*(Cập nhật 25/09/2026, chưa commit: câu "AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape)" đã lỗi
+*(Cập nhật 25/09/2026, `9d68257`: câu "AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape)" đã lỗi
 thời. Ngày 25/09/2026 người làm khóa luận quyết định dùng mô hình WoodScape trong vòng điều khiển; Valeo chưa xác nhận cách
 đọc điều khoản ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). Phần mềm đưa AI camera vào phiên đỗ xe làm nguồn vật cản
 thứ hai đã có: ngăn "AI camera" của `ui.lidar_app --camera-ai` ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)), chỉ kiểm bằng
 nguồn giả, rig tổng hợp và phát lại. Chưa camera nào được hiệu chuẩn, nên trên bàn thật AI chưa tạo vật cản nào; điều
 kiện hiệu chuẩn và tập chấm sa bàn của ĐK-AI (mục 1.3) vẫn còn.)*
 
-Mọi lệnh viết trên **một dòng**, chạy trong `D:\ap\autopark`, dán được vào cmd.exe. Thay `<ngay>`, `<ten>`… bằng giá trị thật
-trước khi chạy, và dùng tên **không dấu** (OpenCV trên Windows không đọc/ghi được đường dẫn có dấu). Lệnh có `--port COM4`,
-`--lidar COM4` hay mở camera là lệnh chạm thiết bị: chỉ người thao tác chạy.
+Mọi lệnh viết trên **một dòng**, chạy trong thư mục `autopark` của repo (thư mục có pyproject.toml), dán được vào
+cmd.exe. Thay `<ngay>`, `<ten>`… bằng giá trị thật trước khi chạy, và dùng tên **không dấu** (`cv2.imread`/`imwrite` gọi
+thẳng trên Windows không đọc/ghi được đường dẫn có dấu; mã dự án đọc/ghi ảnh qua `autopark/image_io.py` nên repo chạy được
+trong thư mục có dấu, [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 3). Lệnh mở LiDAR (`lidar.bench record`; `ui.lidar_app`, `fusion.demo` không có
+`--recording`; lệnh có `--lidar`) hay mở camera là lệnh chạm thiết bị: chỉ người thao tác chạy. Cổng LiDAR lấy từ
+`configs/thiet_bi.json`, thêm `--port COMx` để ghi đè; ở `rig.bench`, `ui.rig_app`, `--lidar` không kèm giá trị dùng
+cổng trong tệp đó ([chuyển máy](CHUYEN_MAY_BAN.md)).
 
 ## 0. Tóm tắt
 
@@ -90,8 +94,8 @@ M3: trên sàn, tốc độ thấp, người giám sát cầm nút dừng). Kị
 | Mã | Nội dung |
 |---|---|
 | ĐK-XT | Điều kiện của mọi lần chạy có động lực trên sàn: giai đoạn 4 (có `vehicle_measured`, bảng B1–B8 của [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md)); giai đoạn 5 (điều khiển có phản hồi, có mã đọc encoder và AS5600: thiếu tốc độ hoặc góc lái đo thì START bị từ chối, [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 8); **giai đoạn 6 đạt** (kế hoạch mục 10: "phải đạt trước giai đoạn chạy tự động trên sàn"); giai đoạn 7 (cảm biến gá trên xe, ngoại tham đo, footprint đo lại); giai đoạn 8 (hợp nhất trên xe chuyển động, định vị trong phiên); AT-5 (quan sát) đạt; TC-1 đạt; ngưỡng liên quan đã chốt; các công cụ T1–T3 ở mục 7 đã có |
-| ĐK-AI | Thêm cho kịch bản dựa vào camera/AI: quyết định giấy phép WoodScape cho phép nối AI (TONG_HOP_DU_AN.md mục 5.1); hiệu chuẩn nội tham bốn camera, ngoại tham đo, mặt nạ ROI ([BEV.md](BEV.md) mục 8); tập chấm sa bàn có nhãn tô tay ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md)). *(Cập nhật 25/09/2026: phần giấy phép đạt từ 25/09/2026 theo quyết định của người làm khóa luận (cách đọc A), Valeo chưa xác nhận; hai điều kiện còn lại vẫn thiếu. Phần mềm nối AI vào phiên đã có (ngăn "AI camera", [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md), chưa commit) nhưng chỉ tạo vật cản khi đã có nội tham đạt tiêu chí, ngoại tham đo và ROI như điều kiện ở trên.)* |
-| ĐK-BT | Cho phần bàn thử: thiết bị đang có (LiDAR C1 ở COM4, bốn camera qua hub), người thao tác |
+| ĐK-AI | Thêm cho kịch bản dựa vào camera/AI: quyết định giấy phép WoodScape cho phép nối AI ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)); hiệu chuẩn nội tham bốn camera, ngoại tham đo, mặt nạ ROI ([BEV.md](BEV.md) mục 8); tập chấm sa bàn có nhãn tô tay ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md)). *(Cập nhật 25/09/2026: phần giấy phép đạt từ 25/09/2026 theo quyết định của người làm khóa luận (cách đọc A), Valeo chưa xác nhận; hai điều kiện còn lại vẫn thiếu. Phần mềm nối AI vào phiên đã có (ngăn "AI camera", [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md), mã ở `b01dea4`) nhưng chỉ tạo vật cản khi đã có nội tham đạt tiêu chí, ngoại tham đo và ROI như điều kiện ở trên.)* |
+| ĐK-BT | Cho phần bàn thử: thiết bị đang có (LiDAR C1: COM3 trên máy bàn từ 29/09/2026, ghi ở `configs/thiet_bi.json`; COM4 trên máy bàn tới 25/09/2026, [chuyển máy](CHUYEN_MAY_BAN.md); bốn camera qua hub), người thao tác |
 
 ### 1.4. Kết quả một lần chạy và phân loại nguyên nhân
 
@@ -161,7 +165,7 @@ Nơi lưu (CHƯA CHỐT): dữ liệu gốc ở `runs\nghiem_thu\<ngay>\<ma>_l<l
 Kết quả mô phỏng của `autopark.evaluation.bench` (DO-3 … DO-6, DI-2) ghi vào `runs\nghiem_thu\mo_phong\`. Lệnh `bench` **không
 tự tạo thư mục cha** và chỉ ghi tệp JSON sau khi chạy hết các ca, nên thiếu thư mục thì chạy xong mới báo
 `FileNotFoundError`, thoát mã 1 và mất kết quả (thử ngày 24/09/2026 với một thư mục không tồn tại). Tạo thư mục một lần, chạy
-từ `D:\ap\autopark` (lệnh không làm gì nếu thư mục đã có; đã thử trong cmd.exe 24/09/2026):
+từ thư mục `autopark` của repo, tức thư mục có pyproject.toml (lệnh không làm gì nếu thư mục đã có; đã thử trong cmd.exe 24/09/2026):
 `if not exist runs\nghiem_thu\mo_phong mkdir runs\nghiem_thu\mo_phong`
 
 *(Cập nhật 25/09/2026: đoạn trên là hành vi trước commit `10a4735`. Từ commit đó, `bench --json` tạo thư mục cha **trước**
@@ -207,7 +211,7 @@ Kế hoạch mục 12 ("Có đánh giá định vị/BEV bằng tham chiếu đ�
 ### 3.3. Hệ tọa độ sa bàn
 
 1. Gốc O ở một góc sa bàn; trục x dọc cạnh dài; trục y vuông góc, nằm bên trái khi nhìn theo chiều +x; góc dương ngược
-   chiều kim đồng hồ (cùng quy ước với hệ xe của dự án, TONG_HOP_DU_AN.md mục 7).
+   chiều kim đồng hồ (cùng quy ước với hệ xe của dự án, [autopark/README.md](../README.md) mục 10).
 2. Kiểm vuông góc bằng tam giác 0,6 / 0,8 / 1,0 m. Đường chéo sai 1 mm ứng với góc lệch ≈ 0,12° (TÍNH: dc/dθ = a·b/c =
    0,48 m/rad).
 3. Dán **mốc kiểm soát** mỗi 0,5 m trên cả sa bàn (sa bàn 3 × 2 m: 7 × 5 = 35 mốc), đo tọa độ từng mốc bằng thước từ hai cạnh
@@ -218,7 +222,7 @@ Kế hoạch mục 12 ("Có đánh giá định vị/BEV bằng tham chiếu đ�
 ### 3.4. Camera trên cao
 
 1. Gá cố định, nhìn gần thẳng xuống. Khóa phơi sáng và nét nếu camera cho phép. Camera của dự án ở phơi sáng tự động có thể
-   đổi nhịp giữa 23,85 và 29,3 khung/s giữa các lần mở (TONG_HOP_DU_AN.md mục 4.4), nên phải ghi thời điểm của **từng**
+   đổi nhịp giữa 23,85 và 29,3 khung/s giữa các lần mở ([hardware_inventory.md](hardware_inventory.md), dòng "FPS thật đo được"), nên phải ghi thời điểm của **từng**
    khung.
 2. Độ phân giải trên sàn (TÍNH, mô hình lỗ kim, bỏ qua méo): sa bàn rộng 3,2 m trên 640 / 1280 / 1920 pixel là 5,0 / 2,5 /
    1,7 mm/pixel. Ở H = 2,0 m, phủ 3,2 m cần góc nhìn ngang ≈ 77°; ở H = 2,5 m cần ≈ 65°.
@@ -526,7 +530,7 @@ dây từ ngoài sa bàn; không ném vật sát xe (kế hoạch 13 bước 8).
 | Đo độc lập, độ chính xác kỳ vọng | R3 video bên hông, thước dọc đường, vật và xe cùng trong khung (± một khung, mục 2.1); R2 khoảng còn lại (± 3–5 mm); R7 để lấy `t_phát_hiện − t_vật` (R7 CHƯA CÓ, mục 2.1: tới khi có T7/T14, hiệu này ghi CHƯA ĐO ĐƯỢC) |
 | Số lần | 10 |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | BT (LiDAR thật, xe ảo; chạm thiết bị, người thao tác): `.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --port COM4` (Kết nối → Tìm đường đỗ → Bắt đầu đỗ, rồi đưa hộp vào trước LiDAR cách ≥ 40 cm), hoặc `.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --port COM4 --seconds 30`. Bản BT chỉ đo phần phát hiện của LiDAR thật; quãng dừng là của xe ảo. R7 ở bản BT: chỉ bằng T14 (không có bo, không E-stop); chưa có T14 thì hiệu mốc video − mốc log: CHƯA ĐO ĐƯỢC. Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | BT (LiDAR thật, xe ảo; chạm thiết bị, người thao tác): `.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app` (Kết nối → Tìm đường đỗ → Bắt đầu đỗ, rồi đưa hộp vào trước LiDAR cách ≥ 40 cm), hoặc `.venv\Scripts\python.exe -X utf8 -m autopark.fusion.demo --seconds 30`. Bản BT chỉ đo phần phát hiện của LiDAR thật; quãng dừng là của xe ảo. R7 ở bản BT: chỉ bằng T14 (không có bo, không E-stop); chưa có T14 thì hiệu mốc video − mốc log: CHƯA ĐO ĐƯỢC. Xe thật: CHƯA CÓ |
 | Điều kiện trước | ĐK-XT; chính sách sau vật cản đã chốt |
 | Ngưỡng | N-P1, N-P2, N-P3, N-P10, N-D4 |
 | Trạng thái | CHƯA THỬ. Bản BT cũng chưa thử: đưa tay/hộp vào khi xe ảo chạy mới kiểm bằng nguồn quét kịch bản ([GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md) mục 3, 5) |
@@ -541,7 +545,7 @@ dây từ ngoài sa bàn; không ném vật sát xe (kế hoạch 13 bước 8).
 | Đo độc lập, độ chính xác kỳ vọng | Như VC-1 |
 | Số lần | 10 |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | BT (LiDAR thật, xe ảo; chạm thiết bị, người thao tác): `.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --port COM4 --scenario scenarios\sa_ban_3x2_hai_hop.json`. Lập đường offline với kịch bản này (tối 24/09/2026, `.venv`, script tạm, xe `configs/vehicle_default.json`, chỉ hai hộp của kịch bản): 1 lần đổi chiều, tiến 0,37 m rồi lùi 2,43 m vào ô. Kết nối → Tìm đường đỗ; vật LiDAR thật được thêm vào sa bàn nên đường trên bàn thử có thể khác, phải xem đoạn lùi đã lập trên màn hình, rồi đánh dấu trên sàn một điểm trên đoạn lùi còn lại, cách LiDAR ≥ 40 cm. Mốc trên sa bàn: LiDAR đứng yên ở xuất phát (0,5; 1,5) hướng +x; đoạn lùi (offline) nằm PHÍA TRƯỚC–PHẢI của LiDAR (x theo LiDAR +0,24…+1,90 m, y −1,10…+0,16 m, cách LiDAR 0,25…2,20 m), không nằm phía sau nó. Bắt đầu đỗ; khi xe ảo đã qua điểm đổi chiều và đang lùi, kéo vật vào điểm đó, sau đuôi xe ảo ≥ 30 cm theo chiều lùi. KHÔNG đặt vật "phía sau LiDAR": với sa bàn mặc định của `lidar_app` (tiến thẳng 1,50 m, 0 lần đổi chiều, cùng lần lập đường) và cả với kịch bản trên, chỗ đó nằm ngoài hành lang nên xe ảo đúng ra không dừng (thành VC-6). `autopark.fusion.demo` không dùng được cho VC-2 vì đích cố định, đường tiến thẳng. R7 ở bản BT: như VC-1. Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | BT (LiDAR thật, xe ảo; chạm thiết bị, người thao tác): `.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --scenario scenarios\sa_ban_3x2_hai_hop.json`. Lập đường offline với kịch bản này (tối 24/09/2026, `.venv`, script tạm, xe `configs/vehicle_default.json`, chỉ hai hộp của kịch bản): 1 lần đổi chiều, tiến 0,37 m rồi lùi 2,43 m vào ô. Kết nối → Tìm đường đỗ; vật LiDAR thật được thêm vào sa bàn nên đường trên bàn thử có thể khác, phải xem đoạn lùi đã lập trên màn hình, rồi đánh dấu trên sàn một điểm trên đoạn lùi còn lại, cách LiDAR ≥ 40 cm. Mốc trên sa bàn: LiDAR đứng yên ở xuất phát (0,5; 1,5) hướng +x; đoạn lùi (offline) nằm PHÍA TRƯỚC–PHẢI của LiDAR (x theo LiDAR +0,24…+1,90 m, y −1,10…+0,16 m, cách LiDAR 0,25…2,20 m), không nằm phía sau nó. Bắt đầu đỗ; khi xe ảo đã qua điểm đổi chiều và đang lùi, kéo vật vào điểm đó, sau đuôi xe ảo ≥ 30 cm theo chiều lùi. KHÔNG đặt vật "phía sau LiDAR": với sa bàn mặc định của `lidar_app` (tiến thẳng 1,50 m, 0 lần đổi chiều, cùng lần lập đường) và cả với kịch bản trên, chỗ đó nằm ngoài hành lang nên xe ảo đúng ra không dừng (thành VC-6). `autopark.fusion.demo` không dùng được cho VC-2 vì đích cố định, đường tiến thẳng. R7 ở bản BT: như VC-1. Xe thật: CHƯA CÓ |
 | Điều kiện trước | Như VC-1 |
 | Ngưỡng | N-P1, N-P2, N-P3, N-P10, N-D4 |
 | Trạng thái | CHƯA THỬ |
@@ -556,7 +560,7 @@ dây từ ngoài sa bàn; không ném vật sát xe (kế hoạch 13 bước 8).
 | Đo độc lập, độ chính xác kỳ vọng | Như VC-1; R1 nếu có, vì góc thân xe khó thấy trong video bên hông |
 | Số lần | 10 |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | MP: CHƯA CÓ. Nút "Vật cản giả" không tạo được tình huống này: `_inject_test_obstacle` (`ui/main_window.py`) luôn đặt hộp 12 cm trên đường tâm xe, cách đầu hoặc đuôi 30 cm; `Session.inject_obstacle` dừng với mọi vật chèn vào, không kiểm hành lang (đọc mã 24/09/2026), nên xe dừng ở MP không chứng minh được gì về hành lang thân xe. Quy tắc hành lang (`fusion/bridge.py`, `ObstacleBridge`, `path_corridor`: hợp các hình thân xe nới `path_margin` 0,10 m dọc phần quỹ đạo còn lại) có test mô phỏng nguồn quét giả trên đường thẳng: `.venv\Scripts\python.exe -X utf8 -m pytest tests\test_fusion.py -k off_the_path` (vật cách 0,5 m bên hông không làm dừng, vật trên đường làm dừng; 1 test đạt, chạy lại tối 24/09/2026); ca góc thân xe quét qua ở đoạn cong: CHƯA CÓ TEST. BT (LiDAR thật, xe ảo; chạm thiết bị, người thao tác): `.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --port COM4 --scenario scenarios\sa_ban_3x2_hai_hop.json` (sa bàn mặc định của `lidar_app` là đường thẳng, không có đoạn cong). Kết nối → Tìm đường đỗ → Bắt đầu đỗ; đặt hộp cạnh quỹ đạo xe ảo, trong vùng thân xe quét qua ở đoạn cong, không nằm trên đường tâm, cách LiDAR ≥ 40 cm; CHƯA THỬ. R7 ở bản BT: như VC-1. Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | MP: CHƯA CÓ. Nút "Vật cản giả" không tạo được tình huống này: `_inject_test_obstacle` (`ui/main_window.py`) luôn đặt hộp 12 cm trên đường tâm xe, cách đầu hoặc đuôi 30 cm; `Session.inject_obstacle` dừng với mọi vật chèn vào, không kiểm hành lang (đọc mã 24/09/2026), nên xe dừng ở MP không chứng minh được gì về hành lang thân xe. Quy tắc hành lang (`fusion/bridge.py`, `ObstacleBridge`, `path_corridor`: hợp các hình thân xe nới `path_margin` 0,10 m dọc phần quỹ đạo còn lại) có test mô phỏng nguồn quét giả trên đường thẳng: `.venv\Scripts\python.exe -X utf8 -m pytest tests\test_fusion.py -k off_the_path` (vật cách 0,5 m bên hông không làm dừng, vật trên đường làm dừng; 1 test đạt, chạy lại tối 24/09/2026); ca góc thân xe quét qua ở đoạn cong: CHƯA CÓ TEST. BT (LiDAR thật, xe ảo; chạm thiết bị, người thao tác): `.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --scenario scenarios\sa_ban_3x2_hai_hop.json` (sa bàn mặc định của `lidar_app` là đường thẳng, không có đoạn cong). Kết nối → Tìm đường đỗ → Bắt đầu đỗ; đặt hộp cạnh quỹ đạo xe ảo, trong vùng thân xe quét qua ở đoạn cong, không nằm trên đường tâm, cách LiDAR ≥ 40 cm; CHƯA THỬ. R7 ở bản BT: như VC-1. Xe thật: CHƯA CÓ |
 | Điều kiện trước | Như VC-1 |
 | Ngưỡng | N-P1, N-P2, N-P3, N-P10, N-D4 |
 | Trạng thái | CHƯA THỬ. Giới hạn cần công bố: tia LiDAR trong thân xe nới lề bị bỏ (trên xe thật đề xuất lề 3 cm, [GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md) mục 3b), nên vật sát thân xe hơn lề đó có thể không được thấy |
@@ -586,7 +590,7 @@ dây từ ngoài sa bàn; không ném vật sát xe (kế hoạch 13 bước 8).
 | Đo độc lập, độ chính xác kỳ vọng | Như VC-1 và DO-1 |
 | Số lần | 10 |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | MP: giao diện mô phỏng ("Vật cản giả", rồi "Chọn lại vị trí" và lập đường từ vị trí vừa dừng, BAO_CAO_GIAI_DOAN_0.md mục 11). Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | MP: giao diện mô phỏng ("Vật cản giả", rồi "Chọn lại vị trí" và lập đường từ vị trí vừa dừng, [autopark/README.md](../README.md) mục 3). Xe thật: CHƯA CÓ |
 | Điều kiện trước | Như VC-1 |
 | Ngưỡng | N-P1, N-P2, N-P10; phần đỗ: N-D1 … N-D9 |
 | Trạng thái | CHƯA THỬ |
@@ -627,10 +631,10 @@ chạy `ui.lidar_app` không có `--camera-ai`, chỉ còn phần LiDAR và ghi 
 | Đo độc lập, độ chính xác kỳ vọng | R2 tọa độ chân vật (± 3–5 mm); ảnh có nhãn tô tay từ đầu (`--no-draft`, [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md)) cho tỉ lệ pixel |
 | Số lần | Tĩnh: 20 bộ ảnh mỗi mức; động: 5 lần DO-1 mỗi mức |
 | Dữ liệu ghi | GD1, GD3, bộ ảnh chụp, GD4; phần động thêm GD2, GD5, GD6 |
-| Công cụ, lệnh | BT (chạm thiết bị): `.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar COM4` (nút "Chụp bộ ảnh"); rồi `.venv\Scripts\python.exe -X utf8 -m autopark.perception.bev snapshot runs\rig_snapshots\<ngay_gio>` (hiện từ chối vì chưa có `calibration/cam_p*.json`, [BEV.md](BEV.md) mục 5). Ghi phiên để phát lại: `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 60 --name nt1_l1 --out runs\rig_bench\<ngay> --record runs\rig_recordings\nt1_l1`. Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | BT (chạm thiết bị): `.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar` (nút "Chụp bộ ảnh"); rồi `.venv\Scripts\python.exe -X utf8 -m autopark.perception.bev snapshot runs\rig_snapshots\<ngay_gio>` (hiện từ chối vì chưa có `calibration/cam_p*.json`, [BEV.md](BEV.md) mục 5). Ghi phiên để phát lại: `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name nt1_l1 --out runs\rig_bench\<ngay> --record runs\rig_recordings\nt1_l1`. Xe thật: CHƯA CÓ |
 | Điều kiện trước | ĐK-AI; bản động: ĐK-XT |
 | Ngưỡng | N-A1 … N-A3, N-G1, N-G3, N-C1; phần động: N-D8 |
-| Trạng thái | CHƯA THỬ. Ghi chú: ở phơi sáng tự động, nhịp khung của một camera có thể khác giữa các lần mở (23,85 hay ≈ 29 khung/s, cơ chế chưa xác định, TONG_HOP_DU_AN.md mục 4.4); cảnh sáng, nhiều chi tiết thì dễ có khung bị cắt ở 720p ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2) |
+| Trạng thái | CHƯA THỬ. Ghi chú: ở phơi sáng tự động, nhịp khung của một camera có thể khác giữa các lần mở (23,85 hay ≈ 29 khung/s, cơ chế chưa xác định, [hardware_inventory.md](hardware_inventory.md), dòng "FPS thật đo được"); cảnh sáng, nhiều chi tiết thì dễ có khung bị cắt ở 720p ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2) |
 
 **NT-2 — Vật ở mép ảnh và vùng chồng lấn hai camera**
 
@@ -707,7 +711,7 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Đo độc lập, độ chính xác kỳ vọng | R3 + R7 (± một khung) |
 | Số lần | 10 (5 + 5) |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | BT (chạm thiết bị): `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 60 --name cb1 --out runs\rig_bench\<ngay> --record runs\rig_recordings\cb1`, rút một camera giữa phiên (L5 ở GIAI_DOAN_6_CHUAN_BI.md). R7 ở bản BT: chỉ bằng T14 (không có bo, không E-stop); chưa có T14 thì hiệu mốc video − mốc log (lúc rút → lúc báo thiếu): CHƯA ĐO ĐƯỢC. Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | BT (chạm thiết bị): `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name cb1 --out runs\rig_bench\<ngay> --record runs\rig_recordings\cb1`, rút một camera giữa phiên (L5 ở GIAI_DOAN_6_CHUAN_BI.md). R7 ở bản BT: chỉ bằng T14 (không có bo, không E-stop); chưa có T14 thì hiệu mốc video − mốc log (lúc rút → lúc báo thiếu): CHƯA ĐO ĐƯỢC. Xe thật: CHƯA CÓ |
 | Điều kiện trước | ĐK-XT |
 | Ngưỡng | N-P9, N-P10 |
 | Trạng thái | CHƯA THỬ, cả bản BT (L5: CHƯA THỬ) |
@@ -737,10 +741,10 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Đo độc lập, độ chính xác kỳ vọng | R3 + R7 cho thời điểm rút và quãng dừng |
 | Số lần | 10 |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | BT (chạm thiết bị): `.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --port COM4` (xe ảo chạy, rút cáp; chép nguyên dòng lỗi: `LidarTransportError` hay `ScanReadError`, xem L4 ở GIAI_DOAN_6_CHUAN_BI.md); `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --port COM4 --out runs\lidar_bench\<ngay> --name cb3_rut_cap --seconds 30` (kỳ vọng thoát mã 1, còn `.npz` và `.analysis.json`). Test (không chạm thiết bị): `.venv\Scripts\python.exe -X utf8 -m pytest tests\test_lidar_unplug.py`. R7 ở bản BT: chỉ bằng T14 (không có bo, không E-stop); chưa có T14 thì hiệu mốc video − mốc log: CHƯA ĐO ĐƯỢC. Xe thật: CHƯA CÓ |
+| Công cụ, lệnh | BT (chạm thiết bị): `.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app` (xe ảo chạy, rút cáp; chép nguyên dòng lỗi: `LidarTransportError` hay `ScanReadError`, xem L4 ở GIAI_DOAN_6_CHUAN_BI.md); `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --out runs\lidar_bench\<ngay> --name cb3_rut_cap --seconds 30` (kỳ vọng thoát mã 1, còn `.npz` và `.analysis.json`). Test (không chạm thiết bị): `.venv\Scripts\python.exe -X utf8 -m pytest tests\test_lidar_unplug.py`. R7 ở bản BT: chỉ bằng T14 (không có bo, không E-stop); chưa có T14 thì hiệu mốc video − mốc log: CHƯA ĐO ĐƯỢC. Xe thật: CHƯA CÓ |
 | Điều kiện trước | ĐK-XT |
 | Ngưỡng | N-P8, N-P10, N-T3 |
-| Trạng thái | CHƯA THỬ với cáp thật (mới có test với cổng serial giả, TONG_HOP_DU_AN.md mục 4.3) |
+| Trạng thái | CHƯA THỬ với cáp thật (mới có test với cổng serial giả, L4 ở GIAI_DOAN_6_CHUAN_BI.md) |
 
 **CB-4 — ToF không hợp lệ**
 
@@ -876,7 +880,7 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Đo độc lập, độ chính xác kỳ vọng | R2 cho vị trí (± 3–5 mm mỗi điểm). Hướng lấy từ hai đầu thước dài d: √2·σ/d = 0,24–0,41° với d = 1 m, 0,37–0,62° với d = 0,65 m, σ = 3–5 mm (TÍNH, mục 3.6). Vạch 0,25 m (1,0–1,6°) và thước đo góc KHÔNG đủ cho N-L2 theo tỉ lệ 3:1 (cần ≤ 0,67°); nếu chỉ có những tham chiếu đó thì ghi N-L2 "không kiểm được". R1 chỉ dùng cho hướng khi TC-1 cho sai số hướng lớn nhất ≤ 0,67° |
 | Số lần | ≥ 6 tư thế; lặp cả loạt 2 lần, mỗi lần dựng bản đồ mới |
 | Dữ liệu ghi | Bản ghi `.npz` + `.analysis.json` mỗi tư thế, bản đồ `costmap.json`, `localize.json`, `track.csv`, biên bản thước |
-| Công cụ, lệnh | BT, làm được ngay (chạm thiết bị, người thao tác). Ghi bản đồ: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --port COM4 --out runs\lidar_bench\<ngay> --name dv1_goc --seconds 20 --warmup 5`. Dựng bản đồ: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.occupancy --recording runs\lidar_bench\<ngay>\dv1_goc.npz --out runs\lidar_bench\<ngay>\map_dv1`. Mỗi tư thế: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --port COM4 --out runs\lidar_bench\<ngay> --name dv1_d01 --seconds 15 --warmup 5`. Định vị: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.localize --map runs\lidar_bench\<ngay>\map_dv1 --recording runs\lidar_bench\<ngay>\dv1_d01.npz --out runs\nghiem_thu\<ngay>\dv1_d01 --skip-seconds 3` |
+| Công cụ, lệnh | BT, làm được ngay (chạm thiết bị, người thao tác). Ghi bản đồ: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --out runs\lidar_bench\<ngay> --name dv1_goc --seconds 20 --warmup 5`. Dựng bản đồ: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.occupancy --recording runs\lidar_bench\<ngay>\dv1_goc.npz --out runs\lidar_bench\<ngay>\map_dv1`. Mỗi tư thế: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --out runs\lidar_bench\<ngay> --name dv1_d01 --seconds 15 --warmup 5`. Định vị: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.localize --map runs\lidar_bench\<ngay>\map_dv1 --recording runs\lidar_bench\<ngay>\dv1_d01.npz --out runs\nghiem_thu\<ngay>\dv1_d01 --skip-seconds 3` |
 | Điều kiện trước | ĐK-BT |
 | Ngưỡng | N-L0, N-L1, N-L2, N-L3, N-T7 |
 | Trạng thái | CHƯA THỬ (việc cần người, TONG_HOP_DU_AN.md mục 5.2) |
@@ -891,7 +895,7 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Đo độc lập, độ chính xác kỳ vọng | Tham chiếu là "không chạm thiết bị" (dán cố định, dấu băng dính quanh đế, kiểm bằng ảnh trước/sau); độ lặp lại ≈ 0,1° (DINH_VI_LIDAR.md mục 7) |
 | Số lần | 5 cặp phiên |
 | Dữ liệu ghi | Hai `.npz` mỗi cặp, bản đồ, `localize.json`, ảnh đế trước/sau |
-| Công cụ, lệnh | BT, làm được ngay (chạm thiết bị). Phiên một: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --port COM4 --out runs\lidar_bench\<ngay> --name dv2_c1_a --seconds 20 --warmup 5`. Phiên hai: cùng lệnh với `--name dv2_c1_b`. Bản đồ và định vị: như DV-1, dựng bản đồ từ `dv2_c1_a.npz`, định vị `dv2_c1_b.npz` |
+| Công cụ, lệnh | BT, làm được ngay (chạm thiết bị). Phiên một: `.venv\Scripts\python.exe -X utf8 -m autopark.lidar.bench record --out runs\lidar_bench\<ngay> --name dv2_c1_a --seconds 20 --warmup 5`. Phiên hai: cùng lệnh với `--name dv2_c1_b`. Bản đồ và định vị: như DV-1, dựng bản đồ từ `dv2_c1_a.npz`, định vị `dv2_c1_b.npz` |
 | Điều kiện trước | ĐK-BT |
 | Ngưỡng | N-L4 |
 | Trạng thái | CHƯA THỬ |
@@ -922,8 +926,8 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Đo | Khung tốt/s mỗi camera theo cửa sổ 10 s, khung bị cắt/xé, khoảng dài nhất không có khung tốt, độ lệch bộ ảnh, thời gian lô AI, tuổi kết quả AI, lệch thời gian giữa vòng LiDAR và bộ ảnh, vòng LiDAR mất, lỗi đọc, CPU/GPU/nhiệt; trễ LED → khung (nếu có LED) |
 | Đo độc lập, độ chính xác kỳ vọng | Đây là đo hiệu năng, không có đại lượng hình học. Số lấy từ `.rig.json` (đồng hồ `perf_counter`). Trễ sự kiện → khung cần LED do một nguồn độc lập điều khiển và ghi thời điểm bật: dụng cụ CHƯA CÓ |
 | Số lần | 1 mỗi máy (máy bàn làm được ngay; laptop RTX 3050 Ti CHƯA ĐO) |
-| Dữ liệu ghi | `.rig.json`; bản ghi phát lại nếu đủ đĩa. Cỡ cho 30 phút ở 640×480 JPEG q95: ≈ 9 GB ở 4,98 MB/s (ĐO ở phiên o03 trên máy bàn 24/09/2026, cảnh tối nên là mức THẤP) và ≈ 27 GB ở ≈ 15 MB/s (ƯỚC LƯỢNG cho cảnh nhiều chi tiết từ ảnh thảm hoa văn, CHƯA ĐO trong phiên thật; [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 5 ý 6 và mục 7). Cảnh sa bàn CHƯA ĐO, tài liệu gốc dự đoán nằm giữa hay trên hai mức này. Trước khi thêm `--record`: ổ chứa cả `runs\rig_recordings` và `runs\rig_bench` phải còn trống ít nhất ≈ 30 GB, hoặc ghi thử 60 s nhìn sa bàn (lệnh ở dòng dưới) rồi lấy `mb_per_s` × 1800 cộng dư. Đĩa đầy giữa phiên thì bộ ghi chuyển "LỖI", bỏ mọi khung sau đó, `rig.bench` trả mã 1 (test với lỗi đĩa đầy giả lập, GHI_PHAT_LAI_BAN_THU.md mục 6), và `.rig.json` ghi cuối phiên trên cùng ổ cũng có thể không ghi được (suy ra, chưa thử). Chỗ trống: máy bàn ổ D: ≈ 74 GB (đọc tối 24/09/2026; tài liệu gốc ghi 75 GB); laptop RTX 3050 Ti CHƯA ĐO |
-| Công cụ, lệnh | BT, làm được ngay (chạm thiết bị): `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 1800 --name ld1 --out runs\rig_bench\<ngay>`. Thêm `--record runs\rig_recordings\ld1` chỉ khi ổ còn trống ≥ 30 GB (xem dòng trên). Ghi thử 60 s để đo MB/s ở cảnh sa bàn (chạm thiết bị): `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 60 --name ld1_thu_ghi --out runs\rig_bench\<ngay> --record runs\rig_recordings\ld1_thu_ghi` (MB/s in ở cuối và nằm trong `recording.mb_per_s` của `.rig.json`) |
+| Dữ liệu ghi | `.rig.json`; bản ghi phát lại nếu đủ đĩa. Cỡ cho 30 phút ở 640×480 JPEG q95: ≈ 9 GB ở 4,98 MB/s (ĐO ở phiên o03 trên máy bàn 24/09/2026, cảnh tối nên là mức THẤP) và ≈ 27 GB ở ≈ 15 MB/s (ƯỚC LƯỢNG cho cảnh nhiều chi tiết từ ảnh thảm hoa văn, CHƯA ĐO trong phiên thật; [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 5 ý 6 và mục 7). Cảnh sa bàn CHƯA ĐO, tài liệu gốc dự đoán nằm giữa hay trên hai mức này. Trước khi thêm `--record`: ổ chứa cả `runs\rig_recordings` và `runs\rig_bench` phải còn trống ít nhất ≈ 30 GB, hoặc ghi thử 60 s nhìn sa bàn (lệnh ở dòng dưới) rồi lấy `mb_per_s` × 1800 cộng dư. Đĩa đầy giữa phiên thì bộ ghi chuyển "LỖI", bỏ mọi khung sau đó, `rig.bench` trả mã 1 (test với lỗi đĩa đầy giả lập, GHI_PHAT_LAI_BAN_THU.md mục 6), và `.rig.json` ghi cuối phiên trên cùng ổ cũng có thể không ghi được (suy ra, chưa thử). Chỗ trống: máy bàn từ 29/09/2026, ổ D ≈ 30,6 GB (đọc 29/09/2026, sát mức ≈ 30 GB ở trên; [chuyển máy](CHUYEN_MAY_BAN.md) mục 4); máy bàn tới 25/09/2026, ổ D ≈ 74 GB (đọc tối 24/09/2026; tài liệu gốc ghi 75 GB); laptop RTX 3050 Ti CHƯA ĐO |
+| Công cụ, lệnh | BT, làm được ngay (chạm thiết bị): `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 1800 --name ld1 --out runs\rig_bench\<ngay>`. Thêm `--record runs\rig_recordings\ld1` chỉ khi ổ còn trống ≥ 30 GB (xem dòng trên). Ghi thử 60 s để đo MB/s ở cảnh sa bàn (chạm thiết bị): `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name ld1_thu_ghi --out runs\rig_bench\<ngay> --record runs\rig_recordings\ld1_thu_ghi` (MB/s in ở cuối và nằm trong `recording.mb_per_s` của `.rig.json`) |
 | Điều kiện trước | ĐK-BT; máy nghiệm thu đã chọn |
 | Ngưỡng | N-C1, N-C2, N-C3, N-C5, N-T3 … N-T6, N-T8 (chỉ báo số); N-C4 khi có LED |
 | Trạng thái | CHƯA THỬ ở 30 phút. Phiên dài nhất đã có là 10 phút (u04, s07, t09; máy bàn, [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 3.5) |
@@ -935,7 +939,7 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Kiểm tham chiếu trên cao bằng xe giả | TC-1 | Camera trên cao, giá, marker in, thước; công cụ T4 (hoặc làm tay với ảnh) |
 | Định vị tĩnh so với thước, cùng buổi bảy lần đặt hộp | DV-1 | LiDAR C1, thước, người thao tác |
 | Hướng gốc sau khởi động lại mô-tơ | DV-2 | LiDAR C1, người thao tác |
-| Chạy dài 30 phút trên máy bàn, rồi trên laptop | LD-1 | Bốn camera, LiDAR; laptop cần mã và tham chiếu mới sau khi commit/push (TONG_HOP_DU_AN.md mục 5.1). *(Cập nhật 25/09/2026: đã commit và push, `origin/main` = `54cb3e2`; laptop lấy bằng `git pull`, tham chiếu máy bàn mới là [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json), commit `bfcbfc2`; [MAY_NOP_DO_AN.md](MAY_NOP_DO_AN.md). Laptop vẫn CHƯA chạy gì ngoài hồ sơ giai đoạn 0)* |
+| Chạy dài 30 phút trên máy bàn, rồi trên laptop | LD-1 | Bốn camera, LiDAR; laptop cần mã và tham chiếu mới sau khi commit/push (TONG_HOP_DU_AN.md mục 5.1). *(Cập nhật 25/09/2026: đã commit và push, `origin/main` = `54cb3e2`; laptop lấy bằng `git pull`, tham chiếu máy bàn mới là [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json), commit `bfcbfc2`; [MAY_NOP_DO_AN.md](MAY_NOP_DO_AN.md). Laptop vẫn CHƯA chạy gì ngoài hồ sơ giai đoạn 0)* Tham chiếu hiện dùng là [tham_chieu_20260929.json](evidence/may_ban/tham_chieu_20260929.json): lượt `may_moi` trên máy bàn từ 29/09/2026, người dùng chọn ngày 29/09/2026; tệp 24/09 của máy bàn trước giữ để đối chiếu ([chuyển máy](CHUYEN_MAY_BAN.md) mục 2). |
 | Rút cáp LiDAR, đưa vật vào khi xe ảo chạy, vật ngoài đường | CB-3, VC-1, VC-6 (phần BT) | LiDAR C1, người thao tác; sa bàn mặc định của `lidar_app` |
 | Vật sau đuôi khi xe ảo đang lùi | VC-2 (phần BT) | LiDAR C1, người thao tác; `--scenario scenarios\sa_ban_3x2_hai_hop.json` (có đoạn lùi); đặt vật trên đoạn lùi đã lập, phía trước–phải LiDAR, không đặt "phía sau LiDAR" (xem VC-2) |
 | Vật bên hông vùng thân xe quét qua ở đoạn cong | VC-3 (phần BT) | Như VC-2 (cùng kịch bản, vì sa bàn mặc định là đường thẳng) |
@@ -968,7 +972,7 @@ vẫn đúng như bảng; T10 phần lớn đã có từ trước khi viết b�
 |---|---|---|---|
 | T1 | Giao diện chọn cổng serial tới bo thật | Mọi kịch bản XT | [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 6 ở HEAD 9bcc30c: giao diện chưa có lựa chọn này (đang thêm song song, xem trên). *(Cập nhật 25/09/2026: đã có từ `6db5087`: thẻ "Bo điều khiển" chọn cổng COM, nút "Kiểm kết nối bo" chỉ HELLO + đọc telemetry, không ARM. START với cổng thật luôn bị từ chối (`START_NO_POSE_SOURCE`) tới khi có T2, và `begin_run` còn phải thêm bước mở cổng (`reopen()`), CHE_DO_QUAN_SAT.md mục 6, 8. Chỉ kiểm bằng cổng serial giả)* |
 | T2 | Định vị LiDAR làm nguồn tư thế của phiên, cùng đồng hồ với `VehicleIO` | Mọi kịch bản XT, CB-6, DV-3 | Hiện phiên dùng `SimTruthPose` (định vị lý tưởng; CHE_DO_QUAN_SAT.md mục 2). Chọn N-T2 cùng lúc |
-| T3 | Ghi cảm biến (bốn camera + LiDAR) trong phiên đỗ xe, cùng đồng hồ | GD3, DV-3, phân tích lỗi | Hiện bàn thử (`rig`) và phiên đỗ xe là hai chương trình; hai tiến trình khó mở chung một camera (suy luận, chưa thử) *(25/09/2026, chưa commit: lý do trên đã lỗi thời. `ui.lidar_app --camera-ai` dựng `Rig` bốn camera + AI ngay trong cửa sổ phiên đỗ xe, cùng tiến trình với ngăn LiDAR (`ui/camera_dock.py`; [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)); mới chạy với nguồn giả và bản ghi phát lại, với camera thật CHƯA THỬ. Ngăn AI camera và ngăn LiDAR đều chưa có chức năng ghi phiên, nên T3 vẫn còn)* |
+| T3 | Ghi cảm biến (bốn camera + LiDAR) trong phiên đỗ xe, cùng đồng hồ | GD3, DV-3, phân tích lỗi | Hiện bàn thử (`rig`) và phiên đỗ xe là hai chương trình; hai tiến trình khó mở chung một camera (suy luận, chưa thử) *(25/09/2026, mã ở `b01dea4`: lý do trên đã lỗi thời. `ui.lidar_app --camera-ai` dựng `Rig` bốn camera + AI ngay trong cửa sổ phiên đỗ xe, cùng tiến trình với ngăn LiDAR (`ui/camera_dock.py`; [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)); mới chạy với nguồn giả và bản ghi phát lại, với camera thật CHƯA THỬ. Ngăn AI camera và ngăn LiDAR đều chưa có chức năng ghi phiên, nên T3 vẫn còn)* |
 | T4 | Công cụ tham chiếu trên cao (đề xuất có giao diện): hiệu chuẩn camera trên cao, khớp mặt sàn từ mốc, kiểm trên điểm kiểm tra, trích tư thế từ video marker, xuất tệp tư thế | R1, TC-1 | `cv2.aruco` có sẵn trong `.venv` (OpenCV 5.0.0, kiểm bằng import ngày 24/09/2026) |
 | T5 | Công cụ chấm một lần chạy: đọc log + tệp tư thế tham chiếu + bố trí tham chiếu, tính các đại lượng N-D, N-P, ghi dòng biên bản | GD6, mọi kịch bản | Tránh chấm tay dễ sai |
 | T6 | Tiêm lỗi có kiểm soát: camera đứng hình, nguồn tư thế ngừng, vòng điều khiển treo | CB-2, CB-5 (b), CB-6 | Script treo vòng điều khiển: L7 ở GIAI_DOAN_6_CHUAN_BI.md ghi "script chưa có" |

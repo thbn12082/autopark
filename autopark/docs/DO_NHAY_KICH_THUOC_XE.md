@@ -81,7 +81,7 @@ Biến thể mặc định (43 cấu hình, kể cả xe tham chiếu):
 Tốc độ, gia tốc, tốc độ đổi lái giữ như xe tham chiếu. Có thêm `front_overhang`, `rear_overhang` riêng (`--params`) và
 `--plan-config <tệp>` để đặt một cấu hình từ tệp (ví dụ xe đã đo) lên cùng sa bàn.
 
-## 3. Lệnh (chạy trong `D:\ap\autopark`, mỗi lệnh một dòng)
+## 3. Lệnh (chạy trong thư mục `autopark` của repo, tức thư mục có pyproject.toml; mỗi lệnh một dòng)
 
 Xem danh sách sa bàn và biến thể:
 
@@ -125,8 +125,10 @@ mã 2 trước khi làm gì):
 .venv\Scripts\python.exe -X utf8 -m autopark.evaluation.phase0 --out runs\phase0_xe_do --vehicle-config configs\vehicle_measured.json
 ```
 
+`ui.lidar_app` mở LiDAR ở cổng ghi trong `configs/thiet_bi.json`; thêm `--port COMx` để ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
+
 ```
-.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --port COM4 --vehicle-config configs\vehicle_measured.json
+.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --vehicle-config configs\vehicle_measured.json
 ```
 
 - `robustness`: ghi đường dẫn và sha256 của tệp xe vào `manifest.json`. Các ca planner của chiến dịch này

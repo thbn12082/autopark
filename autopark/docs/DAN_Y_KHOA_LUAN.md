@@ -7,12 +7,10 @@
 > dòng ghi công này. *(Đổi link 25/09/2026 theo đề xuất ở GIAY_PHEP_DU_LIEU.md mục "Ghi công: link tới trang bộ dữ liệu",
 > CHỜ CHỐT; trước đó link chính là `https://woodscape.valeo.com`.)*
 
-**Trạng thái commit (25/09/2026):** mọi việc tới khuya 24/09/2026, kể cả chính tệp dàn ý này (bản khuya 24/09, trong
-`54cb3e2`), đã commit và push, `origin/main` = `54cb3e2` (đợt tối 24/09: `bfcbfc2` … `9bcc30c`; đợt khuya: `65b7127` …
-`54cb3e2`). Chữ "chưa commit" trong tệp là trạng thái lúc viết đoạn đó; commit của từng việc đợt khuya ở đoạn "Cập nhật
-25/09/2026" cuối các ghi chú đầu tệp. *(Cập nhật 25/09/2026, đợt AI camera: `origin/main` nay là `89cd58f` (đợt rà tài
-liệu lúc 02:54 ngày 25/09, gồm các ghi chú 25/09 trước đoạn "đợt AI camera" dưới). Đợt AI camera sau đó, kể cả các ghi chú
-có chữ "đợt AI camera" trong tệp này, **CHƯA COMMIT**, nằm trên `89cd58f`.)*
+**Trạng thái commit:** mọi việc tới 25/09/2026, kể cả chính tệp dàn ý này, đã commit và push: đợt tối 24/09 `bfcbfc2` …
+`9bcc30c`; đợt khuya `65b7127` … `54cb3e2`; rà tài liệu 02:54 ngày 25/09 `89cd58f`; đợt AI camera `b01dea4` (mã),
+`99e9a9e` (giấy phép), `9d68257` (tài liệu, gồm các ghi chú "đợt AI camera" trong tệp này). Chữ "chưa commit" trong tệp là
+trạng thái lúc viết đoạn đó; commit của từng việc đợt khuya ở đoạn "Cập nhật 25/09/2026" cuối các ghi chú đầu tệp.
 
 **Tệp này là gì:** dàn ý **đề xuất** cho khóa luận, dựng từ các biên bản đã có trong repo tới 24/09/2026. Nó không phải
 khóa luận, không thêm số đo hay kết quả mới. Mọi con số dưới đây chép từ một tài liệu hoặc tệp đo được nêu kèm. Chỗ nào
@@ -187,7 +185,8 @@ Những điều sau phải có mặt trong khóa luận, ở chương thực ngh
    điểm mù đã biết ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2.3–2.4). Các phiên 720p ngày 24/09 (w03, w04,
    o01) không có khung bị cắt vì camera nhìn chỗ tối; đó **không** phải bằng chứng 720p dùng được. *(Sửa tối 24/09/2026:
    bản trước chỉ nói "bốn camera".)*
-6. **Mọi số hiệu năng thiết bị và AI là của máy bàn.** Laptop RTX 3050 Ti (4 GB VRAM, bộ điều khiển USB khác) chưa đo
+6. **Mọi số hiệu năng thiết bị và AI là của máy bàn** (máy dùng tới 25/09/2026; số kiểm ngày 29/09/2026 trên máy bàn
+   hiện tại, cùng cấu hình, ở [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2). Laptop RTX 3050 Ti (4 GB VRAM, bộ điều khiển USB khác) chưa đo
    LiDAR, camera, AI; quy trình đo đã sẵn ([MAY_NOP_DO_AN.md](MAY_NOP_DO_AN.md)) nhưng chưa chạy trên laptop.
    *(Cập nhật muộn tối 24/09/2026:* tham chiếu máy bàn để so đã đo lại lúc 19:08 bằng mã mới, 4.10.)
 7. **Ngưỡng nghiệm thu (kế hoạch 16.2) và bộ kịch bản (16.3) chưa chốt.** Chương thực nghiệm vì vậy chưa thể viết
@@ -416,7 +415,7 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   ISO 8855 của WoodScape; bố cục costmap `cells[row][col]`; góc LiDAR thiết bị tăng theo chiều kim đồng hồ và driver đổi
   dấu; một đồng hồ `perf_counter` cho mọi luồng của bàn thử; stamp camera là lúc `read()` trả khung, không phải lúc phơi
   sáng.
-- *Nguồn:* TONG_HOP mục 7; [GIAI_DOAN_1_CHUAN_BI.md](GIAI_DOAN_1_CHUAN_BI.md) mục 2; GIAI_DOAN_2_BAN_THU mục 1.
+- *Nguồn:* [autopark/README.md](../README.md) mục 10; GIAI_DOAN_1_LIDAR mục 2; [GIAI_DOAN_1_CHUAN_BI.md](GIAI_DOAN_1_CHUAN_BI.md) mục 2; GIAI_DOAN_2_BAN_THU mục 1.
 - *Giới hạn phải nói:* dấu góc trái/phải của LiDAR **chưa xác minh bằng vật thật** ([GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 6b).
 
 **2.2. Mô hình động học xe đạp và giới hạn cơ cấu chấp hành**
@@ -500,7 +499,7 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
 
 **3.1. Yêu cầu và kiến trúc tổng thể**
 - *Viết được:* yêu cầu V1 và các nguyên tắc (kế hoạch 1.2–1.3, 2.1); laptop là bộ não, ESP32-S3 chỉ điều khiển cấp thấp;
-  nhánh giám sát luôn chạy; sơ đồ thư mục mã ([autopark/README.md](../README.md) mục "Cấu trúc chính").
+  nhánh giám sát luôn chạy; sơ đồ thư mục mã ([autopark/README.md](../README.md) mục 10 "Cấu trúc mã").
 - *Hình:* sơ đồ khối và luồng dữ liệu: **cần vẽ** (kế hoạch 2.1 mới là khối chữ).
 
 **3.2. Phần cứng**
@@ -1477,7 +1476,8 @@ trong `10a4735`, `lidar/do_lap_lai_*`, `k01_kiem_suc_khoe.*` và `odometry_khop_
 | [cho_nhip_rieng_ghi_phat_lai_20260924.json](evidence/rig/cho_nhip_rieng_ghi_phat_lai_20260924.json) (*thêm tối 24/09*; **chưa commit**) | Bản rút gọn m01, m02 (`may_moi` 24/09 lúc 15:25, quy tắc trước; khác phiên camera m01, m02 ngày 23/09) và o01–o07 (quy tắc theo nhịp riêng, ghi o03, phát lại o04–o06, làm nóng o07); chuỗi thời gian lô AI đầu tiên theo cỡ lô | 24/09 tối, BT | 4.6, 4.6b |
 | [dinh_vi_p07_tren_p07.png](evidence/lidar/dinh_vi_p07_tren_p07.png), [dinh_vi_live_headless_tren_p07.png](evidence/lidar/dinh_vi_live_headless_tren_p07.png), [dinh_vi_k01_tren_p07.png](evidence/lidar/dinh_vi_k01_tren_p07.png), [dinh_vi_k01_global_tren_p07.png](evidence/lidar/dinh_vi_k01_global_tren_p07.png) + [dinh_vi_tren_p07_20260924.json](evidence/lidar/dinh_vi_tren_p07_20260924.json) (*thêm tối 24/09*; **chưa commit**) | Overlay định vị p07 / live_headless / k01 / k01 `--global --every 5` trên bản đồ p07, dựng bằng mã đã sửa màu; tóm tắt lệnh, tham số, hash mã, kết quả từng lần chạy (thời gian mỗi vòng trong tệp đo khi máy bận, không trích) | 24/09 tối, BT offline trên bản ghi 22/09 và 24/09 (độ nhất quán, chưa có tham chiếu độc lập) | 3.6b, 4.4 |
 | Sơ đồ nguồn và sơ đồ dừng dạng mermaid trong [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md) mục 2–3 (*thêm tối 24/09*; **chưa commit**) | Bản nháp, nhiều ô CHƯA CHỐT | 24/09 tối, TK | 3.13 (chỉ dùng làm hình nháp, ghi rõ chưa lắp) |
-| [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json) (*thêm muộn tối 24/09*; **chưa commit**) | Tham chiếu máy bàn mới của lệnh đo laptop: `may_moi` lúc 19:08 bằng mã mới (quy tắc chờ theo nhịp riêng, làm nóng AI, `ai_warm_up_ms`); không ghi độ lệch trong bộ | 24/09 tối, BT | 4.5, 4.6, 4.10 |
+| [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json) (*thêm muộn tối 24/09*; **chưa commit**) | Tham chiếu máy bàn trước của lệnh đo laptop, dùng tới 25/09/2026: `may_moi` lúc 19:08 bằng mã mới (quy tắc chờ theo nhịp riêng, làm nóng AI, `ai_warm_up_ms`); không ghi độ lệch trong bộ | 24/09 tối, BT | 4.5, 4.6, 4.10 |
+| [tham_chieu_20260929.json](evidence/may_ban/tham_chieu_20260929.json) (*thêm 29/09/2026*) | Tham chiếu hiện dùng của lệnh đo laptop: `may_moi` lúc 12:59 trên máy bàn hiện tại (Dell Precision 3680, cùng cấu hình, mã `9d68257`), `digest` có quy tắc chờ, làm nóng AI và độ lệch bộ ảnh; cảnh camera không ghi lại; người dùng chọn ngày 29/09/2026 ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2) | 29/09, BT | 4.5, 4.6, 4.10 |
 | [witness_20260924.json](evidence/hard_cases/witness_20260924.json), [witness_ngan_song_song_20260924.json](evidence/hard_cases/witness_ngan_song_song_20260924.json), ảnh [parallel_122_ngan_20260924.png](evidence/hard_cases/parallel_122_ngan_20260924.png), [parallel_115_ngan_20260924.png](evidence/hard_cases/parallel_115_ngan_20260924.png), [zigzag_corridor_20260924.png](evidence/hard_cases/zigzag_corridor_20260924.png) (*thêm khuya 24/09*; **chưa commit**) | Đường chứng cho nhãn 16 ca khó; đường chứng ngắn 5 / 13 lần đổi chiều của hai ca đỗ song song; các lần chạy planner và tái bám ở các tệp JSON cùng thư mục (thời gian đo dưới tải, không phải số đo) | 24/09 khuya, MP (xe giả định) | 4.2 |
 | [do_lap_lai_20260924.json](evidence/lidar/do_lap_lai_20260924.json), [do_lap_lai_p07_nen_phong.png](evidence/lidar/do_lap_lai_p07_nen_phong.png), [do_lap_lai_k01_kiem_suc_khoe.png](evidence/lidar/do_lap_lai_k01_kiem_suc_khoe.png), [k01_kiem_suc_khoe.png](evidence/lidar/k01_kiem_suc_khoe.png) (+ [.json](evidence/lidar/k01_kiem_suc_khoe.json), [.analysis.json](evidence/lidar/k01_kiem_suc_khoe.analysis.json)) (*thêm khuya 24/09*; **chưa commit**) | Độ lặp lại khoảng cách của p07, live_headless, k01 (không phải sai số so với thước); vòng quét và phân tích của k01 | 22/09 và 24/09 (bản ghi), tính khuya 24/09; BT offline | 4.4 |
 | [odometry_khop_scan_20260924.json](evidence/lidar/odometry_khop_scan_20260924.json) và các ảnh `odometry_khop_scan_*.png` cùng thư mục; bản trước khi sửa khóa trục giữ ở `*_khoa_cung_truoc_sua.*` (*thêm khuya 24/09*; **chưa commit**) | Odometry khớp scan trên tổng hợp, DROW v2 (so với `.odom2`, không phải ground truth) và C1 đứng yên | 24/09 khuya; TH, DL, BT offline | 1.6, 3.6, 4.4 |
@@ -1588,7 +1588,7 @@ dàn ý nhớ, **chưa đối chiếu** với bản gốc; phải tra trước k
 | H1 | **RPLIDAR C1 (C1M1), datasheet rev 1.1** và sổ tay C1 (SLAMTEC) | Số đã dùng: 8–12 Hz (10 Hz thường), 5 kHz mẫu, bước góc 0,72°, 0,05–12 m, UART 460800 bps 8N1 TTL 3,3 V, 5 V khởi động 800 mA / làm việc 230 (max 260) mA, đầu nối XH2.54-5P, hướng trước là trục x hình 2-4, góc tăng theo chiều kim đồng hồ (hardware_inventory, GIAI_DOAN_1_LIDAR); thiết bị tự báo model 0x41, firmware 1.2, phần cứng 18 | **Repo không lưu bản PDF**: lưu bản sao, ghi đường dẫn và ngày tải; giao thức SLAMTEC: cần tra tài liệu gốc |
 | H2 | Camera "HD Camera" VID 1BCF (Sunplus) PID 0B09 | Không có serial; mode đọc từ DirectShow ([camera_modes.csv](camera_modes.csv)); 130° là số nhà bán (kế hoạch 18, listing AdaChoi) | Không có datasheet; chỉ dẫn được số tự đo |
 | H3 | Hub UGREEN 4 cổng, chip Genesys Logic 05E3:0610 / 05E3:0626 | [usb_topology.md](usb_topology.md); kế hoạch nêu UGREEN 50985 là ứng viên | Mã model thực giao chưa ghi |
-| H4 | Silicon Labs CP2102N, driver CP210x 11.6.0.420 | hardware_inventory | Đủ để ghi |
+| H4 | Silicon Labs CP2102N; driver CP210x 11.6.0.420 trên máy bàn tới 25/09/2026 (nơi đo mọi số LiDAR tới ngày đó), 11.2.0.167 trên máy bàn từ 29/09/2026 ([chuyển máy](CHUYEN_MAY_BAN.md)) | hardware_inventory | Đủ để ghi |
 | H5 | ESP32-S3, Arduino-ESP32 (2.x/3.x), ESP-IDF | Firmware viết theo hiểu biết, **chưa đối chiếu tài liệu** (GIAO_THUC_XE mục 12) | **Cần tra** khi biên dịch |
 | H6 | MN300 Tank300, BNO085, VL53L1X, AS5600, MT6701, LA38, UBEC/XL4015 | Chưa nhận; chỉ có link mua (kế hoạch 18) | Datasheet: **cần tra** khi dùng |
 

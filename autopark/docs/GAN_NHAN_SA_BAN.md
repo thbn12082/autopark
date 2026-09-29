@@ -25,7 +25,9 @@ tự động offscreen (không có phông chữ) và một ảnh chụp màn hì
 **Bước 1 — chụp ở độ cao thật.** Gá camera lên xe (hoặc giá cùng độ cao, cùng góc chúc), bật AI trong bàn thử để bộ
 ảnh có xác suất, bấm "Chụp bộ ảnh":
 
-    .\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar COM4
+    .\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar
+
+`--lidar` không kèm giá trị dùng cổng LiDAR trong `configs/thiet_bi.json`; `--lidar COMx` ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
 
 Bốn camera qua hub chỉ dùng được ở 640×480 (docs/GIAI_DOAN_2_BAN_THU.md). Mỗi lần đổi bố cục sa bàn (dời hộp, dời xe,
 đổi ánh sáng) nên cách lần trước hơn một phút: công cụ coi các bộ ảnh chụp cách nhau ≤ 60 s là **cùng một phiên** (mục
@@ -34,7 +36,7 @@ Bốn camera qua hub chỉ dùng được ở 640×480 (docs/GIAI_DOAN_2_BAN_THU
 **Phiên dành để chấm** (tập chấm không thiên lệch neo, bước 7) chụp vào **thư mục riêng**, không bao giờ vào
 `runs/rig_snapshots`:
 
-    .\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar COM4 --snapshots runs/rig_snapshots_cham
+    .\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar --snapshots runs/rig_snapshots_cham
 
 Đó phải là phiên riêng: bố cục khác, và cách mọi lần chụp đi vào huấn luyện hơn `--session-gap` (60 s). Chuỗi phiên chỉ
 nối trong một dự án, không nối qua hai dự án: một ảnh chấm chụp 30 s sau một ảnh huấn luyện là ảnh gần trùng mà không

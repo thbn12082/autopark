@@ -7,6 +7,11 @@
 
 ## Hub
 
+Bảng Hub và bảng Camera dưới đây là sơ đồ của máy bàn dùng tới 25/09/2026. Trên máy bàn từ 29/09/2026, hub 05E3:0610 cắm
+cổng gốc 8 (LocationPath `PCIROOT(0)#PCI(1400)#USBROOT(0)#USB(8)`), nhánh USB 3 05E3:0626 ở cổng gốc 18, bốn camera
+1BCF:0B09 ở Port_#0001–0004 của hub, InstanceId khác bảng Camera
+([usb_topology.json](evidence/chuyen_may_20260929/may_moi/usb_topology.json), [chuyển máy](CHUYEN_MAY_BAN.md)).
+
 Một hub vật lý UGREEN 4 cổng, chip Genesys Logic; Windows thấy thành **hai** thiết bị vì hub USB 3 luôn có hai nhánh:
 
 | Thiết bị Windows (`hubs`) | VID:PID | Cắm vào (LocationInfo) | Ai đi qua |
@@ -55,7 +60,8 @@ chạy), không hard-code index; việc gán hướng trước/sau/trái/phải 
   khác của máy), chạy lại bốn camera 720p và đọc cột khung bị cắt, với cảnh sáng, nhiều chi tiết (cảnh tối cho 0 khung
   bị cắt, xem trên). Đổi chỗ camera cổng 1 với cổng 2 để tách lỗi do "camera" hay do "cổng hub"
   ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 9, việc 1).
-- Đổi cổng camera để kiểm InstanceId (rút/cắm cùng cổng và khởi động lại máy đã kiểm).
+- Đổi cổng camera để kiểm InstanceId (rút/cắm cùng cổng và khởi động lại máy đã kiểm trên máy bàn dùng tới 25/09/2026).
+- Khởi động lại máy bàn từ 29/09/2026 rồi kiểm danh tính camera theo cổng hub ([chuyển máy](CHUYEN_MAY_BAN.md) mục 2).
 - Thử trên laptop RTX 3050 Ti (máy nộp đồ án); thử cáp kéo dài.
 - Phép thử nguồn ngoài cho hub, đọc thêm cột khung bị cắt; đo dòng tiêu thụ camera (không có đồng hồ đo USB).
 - Đo băng thông đẳng thời mỗi camera đặt trước (USB Device Tree Viewer / USBPcap).

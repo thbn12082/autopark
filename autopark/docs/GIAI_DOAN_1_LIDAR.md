@@ -112,7 +112,7 @@ Kiểm đột biến lại trên bản sao, không sửa repo: 9 đột biến c
 
 ## 4. Giám sát dữ liệu cũ trên thiết bị thật
 
-`live_view` chạy headless 8 s với COM4: luồng đọc ở thread riêng, `FreshnessMonitor` với tuổi tối đa 0,3 s (≈3 chu kỳ) và chu kỳ mong đợi 0,094 s (lấy theo trung vị p07, là số bị lượng tử hóa — xem ghi chú 24/09 ở mục 3; mặc định của `live_view` và ngăn LiDAR là 0,1 s); trạng thái OK trong suốt phiên, bản ghi `live_headless.npz` được đóng đúng khi cửa sổ đóng. **Chưa thử rút cáp** để xem STALE_DATA phát trên thiết bị thật; cách thử: chạy `python -m autopark.lidar.live_view --port COM4`, rút cáp USB, tiêu đề phải đổi màu và dòng trạng thái báo `STALE_DATA` sau 0,3 s.
+`live_view` chạy headless 8 s với COM4: luồng đọc ở thread riêng, `FreshnessMonitor` với tuổi tối đa 0,3 s (≈3 chu kỳ) và chu kỳ mong đợi 0,094 s (lấy theo trung vị p07, là số bị lượng tử hóa — xem ghi chú 24/09 ở mục 3; mặc định của `live_view` và ngăn LiDAR là 0,1 s); trạng thái OK trong suốt phiên, bản ghi `live_headless.npz` được đóng đúng khi cửa sổ đóng. **Chưa thử rút cáp** để xem STALE_DATA phát trên thiết bị thật; cách thử: chạy `python -m autopark.lidar.live_view`, rút cáp USB, tiêu đề phải đổi màu và dòng trạng thái báo `STALE_DATA` sau 0,3 s. Cổng LiDAR lấy từ `configs/thiet_bi.json`; thêm `--port COMx` để ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
 
 ## 5. Bản đồ lưới tĩnh và thử odometry DROW
 
@@ -134,7 +134,7 @@ Chuẩn bị: C1 dán cố định trên bàn phẳng, đánh dấu tâm quay; �
 
 | Lần | Lệnh (trong `autopark`, `.venv`) |
 |---|---|
-| p01 | `python -m autopark.lidar.bench record --port COM4 --out runs/lidar_bench/<ngày> --name p01_truoc_0.5m --seconds 15 --warmup 120 --expected-distance 0.50 --expected-angle 0` |
+| p01 | `python -m autopark.lidar.bench record --out runs/lidar_bench/<ngày> --name p01_truoc_0.5m --seconds 15 --warmup 120 --expected-distance 0.50 --expected-angle 0` |
 | p02 | `... --name p02_truoc_1m --expected-distance 1.00 --expected-angle 0` |
 | p03 | `... --name p03_truoc_2m --expected-distance 2.00 --expected-angle 0` |
 | p04 | `... --name p04_trai_1m --expected-distance 1.00 --expected-angle 90` |

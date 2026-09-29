@@ -183,4 +183,4 @@ Chưa chứng minh: thông số MN300, phản hồi/định vị thật, quãng 
 
 Giữ các test làm hồi quy; khi đo được MN300 thì thay cấu hình và chạy lại. Tiếp tục kiểm cảm biến theo [kế hoạch](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md).
 
-[Báo cáo trước biên tập](https://github.com/thbn12082/autopark/blob/9d68257/BAO_CAO_GIAI_DOAN_0.md) lưu đầy đủ hồ sơ lịch sử.
+[Báo cáo trước biên tập](https://github.com/thbn12082/autopark/blob/9d68257/BAO_CAO_GIAI_DOAN_0.md) lưu đầy đủ hồ sơ lịch sử. Số mục 1–12 giữ như bản đó; chi tiết mà tài liệu khác dẫn theo số mục nhưng đã lược khi biên tập (ví dụ giới hạn của mô hình xe ở mục 12) tra ở bản đó.

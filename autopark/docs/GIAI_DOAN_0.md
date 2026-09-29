@@ -25,7 +25,7 @@ Các mã nguồn chính: `application/session.py`, `simulation/feedback.py`, `do
 
 - **169 test passed**, báo cáo [pytest.xml](evidence/pytest.xml). Có kiểm tra UI offscreen; ảnh dựng bằng Qt Windows để đọc được font tiếng Việt.
 - `pip check`: không có dependency lỗi.
-- Năm phiên đã chạy và replay khớp; video được mở lại, kiểm tra kích thước và số frame. [Tóm tắt bằng máy](../runs/phase0_final_2026-09-20/summary.json).
+- Năm phiên đã chạy và replay khớp; video được mở lại, kiểm tra kích thước và số frame. Tóm tắt bằng máy: `runs/phase0_final_2026-09-20/summary.json` (ngoài Git vì `runs/` bị git-ignore; chép cả thư mục dự án thì mới có).
 
 | Phiên | Kết quả | Thời gian mô phỏng | Sai số vị trí cuối |
 |---|---|---:|---:|
@@ -37,7 +37,7 @@ Các mã nguồn chính: `application/session.py`, `simulation/feedback.py`, `do
 
 Đây là số đo của các ca cụ thể, không phải cam kết sai số trên mọi bản đồ. Profile noisy: trễ 40 ms, nhiễu vị trí σ=2 mm, nhiễu yaw σ=0,2°, xác suất mất mẫu 2%, seed=42. Profile chỉ là giả định phần mềm. Bản ghi thời điểm lỗi nằm trong `events.jsonl`, thời điểm phát hiện/dừng trong `safety_events.json` của từng phiên.
 
-Video đỗ: [simulation.mp4](../runs/phase0_final_2026-09-20/parking/simulation.mp4). Video vật cản mới: [simulation.mp4](../runs/phase0_final_2026-09-20/obstacle/simulation.mp4). Ảnh UI: [đang chạy](evidence/ui_running.png), [đã dừng](evidence/ui_stopped.png).
+Video đỗ: `runs/phase0_final_2026-09-20/parking/simulation.mp4`. Video vật cản mới: `runs/phase0_final_2026-09-20/obstacle/simulation.mp4` (hai video ngoài Git, như tóm tắt ở trên). Ảnh UI: [đang chạy](evidence/ui_running.png), [đã dừng](evidence/ui_stopped.png).
 
 ## Môi trường, dữ liệu và hồ sơ
 

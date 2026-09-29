@@ -23,11 +23,13 @@ PowerShell, cmd không hiểu). Dòng `#` là chú thích, đừng dán vào cmd
 
 ```powershell
 # lệnh đo không giao diện: ghi đúng phần đo (sau --warmup), cùng lúc ghi g01.rig.json như mọi phiên
-.\.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar COM4 --seconds 120 --name g01 --out runs/rig_bench/20260925 --record runs/rig_recordings/g01
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 120 --name g01 --out runs/rig_bench/20260925 --record runs/rig_recordings/g01
 
 # giao diện: nút "Ghi phiên" bật/tắt; mỗi lần bật ghi vào thư mục --record-root, mỗi lần một thư mục con theo giờ
-.\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar COM4 --record-root runs/rig_recordings
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar --record-root runs/rig_recordings
 ```
+
+`--lidar` không kèm giá trị dùng cổng LiDAR trong `configs/thiet_bi.json`; `--lidar COMx` ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
 
 - `--record-format png` để có ảnh không mất mát. PNG lớn hơn JPEG khoảng 4,5 lần và mã hóa chậm hơn khoảng 10 lần (mục 5),
   nên chỉ hợp với đoạn ngắn. `--jpeg-quality` mặc định 95.
@@ -176,7 +178,8 @@ phép đổi mà `LidarWorker` dùng. `created_utc` ứng với `t_start_s`, nê
    - 4 camera × 23,85 khung tốt/s (số đo 23/09) × ≈ 163 KB ≈ **15 MB/s ≈ 0,9 GB/phút ≈ 55 GB/giờ** ở 480p JPEG.
    - PNG ≈ 65 MB/s. Mã hóa PNG khoảng 7,7 ms × 95 khung/s, gần trọn một lõi cho một luồng ghi, nên PNG chỉ dùng cho đoạn ngắn.
    - Số tệp: ≈ 95 tệp ảnh/s, tức 57.000 tệp cho 10 phút.
-   - Ổ D: của máy bàn còn trống 75 GB (đo 24/09), đủ ≈ 80 phút ở 480p JPEG.
+   - Ổ D: máy bàn dùng tới 25/09/2026 còn trống 75 GB (đo 24/09), đủ ≈ 80 phút ở 480p JPEG; máy bàn từ 29/09/2026 còn
+     ≈ 30,6 GB (đo 29/09/2026, [chuyển máy](CHUYEN_MAY_BAN.md) mục 4).
    - LiDAR: ≈ 510 tia × 9 byte × 10 Hz ≈ 46 KB/s trước khi nén.
 7. **Hàng đợi và RAM.**
    - Hàng đợi ghi giới hạn 192 MB ảnh chưa mã hóa (≈ 2 s của bốn camera 480p; ≈ 0,7 s ở 720p). Đầy thì khung bị bỏ và đếm

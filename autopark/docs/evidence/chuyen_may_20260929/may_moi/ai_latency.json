@@ -1,0 +1,23 @@
+{
+ "batch": 4,
+ "size": [
+  640,
+  480
+ ],
+ "batches": 60,
+ "device": "cuda",
+ "amp": true,
+ "model": "ai_woodscape_rtx4000_v1",
+ "total_ms": {
+  "median": 10.77,
+  "p95": 12.07,
+  "max": 12.32
+ },
+ "model_ms": {
+  "median": 6.81,
+  "p95": 7.77
+ },
+ "sets_per_s_upper_bound": 92.8,
+ "peak_vram_mb": 77.7,
+ "checkpoint": "runs\\ai_woodscape_rtx4000_v1\\best.pt"
+}

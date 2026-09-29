@@ -1,0 +1,34 @@
+{
+ "device": {
+  "model": 65,
+  "model_hex": "0x41",
+  "firmware": "1.2",
+  "hardware": 18,
+  "serial": "f57ffc8bc6e598d1b59598f976dd5762"
+ },
+ "health": {
+  "status": 0,
+  "name": "OK",
+  "error_code": 0
+ },
+ "scan_modes": {
+  "count": 2,
+  "typical": 1,
+  "modes": [
+   {
+    "id": 0,
+    "name": "Standard",
+    "us_per_sample": 200.0,
+    "max_distance_m": 16.0,
+    "answer_type": "0x81"
+   },
+   {
+    "id": 1,
+    "name": "DenseBoost",
+    "us_per_sample": 200.0,
+    "max_distance_m": 40.0,
+    "answer_type": "0x85"
+   }
+  ]
+ }
+}

@@ -1,0 +1,24 @@
+{
+  "file": "l01_tinh.npz",
+  "analyzed_utc": "2026-09-29T06:00:13+00:00",
+  "summary": {
+    "scans": 151,
+    "duration_s": 15.0,
+    "rate_hz": 10.0,
+    "median_period_s": 0.09400000001187436,
+    "max_gap_s": 0.11000000001513399,
+    "beams_median": 508.0,
+    "beams_min": 488,
+    "beams_max": 536,
+    "no_return_fraction": 0.2432351719123299,
+    "range_min_m": 0.11150000244379044,
+    "range_max_m": 14.036499977111816
+  },
+  "checks": {
+    "rate_8_12_hz": true,
+    "beams_within_5pct_of_5khz": true,
+    "no_gap_over_3_periods": true
+  },
+  "target": null,
+  "passed": true
+}

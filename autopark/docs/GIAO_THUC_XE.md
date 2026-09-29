@@ -4,8 +4,10 @@
 cứng"), mục 10 (dừng an toàn, reset, reconnect), mục 7 (telemetry có thời gian và cờ hợp lệ), mục 16.2–16.3.
 
 **Mức bằng chứng:** phần mềm + mô phỏng. Chưa có ESP32-S3, MN300, ESC, servo, encoder, AS5600, BNO085, VL53L1X
-hay phần cứng dừng. **Mã C++ firmware chưa từng được biên dịch** (máy này không có trình biên dịch C/C++ lẫn
-PlatformIO). Phần đã chạy và được test là bản tham chiếu Python của firmware, bộ mã hóa giao thức và `VehicleIO`.
+hay phần cứng dừng. **Mã C++ firmware chưa từng được biên dịch**: máy bàn dùng tới 25/09/2026 không có trình biên
+dịch C/C++ lẫn PlatformIO; máy bàn từ 29/09/2026 có g++ 16.1.0 và cmake 4.4.1 trên PATH nhưng chưa thử biên dịch
+([chuyển máy](CHUYEN_MAY_BAN.md) mục 4).
+Phần đã chạy và được test là bản tham chiếu Python của firmware, bộ mã hóa giao thức và `VehicleIO`.
 Không số nào dưới đây là số đo trên xe hay trên bo.
 
 | Thành phần | File | Đã kiểm bằng |
@@ -402,7 +404,7 @@ con số của mô hình, không phải quãng dừng xe thật (kế hoạch m�
 
 ## 11. Kiểm chứng
 
-Chạy trong `D:/ap/autopark`, `.venv` (Python 3.12, pyserial 3.5, không torch):
+Chạy trong thư mục `autopark` của repo (thư mục có pyproject.toml), `.venv` (Python 3.12, pyserial 3.5, không torch):
 
 ```powershell
 .\.venv\Scripts\python.exe -X utf8 -m pytest tests/test_transport_protocol.py tests/test_transport_firmware_model.py tests/test_transport_vehicle_io.py tests/test_transport_firmware_source.py
@@ -515,7 +517,9 @@ thức, bản tham chiếu firmware, `VehicleIO` và kiểm tĩnh C++; `c43e8d3`
 `origin/main` = `54cb3e2`). Đếm lại ở HEAD bằng `--collect-only`: bốn tệp `test_transport_*` 52 + 73 + 64 + 11 = 200,
 `tests/test_session_vehicle.py` 60, `tests/test_vehicle_board_ui.py` 30, `tests/test_nearfield_tof.py` 54, không đổi.
 Bộ test đầy đủ chạy lại trên mã trùng `54cb3e2`: 1242 đạt, 7 bỏ qua (mô-đun cần torch), 0 lỗi. Firmware C++ vẫn chưa
-biên dịch: máy bàn vẫn không có `g++`, `gcc`, `clang`, `cl`, `cmake` hay `pio` trên PATH (kiểm 25/09/2026).
+biên dịch: máy bàn dùng tới 25/09/2026 không có `g++`, `gcc`, `clang`, `cl`, `cmake` hay `pio` trên PATH (kiểm
+25/09/2026); máy bàn từ 29/09/2026 có g++ 16.1.0 và cmake 4.4.1 nhưng chưa thử biên dịch `test/host`
+([chuyển máy](CHUYEN_MAY_BAN.md) mục 4).
 
 ## 12. Chưa làm / giới hạn
 

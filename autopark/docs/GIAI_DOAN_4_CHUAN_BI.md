@@ -404,7 +404,7 @@ Muốn đọc YAML thì phải cài thêm thư viện hoặc viết bước chuy
 
 ### 4.3. Chạy mô phỏng với cấu hình đo
 
-Các công cụ nhận `--config` (chạy trong `D:/ap/autopark`):
+Các công cụ nhận `--config` (chạy trong thư mục `autopark` của repo, tức thư mục có pyproject.toml):
 
 ```powershell
 .\.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.bench   --config configs/vehicle_measured.json --json runs/bench_mn300.json

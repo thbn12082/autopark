@@ -17,7 +17,7 @@ có tệp v0, `configs/roi/` chỉ có `woodscape_v1`. Công cụ đo ngoại th
 (`65b7127`, [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md)), còn chờ nội tham và gá camera. BEV vẫn chưa nối vào bàn
 thử, hợp nhất cảm biến hay planner.)*
 
-*(Cập nhật 25/09/2026, chưa commit:)* BEV nay được nối vào phiên đỗ xe như **một nguồn vật cản** qua
+*(Cập nhật 25/09/2026, mã ở `b01dea4`:)* BEV nay được nối vào phiên đỗ xe như **một nguồn vật cản** qua
 `fusion/camera_ai.py` và ngăn "AI camera" (`ui/camera_dock.py`, `lidar_app --camera-ai`), sau quyết định giấy phép
 ngày 25/09/2026 của người làm khóa luận. Valeo chưa xác nhận cách đọc điều khoản. Chỉ BEV **dùng được** (mục 2,
 quy tắc 9) mới tạo vật cản, nên với ba điều còn thiếu ở trên, AI chưa tạo vật cản nào trên bàn thật. Chi tiết, mức
@@ -623,7 +623,7 @@ Mười hai đột biến mới:
      một tiến trình.
    - BEV chưa chạy song song giữa các camera. Chưa cần, vì mỗi camera ≈ 1,2–2,7 ms.
 7. **Nối vào bàn thử / hợp nhất** (`CameraSemanticLayer`, kế hoạch giai đoạn 3): chưa làm. Chờ các mục trên, và chờ
-   quyết định giấy phép WoodScape cho việc nối AI vào lập đường. *(Cập nhật 25/09/2026: phần mềm đã làm, chưa commit,
+   quyết định giấy phép WoodScape cho việc nối AI vào lập đường. *(Cập nhật 25/09/2026: phần mềm đã làm, `b01dea4`,
    [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md). Quyết định giấy phép đã có, Valeo chưa xác nhận. Có lọc 2/3 lô trong hệ
    bản đồ. Còn chờ mục 1–4 thì AI mới tạo được vật cản trên bàn thật. Chỉ kiểm bằng nguồn giả, rig tổng hợp và bản ghi
    phát lại.)*
