@@ -121,8 +121,12 @@ sử giữ nguyên (ví dụ `lidar/rplidar_c1.py`: "Đã kiểm chứng ... ng�
 **Toàn bộ bộ test sau các sửa đổi** (máy bàn mới, 29/09/2026, offscreen, mã sau sửa đổi của đợt này, dựng trên `9d68257`):
 `.venv` **1353 đạt, 8 bỏ qua** (7 như trước cộng test ROI mới, đều cần torch), 0 hỏng, 342 s; `.venv-train` **1415 đạt**,
 0 bỏ qua, 0 hỏng, 395 s (1376 cũ + 39 mới). Tệp: [pytest_venv_sau_sua_20260929.xml](evidence/chuyen_may_20260929/pytest_venv_sau_sua_20260929.xml),
-[pytest_venv_train_sau_sua_20260929.xml](evidence/chuyen_may_20260929/pytest_venv_train_sau_sua_20260929.xml). Số
-test này không gắn với mã commit nào; muốn gắn với một commit thì chạy lại trên commit đó. Với thiết bị thật, sửa đổi
+[pytest_venv_train_sau_sua_20260929.xml](evidence/chuyen_may_20260929/pytest_venv_train_sau_sua_20260929.xml). Lượt
+này chạy trên cây làm việc trước khi commit. **Chạy lại trên commit `38f64bb`** (cây làm việc sạch, cùng máy, cùng ngày,
+offscreen): `.venv` **1354 đạt, 8 bỏ qua**, 0 hỏng, 336 s; `.venv-train` **1416 đạt**, 0 hỏng, 370 s. Mỗi môi trường thêm
+đúng một test so với lượt trên (tệp tham chiếu `may_moi` 29/09, mục 2). Tệp:
+[pytest_venv_38f64bb.xml](evidence/chuyen_may_20260929/pytest_venv_38f64bb.xml),
+[pytest_venv_train_38f64bb.xml](evidence/chuyen_may_20260929/pytest_venv_train_38f64bb.xml). Với thiết bị thật, sửa đổi
 mới chỉ thử một lệnh: `lidar.rplidar_c1 info` KHÔNG có `--port` mở đúng COM3 lấy từ tệp cấu hình, đọc được C1 (cùng
 serial, health OK), mã thoát 0; `lidar_port("auto")` cũng ra COM3. `ui.lidar_app`, `fusion.demo`, `rig.bench --lidar`
 và camera CHƯA THỬ với thiết bị thật sau sửa đổi; lượt `do_may_moi.cmd` ở mục 2 là mã `9d68257`.
@@ -136,7 +140,7 @@ giữ nguyên, có ghi chú ngày khi cần. Tệp `docs/evidence/` không sửa
 - Máy này có g++ 16.1.0 và cmake 4.4.1 trên PATH; máy cũ không có trình biên dịch nên test host của firmware
   (`firmware/esp32_vehicle/test/host`) chưa biên dịch lần nào. CHƯA THỬ trên máy này.
 - GitHub: đã đăng nhập trên máy này ngày 29/09/2026 bằng Git Credential Manager (đăng nhập mã thiết bị qua Edge); fetch
-  được; ngày đó chưa thử push. Sau fetch, `main` tiến nhanh từ `9d68257` lên `2ee2940` của GitHub (hai commit ngày 26/09/2026 chỉ sửa
+  và push được: các commit của đợt này push lên `origin/main` ngày 29/09/2026. Sau fetch, `main` tiến nhanh từ `9d68257` lên `2ee2940` của GitHub (hai commit ngày 26/09/2026 chỉ sửa
   tệp `.md`), nên mã nguồn vẫn như lúc đo các số test ở mục 2 và 3.
 - Ổ D còn ≈ 30,6 GB trống (29/09/2026, sau khi tạo lại venv và xóa venv cũ ≈ 6,0 GB; trước khi xóa còn ≈ 24,6 GB).
   Kịch bản LD-1 có `--record` của [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) đòi ≥ 30 GB.

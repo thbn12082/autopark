@@ -2,7 +2,7 @@
 
 [Cần biết tiến độ?](../TONG_HOP_DU_AN.md) · [Tài liệu kỹ thuật](docs/README.md)
 
-Biên tập 26/09/2026 theo mã tại `9d68257`; cập nhật 29/09/2026 sau khi chuyển sang máy bàn mới ([biên bản](docs/CHUYEN_MAY_BAN.md)). Lệnh được đối chiếu với mã/script. Ngày 29/09/2026 đã cài lại hai môi trường và chạy toàn bộ test trên máy bàn hiện tại (mục 4); sau khi đổi cách lấy cổng LiDAR, trong các lệnh mở thiết bị ở mục 7 mới chạy lại `lidar.rplidar_c1 info` với thiết bị thật.
+Biên tập 26/09/2026 theo mã tại `9d68257`; cập nhật 29/09/2026 theo mã tại `38f64bb`, sau khi chuyển sang máy bàn mới ([biên bản](docs/CHUYEN_MAY_BAN.md)). Lệnh được đối chiếu với mã/script. Ngày 29/09/2026 đã cài lại hai môi trường và chạy toàn bộ test trên máy bàn hiện tại (mục 4); sau khi đổi cách lấy cổng LiDAR, trong các lệnh mở thiết bị ở mục 7 mới chạy lại `lidar.rplidar_c1 info` với thiết bị thật.
 
 Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. [Hồ sơ giấy phép](docs/GIAY_PHEP_DU_LIEU.md).
 
@@ -89,7 +89,7 @@ Remove-Item Env:QT_QPA_PLATFORM
 
 Test cần torch được bỏ qua trong `.venv`; chạy cùng lệnh bằng `./.venv-train/Scripts/python.exe` để gồm cả chúng. Chạy test có ngân sách tìm đường khi máy rảnh, tách khỏi coverage và các chiến dịch tải CPU.
 
-Lần chạy toàn bộ gần nhất: 29/09/2026, máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), bằng lệnh trên (offscreen), mã sau các sửa đổi của đợt chuyển máy: `.venv` 1353 đạt, 8 bỏ qua (cần torch), 0 hỏng; `.venv-train` 1415 đạt, 0 hỏng. Số test đổi theo mã; tệp kết quả và lần chạy đối chứng trên mã cũ ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2–3.
+Lần chạy toàn bộ gần nhất: 29/09/2026, máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), bằng lệnh trên (offscreen), commit `38f64bb` của đợt chuyển máy: `.venv` 1354 đạt, 8 bỏ qua (cần torch), 0 hỏng; `.venv-train` 1416 đạt, 0 hỏng. Số test đổi theo mã; tệp kết quả và lần chạy đối chứng trên mã cũ ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2–3.
 
 Tạo phiên mẫu rồi phát lại:
 
