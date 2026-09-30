@@ -291,6 +291,7 @@ Cho giao diện chọn được bo ảo QEMU (`socket://`, hiện chỉ dùng t�
 | 29/09, commit `38f64bb` | `.venv`: 1.354 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.416 đạt; 0 hỏng | Toàn bộ test, máy bàn hiện tại, commit của đợt chuyển máy; thêm một test tệp tham chiếu `may_moi` 29/09 |
 | 29/09 chiều, test host firmware | `.venv`: 1.356 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.418 đạt; 0 hỏng | `b37e9ee` cộng hai test build và chạy test host của firmware |
 | 30/09 sáng, bo ảo QEMU | `.venv`: 1.376 đạt, 8 bỏ qua (cần torch), 0 hỏng; `.venv-train`: 1.437 đạt, 1 hỏng (`uturn_w46`, ngân sách thời gian) ở cả hai lượt | Mã chưa commit tính tới 10:21, trước khi `tests/conftest.py` tắt EcoQoS: `b37e9ee` cộng bo ảo QEMU (13 test, 6 trong đó chạy firmware thật trong QEMU) và sửa `SerialVehicleIO` (7 test). `uturn_w46` đạt khi tiến trình pytest tự tắt EcoQoS của Windows |
+| 30/09, commit `ebbec83` | `.venv`: 1.380 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.442 đạt; 0 hỏng | Toàn bộ test trên commit của đợt bo ảo, cây làm việc sạch; thêm 4 test EcoQoS; `tests/conftest.py` tắt EcoQoS cho tiến trình pytest (JUnit ghi `ecoqos=off`) |
 
 Không cộng các lượt thành tổng test. Các lượt ngày 29–30/09 chạy offscreen; tệp kết quả và giới hạn ở [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 2, 3, 6, 8.
 

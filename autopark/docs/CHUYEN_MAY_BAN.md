@@ -237,7 +237,8 @@ giữ lại ở `giu_lai`. Đường dẫn QEMU và PlatformIO nằm trong `conf
 **Toàn bộ bộ test** (máy bàn, 30/09/2026, offscreen, chạy từ shell của tác tử nên tiến trình không có cửa sổ). Mã:
 `b37e9ee` cộng sửa đổi chưa commit tính tới 10:21 (mục 6–7, bo ảo QEMU, sửa `SerialVehicleIO`). Tức là CHƯA có các
 thay đổi lúc 11:53–11:59 ở dưới: `autopark/power_throttling.py`, `tests/conftest.py` tắt EcoQoS, 4 test mới,
-`QemuBoard` dùng hàm chung, `tmp_path_retention_policy`. Lượt chạy trên mã có các thay đổi đó: cuối mục này.
+`QemuBoard` dùng hàm chung, `tmp_path_retention_policy`. Lượt chạy trên commit có các thay đổi đó (`ebbec83`, 0 hỏng):
+cuối mục này.
 
 | Lượt (giờ bắt đầu) | Kết quả | Thời gian | Tệp |
 |---|---|---|---|
@@ -332,5 +333,22 @@ hết).
 
 Thư mục của test đạt không còn để xem lại sau lượt chạy. Cần giữ thì chạy thêm `-o tmp_path_retention_policy=all`.
 
-**Toàn bộ bộ test trên mã có các thay đổi 11:53–11:59:** CHƯA CHẠY lúc viết đoạn này; sẽ chạy lại trên commit của đợt
-này (cây làm việc sạch), như lượt `38f64bb` ở mục 3.
+**Chạy lại trên commit `ebbec83`** (mã có đủ các thay đổi 11:53–11:59 và các sửa theo review trước khi commit; cây
+làm việc sạch, cùng máy, 30/09/2026 13:47–14:02, offscreen, từ shell của tác tử). Script:
+[chay_tren_commit.py](evidence/mo_phong_20260930/chay_tren_commit.py); tóm tắt:
+[chay_tren_commit_ebbec83.txt](evidence/mo_phong_20260930/chay_tren_commit_ebbec83.txt).
+
+| Lượt (giờ bắt đầu, tải CPU) | Kết quả | Thời gian | Tệp |
+|---|---|---|---|
+| `.venv` (13:49, 3 %) | **1380 đạt, 8 bỏ qua** (cần torch, như trước), 0 hỏng | 365 s | [pytest_venv_ebbec83.xml](evidence/mo_phong_20260930/pytest_venv_ebbec83.xml) |
+| `.venv-train` (13:55, 5 %) | **1442 đạt**, 0 bỏ qua, 0 hỏng (kể cả `uturn_w46`) | 400 s | [pytest_venv_train_ebbec83.xml](evidence/mo_phong_20260930/pytest_venv_train_ebbec83.xml) |
+
+- Cả hai tệp JUnit ghi `ecoqos=off`.
+- Mỗi môi trường có thêm đúng 4 test so với các lượt 10:21–10:40, là 4 test của `tests/test_power_throttling.py`.
+- Thời gian ngắn hơn các lượt buổi sáng (451 s; 539–561 s). Tuy vậy, buổi sáng máy còn chạy việc khác, và EcoQoS lúc
+  đó do Windows tự quyết, nên không tách được phần nào do yếu tố nào.
+- Bo ảo trên cùng commit:
+  - `kiem` đạt: 55 khung trong 2 s, QEMU khởi động 1 lần
+    ([kiem_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao_ebbec83.txt)).
+  - Chạy lặp `tests/test_firmware_qemu.py` 10 lượt: 10/10 lượt đạt cả 13 test, không có cảnh báo #175 hay LOOP_OVERRUN
+    ([chay_lap_test_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/chay_lap_test_bo_ao_ebbec83.txt)).

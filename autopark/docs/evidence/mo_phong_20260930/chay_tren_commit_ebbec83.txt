@@ -1,0 +1,6 @@
+# Chạy trên commit ebbec83 (cây làm việc sạch), máy bàn, bắt đầu 30/09/2026 13:47:43
+kiem: exit=0
+chạy lặp: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua
+.venv: bắt đầu 13:49:28, tải CPU 3 %, exit=0, 1388 test, 0 hỏng, 0 lỗi, 8 bỏ qua, 365 s (JUnit), 366 s (cả lệnh), ecoqos=off, hỏng: []
+.venv-train: bắt đầu 13:55:34, tải CPU 5 %, exit=0, 1442 test, 0 hỏng, 0 lỗi, 0 bỏ qua, 400 s (JUnit), 402 s (cả lệnh), ecoqos=off, hỏng: []
+# kết thúc 14:02:16
