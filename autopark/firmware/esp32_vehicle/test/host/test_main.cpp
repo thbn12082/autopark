@@ -5,12 +5,12 @@
 //   gửi đi).
 //
 // Build (từ firmware/esp32_vehicle):
-//   mkdir -p build
-//   g++ -std=c++17 -O1 -Wall -Wextra -Isrc/core src/core/*.cpp test/host/test_main.cpp -o build/host_tests
-//   ./build/host_tests test/vectors.json
-// hoặc: cmake -S test/host -B build/host && cmake --build build/host && ./build/host/host_tests test/vectors.json
-//
-// CHƯA TỪNG ĐƯỢC BIÊN DỊCH: máy phát triển hiện tại không có trình biên dịch C/C++.
+//   cmake -S test/host -B build/host -DCMAKE_BUILD_TYPE=Release && cmake --build build/host --config Release
+//   ctest --test-dir build/host -C Release --output-on-failure
+// hoặc: mkdir -p build
+//       g++ -std=c++17 -O1 -Wall -Wextra -Isrc/core src/core/*.cpp test/host/test_main.cpp -static -o build/host_tests
+//       ./build/host_tests test/vectors.json
+// (-static với MinGW: xem CMakeLists.txt.) Chạy lần đầu 29/09/2026, g++ 16.1.0: 703 checks, 0 failures.
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -298,8 +298,6 @@ std::string to_hex(const uint8_t* data, size_t len) {
   }
   return out;
 }
-
-std::string to_hex(const std::vector<uint8_t>& data) { return to_hex(data.data(), data.size()); }
 
 std::string framed(const uint8_t* raw, size_t len) {
   uint8_t frame[ap::kMaxFrame];

@@ -60,6 +60,10 @@ INT16_MIN, INT16_MAX = -32768, 32767
 # bị coi là mất liên lạc. So sánh bằng ms nguyên (3 × 0,1 = 0,30000000000000004 > 0,3 trong số thực).
 STALE_MIN_PERIODS = 3
 DEFAULT_NEW_TELEMETRY_LIMIT = 512          # ≈ 10 s telemetry ở 50 Hz chờ `poll()`
+# Một lần `SerialVehicleIO._pump` đọc tối đa ngần này byte, trong tối đa ngần này giây (chặn vòng đọc cạn khi cổng
+# báo `in_waiting` không đúng số byte và byte đến nhanh hơn tốc độ đọc từng byte).
+PUMP_MAX_BYTES = 65536
+PUMP_MAX_S = 0.02
 
 
 class VehicleIOError(RuntimeError):
@@ -818,9 +822,22 @@ class SerialVehicleIO(VehicleIO):
 
     @staticmethod
     def _port_opener(port: str, baudrate: int, read_timeout_s: float, write_timeout_s: float):
+        """`port` là tên cổng (`COM3`) hoặc URL (thêm 30/09/2026): `socket://127.0.0.1:5555` cho bo ảo QEMU
+        (`autopark.transport.qemu_board`, docs/MO_PHONG_FIRMWARE.md) dùng `SocketPort` của dự án chứ không dùng
+        `socket://` của pyserial (lý do trong `socket_port.py`); các URL khác của pyserial (`rfc2217://`...) qua
+        `serial_for_url`. Client rfc2217 của pyserial 3.5 không nhận `write_timeout` (NotImplementedError khi mở), nên với
+        nó bỏ tham số này."""
         def opener():
+            scheme = port.split("://", 1)[0].lower() if "://" in port else ""
+            if scheme == "socket":
+                from .socket_port import SocketPort
+
+                return SocketPort.from_url(port, timeout=read_timeout_s, write_timeout=write_timeout_s)
             import serial  # pyserial
 
+            if scheme:
+                write_timeout = None if scheme == "rfc2217" else write_timeout_s
+                return serial.serial_for_url(port, baudrate, timeout=read_timeout_s, write_timeout=write_timeout)
             return serial.Serial(port, baudrate, timeout=read_timeout_s, write_timeout=write_timeout_s)
 
         return opener
@@ -854,18 +871,36 @@ class SerialVehicleIO(VehicleIO):
             raise VehicleIOError(f"Không ghi được ra cổng: {exc}") from exc
 
     def _pump(self, block: bool = True) -> None:
+        """Đọc MỌI byte đang có sẵn (tối đa `PUMP_MAX_BYTES`, trong tối đa `PUMP_MAX_S`). Cổng COM và `SocketPort` báo
+        `in_waiting` đúng số byte nên thường chỉ một lượt `read`. Trước 30/09/2026 mỗi lần gọi chỉ đọc đúng `in_waiting`
+        một lần; với cổng báo 0/1 như `socket://` của pyserial 3.5 (bo ảo QEMU 29/09/2026), vòng 50 Hz `poll(block=False)`
+        nhận 2/≈ 40 khung trong 2 s kèm TELEMETRY_STALE (docs/MO_PHONG_FIRMWARE.md mục 5). Chỉ gọi `read` khi
+        `in_waiting > 0`, trừ lần đầu với `block=True`, nên không thêm lần đọc chờ nào."""
         if self.transport is None:
             raise VehicleIOError("Cổng đã đóng")
+        received = bytearray()
+        error: OSError | None = None
         try:
             waiting = self.transport.in_waiting
             if waiting <= 0 and not block:
                 return                         # không chờ: `read(1)` trên cổng rỗng chờ tới hết timeout đọc
-            data = self.transport.read(waiting if waiting > 0 else 1)
+            received += self.transport.read(min(waiting, PUMP_MAX_BYTES) if waiting > 0 else 1)
+            deadline = time.perf_counter() + PUMP_MAX_S
+            while received and len(received) < PUMP_MAX_BYTES and time.perf_counter() < deadline:
+                waiting = self.transport.in_waiting
+                if waiting <= 0:
+                    break
+                chunk = self.transport.read(min(waiting, PUMP_MAX_BYTES - len(received)))
+                if not chunk:
+                    break
+                received += chunk
         except OSError as exc:
-            self._link_failed(exc)
-            raise VehicleIOError(f"Không đọc được cổng: {exc}") from exc
-        if data:
-            self._on_bytes(bytes(data), self.now())
+            error = exc
+        if received:
+            self._on_bytes(bytes(received), self.now())    # byte đã đọc trước lỗi cổng vẫn được xử lý
+        if error is not None:
+            self._link_failed(error)
+            raise VehicleIOError(f"Không đọc được cổng: {error}") from error
 
     def service(self, block: bool = True) -> None:
         try:

@@ -1,9 +1,10 @@
-"""Kiểm tĩnh mã firmware C++ (máy phát triển không có trình biên dịch C/C++, nên mã chưa từng được biên dịch).
+"""Kiểm tĩnh mã firmware C++ (biên dịch được từ 29/09/2026 nhưng chưa chạy trên bo; lõi: test_transport_firmware_host).
 
 Các test ở đây đọc mã nguồn trong `firmware/esp32_vehicle` và kiểm những điều vector mẫu chung không phủ được: lớp
 dán Arduino (`src/main.cpp`: bộ hẹn giờ ép trung tính, E-stop, móc panic) và sự khớp tay giữa cấu hình/enum C++ với
 bản tham chiếu Python. Chúng KHÔNG thay cho biên dịch, `test/host` hay đo trên bo; chúng chỉ chặn việc quay lại đúng
 các lỗi đã biết. Đổi cấu trúc mã thì phải sửa test theo (test báo "không tìm thấy" chứ không đạt cho có)."""
+import configparser
 import re
 
 import pytest
@@ -136,5 +137,11 @@ def test_panic_and_restart_hooks_detach_esc_from_ledc_and_drive_it_low():
     assert 0 <= wrap.find("esc_line_low_now();") < wrap.find("__real_esp_panic_handler(info);")
     setup = _body(code, r"void setup\(\)")
     assert 0 <= setup.find("setup_outputs();") < setup.find("setup_reset_hooks();")
-    ini = (FIRMWARE / "platformio.ini").read_text(encoding="utf-8")
-    assert "-Wl,--wrap=esp_panic_handler" in [line.split(";")[0].strip() for line in ini.splitlines()]
+    # Từng env riêng: env esp32s3_qemu (bo ảo, 30/09/2026) ghi lại build_flags vì `extends` KHÔNG gộp build_flags, nên
+    # tìm cờ ở bất kỳ dòng nào của tệp thì bản nạp vào xe mất cờ vẫn đạt.
+    ini = configparser.ConfigParser(inline_comment_prefixes=(";",), interpolation=None)
+    ini.read(FIRMWARE / "platformio.ini", encoding="utf-8")
+    car, qemu = (ini[f"env:{env}"]["build_flags"].split() for env in ("esp32s3", "esp32s3_qemu"))
+    assert "-Wl,--wrap=esp_panic_handler" in car                        # bản nạp vào xe
+    # bo ảo chỉ khác bản nạp vào xe ở Serial (cờ dưới) và flash DIO (board_build.flash_mode, không phải build_flags)
+    assert set(car) ^ set(qemu) == {"-DARDUINO_USB_CDC_ON_BOOT=1", "-DARDUINO_USB_CDC_ON_BOOT=0"}

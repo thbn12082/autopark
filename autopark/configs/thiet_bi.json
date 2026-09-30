@@ -1,4 +1,7 @@
 {
-  "_ghi_chu": "Thiết bị gắn với MÁY đang dùng: đổi máy thì chỉ sửa tệp này. lidar_port: số COM của RPLIDAR C1 (ví dụ \"COM3\"), hoặc \"auto\" để tự tìm bộ chuyển CP210x (VID 10C4, PID EA60). Mọi lệnh LiDAR đọc giá trị này khi không có --port (ui.lidar_app, ngăn LiDAR, fusion.demo, lidar.live_view, lidar.bench record, lidar.rplidar_c1; rig.bench/rig_app khi --lidar không kèm giá trị); --port COMx vẫn ghi đè cho một lần chạy. rig.may_moi luôn tự tìm CP210x. Máy bàn tới 25/09/2026: COM4; máy bàn từ 29/09/2026 (docs/CHUYEN_MAY_BAN.md): COM3. Mã đọc: autopark/lidar/port.py.",
-  "lidar_port": "COM3"
+  "_ghi_chu": "Thiết bị gắn với MÁY đang dùng: đổi máy thì chỉ sửa tệp này. lidar_port: số COM của RPLIDAR C1 (ví dụ \"COM3\"), hoặc \"auto\" để tự tìm bộ chuyển CP210x (VID 10C4, PID EA60). Mọi lệnh LiDAR đọc giá trị này khi không có --port (ui.lidar_app, ngăn LiDAR, fusion.demo, lidar.live_view, lidar.bench record, lidar.rplidar_c1; rig.bench/rig_app khi --lidar không kèm giá trị); --port COMx vẫn ghi đè cho một lần chạy. rig.may_moi luôn tự tìm CP210x. Máy bàn tới 25/09/2026: COM4; máy bàn từ 29/09/2026 (docs/CHUYEN_MAY_BAN.md): COM3. Mã đọc: autopark/lidar/port.py. Thêm 30/09/2026, bo ảo QEMU (docs/MO_PHONG_FIRMWARE.md, mã đọc: autopark/transport/qemu_board.py): qemu_xtensa = qemu-system-xtensa của Espressif; platformio_python = python có gói platformio (để build env esp32s3_qemu); platformio_core_dir = PLATFORMIO_CORE_DIR (tùy chọn). Máy không có các khóa này hoặc tệp không tồn tại: test bo ảo bỏ qua.",
+  "lidar_port": "COM3",
+  "qemu_xtensa": "D:/xetulai/_platformio/qemu/qemu/bin/qemu-system-xtensa.exe",
+  "platformio_python": "D:/xetulai/_platformio/penv/Scripts/python.exe",
+  "platformio_core_dir": "D:/xetulai/_platformio/core"
 }

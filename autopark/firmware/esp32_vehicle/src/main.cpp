@@ -1,7 +1,8 @@
 // Firmware ESP32-S3 cho xe mô hình tự đỗ — lớp dán Arduino quanh lõi portable (src/core).
 //
-// TRẠNG THÁI: CHƯA BIÊN DỊCH, CHƯA NẠP, CHƯA CHẠY TRÊN BO NÀO. Máy phát triển hiện tại không có trình biên dịch
-// C/C++ hay PlatformIO. Mọi hằng số phần cứng bên dưới là CHƯA CHỐT: chưa nhận MN300, chưa biết ESC/servo giao
+// TRẠNG THÁI: ĐÃ BIÊN DỊCH (29/09/2026, PlatformIO, 0 cảnh báo: Arduino-ESP32 2.0.17 theo platformio.ini; thêm
+// Arduino-ESP32 3.3.12 trên bản sao tạm; mỗi bản cả PWM tắt lẫn bật với chân giả, xem README). CHƯA NẠP, CHƯA CHẠY
+// TRÊN BO NÀO: biên dịch chỉ chứng minh tên/chữ ký API đúng với core đó. Mọi hằng số phần cứng bên dưới là CHƯA CHỐT: chưa nhận MN300, chưa biết ESC/servo giao
 // tiếp thế nào, chưa có sơ đồ chân bo thật. Mặc định AP_ENABLE_PWM_OUTPUTS = 0: KHÔNG chân nào được điều khiển,
 // firmware chỉ nói giao thức, chạy máy trạng thái và gửi telemetry (effort/góc nó SẼ xuất ra).
 //
@@ -170,7 +171,8 @@ void output_guard(void*) {
 // Không phủ: bật nguồn/system reset/sụt áp (chân thả nổi lúc khởi động → cần điện trở kéo xuống ngoài, ví dụ ≈ 10 kΩ,
 // trên dây tín hiệu ESC), treo cứng không vào được panic. Servo: có kéo thấp hay không là CHƯA CHỐT (giữ nguyên).
 // Hành vi ESC khi mất xung: CHƯA CHỐT. Chỉ dùng thanh ghi và hàm ROM, nằm trong IRAM: gọi được khi cache flash tắt.
-// CHƯA BIÊN DỊCH, CHƯA ĐO: xem README, "Trình tự thử trên bo", bước 2.
+// CHƯA ĐO: xem README, "Trình tự thử trên bo", bước 2. (Biên dịch 29/09/2026 với chân giả: nằm ở IRAM, chỉ ghi thanh
+// ghi và gọi esp_rom_gpio_connect_out_signal trong ROM — kiểm bằng objdump, cả 2.0.17 lẫn 3.3.12.)
 [[maybe_unused]] IRAM_ATTR void esc_line_low_now() {
 #if AP_ENABLE_PWM_OUTPUTS
   const uint32_t bit = 1u << (static_cast<uint32_t>(kPinEsc) & 31u);
@@ -187,8 +189,11 @@ void output_guard(void*) {
 }
 
 #if AP_ARDUINO_V3
-// Arduino-ESP32 3.x tự bọc esp_panic_handler và gọi hàm đăng ký bằng set_arduino_panic_handler() trước trình xử lý
-// panic mặc định (esp32-hal.h). CHƯA KIỂM bằng biên dịch.
+// Arduino-ESP32 3.x: __wrap_esp_panic_handler của lõi (esp32-hal-misc.c) gọi hàm đăng ký bằng set_arduino_panic_handler()
+// trước trình xử lý panic mặc định — CHỈ KHI liên kết có -Wl,--wrap=esp_panic_handler. Arduino IDE thêm cờ đó
+// (platform.txt); PlatformIO/pioarduino 55.3.312 thì KHÔNG: không có cờ trong platformio.ini thì móc này không bao giờ
+// được gọi (kiểm 29/09/2026 bằng objdump: panic_handler gọi thẳng esp_panic_handler). Trước móc, lõi còn dựng
+// backtrace (handle_custom_backtrace, chạy từ flash), nên chân ESC xuống thấp muộn hơn bản 2.x: CẦN ĐO.
 [[maybe_unused]] IRAM_ATTR void ap_on_panic(arduino_panic_info_t*, void*) { esc_line_low_now(); }
 #endif
 
@@ -221,8 +226,12 @@ void setup_task_watchdog() {
     esp_task_wdt_init(&config);
   }
 #else
-  // IDF 4.4: đơn vị giây. Nếu TWDT đã được khởi tạo sẵn, lời gọi này trả lỗi và giữ thời hạn cũ (thường 5 s);
-  // khi đó chỉ bộ hẹn giờ output_guard giữ ESC trung tính trong lúc treo. CẦN KIỂM TRÊN BO.
+  // IDF 4.4: đơn vị giây. Arduino 2.0.17 đã khởi tạo TWDT sẵn (5 s, sdkconfig); khi đó esp_task_wdt_init() ĐỔI thời
+  // hạn và chế độ panic chứ không báo lỗi (esp_task_wdt.h của IDF 4.4). Sửa 30/09/2026, trước đó ghi nhầm "trả lỗi, giữ
+  // 5 s". Kiểm 29/09/2026: thanh ghi TIMG0 của bản build này trong QEMU = 1 s (tầng ngắt) / 2 s (tầng reset hệ thống).
+  // esp-emulator: một sketch thử (KHÔNG phải firmware này) gọi cùng esp_task_wdt_init(1, true) bị TWDT kích hoạt
+  // ≈ 1,2 s sau khi loop() treo (docs/MO_PHONG_FIRMWARE.md mục 2.4). Firmware này CHƯA THỬ treo trong trình giả lập có
+  // watchdog; trên bo thật: CẦN KIỂM.
   esp_task_wdt_init(1, true);
 #endif
   esp_task_wdt_add(nullptr);
@@ -289,7 +298,9 @@ void flush_tx() {
 // Arduino-ESP32 2.x (ESP-IDF 4.4) không có móc panic cho người dùng: bọc esp_panic_handler bằng cờ liên kết
 // -Wl,--wrap=esp_panic_handler (platformio.ini). Định nghĩa luôn có mặt (kể cả khi AP_ENABLE_PWM_OUTPUTS=0, khi đó
 // esc_line_low_now không làm gì) vì cờ liên kết không phụ thuộc cờ biên dịch. Chuyển sang 3.x (pioarduino) thì nhánh
-// này tắt và dùng set_arduino_panic_handler. Móc có thật sự được gọi hay không phải đo trên bo (abort() trong loop).
+// này tắt và dùng set_arduino_panic_handler, nhưng VẪN GIỮ cờ --wrap (lõi 3.x tự định nghĩa __wrap, xem ap_on_panic).
+// Biên dịch 29/09/2026 (2.0.17): panic_handler của IDF gọi hàm này, hàm này gọi esp_panic_handler thật (objdump).
+// Móc có thật sự chạy lúc panic hay không vẫn phải đo trên bo (abort() trong loop).
 extern "C" void __real_esp_panic_handler(void* info);
 extern "C" IRAM_ATTR void __wrap_esp_panic_handler(void* info) {
   esc_line_low_now();

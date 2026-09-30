@@ -1,23 +1,27 @@
 """VehicleIO hai nhánh: mô phỏng (vòng kín có vùng chết, trễ, nhiễu) và serial (qua cổng giả nối FirmwareModel).
-Không mở cổng thật nào."""
+Không mở cổng nối tiếp thật nào; ba test mở cổng TCP cục bộ 127.0.0.1 qua `SocketPort` của dự án (URL `socket://`),
+không test nào dùng `socket://` của pyserial."""
 from dataclasses import replace
 import json
 import math
 from pathlib import Path
 import random
+import socket
 import statistics
+import threading
 import time
 
 import pytest
 
-from autopark.transport.firmware_model import FirmwareConfig, FirmwareModel
+from autopark.transport.firmware_model import FirmwareConfig, FirmwareInputs, FirmwareModel
 from autopark.transport.loopback import FirmwareSerialLoopback, ManualClock
 from autopark.transport.protocol import (Command, DEVICE_TO_HOST, Fault, FrameParser, Result, State, StopReason,
                                          TelemetryFlag, TelemetryMsg, encode_frame)
-from autopark.transport.vehicle_io import (SIM_FIRMWARE_DEFAULT, Heartbeat, SerialVehicleIO, SimActuatorConfig,
-                                           SimIOConfig, SimSensorConfig, SimVehicleIO, VehicleIO, VehicleIOError,
-                                           VehicleTelemetry, load_sim_io_config, round_half_away, speed_to_wire,
-                                           steer_to_wire)
+from autopark.transport.socket_port import SocketPort
+from autopark.transport.vehicle_io import (PUMP_MAX_S, SIM_FIRMWARE_DEFAULT, Heartbeat, SerialVehicleIO,
+                                           SimActuatorConfig, SimIOConfig, SimSensorConfig, SimVehicleIO, VehicleIO,
+                                           VehicleIOError, VehicleTelemetry, load_sim_io_config, round_half_away,
+                                           speed_to_wire, steer_to_wire)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # Mặc định firmware của mô phỏng (trần effort 1000 ‰ vì cơ cấu chấp hành giả định cần effort cao; số của mô phỏng).
@@ -681,6 +685,253 @@ def test_connect_refuses_board_period_longer_than_stale_threshold():
         io.send(0.1, 0.0)
     ok = SerialVehicleIO(loop, clock=clock, rng=random.Random(2), telemetry_timeout_s=0.6)
     assert ok.connect().telemetry_period_s == pytest.approx(0.2) and ok.connected
+
+
+# ---- cổng kiểu socket:// (bo ảo QEMU; thêm 30/09/2026, docs/MO_PHONG_FIRMWARE.md) ---------------------------------
+class SocketLikePort:
+    """Như `socket://` của pyserial 3.5: `in_waiting` chỉ báo 0 hoặc 1 (select), `read(n)` chờ tới `timeout` cho đủ n
+    byte. Đầu kia là `FirmwareSerialLoopback`. `waiting_reads`: số lần `read(n)` với n lớn hơn số byte đang có (pyserial
+    sẽ chờ ở đó). `fail_after`: số byte đã giao, quá thì `in_waiting` ném OSError (rút cáp)."""
+
+    def __init__(self, inner: FirmwareSerialLoopback):
+        self.inner = inner
+        self.fail_after: int | None = None
+        self.delivered = 0
+        self.waiting_reads = 0
+
+    @property
+    def in_waiting(self) -> int:
+        if self.fail_after is not None and self.delivered >= self.fail_after:
+            raise OSError("connection reset (test)")
+        return min(1, self.inner.in_waiting)
+
+    def read(self, n: int = 1) -> bytes:
+        if n > len(self.inner.rx):
+            self.waiting_reads += 1
+        out = self.inner.read(n)
+        self.delivered += len(out)
+        return out
+
+    def write(self, data: bytes) -> int:
+        return self.inner.write(data)
+
+    def close(self) -> None:
+        self.inner.close()
+
+
+def test_serial_pump_drains_port_that_reports_in_waiting_as_one():
+    """Trước 30/09/2026 mỗi `_pump` đọc đúng `in_waiting` = 1 byte: vòng 50 Hz `poll(block=False)` tụt lại xa sau bo."""
+    clock = ManualClock()
+    loop = FirmwareSerialLoopback(FirmwareModel(FAST_FW, boot_id=0xB007), clock)
+    port = SocketLikePort(loop)
+    io = SerialVehicleIO(port, clock=clock, rng=random.Random(4))
+    io.connect()
+    io.wait_ready()
+    io.arm()
+    io.poll()
+    base, waiting0 = io.stats.telemetry_received, port.waiting_reads
+    lags = []
+    for _ in range(100):                                             # 2 s, nhịp 20 ms như vòng giao diện
+        loop.advance(20)
+        for tel in io.poll(block=False):
+            lags.append(clock.t_ms - tel.device_time_ms)
+        io.send(0.1, 0.0)
+    assert io.stats.telemetry_received - base >= 38                  # 20 Hz trong 2 s
+    assert max(lags) <= 20                                           # không dồn: khung đến ngay trong nhịp của nó
+    assert port.waiting_reads == waiting0                            # và không lần đọc nào phải chờ
+    assert "TELEMETRY_STALE" not in codes(io.events())
+
+
+def test_serial_pump_keeps_bytes_read_before_a_port_error():
+    clock = ManualClock()
+    loop = FirmwareSerialLoopback(FirmwareModel(FAST_FW, boot_id=0xB007), clock)
+    port = SocketLikePort(loop)
+    io = SerialVehicleIO(port, clock=clock, rng=random.Random(4))
+    io.connect()
+    io.wait_ready()
+    io.poll()
+    loop.advance(50)                                                 # đúng một khung telemetry đang chờ
+    assert loop.rx
+    port.fail_after = port.delivered + len(loop.rx)                  # đọc hết khung đó rồi cổng mới lỗi
+    before = io.stats.telemetry_received
+    got = io.poll(block=False)
+    assert len(got) == 1 and io.stats.telemetry_received == before + 1
+    assert "LINK_ERROR" in codes(io.events()) and io.transport is None and not io.connected
+
+
+class EndlessSlowPort:
+    """Cổng luôn còn byte (`in_waiting` 1) và đọc mỗi byte mất 1 ms: bên kia gửi nhanh hơn tốc độ đọc từng byte."""
+
+    def __init__(self):
+        self.reads = 0
+
+    @property
+    def in_waiting(self) -> int:
+        return 1
+
+    def read(self, n: int = 1) -> bytes:
+        self.reads += 1
+        time.sleep(0.001)
+        return b"\x00"
+
+    def write(self, data: bytes) -> int:
+        return len(data)
+
+    def close(self) -> None:
+        pass
+
+
+def test_serial_pump_is_bounded_in_time_on_an_endless_stream():
+    io = SerialVehicleIO(EndlessSlowPort(), rng=random.Random(4))
+    t0 = time.perf_counter()
+    io.poll(block=False)
+    elapsed = time.perf_counter() - t0
+    assert io.transport.reads >= 2                                   # có đọc cạn (không dừng sau một byte)
+    assert elapsed < PUMP_MAX_S + 0.1                                # nhưng không giữ vòng giao diện quá lâu
+
+
+def test_serial_open_picks_the_transport_from_the_port_name(monkeypatch):
+    serial = pytest.importorskip("serial")
+    from autopark.transport import socket_port
+
+    calls = []
+
+    class Dummy:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(socket_port.SocketPort, "from_url",
+                        classmethod(lambda cls, url, **kw: calls.append(("tcp", url, (), kw)) or Dummy()))
+    monkeypatch.setattr(serial, "serial_for_url", lambda url, *a, **kw: calls.append(("url", url, a, kw)) or Dummy())
+    monkeypatch.setattr(serial, "Serial", lambda port, *a, **kw: calls.append(("com", port, a, kw)) or Dummy())
+    SerialVehicleIO.open("socket://127.0.0.1:5555")
+    SerialVehicleIO.open("RFC2217://127.0.0.1:2217")
+    SerialVehicleIO.open("COM7")
+    assert [(c[0], c[1]) for c in calls] == [("tcp", "socket://127.0.0.1:5555"), ("url", "RFC2217://127.0.0.1:2217"),
+                                            ("com", "COM7")]
+    assert [c[3]["write_timeout"] for c in calls] == [0.05, None, 0.05]   # rfc2217 của pyserial không nhận nó
+    assert all(c[3]["timeout"] == 0.01 for c in calls) and calls[1][2] == calls[2][2] == (115200,)
+
+
+# ---- SocketPort: cổng TCP của dự án (thay socket:// của pyserial) --------------------------------------------------
+def tcp_pair():
+    server = socket.create_server(("127.0.0.1", 0))
+    port = SocketPort("127.0.0.1", server.getsockname()[1], timeout=0.05)
+    peer, _ = server.accept()
+    server.close()
+    return port, peer
+
+
+def test_socket_port_reports_real_in_waiting_and_does_not_wait_when_bytes_are_buffered():
+    data = bytes(range(256)) * 3
+    port, peer = tcp_pair()
+    try:
+        peer.sendall(data)
+        deadline = time.perf_counter() + 2.0
+        while port.in_waiting < len(data) and time.perf_counter() < deadline:
+            time.sleep(0.001)
+        assert port.in_waiting == len(data)                          # số byte thật, không phải 0/1 như pyserial
+        t0 = time.perf_counter()
+        assert port.read(700) == data[:700]
+        assert port.read(1000) == data[700:]                         # có bao nhiêu trả bấy nhiêu, không chờ đủ 1000
+        assert time.perf_counter() - t0 < 0.03
+        t0 = time.perf_counter()
+        assert port.read(1) == b""                                   # rỗng: chờ tới timeout (0,05 s) rồi trả rỗng
+        assert 0.03 <= time.perf_counter() - t0 < 1.0
+        assert port.write(b"\x00hello") == 6 and peer.recv(16) == b"\x00hello"
+    finally:
+        port.close()
+        peer.close()
+
+
+def test_socket_port_peer_close_and_closed_port_are_oserrors():
+    port, peer = tcp_pair()
+    peer.close()
+    with pytest.raises(OSError):
+        deadline = time.perf_counter() + 2.0
+        while time.perf_counter() < deadline:
+            port.in_waiting
+            time.sleep(0.005)
+    port.close()
+    with pytest.raises(OSError):
+        port.write(b"x")
+    with pytest.raises(ValueError):
+        SocketPort.from_url("socket://127.0.0.1")                    # thiếu cổng
+
+
+class TcpFirmware(threading.Thread):
+    """`FirmwareModel` sau một cổng TCP THẬT trên 127.0.0.1, nhịp 10 ms theo đồng hồ tường: như bo ảo QEMU, nhưng
+    không cần QEMU. Laptop mở nó bằng `socket://` (SocketPort)."""
+
+    def __init__(self, firmware: FirmwareModel):
+        super().__init__(daemon=True)
+        self.firmware = firmware
+        self.server = socket.create_server(("127.0.0.1", 0))
+        self.server.settimeout(5.0)
+        self.url = f"socket://127.0.0.1:{self.server.getsockname()[1]}"
+        self.done = threading.Event()
+
+    def run(self) -> None:
+        try:
+            conn, _ = self.server.accept()
+        except OSError:
+            return
+        with conn:
+            conn.settimeout(0.001)
+            t0 = time.perf_counter()
+            next_tick = 10
+            while not self.done.is_set():
+                now_ms = int((time.perf_counter() - t0) * 1000)
+                try:
+                    data = conn.recv(4096)
+                except TimeoutError:
+                    data = None
+                except OSError:
+                    return                  # laptop đóng kết nối (Windows: ConnectionResetError, WinError 10054)
+                if data == b"":
+                    return
+                if data:
+                    self.firmware.receive(data, now_ms)
+                while next_tick <= now_ms:
+                    self.firmware.step(next_tick, FirmwareInputs())
+                    next_tick += 10
+                out = self.firmware.take_tx()
+                if out:
+                    try:
+                        conn.sendall(out)
+                    except OSError:
+                        return
+
+    def stop(self) -> None:
+        self.done.set()
+        self.server.close()
+        self.join(timeout=2.0)
+
+
+def test_serial_over_a_real_socket_url_keeps_up_with_20hz_telemetry():
+    """Thời gian thực (~1,5 s): `SerialVehicleIO.open("socket://…")` (SocketPort) với vòng 50 Hz `poll(block=False)`.
+    Ngưỡng mất liên lạc 2 s để máy bận không làm hỏng test; thứ đang kiểm là số khung và thứ tự của chúng."""
+    board = TcpFirmware(FirmwareModel(FAST_FW, boot_id=0xB007))
+    board.start()
+    io = SerialVehicleIO.open(board.url, telemetry_timeout_s=2.0)
+    try:
+        assert isinstance(io.transport, SocketPort)
+        io.connect()
+        io.wait_ready()
+        io.arm()
+        io.poll()
+        got = []
+        end = time.perf_counter() + 1.0
+        while time.perf_counter() < end:
+            got += io.poll(block=False)
+            io.send(0.1, 0.0)
+            time.sleep(0.02)
+        assert len(got) >= 17                                        # 20 Hz trong 1 s
+        assert "TELEMETRY_STALE" not in codes(io.events())
+        assert all(0 < (b.sequence - a.sequence) & 0xFFFF < 0x8000 for a, b in zip(got, got[1:]))
+    finally:
+        io.close()
+        board.stop()
 
 
 # ---- chuyển đổi telemetry ----------------------------------------------------------------------------------------
