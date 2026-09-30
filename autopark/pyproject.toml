@@ -29,3 +29,6 @@ testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
 markers = ["planner_budget: checks search results under wall-clock budgets; run without coverage tracing"]
+# Chỉ giữ thư mục tmp_path của test hỏng (30/09/2026): giữ hết thì mỗi lượt .venv-train để lại ≈ 2,1 GB trong %TEMP%,
+# mà ổ C của máy bàn chật (docs/CHUYEN_MAY_BAN.md mục 8).
+tmp_path_retention_policy = "failed"
