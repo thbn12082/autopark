@@ -1,0 +1,1581 @@
+{
+ "topic": "Host-side testing of the Arduino-ESP32 / ESP-IDF glue (firmware/esp32_vehicle/src/main.cpp) on the PC, without any chip (checked 2026-09-29)",
+ "candidates": [
+  {
+   "name": "PlatformIO Unit Testing: native env + Unity (project supplies the Arduino-ESP32 fakes)",
+   "url": "https://docs.platformio.org/en/latest/advanced/unit-testing/index.html",
+   "license": "Apache-2.0 (PlatformIO Core, platform-native); MIT (Unity)",
+   "latest_version": "PlatformIO Core 6.2.0 (2026-09-05); platform native 1.2.1 (2022-05-28); Unity upstream 2.7.0 (2026-07-16), PlatformIO pulls ^2.6.1 (2.6.1 installed in test)",
+   "summary": "PlatformIO's built-in runner (pio test). With platform = native it builds the tests, plus project sources when test_build_src = yes, with the PC's gcc, runs them and parses Unity output. Unity is the default framework and also runs on the real board. Native provides no Arduino or ESP32 API, so the fakes come from the project. Verified on this PC 2026-09-29: Unity and GoogleTest suites passed, and the repo's unmodified src/ (main.cpp + core) built and passed 2 Unity tests against about 210 lines of fakes.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "PlatformIO Core and platform-native are Apache-2.0; Unity is MIT. Local pio test ran here without logging in (isolated PLATFORMIO_CORE_DIR). Only pio remote needs a PlatformIO account, and registration is free.",
+     "sources": [
+      "https://github.com/platformio/platformio-core/blob/develop/LICENSE",
+      "https://github.com/platformio/platform-native",
+      "https://github.com/ThrowTheSwitch/Unity/blob/master/LICENSE.txt",
+      "https://docs.platformio.org/en/latest/plus/pio-remote.html"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "The native env compiles x86-64 host code. No ESP32-S3 code runs; that needs the embedded env or an emulator.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/platforms/native.html"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "Native has no Arduino core. PoC: repo main.cpp compiles against project fakes for both branches. 2.x: ledcSetup/ledcAttachPin/ledcWrite(channel), esp_task_wdt_init(seconds,bool). 3.x: ledcAttach/ledcWrite(pin), esp_task_wdt_config_t + esp_task_wdt_reconfigure, set_arduino_panic_handler. A single -D switches branch.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/pio_glue_demo",
+      "https://github.com/espressif/arduino-esp32/blob/master/cores/esp32/esp32-hal-ledc.h",
+      "https://github.com/espressif/esp-idf/blob/release/v5.5/components/esp_system/include/esp_task_wdt.h"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "yes",
+     "detail": "Config: [env:native] platform = native, test_framework = unity, test_build_src = yes, src_dir = firmware src. Verified: 2/2 passed in 24.9 s including the build. It consumes sources, not firmware.elf/bin.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/projectconf/sections/env/options/test/test_build_src.html",
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/unity.html",
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/pio_glue_demo/platformio.ini"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "no",
+     "detail": "Nothing built in: tests push bytes into an in-process fake Serial. A pyserial-reachable link needs a project bridge; see the PoC candidate, which uses a TCP bridge and SerialVehicleIO end-to-end.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/index.html"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "No peripheral model. The fake covers only the HWCDC calls main.cpp uses: begin, setTxTimeoutMs, available, read(buf,n), availableForWrite, write, operator bool. USB enumeration, DTR/RTS resets, TX timeout and connected-state semantics stay untested.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/fakes/fake_hw.h"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "partial",
+     "detail": "Calls are recorded, so duty values and order can be asserted. PoC: 1500 us gives duty 1228 at 50 Hz/14 bit, and ESC and servo neutral are written before Serial.begin. Nothing checks the waveform, period accuracy or APB/XTAL clock effects.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/test_glue.cpp"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "The fake digitalRead returns scripted per-pin levels. The PoC also checks pinMode(6, INPUT_PULLUP=0x05) and about one E-stop read per 10 ms tick. Pull-up strength, open wires and noise are not modelled.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/test_glue.cpp"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "No built-in parts. Options: a fake TwoWire/register-map per sensor (AS5600, VL53L1X, BNO085, MT6701), or bus-agnostic drivers fed recorded transcripts.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/index.html"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "Deterministic logic only. The esp_timer callback is captured and fired with an injected millis: 100 ms silent gives no write, 101 ms forces ESC neutral; 2^32 wrap and a stamp newer than now are handled. Panic and shutdown hooks are checked only as call order: W1TC 0x6000400C, then ENABLE_W1TS 0x60004024, then esp_rom_gpio_connect_out_signal(4,256), then __real handler. Not proven: TWDT firing, --wrap linkage, IRAM/cache safety, LEDC surviving a CPU-only reset.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/test_glue.cpp"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "pio test -e native runs headless with exit codes, --junit-output-path and --json-output-path. No token or account. 6.2.0 fixed a Windows Serial.end() test failure and a hardcoded PASSED status.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/core/userguide/cmd_test.html",
+      "https://github.com/platformio/platformio-core/blob/develop/HISTORY.rst"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "yes",
+     "detail": "Docs recommend MSYS2 gcc on PATH. Verified instead on Windows 11 with WinLibs MinGW-w64 g++ 16.1.0 (UCRT) on PATH and PlatformIO Core 6.2.0. Add -static: the repo's CMake notes that Git Bash's older libstdc++-6.dll comes first on PATH.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/platforms/native.html",
+      "D:/xetulai/autopark/autopark/firmware/esp32_vehicle/test/host/CMakeLists.txt"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "partial",
+     "detail": "The same runner builds, uploads and parses Unity output from the board (pio test -e esp32s3). Fake-based tests don't port, so on-target suites are separate. Open issue #1733 (2026-03-31): ESP32-S3 Unity tests over native USB/HWCDC hang in download mode. DevKitC-1 also has a USB-UART port; that workaround is untested.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/runner.html",
+      "https://github.com/platformio/platform-espressif32/issues/1733",
+      "https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html"
+     ]
+    }
+   ],
+   "fit": "Best runner for this repo. It is the same tool as the firmware build, it is verified on this PC, and it builds the repo's src/ unchanged. It only supplies the harness; the Arduino-ESP32 fakes (about 30 symbols, about 210 lines) belong to the project. Use it, or the existing CMake/CTest host build, for the glue logic of both the 2.x and 3.x branches.",
+   "caveats": [
+    "PWM-on tests need pin numbers >= 0 because of the static_assert. The PoC used a sed-patched copy; making the pins overridable with -D would fix this.",
+    "Fakes can drift from the real headers. Keep pio run -e esp32s3 (real core headers) in CI next to the host tests.",
+    "Only test_-prefixed folders are suites. Shared fakes go in the test/ root or on an -I path.",
+    "The host run is single-threaded, so ordering between the esp_timer task (core 0) and loop (core 1) is not exercised."
+   ],
+   "cost_notes": "Free. No account for local tests. pio remote test needs a free PlatformIO account."
+  },
+  {
+   "name": "GoogleTest + GoogleMock",
+   "url": "https://github.com/google/googletest",
+   "license": "BSD-3-Clause",
+   "latest_version": "v1.18.0 (2026-08-10, needs C++17, 1.18.x gets critical fixes only); PlatformIO pulls 1.17.0 (2025-04-30)",
+   "summary": "C++ test framework with gMock expectations: call counts, argument matchers, InSequence. Built into PlatformIO as test_framework = googletest (native, plus embedded on Espressif 32), or used from CMake. Free functions cannot be mocked directly, so each Arduino/IDF C API needs a forwarder to a mock object.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "BSD-3-Clause.",
+     "sources": [
+      "https://github.com/google/googletest/blob/main/LICENSE"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host-compiled tests only.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/googletest.html"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "No Arduino or ESP32 mocks. gMock docs: 'It is not possible to directly mock a free function', so ledcWrite, esp_timer_create and similar need forwarders. adrianaxente/arduino-mock 1.1.0 (2026-02-27, MIT) provides these for the Arduino core, Serial, SPI and Wire only; no ledc, esp_* or HWCDC.",
+     "sources": [
+      "https://google.github.io/googletest/gmock_cook_book.html",
+      "https://github.com/adrianaxente/arduino-mock"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "yes",
+     "detail": "test_framework = googletest. Verified here: a native gMock test passed; PlatformIO installed googletest 1.17.0.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/googletest.html",
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/pio_native_demo"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "no",
+     "detail": "Not provided. Needs a project TCP or pipe bridge (see PoC).",
+     "sources": [
+      "https://github.com/google/googletest"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "Only a mock class of the HWCDC calls used; no peripheral behaviour.",
+     "sources": [
+      "https://google.github.io/googletest/gmock_cook_book.html"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "partial",
+     "detail": "EXPECT_CALL(ledc, write(0,1228)) with InSequence checks duty and order. No waveform.",
+     "sources": [
+      "https://google.github.io/googletest/gmock_cook_book.html"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "ON_CALL/EXPECT_CALL(digitalRead(6)).WillRepeatedly(Return(HIGH)).",
+     "sources": [
+      "https://google.github.io/googletest/gmock_cook_book.html"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "Mock a TwoWire-like interface or hand-write fake devices; nothing built in.",
+     "sources": [
+      "https://github.com/adrianaxente/arduino-mock"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "Expectations can cover esp_timer_start_periodic(_,10000), the TWDT calls and hook order, and SaveArg can capture the timer callback. No hardware fidelity.",
+     "sources": [
+      "https://google.github.io/googletest/gmock_cook_book.html"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "Runs via ctest or pio test; XML output with --gtest_output; no account.",
+     "sources": [
+      "https://github.com/google/googletest",
+      "https://docs.platformio.org/en/latest/core/userguide/cmd_test.html"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "yes",
+     "detail": "Verified here in PlatformIO native with MinGW-w64 g++ 16.1.0. v1.17 and later need C++17.",
+     "sources": [
+      "https://github.com/google/googletest/releases",
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/pio_native_demo"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "partial",
+     "detail": "PlatformIO docs: embedded tests 'Yes* (only for Espressif 8266 and Espressif 32)'. Mock-based glue tests still run on the host only.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/googletest.html"
+     ]
+    }
+   ],
+   "fit": "Good if strict interaction checks are wanted, such as exact panic-hook sequences and TWDT config per core version. It needs more boilerplate than plain fakes because every free function needs a forwarder. The Unity + fakes PoC already makes the same checks with less code.",
+   "caveats": [
+    "Slower to compile than Unity or doctest.",
+    "Mock-heavy tests tend to assert implementation details; keep them at the HAL boundary."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "doctest (Catch2 v3 is the equivalent alternative)",
+   "url": "https://github.com/doctest/doctest",
+   "license": "MIT (Catch2: BSL-1.0)",
+   "latest_version": "doctest 2.5.3 (2026-07-06); PlatformIO 6.1.19+ bundles 2.4.12; Catch2 v3.16.0 (2026-08-25)",
+   "summary": "Fast, header-only C++ test framework. PlatformIO supports it for native only ('Mocking Support: No'), with a custom main(). Pair it with fakes, fff or FakeIt.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "MIT.",
+     "sources": [
+      "https://github.com/doctest/doctest"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host only.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/doctest.html"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "No mocks; needs the same project fake layer.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/doctest.html"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "yes",
+     "detail": "test_framework = doctest (native), custom main() with no-exitcode/success options per the docs.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/doctest.html"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "no",
+     "detail": "Not provided.",
+     "sources": [
+      "https://github.com/doctest/doctest"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "Not provided.",
+     "sources": [
+      "https://github.com/doctest/doctest"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "partial",
+     "detail": "Assertions on recorded fake calls only.",
+     "sources": [
+      "https://github.com/doctest/doctest"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "Works with fakes.",
+     "sources": [
+      "https://github.com/doctest/doctest"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "Hand-written fake devices only.",
+     "sources": [
+      "https://github.com/doctest/doctest"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "Logic with fakes only.",
+     "sources": [
+      "https://github.com/doctest/doctest"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "CLI and pio test; no account.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/doctest.html"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "yes",
+     "detail": "README claims no warnings on MSVC/GCC/Clang. Not run on this PC.",
+     "sources": [
+      "https://github.com/doctest/doctest"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "no",
+     "detail": "PlatformIO: 'Embedded Tests: No'.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/doctest.html"
+     ]
+    }
+   ],
+   "fit": "A fine assertion framework for host-only glue tests, but it adds nothing over Unity here and cannot run on the board. Unity keeps the option of on-target tests open.",
+   "caveats": [
+    "Catch2 is not in PlatformIO's built-in list; it would need test_framework = custom or CMake."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "ArduinoFake (built on FakeIt)",
+   "url": "https://github.com/FabioBatSilva/ArduinoFake",
+   "license": "MIT (FakeIt: MIT)",
+   "latest_version": "0.4.0 (2023-06-03, registry fabiobatsilva/ArduinoFake); last commit 2025-09-25; FakeIt upstream 2.5.0 (2025-11-14)",
+   "summary": "Mockable Arduino core for PlatformIO native, used by the official PlatformIO example unit-testing/arduino-mock. It mocks the generic, AVR-derived API: pinMode, digitalRead/Write, analog*, millis, micros, delay, attachInterrupt, random, plus AVR Serial_, Stream, Print, Wire, SPI, EEPROM and Client.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "MIT.",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host only (library.json platforms: native).",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake/blob/master/library.json"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "Nothing ESP32-specific: no ledc*, esp_timer, esp_task_wdt, esp_system or IRAM_ATTR. The Serial fake is AVR Serial_, with no read(uint8_t*,size_t) or setTxTimeoutMs. INPUT_PULLDOWN is defined. main.cpp would still need most of the PoC shims.",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake/blob/master/src/FunctionFake.h",
+      "https://github.com/FabioBatSilva/ArduinoFake/blob/master/src/SerialFake.h",
+      "https://github.com/FabioBatSilva/ArduinoFake/blob/master/src/StreamFake.h"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "yes",
+     "detail": "lib_deps = ArduinoFake with platform = native, as in the official example.",
+     "sources": [
+      "https://github.com/platformio/platformio-examples/tree/develop/unit-testing/arduino-mock"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "no",
+     "detail": "Serial is a FakeIt mock with scripted returns; no byte stream.",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake/blob/master/src/SerialFake.h"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "No HWCDC.",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake/tree/master/src"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "no",
+     "detail": "No ledc API; analogWrite only.",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake/blob/master/src/FunctionFake.h"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "When(Method(ArduinoFake(), digitalRead)).Return(...) and Verify(...).Using(pin, mode).",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "The Wire mock can script read() sequences; no device models.",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake/tree/master/src"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "no",
+     "detail": "Only millis, micros and delay are mockable. No esp_timer, TWDT or panic.",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake/blob/master/src/FunctionFake.h"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "pio test native; no account.",
+     "sources": [
+      "https://github.com/platformio/platformio-examples/tree/develop/unit-testing/arduino-mock"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "yes",
+     "detail": "README troubleshooting shows the Windows access-violation code 3221225477, so it is used on Windows. FakeIt supports GCC, Clang and MSVC. Not run on this PC.",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake",
+      "https://github.com/eranpeer/FakeIt"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "no",
+     "detail": "Native-only library.",
+     "sources": [
+      "https://github.com/FabioBatSilva/ArduinoFake/blob/master/library.json"
+     ]
+    }
+   ],
+   "fit": "Poor fit for this glue. It covers generic Arduino calls but not the ESP32/IDF calls and HWCDC API that make up most of main.cpp, and any unstubbed method segfaults. Plain project fakes are simpler.",
+   "caveats": [
+    "Its AVR-style Arduino.h can clash with ESP32 expectations (Serial_ class, USBCON macro).",
+    "Low activity: last release 2023."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "Fake Function Framework (fff)",
+   "url": "https://github.com/meekrosoft/fff",
+   "license": "MIT",
+   "latest_version": "v1.1 (2020-12-01); last commit 2023-05-22",
+   "summary": "Single-header C macro library that generates fake functions with call counts, argument history, return sequences, custom fakes and a global call-order history.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "MIT.",
+     "sources": [
+      "https://github.com/meekrosoft/fff/blob/master/LICENSE"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host only.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "One macro per C function, e.g. FAKE_VALUE_FUNC(uint32_t, ledcSetup, uint8_t, uint32_t, uint8_t). Suits the extern-C Arduino-ESP32/IDF APIs. Serial/HWCDC still needs a hand-written C++ fake. ledcWrite differs between 2.x and 3.x, so each needs its own build.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "partial",
+     "detail": "Header-only: drop fff.h into test/. A PlatformIO registry search for 'fff' found no package.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "no",
+     "detail": "Not in scope.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "Not in scope.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "partial",
+     "detail": "arg_history holds duty values; fff.call_history gives call order.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "digitalRead_fake.return_val, return_val_seq or custom_fake.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "A custom_fake can hold a register map. Wire is a C++ class, so it needs a hand fake.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "A custom_fake can capture the esp_timer_create args so the test fires the callback. TWDT and panic calls are recorded only.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "Works with any runner (Unity, GoogleTest, doctest); no account.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "yes",
+     "detail": "Plain C/C++ macros with no OS dependency. Not run on this PC.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "no",
+     "detail": "Fakes replace functions at link time; host only.",
+     "sources": [
+      "https://github.com/meekrosoft/fff"
+     ]
+    }
+   ],
+   "fit": "Handy to cut boilerplate for the roughly 20 C functions (ledc*, esp_timer_*, esp_task_wdt_*, esp_*) inside a Unity or GoogleTest suite, and it gives a free call-order log. The project is tiny and stable, though little maintained.",
+   "caveats": [
+    "No C++ class or overload support; mixing 2.x and 3.x in one binary is not possible."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "CMock (+ Unity, Ceedling)",
+   "url": "https://github.com/ThrowTheSwitch/CMock",
+   "license": "MIT",
+   "latest_version": "CMock 2.7.0 and Unity 2.7.0 (2026-07-16); Ceedling 1.1.9 (2026-09-20), 1.2.0-pre.7 prerelease",
+   "summary": "Ruby tool that parses C headers and generates strict mocks (Expect, ExpectAndReturn, Ignore, StubWithCallback). Ceedling wraps Unity + CMock builds. ESP-IDF uses CMock for its Linux-target mocks.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "MIT.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/CMock/blob/master/LICENSE.txt"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host only.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/CMock"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "Can mock C headers such as esp_timer.h, esp_task_wdt.h and esp32-hal-ledc.h, in practice from trimmed copies because of deep include chains. Its docs say 'CMock does NOT mock non-static members', so HWCDC/Serial needs a C++ fake. 2.x and 3.x need separate mock sets.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/CMock/blob/master/docs/CMock_Summary.md"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "partial",
+     "detail": "Not in PlatformIO's framework list and no registry package found; the Ruby generator would run as a pre-build step.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/index.html"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "no",
+     "detail": "Not in scope.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/CMock"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "Not in scope.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/CMock"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "partial",
+     "detail": "Strict ordered expectations such as ledcWrite_Expect(0,1228).",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/CMock/blob/master/docs/CMock_Summary.md"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "digitalRead_ExpectAndReturn / IgnoreAndReturn.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/CMock/blob/master/docs/CMock_Summary.md"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "Mocks bus functions; no device models.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/CMock"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "StubWithCallback captures the timer callback; TWDT and panic are expectations only.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/CMock/blob/master/docs/CMock_Summary.md"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "Ceedling CLI. Needs Ruby (Ceedling: Ruby 3+) or its Docker images; no account.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/Ceedling"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "partial",
+     "detail": "Ruby-based and should work on Windows, but not verified: Ruby is not installed on this PC. Docker images exist.",
+     "sources": [
+      "https://github.com/ThrowTheSwitch/Ceedling"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "partial",
+     "detail": "Unity runs on targets, but tests that use CMock hardware mocks stay host-only. ESP-IDF says mocking currently works only on the Linux target.",
+     "sources": [
+      "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/unit-tests.html"
+     ]
+    }
+   ],
+   "fit": "Strong for C modules but awkward for this C++ Arduino glue: it adds Ruby and header trimming, and still needs a C++ fake for Serial. Only worth it if the firmware later moves to ESP-IDF-style C components.",
+   "caveats": [
+    "Generated mocks must be regenerated whenever the headers change."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "ESP-IDF Linux target (host apps) with CMock component mocks",
+   "url": "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/host-apps.html",
+   "license": "Apache-2.0 (ESP-IDF), MIT (CMock)",
+   "latest_version": "ESP-IDF v6.1 (GitHub release dated 27 Aug, 2026); host apps marked experimental",
+   "summary": "Builds ESP-IDF apps for 'linux' (idf.py --preview set-target linux) using the FreeRTOS POSIX simulator (pthreads, cooperative, tick-granular) and/or CMock component mocks in tools/mocks (driver, esp_timer, esp_hw_support, freertos, spi_flash, ...).",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "Apache-2.0.",
+     "sources": [
+      "https://github.com/espressif/esp-idf"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Produces a Linux executable; 'simulating ... does not fully represent the target device'.",
+     "sources": [
+      "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/host-apps.html"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "no",
+     "detail": "No evidence the Arduino-ESP32 core builds for the linux target; the glue's Arduino calls would still need fakes.",
+     "sources": [
+      "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/host-apps.html"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "no",
+     "detail": "Driven by idf.py; no PlatformIO integration found.",
+     "sources": [
+      "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/host-apps.html"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "partial",
+     "detail": "The console is the process's stdin/stdout (idf.py monitor); no serial-port emulation.",
+     "sources": [
+      "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/host-apps.html"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "partial",
+     "detail": "The driver mock includes driver/usb_serial_jtag.h (CMock expectations on the IDF driver API), not Arduino HWCDC.",
+     "sources": [
+      "https://github.com/espressif/esp-idf/blob/master/tools/mocks/driver/CMakeLists.txt"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "no",
+     "detail": "The driver mock covers 'only SPI master, I2C, RMT, USB-serial and GPIO driver'; no LEDC.",
+     "sources": [
+      "https://github.com/espressif/esp-idf/blob/master/tools/mocks/driver/CMakeLists.txt"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "partial",
+     "detail": "gpio.h is mocked (for example gpio_get_level_ExpectAndReturn) for IDF-level code; Arduino digitalRead is not.",
+     "sources": [
+      "https://github.com/espressif/esp-idf/blob/master/tools/mocks/driver/CMakeLists.txt"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "Legacy driver/i2c.h is mocked; no device models.",
+     "sources": [
+      "https://github.com/espressif/esp-idf/blob/master/tools/mocks/driver/CMakeLists.txt"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "esp_timer: Mock yes, Simulation no. On linux, esp_reset_reason() always returns ESP_RST_POWERON and esp_restart ends in abort(). The linux esp_system build has no task WDT or panic.c.",
+     "sources": [
+      "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/host-apps.html",
+      "https://github.com/espressif/esp-idf/blob/master/components/esp_system/port/soc/linux/reset_reason.c",
+      "https://github.com/espressif/esp-idf/blob/master/components/esp_system/CMakeLists.txt"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "idf.py build and run headless. Needs libbsd, plus Ruby for mocks; no account.",
+     "sources": [
+      "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/host-apps.html"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "no",
+     "detail": "Requires 'A recent enough Linux or macOS version'. WSL2 Ubuntu-24.04 is installed on this PC but was not tried.",
+     "sources": [
+      "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/host-apps.html"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "partial",
+     "detail": "The same Unity test components can build for esp32s3 target apps, but mocks work only on linux, and this is ESP-IDF, not Arduino.",
+     "sources": [
+      "https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/unit-tests.html"
+     ]
+    }
+   ],
+   "fit": "Not applicable to the current Arduino glue: there is no Arduino core, no LEDC mock and no Windows host. Relevant only if the firmware moves to plain ESP-IDF.",
+   "caveats": [
+    "Experimental, with no API stability guarantee; the docs say only a small fraction of components support it."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "arduino_ci (Arduino-CI)",
+   "url": "https://github.com/Arduino-CI/arduino_ci",
+   "license": "Apache-2.0",
+   "latest_version": "gem 1.6.2 (2023-06-08); last push 2023-07-18; 62 open issues",
+   "summary": "Ruby gem that compiles unit tests of an Arduino library against its own mock core. GODMODE gives control of pins (with history), clock, serial queues, SPI, Wire, EEPROM and interrupts. It also compiles examples for boards through arduino-cli.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "Apache-2.0.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host g++ with a mock core. The 'esp32' platform only compiles examples (featheresp32 board).",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/misc/default.yml"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "Generic mock core. The ESP32 platform only adds -D ESP32/ARDUINO_ARCH_ESP32; no ledc or esp_* APIs.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/misc/default.yml",
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/REFERENCE.md"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "no",
+     "detail": "Own runner (arduino_ci.rb + .arduino-ci.yml) aimed at Arduino libraries.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/REFERENCE.md"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "no",
+     "detail": "GODMODE serialPort[0].dataIn/dataOut are in-memory queues; no external link.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/REFERENCE.md"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "Not modelled.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/REFERENCE.md"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "no",
+     "detail": "No ledc; only digital and analog pin history.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/REFERENCE.md"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "state->digitalPin[4] = HIGH, plus queued input sequences (fromArray, fromAscii).",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/REFERENCE.md"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "Wire mock with getMiso(addr) for bytes the master reads and getMosi(addr) for bytes it writes; SPI dataIn/dataOut. You model the devices.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/REFERENCE.md"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "Clock controllable through state->micros; no esp_timer, TWDT or panic.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci/blob/master/REFERENCE.md"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "CLI and a GitHub Action (Docker). Ruby >= 2.5; no account.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "partial",
+     "detail": "Has a Windows CI badge, but the README warns of a symlink-deletion risk on Windows. Not verified: no Ruby on this PC.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "no",
+     "detail": "Compiles examples for boards but never flashes or runs them.",
+     "sources": [
+      "https://github.com/Arduino-CI/arduino_ci"
+     ]
+    }
+   ],
+   "fit": "Built for Arduino libraries on AVR-like cores. The ESP32 APIs and HWCDC are missing, and it has been unmaintained since 2023. Not recommended here.",
+   "caveats": [
+    "Tests libraries, not sketch or PlatformIO application layouts."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "EpoxyDuino (+ AUnit, EspMock)",
+   "url": "https://github.com/bxparks/EpoxyDuino",
+   "license": "MIT",
+   "latest_version": "EpoxyDuino 1.6.0 (2024-07-25); AUnit 1.7.1 (2023-06-15)",
+   "summary": "Compiles and runs Arduino programs natively on Linux, macOS and FreeBSD with GNU Make. Serial maps to STDIN/STDOUT, most hardware calls are stubs, and digitalReadValue()/digitalWriteValue() helpers exist. AUnit tests run both under EpoxyDuino and on real boards.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "MIT.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host only.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "AVR-derived API. EPOXY_CORE supports only AVR and ESP8266, and ESP32/ARDUINO_ARCH_ESP32 are deliberately left undefined. No ledc or esp_*. EspMock adds some ESP8266/ESP32 mocks.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino",
+      "https://github.com/hsaturn/EspMock"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "partial",
+     "detail": "A library.json for PlatformIO native mode exists, but the author calls it 'unsupported'.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "partial",
+     "detail": "Serial reads STDIN and writes STDOUT (raw tty), so a harness can drive it through pipes; pyserial is not usable. ONLCR translation can alter binary data on a terminal.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "Not modelled.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "no",
+     "detail": "analogWrite() is an empty stub; no ledc.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino/blob/develop/cores/epoxy/Arduino.cpp"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "digitalReadValue(pin, val) for pins 0-31 only; ESP32-S3 GPIO32-48 cannot be set.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "no",
+     "detail": "Wire.h and SPI.h are do-nothing stubs.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "no",
+     "detail": "millis() reads CLOCK_MONOTONIC, so time cannot be injected. loop() runs every 1 ms. No esp_timer, TWDT or panic.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino/blob/develop/cores/epoxy/Arduino.cpp",
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "make plus GitHub Actions; no account.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "no",
+     "detail": "Tiered support lists Ubuntu, macOS, Raspbian and FreeBSD; no Windows. WSL2 not tried.",
+     "sources": [
+      "https://github.com/bxparks/EpoxyDuino"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "partial",
+     "detail": "AUnit (tested on ESP32) runs the same test sketches on the board, but hardware-faking tests don't port.",
+     "sources": [
+      "https://github.com/bxparks/AUnit"
+     ]
+    }
+   ],
+   "fit": "Good for portable Arduino algorithms on Linux, not for this ESP32 glue on Windows: there is no ESP32 core flavour, no LEDC and no controllable clock.",
+   "caveats": [
+    "Author calls PlatformIO support unsupported."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "esp32emu (host-side ESP32/Arduino mock layer)",
+   "url": "https://github.com/quantumnic/esp32emu",
+   "license": "MIT",
+   "latest_version": "v0.6.0 per changelog (no dated release); commits 2026-02-22 to 2026-09-04; 2 stars, 1 fork",
+   "summary": "A young (2026) header-only set of Arduino-ESP32 and ESP-IDF mocks for host tests. It covers GPIO, LEDC (channel API), esp_timer (on std::thread), a task WDT mock, reset reason, esp_random, FreeRTOS via threads, Wire with mock devices, 80+ library mocks, and real TCP sockets for WiFi.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "MIT.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Board profiles (pin counts, RAM, flash) include ESP32-S3-DevKitC-1, but the code is host-compiled mocks.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "Has the 2.x LEDC API but not 3.x ledcAttach/ledcWrite(pin). No esp_task_wdt_config_t or reconfigure; esp_task_wdt_init takes ms, while 2.x takes seconds. No HWCDC class, and esp_register_shutdown_handler was not found.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu/blob/main/include/esp32emu_ledc.h",
+      "https://github.com/quantumnic/esp32emu/blob/main/include/esp_task_wdt.h",
+      "https://github.com/quantumnic/esp32emu/blob/main/include/esp_system.h"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "no",
+     "detail": "Own Makefile and CLI (esp32emu run); make lib builds a static library. PlatformIO is not mentioned.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "no",
+     "detail": "HardwareSerial prints to stdout; available() returns 0 and read() returns -1, so no bytes reach the firmware.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu/blob/main/include/esp32emu_serial.h"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "partial",
+     "detail": "An IDF usb_serial_jtag driver mock with RX injection; not the Arduino HWCDC used here.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "partial",
+     "detail": "Tracks frequency, resolution, duty and pin per channel (ledcRead, ledcReadFreq).",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu/blob/main/include/esp32emu_ledc.h"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "GPIOController state can be set, and ISRs fire on change.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu/blob/main/include/esp32emu_gpio.h"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "Wire mock-device callbacks. Sensor mocks (AS5600.h, BNO08x.h, Adafruit_VL53L1X.h) replace the driver library, so the project's own drivers are not exercised.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu/tree/main/include"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "millis() is the wall clock (steady_clock), so timing tests are non-deterministic. esp_timer runs threads. The WDT mock has simulateTimeout()/wasTriggered() but never resets. esp_restart only sets a flag. No panic.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu/blob/main/include/esp32emu_time.h",
+      "https://github.com/quantumnic/esp32emu/blob/main/include/esp_timer.h",
+      "https://github.com/quantumnic/esp32emu/blob/main/include/esp_system.h"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "make test; no account.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "no",
+     "detail": "README: 'Not yet — the emulator relies on POSIX sockets and terminal escape codes. WSL2 should work.'",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "no",
+     "detail": "Host only.",
+     "sources": [
+      "https://github.com/quantumnic/esp32emu"
+     ]
+    }
+   ],
+   "fit": "The closest thing to an ESP32 mock layer, but for this firmware it lacks serial input, HWCDC, the 3.x APIs and deterministic time. It also runs only on Linux/macOS and is a 2-star, single-maintainer project. Useful for ideas, not for adoption.",
+   "caveats": [
+    "Very young and largely unreviewed; API fidelity varies (see the esp_task_wdt_init units).",
+    "The canonical repo may be redbasecap-buiss/esp32emu (README badges point there)."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "CppUTest (CppUMock)",
+   "url": "https://github.com/cpputest/cpputest",
+   "license": "BSD-3-Clause",
+   "latest_version": "v4.0 (2020-05-27) is the last tagged release; master active (commits 2026-07-30)",
+   "summary": "Embedded-oriented C/C++ xUnit framework with CppUMock and memory-leak detection. Expectations are recorded by hand-written stubs that call mock().actualCall(...).",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "BSD-3-Clause.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host tests.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "partial",
+     "detail": "No Arduino fakes; each C API needs a hand-written stub.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "partial",
+     "detail": "Not in PlatformIO's built-in list (Doctest, GoogleTest, Unity, Custom); use custom or CMake.",
+     "sources": [
+      "https://docs.platformio.org/en/latest/advanced/unit-testing/frameworks/index.html"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "no",
+     "detail": "Not in scope.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "Not in scope.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "partial",
+     "detail": "Call and parameter expectations only.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "The stub returns a value from mock().actualCall(...).returnIntValue().",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "Hand-written fake devices.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "Logic only.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "CMake/CTest; no account.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "yes",
+     "detail": "CI builds MSVC and ClangCL on windows-latest, plus a MinGW cross-build on Ubuntu. Not run on this PC.",
+     "sources": [
+      "https://github.com/cpputest/cpputest/blob/master/.github/workflows/basic.yml"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "unknown",
+     "detail": "No ESP32 or PlatformIO on-target runner found.",
+     "sources": [
+      "https://github.com/cpputest/cpputest"
+     ]
+    }
+   ],
+   "fit": "A viable TDD-style alternative to Unity + fakes, but it has no ESP32 support and no advantage over the verified path. The last tagged release is from 2020.",
+   "caveats": [
+    "Its memory-leak detector overrides new/delete, which can interfere with other test libraries."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "Arduino-Emulator (pschatzmann)",
+   "url": "https://github.com/pschatzmann/Arduino-Emulator",
+   "license": "LGPL-2.1",
+   "latest_version": "v0.2.1 (2026-08-31); 65 stars",
+   "summary": "Runs Arduino sketches on Linux, macOS and Windows on top of ArduinoCore-API (CMake). GPIO/I2C/SPI either do nothing (mock) or are forwarded to a real microcontroller (UDP/Stream), Raspberry Pi, FTDI or Firmata. SerialImpl can open a real host serial port.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "LGPL-2.1.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host only.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "no",
+     "detail": "Generic ArduinoCore-API; no ledc or esp_* found.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "partial",
+     "detail": "The repo ships a platformio.ini, but CMake is the documented build.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "partial",
+     "detail": "SerialImpl (serialib) opens a real host device, e.g. setDevice('COM5'). A virtual COM pair could reach pyserial; not verified.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator/blob/main/ArduinoCore-Linux/cores/arduino/Serial.h"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "Not modelled.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "no",
+     "detail": "Not provided.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "unknown",
+     "detail": "Mock GPIO 'doing nothing'; no documented injection API found.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "Real sensors through a remote MCU, Raspberry Pi or FTDI; no simulated devices found.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "no",
+     "detail": "No ESP32 timer, WDT or panic APIs.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "partial",
+     "detail": "CMake plus the repo's own GitHub Actions unit tests; no account.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "yes",
+     "detail": "Its description says it 'can be used in Windows, Linux or OS/X', and Windows socket sources exist. Not run on this PC.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator",
+      "https://github.com/pschatzmann/Arduino-Emulator/tree/main/ArduinoCore-Linux/cores/arduino"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "partial",
+     "detail": "HardwareSetupRemote forwards GPIO/I2C/SPI to a board running a stub. It does not flash or test the ESP32 firmware.",
+     "sources": [
+      "https://github.com/pschatzmann/Arduino-Emulator"
+     ]
+    }
+   ],
+   "fit": "Interesting for running portable Arduino code on the PC with real I/O later, but it has no ESP32 APIs and no test harness for this glue. Not recommended here.",
+   "caveats": [
+    "LGPL linking terms are fine for internal test binaries."
+   ],
+   "cost_notes": "Free."
+  },
+  {
+   "name": "PoC built in this session: project-owned Arduino-ESP32 fake layer + CMake/CTest + TCP SIL bridge",
+   "url": "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc",
+   "license": "Project code; no third-party dependency besides g++/CMake (pyserial on the Python side)",
+   "latest_version": "n/a (scratchpad PoC, 2026-09-29)",
+   "summary": "Built from the repo's real main.cpp: 211 lines of fakes (Arduino.h, esp_system.h, esp_task_wdt.h, esp_timer.h, esp_random.h, esp_rom_gpio.h, soc/*.h, fake_hw.cpp) and 154 lines of tests. Four variants, 2.x/3.x crossed with PWM off/on, ran 19/29/20/29 checks, all passing with 0 warnings under -Wall -Wextra (g++ 16.1.0, CMake 4.4.1, Ninja). sil_v2_pwm0.exe runs setup()/loop() in real time and exposes Serial over TCP. Through it, the project's SerialVehicleIO completed HELLO, ARM and COMMAND and received 20 Hz TELEMETRY.",
+   "capabilities": [
+    {
+     "aspect": "open_source",
+     "status": "yes",
+     "detail": "Own code only.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/fakes"
+     ]
+    },
+    {
+     "aspect": "esp32s3",
+     "status": "no",
+     "detail": "Host x86-64 build of the same sources.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/CMakeLists.txt"
+     ]
+    },
+    {
+     "aspect": "arduino_esp32",
+     "status": "yes",
+     "detail": "Both branches of the real main.cpp compile and run. Fake signatures were copied from the local Arduino-ESP32 2.0.17 package and, for 3.x, from arduino-esp32 master and IDF release/v5.5 headers.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/fakes/Arduino.h",
+      "https://github.com/espressif/arduino-esp32/blob/master/cores/esp32/esp32-hal.h"
+     ]
+    },
+    {
+     "aspect": "platformio",
+     "status": "yes",
+     "detail": "The same fakes work under platform = native + Unity with src_dir = repo src (2/2 passed).",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/pio_glue_demo"
+     ]
+    },
+    {
+     "aspect": "host_serial",
+     "status": "yes",
+     "detail": "The fake Serial is bridged to TCP 127.0.0.1. SerialVehicleIO got HELLO_ACK (reset_reason=1, DISARMED), ARM ok, then 30 TELEMETRY in 1.5 s showing RUNNING, effort 0.25 and LINK_OK|CMD_ACTIVE. Plain pyserial socket:// failed: in_waiting is 0/1, so SerialVehicleIO._pump reads 1 byte per call and TELEMETRY_STALE fired after ARM (reproduced twice). A 30-line socket adapter fixed it.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/sil_main.cpp",
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/sil_client.py",
+      "https://pyserial.readthedocs.io/en/latest/url_handlers.html",
+      "D:/xetulai/autopark/autopark/autopark/transport/vehicle_io.py"
+     ]
+    },
+    {
+     "aspect": "usb_serial_jtag",
+     "status": "no",
+     "detail": "Only the HWCDC API subset used by main.cpp.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/fakes/fake_hw.h"
+     ]
+    },
+    {
+     "aspect": "ledc_pwm",
+     "status": "partial",
+     "detail": "Duty values (1228 = 1500 us), attach/write order, and forced neutral on the ESC only. No waveform.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/test_glue.cpp"
+     ]
+    },
+    {
+     "aspect": "gpio_input",
+     "status": "yes",
+     "detail": "fake::pin_level[] drives digitalRead; the pull-up mode is asserted.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/fakes/fake_hw.cpp"
+     ]
+    },
+    {
+     "aspect": "i2c_sensors",
+     "status": "partial",
+     "detail": "Not yet: fake buses would be added together with the drivers.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/fakes"
+     ]
+    },
+    {
+     "aspect": "timers_wdt_panic",
+     "status": "partial",
+     "detail": "Guard thresholds, wrap-around, TWDT config per branch (2.x init(1,true); 3.x reconfigure{300,0,true}), and the panic and shutdown register sequence are checked as logic and order only.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/test_glue.cpp"
+     ]
+    },
+    {
+     "aspect": "automation_ci",
+     "status": "yes",
+     "detail": "ctest with exit codes; each variant runs in under 1 s after the build.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/CMakeLists.txt"
+     ]
+    },
+    {
+     "aspect": "windows",
+     "status": "yes",
+     "detail": "Built and run on Windows 11 with WinLibs MinGW-w64 g++ 16.1.0, CMake 4.4.1 and Ninja; the SIL uses Winsock + winmm.",
+     "sources": [
+      "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc/build"
+     ]
+    },
+    {
+     "aspect": "real_hardware",
+     "status": "partial",
+     "detail": "The Python SIL client works with any pyserial-like transport, so the same protocol test can later point at the board's COM port. The C++ fake tests stay host-only.",
+     "sources": [
+      "D:/xetulai/autopark/autopark/autopark/transport/vehicle_io.py"
+     ]
+    }
+   ],
+   "fit": "The most direct way to test without hardware on this PC today: no new framework is needed, and it runs in the existing CMake/MinGW setup or in PlatformIO native. Worth moving into firmware/esp32_vehicle/test/, with the pins made -D-overridable and the SIL mode added to the Python pytest suite.",
+   "caveats": [
+    "The scratchpad is session-specific; copy the PoC into the repo if it should be kept.",
+    "It proves logic and call order, not chip behaviour.",
+    "SIL timing uses Sleep(1) with timeBeginPeriod(1), about 4 ms per loop (1937 loops in 8 s), so it is not real-time faithful.",
+    "The PWM-on variants used a copy of main.cpp with pins 4/5/6 patched in by sed."
+   ],
+   "cost_notes": "Free."
+  }
+ ],
+ "notes": "Bottom line. No open-source framework runs this Arduino-ESP32 glue on the PC out of the box. Every host-side option (PlatformIO native + Unity/GoogleTest/doctest, fff, CMock, ArduinoFake, arduino_ci, EpoxyDuino, esp32emu, CppUTest) supplies only a test harness and/or generic Arduino mocks. The ESP32-specific surface of main.cpp must be faked by the project: about 30 symbols, roughly 210 lines. That covers ledc* (2.x and 3.x signatures), esp_timer_*, esp_task_wdt_* (2.x seconds; 3.x config struct + reconfigure), esp_register_shutdown_handler, esp_reset_reason, esp_random, esp_rom_gpio_connect_out_signal, REG_WRITE with GPIO_* register addresses and SIG_GPIO_OUT_IDX, set_arduino_panic_handler, __real_esp_panic_handler, IRAM_ATTR, and the HWCDC Serial subset. The ESP-IDF Linux target does not apply: no Arduino core, no LEDC mock, and no Windows host.\n\nVerified on this PC, 2026-09-29, Windows 11. I used an isolated PLATFORMIO_CORE_DIR, so the shared core in D:\\xetulai\\_platformio was not touched, and repo files were only read.\n(1) PlatformIO Core 6.2.0 native: a Unity 2.6.1 suite and a GoogleTest/GMock 1.17.0 suite both passed with WinLibs g++ 16.1.0.\n(2) PlatformIO native + Unity built the repo's unmodified src/ (main.cpp + core) against the fakes; 2/2 tests passed.\n(3) CMake/Ninja/MinGW, 4 variants (Arduino 2.x/3.x x PWM off/on): 97 checks, all passing, 0 warnings.\n(4) SIL: host-built firmware exposed on TCP. The project's real SerialVehicleIO did HELLO -> HELLO_ACK -> ARM -> COMMAND and got 30 TELEMETRY frames in 1.5 s (RUNNING, LINK_OK|CMD_ACTIVE).\n\nFinding for the Python side. pyserial's socket:// handler returns in_waiting as 0/1 (select-based). SerialVehicleIO._pump therefore reads 1 byte per call and raised TELEMETRY_STALE right after ARM (reproduced twice). A thin transport adapter fixes it; alternatively _pump could read larger chunks. This does not happen with real COM ports, where in_waiting is a byte count.\n\nWhat host tests CAN prove:\n- Call order and arguments at the HAL boundary (neutral PWM before Serial.begin; ESC line-low sequence OUT_W1TC -> ENABLE_W1TS -> connect_out_signal -> real panic handler).\n- TWDT configuration per core version.\n- Output-guard logic under an injected clock: 100/101 ms threshold, 2^32 wrap, stamp newer than now.\n- Protocol and state flow through the real glue: no telemetry before HELLO, garbage frames consumed, TX dropped while the host is absent.\n- Both #if branches, which a single real board build never covers.\n\nWhat host tests CANNOT prove:\n- LEDC waveform and the 50 Hz/1000-2000 us accuracy.\n- APB/XTAL clock effects and LEDC continuing after a CPU-only reset (panic/TWDT/esp_restart).\n- That -Wl,--wrap actually routes the panic (link level, only checkable with objdump on the real ELF), and IRAM or cache-disabled safety of the hook.\n- That the TWDT fires at 300 ms or 1 s.\n- esp_timer task latency and priority, and memory ordering between core 0 and core 1.\n- HWCDC USB behaviour: enumeration, DTR resets, TX timeout, connected-state semantics.\n- E-stop electrical behaviour, I2C bus timing, sensor physics.\nFakes can also drift from the real headers, so keep pio run -e esp32s3 in CI.\n\nSuggested path:\n- Keep the existing CMake/CTest host build, or add [env:native] with test_framework = unity, test_build_src = yes and -static.\n- Move the fake layer into the repo (outside src/ and lib/), and make pin numbers -D-overridable so PWM-on variants need no patched copy.\n- Optionally use fff for the C fakes.\n- Add a SIL mode so the Python tests/test_transport_* suite can run against the host-built firmware over TCP, and later against the board's COM port with the same test code.\n- For chip-level behaviour, use an emulator (QEMU/Wokwi/Renode/esp-emu, covered by other areas) or the real board. Note PlatformIO issue platform-espressif32#1733 for on-target Unity tests over the ESP32-S3 native USB port.\n\nSmaller related projects:\n- adrianaxente/arduino-mock: MIT, 1.1.0, 2026-02-27. GMock mocks of the Arduino core/Serial/SPI/Wire for PlatformIO native; no ESP32.\n- ikeyasu/arduino-mock: the ISC original.\n- RobertByrnes/Emulation: GPL-3.0, 0.1.6, 2024-04-10. Generic emulator base for PlatformIO+Unity.\n- berrak/Mock: MIT, 0.2.0, 2023-01-01. Mocked functions return immediately or zero.\n- skaygin/ArduinoNative: MIT, 0.1.4, 2022-06-27.\n- FakeIt: 2.5.0, 2025-11-14.\n- Trompeloeil: v49, 2024-10-07.\n- Catch2: v3.16.0, 2026-08-25.\n- Espressif pytest-embedded: has serial, esp, idf, arduino (auto-flash), qemu, wokwi and espemu services. It could run one Python-level suite on emulators and on real boards; this belongs to the other research areas.\n\nEnvironment notes: WSL2 Ubuntu-24.04 is installed, so the Linux-only tools (EpoxyDuino, esp32emu, ESP-IDF linux target) could be tried there; not tested. Ruby is not installed, which CMock/Ceedling/arduino_ci need.\n\nPoC files (the scratchpad is session-specific):\n- %USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside/glue_poc (fakes/, test_glue.cpp, main_pins.cpp, sil_main.cpp, sil_client.py, CMakeLists.txt)\n- .../hostside/pio_glue_demo\n- .../hostside/pio_native_demo\n\nUnrelated: the MCP connectors asana, atlassian, datadog, github, linear, notion, pagerduty, slack, clickup and monday need authorization through claude.ai connector settings or /mcp before use; this research did not need them."
+}

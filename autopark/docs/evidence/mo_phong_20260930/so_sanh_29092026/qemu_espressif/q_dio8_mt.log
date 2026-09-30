@@ -1,0 +1,118 @@
+    0.033 | ESP-ROM:esp32s3-20210327
+    0.033 | Build:Mar 27 2021
+    0.034 | rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+    0.039 | SPIWP:0xee
+    0.040 | mode:DIO, clock div:1
+    0.041 | load:0x3fce3808,len:0x41c
+    0.042 | load:0x403c9700,len:0x9a8
+    0.042 | load:0x403cc700,len:0x28ac
+    0.044 | entry 0x403c98b8
+    0.281 | 
+    0.282 | PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+    0.283 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+    0.284 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    0.295 | NVS begin=1 boots_before=0 put=4
+    0.296 | RANDOM a17f4102 d869fce7
+    0.297 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=3)
+    0.298 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.300 | FLASH esp_flash_read mode=FASTRD err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    0.301 | FLASH esp_flash_read mode=DOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    0.301 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.302 | FLASH esp_flash_read mode=QOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    0.303 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 00 00 aa 50 01 02 shift=4
+    0.307 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    0.307 | TWDT init(1s,panic)=0 add=0
+    0.308 | LEDC probe: wrote 0x100e read 0x00000000
+    0.309 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+    0.309 | READY
+# first READY: True
+    1.312 | T ms=1291 us=1291039 timer_cb=100 (+100 in 1000 ms)
+    2.316 | T ms=2291 us=2291005 timer_cb=200 (+100 in 1000 ms)
+    3.321 | T ms=3291 us=3291005 timer_cb=299 (+99 in 1000 ms)
+    4.314 >> send 'R'
+    4.316 | CMD R at ms=4281
+    4.316 | 
+    4.316 | PROBE_SHUTDOWN handler ran
+    4.334 | ESP-ROM:esp32s3-20210327
+    4.335 | Build:Mar 27 2021
+    4.335 | rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+    4.340 | SPIWP:0xee
+    4.341 | mode:DIO, clock div:1
+    4.342 | load:0x3fce3808,len:0x41c
+    4.342 | load:0x403c9700,len:0x9a8
+    4.344 | load:0x403cc700,len:0x28ac
+    4.349 | entry 0x403c98b8
+    4.519 | 
+    4.519 | PROBE v1 boot=2 rtc_mem_kept=1 reason=SW(3) rom_reason0=12 rom_reason1=12 last_cmd=R
+    4.520 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x5d5d0001
+    4.521 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    4.534 | NVS begin=1 boots_before=1 put=4
+    4.535 | RANDOM b59591ca 21c7bebc
+    4.536 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=3)
+    4.537 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    4.537 | FLASH esp_flash_read mode=FASTRD err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    4.538 | FLASH esp_flash_read mode=DOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    4.539 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    4.540 | FLASH esp_flash_read mode=QOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    4.540 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 00 00 aa 50 01 02 shift=4
+    4.543 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    4.544 | TWDT init(1s,panic)=0 add=0
+    4.544 | LEDC probe: wrote 0x100e read 0x00000000
+    4.544 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+    4.544 | READY
+# READY after 'R': True
+    5.548 | T ms=5510 us=5510003 timer_cb=100 (+100 in 1000 ms)
+    6.552 | T ms=6510 us=6510064 timer_cb=199 (+99 in 1000 ms)
+    7.556 | T ms=7510 us=7510020 timer_cb=300 (+101 in 1000 ms)
+    8.560 >> send 'A'
+    8.560 | T ms=8510 us=8510007 timer_cb=400 (+100 in 1000 ms)
+    8.563 | CMD A at ms=8513
+    8.565 | 
+    8.566 | PROBE_WRAP ran: outsel21=0x0 out=0x0 en=0x0
+    8.867 | 
+    8.868 | abort() was called at PC 0x420020ed on core 1
+    8.870 | 
+    8.870 | 
+    8.871 | Backtrace: 0x4037684e:0x3fcebc20 0x4037a601:0x3fcebc40 0x4037fe9d:0x3fcebc60 0x420020ed:0x3fcebce0 0x420043b5:0x3fcebd10
+    8.871 | 
+    8.871 | 
+    8.871 | 
+    8.871 | 
+    8.871 | ELF file SHA256: 29b0dec8cc70eb13
+    8.871 | 
+    8.913 | Rebooting...
+    8.928 | ESP-ROM:esp32s3-20210327
+    8.928 | Build:Mar 27 2021
+    8.930 | rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+    8.934 | SPIWP:0xee
+    8.935 | mode:DIO, clock div:1
+    8.936 | load:0x3fce3808,len:0x41c
+    8.937 | load:0x403c9700,len:0x9a8
+    8.938 | load:0x403cc700,len:0x28ac
+    8.945 | entry 0x403c98b8
+    9.083 | E (9420) esp_core_dump_flash: Core dump data check failed:
+    9.084 | Calculated checksum='65bdd8b7'
+    9.084 | Image checksum='01f4e1f4'
+    9.155 | 
+    9.156 | PROBE v1 boot=3 rtc_mem_kept=1 reason=PANIC(4) rom_reason0=12 rom_reason1=12 last_cmd=A
+    9.156 | MARKERS wrap=0xc0de0001 wrap_outsel21=0x0 shutdown=0x00000000
+    9.158 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    9.171 | NVS begin=1 boots_before=2 put=4
+    9.171 | RANDOM 758192ef c92245dd
+    9.172 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=3)
+    9.173 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    9.174 | FLASH esp_flash_read mode=FASTRD err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    9.175 | FLASH esp_flash_read mode=DOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    9.175 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    9.176 | FLASH esp_flash_read mode=QOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    9.177 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 00 00 aa 50 01 02 shift=4
+    9.181 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    9.182 | TWDT init(1s,panic)=0 add=0
+    9.182 | LEDC probe: wrote 0x100e read 0x00000000
+    9.183 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+    9.183 | READY
+# READY after 'A': True
+   10.187 | T ms=10132 us=10132006 timer_cb=99 (+99 in 1000 ms)
+   11.190 | T ms=11132 us=11132002 timer_cb=199 (+100 in 1000 ms)
+   12.194 | T ms=12132 us=12132215 timer_cb=299 (+100 in 1000 ms)
+# guest/wall ratio from T lines: median=0.996 min=0.995 max=0.997 n=9

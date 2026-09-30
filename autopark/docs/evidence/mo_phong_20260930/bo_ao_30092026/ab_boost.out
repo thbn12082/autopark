@@ -1,0 +1,10 @@
+# ab_boost.py 3 20 (30/09/2026 ≈ 08:47, máy bàn đang chạy việc khác: Edge ẩn dựng hình bằng CPU, một job mô phỏng, crawler 12 luồng)
+{"round": 0, "boost": false, "power_throttling_off": null, "frames": 421, "overruns": 0, "max_dev_step_ms": 52, "max_host_gap_ms": 943.2, "stale_events": 0, "errors": 0}
+{"round": 0, "boost": true, "power_throttling_off": true, "frames": 408, "overruns": 0, "max_dev_step_ms": 51, "max_host_gap_ms": 82.8, "stale_events": 0, "errors": 0}
+{"round": 1, "boost": false, "power_throttling_off": null, "frames": 408, "overruns": 0, "max_dev_step_ms": 52, "max_host_gap_ms": 82.6, "stale_events": 0, "errors": 0}
+{"round": 1, "boost": true, "power_throttling_off": true, "frames": 408, "overruns": 0, "max_dev_step_ms": 51, "max_host_gap_ms": 80.9, "stale_events": 0, "errors": 0}
+{"round": 2, "boost": false, "power_throttling_off": null, "frames": 408, "overruns": 0, "max_dev_step_ms": 51, "max_host_gap_ms": 77.6, "stale_events": 0, "errors": 0}
+{"round": 2, "boost": true, "power_throttling_off": true, "frames": 408, "overruns": 0, "max_dev_step_ms": 50, "max_host_gap_ms": 66.1, "stale_events": 0, "errors": 0}
+SUMMARY {"false": {"overruns": 0, "max_dev_step_ms": 52, "stale": 0}, "true": {"overruns": 0, "max_dev_step_ms": 51, "stale": 0}}
+# Kết luận: lượt này máy đã bớt bận, hai cấu hình như nhau; boost (ưu tiên trên mức thường + tắt EcoQoS) chưa được chứng
+# minh có ích, giữ vì vô hại. Lần đầu chạy script dừng vì ACK của CLEAR_FAULT quá 0,5 s (máy rất bận), đã sửa script.

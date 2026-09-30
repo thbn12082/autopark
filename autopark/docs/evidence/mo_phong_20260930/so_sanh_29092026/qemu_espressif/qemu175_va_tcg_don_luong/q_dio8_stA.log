@@ -1,0 +1,67 @@
+    0.033 | ESP-ROM:esp32s3-20210327
+    0.034 | Build:Mar 27 2021
+    0.034 | rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+    0.038 | SPIWP:0xee
+    0.039 | mode:DIO, clock div:1
+    0.040 | load:0x3fce3808,len:0x41c
+    0.040 | load:0x403c9700,len:0x9a8
+    0.041 | load:0x403cc700,len:0x28ac
+    0.042 | entry 0x403c98b8
+    0.564 | 
+    0.564 | PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+    0.565 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+    0.566 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    0.592 | NVS begin=1 boots_before=0 put=4
+    0.592 | RANDOM 8a179d0e 6f0b6103
+    0.593 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=3)
+    0.595 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.596 | FLASH esp_flash_read mode=FASTRD err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    0.598 | FLASH esp_flash_read mode=DOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    0.599 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.600 | FLASH esp_flash_read mode=QOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    0.601 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 00 00 aa 50 01 02 shift=4
+    0.605 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    0.605 | TWDT init(1s,panic)=0 add=0
+    0.607 | LEDC probe: wrote 0x100e read 0x00000000
+    0.607 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+    0.607 | READY
+# first READY: True
+    1.609 | T ms=1590 us=1590041 timer_cb=100 (+100 in 1000 ms)
+    2.699 | T ms=2679 us=2679991 timer_cb=199 (+99 in 1089 ms)
+    3.610 | T ms=3590 us=3590008 timer_cb=292 (+93 in 911 ms)
+    4.609 >> send 'A'
+    4.611 | CMD A at ms=4590
+    4.614 | 
+    4.614 | PROBE_WRAP ran: outsel21=0x0 out=0x0 en=0x0
+    4.916 | 
+    4.916 | abort() was called at PC 0x420020ed on core 1
+    4.918 | 
+    4.918 | 
+    4.919 | Backtrace: 0x4037684e:0x3fcebb60 0x4037a601:0x3fcebb80 0x4037fe9d:0x3fcebba0 0x420020ed:0x3fcebc20 0x420043b5:0x3fcebc50
+    4.919 | 
+    4.919 | 
+    4.919 | 
+    4.919 | 
+    4.920 | ELF file SHA256: 29b0dec8cc70eb13
+    4.920 | 
+    4.961 | Rebooting...
+    4.975 | ESP-ROM:esp32s3-20210327
+    4.975 | Build:Mar 27 2021
+    4.975 | rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+    4.980 | SPIWP:0xee
+    4.981 | mode:DIO, clock div:1
+    4.981 | load:0x3fce3808,len:0x41c
+    4.982 | load:0x403c9700,len:0x9a8
+    4.983 | load:0x403cc700,len:0x28ac
+    4.989 | entry 0x403c98b8
+    5.077 | ESP-ROM:esp32s3-20210327
+    5.077 | Build:Mar 27 2021
+    5.077 | rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+    5.082 | SPIWP:0xee
+    5.083 | mode:DIO, clock div:1
+    5.083 | load:0x3fce3808,len:0x41c
+    5.084 | load:0x403c9700,len:0x9a8
+    5.085 | load:0x403cc700,len:0x28ac
+    5.090 | entry 0x403c98b8
+# READY after 'A': False
+# guest/wall ratio from T lines: median=1.000 min=0.999 max=1.000 n=2

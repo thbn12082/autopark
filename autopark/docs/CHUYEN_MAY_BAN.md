@@ -9,7 +9,7 @@ giữ nguyên.
 |---|---|---|
 | Máy | i9-14900 + RTX 4000 Ada 20 GB, RAM 64 GB | Dell Precision 3680, i9-14900, RTX 4000 Ada 20 GB, RAM 63,7 GB, Windows 11 Enterprise 26200 |
 | Driver NVIDIA | 596.72 | 596.71 |
-| Thư mục repo | `D:\ap` (mã ở `D:\ap\autopark`) | `D:\gấp\autopark` (mã ở `D:\gấp\autopark\autopark`) |
+| Thư mục repo | `D:\ap` (mã ở `D:\ap\autopark`) | `D:\gấp\autopark` (mã ở `D:\gấp\autopark\autopark`); **chiều 29/09/2026 người dùng đổi tên thành `D:\xetulai\autopark`** (mục 6) |
 | Python gốc | `%LOCALAPPDATA%\Python\pythoncore-3.12-64` (3.12.10) | `%LOCALAPPDATA%\Programs\Python\Python312` (3.12.10, winget, bộ cài python.org, cài cho một người dùng) |
 | LiDAR C1 (bộ chuyển CP2102N) | COM4, driver CP210x 11.6.0.420 | **COM3**, driver CP210x 11.2.0.167 (Windows Update) |
 | Hub UGREEN của bốn camera | cổng gốc 5 của PC | cổng gốc 8 (HS08); số cổng trên hub vẫn 1–4 |
@@ -138,7 +138,8 @@ giữ nguyên, có ghi chú ngày khi cần. Tệp `docs/evidence/` không sửa
 
 - Driver CP210x 11.2.0.167 (máy cũ 11.6.0.420); driver NVIDIA 596.71 (máy cũ 596.72). LiDAR và AI đo được như máy cũ (mục 2).
 - Máy này có g++ 16.1.0 và cmake 4.4.1 trên PATH; máy cũ không có trình biên dịch nên test host của firmware
-  (`firmware/esp32_vehicle/test/host`) chưa biên dịch lần nào. CHƯA THỬ trên máy này.
+  (`firmware/esp32_vehicle/test/host`) chưa biên dịch lần nào. *(Làm 29/09/2026, mục 6: lõi `src/core` biên dịch và
+  qua test host, 703 check, 0 lệch; chiều cùng ngày cài PlatformIO, cả firmware biên dịch cho ESP32-S3, mục 7.)*
 - GitHub: đã đăng nhập trên máy này ngày 29/09/2026 bằng Git Credential Manager (đăng nhập mã thiết bị qua Edge); fetch
   và push được: các commit của đợt này push lên `origin/main` ngày 29/09/2026. Sau fetch, `main` tiến nhanh từ `9d68257` lên `2ee2940` của GitHub (hai commit ngày 26/09/2026 chỉ sửa
   tệp `.md`), nên mã nguồn vẫn như lúc đo các số test ở mục 2 và 3.
@@ -147,13 +148,189 @@ giữ nguyên, có ghi chú ngày khi cần. Tệp `docs/evidence/` không sửa
 - Chưa tải trọng số pretrained của torchvision (`%USERPROFILE%\.cache\torch`): lần train, benchmark hay `--resume` đầu tiên
   cần mạng. Suy luận (AI, bàn thử, AI camera) không cần.
 - Test phụ thuộc thời gian thật (`planner_budget`, ví dụ `uturn_w46`) có thể hỏng khi máy bận; chạy lại riêng lúc máy rảnh
-  trước khi kết luận.
+  trước khi kết luận. *(30/09/2026: `uturn_w46` hỏng cả khi máy gần rảnh, với tiến trình pytest không có cửa sổ để
+  Windows tự quyết EcoQoS; từ trưa 30/09 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest, mục 8.)*
 
 ## 5. Lần sau đổi máy
 
 1. Cài Python 3.12.10 (bản của tệp khóa) và driver CP210x của Silicon Labs.
 2. Chạy `autopark\cai_dat.cmd` rồi `autopark\cai_dat_train.cmd`. Venv chép sang mà hỏng sẽ tự được đổi tên và tạo lại.
 3. Sửa MỘT dòng `lidar_port` trong `autopark\configs\thiet_bi.json` theo số COM của LiDAR trên máy đó (Device Manager, mục
-   "Silicon Labs CP210x USB to UART Bridge (COMx)"), hoặc ghi `"auto"`.
+   "Silicon Labs CP210x USB to UART Bridge (COMx)"), hoặc ghi `"auto"`. Cùng tệp (từ 30/09/2026): `qemu_xtensa`,
+   `platformio_python`, `platformio_core_dir` cho bo ảo QEMU ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)); máy không có
+   QEMU thì xóa ba khóa đó hoặc để nguyên (test bo ảo tự bỏ qua khi đường dẫn không tồn tại).
 4. Traceback còn hiện đường dẫn máy cũ thì xóa các thư mục `__pycache__` ngoài venv.
 5. Chạy toàn bộ bộ test ở cả hai venv, rồi `autopark\do_may_moi.cmd` với LiDAR và bốn camera cắm đúng cổng hub 1–4.
+   Máy có cmake và g++ thì bộ test tự build và chạy test host của firmware (mục 6); không có thì hai test đó bỏ qua.
+
+Chỉ đổi tên hay dời thư mục repo trên cùng máy (venv vẫn chạy nên `kiem_venv.cmd` không bắt được): chạy
+`.venv\Scripts\python.exe -m pip install -e . --no-deps` và như vậy với `.venv-train` (mục 6).
+
+## 6. Đổi tên thư mục repo, biên dịch test host firmware (chiều 29/09/2026)
+
+**Đổi tên `D:\gấp` → `D:\xetulai`** (người dùng làm). Đường dẫn repo nay chỉ có ký tự ASCII. Kiểm sau khi đổi:
+
+| Hỏng | Vì sao | Xử lý |
+|---|---|---|
+| `import autopark` hỏng khi chạy ngoài thư mục repo (trong thư mục repo vẫn chạy vì thư mục hiện hành nằm trên `sys.path`) | bản cài editable ở cả hai venv trỏ về `D:\gấp\autopark\autopark\autopark` | `pip install -e . --no-deps` ở `.venv` và `.venv-train`; `import autopark` từ `C:\` ra `D:\xetulai\...` |
+| Các launcher `.venv\Scripts\*.exe` (`pytest.exe`, `pip.exe`, `pyside6-*.exe`...) và `activate` còn ghi `D:\gấp\...` | pip ghi đường dẫn tuyệt đối của python venv vào launcher lúc cài | **Chưa sửa.** Mọi tệp `.cmd` của dự án gọi `.venv\Scripts\python.exe -m ...`, không dùng launcher. Cần launcher thì tạo lại venv (đổi tên venv cũ rồi chạy `cai_dat*.cmd`) |
+
+Traceback và cảnh báo của pytest còn hiện `D:\gấp\...`: 18 thư mục `__pycache__` ngoài venv có `.pyc` cũ (như mục 1);
+đã xóa cùng `.pytest_cache`. Đường dẫn `D:\gấp\...` còn trong tài liệu và trong `.pyc` của venv là hồ sơ lúc viết; `autopark/image_io.py` (mục 3)
+vẫn cần vì thư mục dữ liệu hay đường dẫn khác có thể có dấu.
+
+**Test host của firmware** (`firmware/esp32_vehicle/test/host`, g++ 16.1.0 MinGW-w64 UCRT của WinLibs, cmake 4.4.1,
+Ninja): lõi `src/core` biên dịch lần đầu không sửa dòng nào và khớp bản tham chiếu Python, `703 checks, 0 failures`;
+bảy đột biến vector đều bị bắt. Chi tiết: [README firmware](../firmware/esp32_vehicle/README.md) mục "Cách kiểm trên
+máy tính"; bằng chứng: [firmware_host_20260929.txt](evidence/chuyen_may_20260929/firmware_host_20260929.txt).
+Sửa kèm:
+- `test/host/CMakeLists.txt`: với MinGW liên kết tĩnh (`-static`). Lý do: exe liên kết động chạy trong Git Bash nạp
+  `libstdc++-6.dll` cũ của Git (`C:\Program Files\Git\mingw64\bin` đứng trước WinLibs trên PATH của Git Bash), và bản
+  `-O1`/`-O2` segfault ngay ở `std::ifstream`; cùng exe chạy trong PowerShell thì đạt. Thêm `ctest` (test `vectors`).
+- Xóa một overload `to_hex` không dùng trong `test_main.cpp` (cảnh báo `-Wunused-function` duy nhất).
+- Thêm `tests/test_transport_firmware_host.py` (2 test): build bằng cmake vào thư mục tạm, chạy trên `vectors.json`;
+  vector sai một bit phải làm exe thoát 1. Bỏ qua khi không có cmake hoặc trình biên dịch C++ trên PATH (laptop).
+
+**Toàn bộ bộ test sau đợt này** (máy bàn, 29/09/2026, `D:\xetulai`, offscreen, `b37e9ee` + sửa đổi chưa commit của mục
+này): `.venv` **1356 đạt, 8 bỏ qua** (như trước, đều cần torch), 0 hỏng, 414 s; `.venv-train` **1418 đạt**, 0 bỏ qua,
+0 hỏng, 427 s. Mỗi môi trường thêm đúng hai test so với lượt `38f64bb` (mục 3), là hai test host firmware, và cả hai
+chạy thật (không bỏ qua). Tệp: [pytest_venv_firmware_host_20260929.xml](evidence/chuyen_may_20260929/pytest_venv_firmware_host_20260929.xml),
+[pytest_venv_train_firmware_host_20260929.xml](evidence/chuyen_may_20260929/pytest_venv_train_firmware_host_20260929.xml).
+Lượt `.venv-train` chạy trước khi xóa `__pycache__`, nên một cảnh báo torch trong đầu ra ghi đường dẫn `D:\gấp\...`.
+
+## 7. Cài PlatformIO, biên dịch firmware ESP32-S3 (chiều 29/09/2026)
+
+Người dùng yêu cầu cài PlatformIO và chạy `pio run -e esp32s3`. Ổ C chỉ còn ≈ 11 GB trống, nên mọi thứ đặt trên ổ D,
+ngoài repo:
+
+| Gì | Ở đâu |
+|---|---|
+| PlatformIO Core 6.2.0 | venv riêng `D:\xetulai\_platformio\penv` (Python 3.12.10 của máy; không đụng `.venv`, `.venv-train`) |
+| Nền tảng, toolchain, framework (≈ 3 GB) | `D:\xetulai\_platformio\core`, qua biến môi trường người dùng `PLATFORMIO_CORE_DIR` (đặt cố định, để `pio` hay extension VS Code không tải lại vào ổ C) |
+| Bản sao tạm để kiểm PWM bật và Arduino 3.x | `D:\xetulai\_platformio\kiem_*` (không phải cấu hình thật, xóa được) |
+
+Kết quả: cả firmware biên dịch, 0 lỗi, 0 cảnh báo, không sửa dòng mã nào, với Arduino-ESP32 2.0.17 (`platformio.ini`,
+nay khóa `platform = espressif32 @ 7.1.3`) và 3.3.12; mỗi bản cả PWM tắt lẫn bật với chân giả. Tìm ra một lỗi trong chú
+thích: với 3.x qua PlatformIO phải GIỮ cờ `-Wl,--wrap=esp_panic_handler`, không thì móc panic không bao giờ chạy. Đã sửa
+chú thích `main.cpp`, `platformio.ini`, README firmware. Chi tiết: [README firmware](../firmware/esp32_vehicle/README.md)
+mục "Biên dịch cho ESP32-S3"; bằng chứng: [firmware_esp32_20260929.txt](evidence/chuyen_may_20260929/firmware_esp32_20260929.txt).
+Chưa nạp, chưa chạy trên bo nào (chưa có bo).
+
+Ổ D sau đợt này: ≈ 28 GB trống (trước ≈ 31 GB); `D:\xetulai\_platformio` chiếm ≈ 3,0 GB (core 2,9 GB; phần pioarduino
+đã xóa khỏi core sau khi kiểm 3.x). Kịch bản LD-1 có `--record` đòi ≥ 30 GB (mục 4): nay thiếu ≈ 2 GB.
+
+Nhắc thêm cho mục 5 (lần sau đổi máy): cài PlatformIO rồi `pio run -e esp32s3` trong `firmware\esp32_vehicle`; ổ hệ thống
+mà chật thì đặt `PLATFORMIO_CORE_DIR` sang ổ khác trước lần chạy đầu.
+
+## 8. Bo ảo QEMU, số test, dọn ổ C (30/09/2026)
+
+Ngày 30/09/2026 người dùng yêu cầu làm cả ba việc: ghi kết quả khảo sát mô phỏng thành tài liệu có bằng chứng, đưa bo
+ảo QEMU vào repo (kèm sửa `SerialVehicleIO` qua `socket://` và chú thích watchdog), dọn ổ C. Phần kỹ thuật ở
+[MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md); mục này ghi phần gắn với máy.
+
+**Cài thêm, đều trên ổ D ngoài repo** (bảng đủ ở [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 6): QEMU của Espressif
+9.2.2 ở `D:\xetulai\_platformio\qemu`, fork a159x36 ở `a159_qemu`, bản sao các lượt thử ở `kiem_*`, mã nguồn các bản thử
+giữ lại ở `giu_lai`. Đường dẫn QEMU và PlatformIO nằm trong `configs/thiet_bi.json` (khóa `qemu_xtensa`,
+`platformio_python`, `platformio_core_dir`; mục 5 bước 3). `platformio.ini` có thêm env `esp32s3_qemu`, chỉ dùng cho bo
+ảo, không nạp vào xe.
+
+**Toàn bộ bộ test** (máy bàn, 30/09/2026, offscreen, chạy từ shell của tác tử nên tiến trình không có cửa sổ). Mã:
+`b37e9ee` cộng sửa đổi chưa commit tính tới 10:21 (mục 6–7, bo ảo QEMU, sửa `SerialVehicleIO`). Tức là CHƯA có các
+thay đổi lúc 11:53–11:59 ở dưới: `autopark/power_throttling.py`, `tests/conftest.py` tắt EcoQoS, 4 test mới,
+`QemuBoard` dùng hàm chung, `tmp_path_retention_policy`. Lượt chạy trên mã có các thay đổi đó: cuối mục này.
+
+| Lượt (giờ bắt đầu) | Kết quả | Thời gian | Tệp |
+|---|---|---|---|
+| `.venv` (10:21) | **1376 đạt, 8 bỏ qua** (cần torch), 0 hỏng | 451 s | [pytest_venv_30092026.xml](evidence/mo_phong_20260930/pytest_venv_30092026.xml) |
+| `.venv-train` lượt 1 (10:29) | 1437 đạt, **1 hỏng**: `uturn_w46` | 561 s | [pytest_venv_train_30092026.xml](evidence/mo_phong_20260930/pytest_venv_train_30092026.xml) |
+| `.venv-train` lượt 2 (10:40) | 1437 đạt, **1 hỏng**: `uturn_w46` | 539 s | [pytest_venv_train_30092026_lan2.xml](evidence/mo_phong_20260930/pytest_venv_train_30092026_lan2.xml) |
+
+Mỗi môi trường có thêm đúng 20 test so với lượt ở mục 6: 13 test của `tests/test_firmware_qemu.py` (ở cả ba lượt cả 13
+đều chạy, không bỏ qua; 6 trong đó chạy firmware thật trong QEMU) và 7 test mới của
+`tests/test_transport_vehicle_io.py`. Trong các lượt này máy còn chạy việc khác (một crawler 12 luồng từ 10:25).
+
+**Vì sao `uturn_w46` hỏng** (`tests/test_planner_hard_cases.py`, dấu `planner_budget`, hạn 8 s; docstring ghi số đo
+3,70 s ngày 08/09):
+- Không do sửa đổi của đợt này. Mã lập kế hoạch không đổi so với `b37e9ee`. Test bo ảo chạy trước nó cũng không để lại
+  gì: khi chạy `test_firmware_qemu.py` rồi `test_planner_hard_cases.py`, trước mỗi test lập kế hoạch không còn tiến trình
+  QEMU nào, và chỉ còn luồng `MainThread`.
+- Đo riêng ca này lúc 10:54–10:57, tải CPU 0–12 %. Khi để Windows tự quyết, lần gọi đầu trong mỗi tiến trình đạt (3/3,
+  4,55–4,57 s), còn các lần gọi sau trong cùng tiến trình hỏng TRACKING_FAILED ở 8,00 s (5/5). Khi tiến trình tự tắt
+  EcoQoS (`SetProcessInformation`, `ProcessPowerThrottling`): đạt 8/8, 3,61–3,64 s.
+- Nhóm `planner_budget` (15 test), `.venv-train`, 11:23–11:28, bốn lượt xen kẽ:
+  - Tiến trình pytest tự tắt EcoQoS: cả 2 lượt đạt đủ 15/15, tổng 36 s và 40 s (theo JUnit).
+  - Để Windows tự quyết: cả 2 lượt có test hỏng.
+    - Lượt 1 hỏng 3 test, cả ba đều TIMEOUT, tổng 103 s: `uturn_w46`, `test_khong_hoi_quy_o_cac_ca_de`,
+      `test_nhat_ky_leo_thang_ghi_lai_tung_nac`.
+    - Lượt 2 hỏng `uturn_w46`, tổng 55 s.
+  - Ví dụ cùng một test, `test_ca_cot_chan_cua_o_giai_duoc_nhanh`: 0,99 s và 1,05 s khi tắt EcoQoS; 3,39 s và 2,06 s khi
+    để Windows tự quyết.
+- Vậy các test ngân sách thời gian đo cả cách Windows xếp lịch tiến trình, không chỉ thuật toán. Còn CHƯA rõ:
+  - cơ chế cụ thể (dồn sang lõi E hay hạ xung);
+  - vì sao lượt `.venv` lúc 10:21 thì `uturn_w46` đạt.
+- CHƯA THỬ: chạy từ một cửa sổ terminal đang hiện, cách người dùng hay chạy.
+- CHƯA ĐO: ứng dụng thật gọi bộ lập kế hoạch có hạn giờ trong tiến trình giao diện. Khi cửa sổ đó bị thu nhỏ hay bị
+  che, Windows có thể hạ tiến trình tương tự.
+- Bằng chứng: [ecoqos_30092026/](evidence/mo_phong_20260930/ecoqos_30092026/) gồm `do_uturn_w46.txt`,
+  `nhom_planner_budget.txt`, JUnit của từng lượt, `linger_probe.log` và các script đo.
+- **Đã sửa theo quyết định của người dùng (30/09/2026, 11:53–11:59):** `tests/conftest.py` tắt EcoQoS cho tiến trình
+  pytest trên Windows, dùng hàm chung `autopark/power_throttling.py`; `QemuBoard` cũng dùng hàm này thay bản riêng. Hệ
+  quả: test có hạn giờ nay đo trong điều kiện "tiến trình không bị Windows hạ tốc", không còn đo đúng điều kiện chạy
+  nền mặc định.
+  - Muốn đo như cũ thì đặt biến môi trường `AUTOPARK_KEEP_ECOQOS=1`.
+  - Trạng thái đọc lại sau khi đặt được ghi vào tệp JUnit (thuộc tính `ecoqos` của testsuite: `off`, `system`, `on`
+    hoặc `unknown`) và vào đầu báo cáo khi chạy `-v`.
+  - Test: `tests/test_power_throttling.py` (4 test). Test kiểm chính tiến trình pytest đã tắt; tiến trình con mở sau đó
+    không thừa hưởng trạng thái này, nhưng tắt được theo pid.
+  - Kết quả: nhóm `planner_budget` chạy bằng lệnh pytest thường từ shell của tác tử đạt 15/15 ở cả 3/3 lượt,
+    29,7–30,2 s ([nhom_planner_budget.txt](evidence/mo_phong_20260930/ecoqos_30092026/nhom_planner_budget.txt),
+    `planner_budget_conftest_*.xml`).
+
+**Một lượt đầy đủ `.venv-train` thứ ba (10:57, tiến trình pytest tự tắt EcoQoS) KHÔNG dùng được:**
+- Lỗi: script bọc của tác tử thiếu chặn `if __name__ == "__main__"`. Tiến trình con mà `ProcessPoolExecutor` (spawn) của
+  `test_scan_odometry.py` mở ra chạy lại tệp đó, nên chạy lại cả bộ test bên trong. Test mở các tiến trình con đó hỏng.
+- Tác tử dừng lượt này lúc 11:19 và xóa tệp JUnit mà một lượt lồng đã ghi.
+- Kiểm lại sau đó:
+  - Trong repo chỉ đổi các tệp tác tử sửa có chủ ý.
+  - Ảnh flash của bo ảo không đổi (cùng SHA-256); `qemu_board kiem` đạt (58 khung trong 2 s, QEMU khởi động 1 lần).
+- Script đã sửa: [pytest_noeco.py](evidence/mo_phong_20260930/ecoqos_30092026/pytest_noeco.py).
+
+**Dọn ổ C**:
+
+| Thời điểm | Ổ C còn trống | Ghi chú |
+|---|---|---|
+| sáng 30/09 | 16,15 GB | |
+| 10:58 | 13,89 GB | |
+| 11:30, ngay trước khi dọn | 7,00 GB | thêm ≈ 6,2 GB thư mục tạm của các lượt lồng ở trên |
+| 11:31, sau khi dọn | **19,51 GB** | |
+
+Đã xóa:
+
+| Xóa | Dung lượng | Là gì |
+|---|---|---|
+| Nội dung thư mục tạm của phiên tác tử này (`%TEMP%\claude\d--xetulai\<phiên>\scratchpad`, 182 mục) | ≈ 2,1 GB | bản tải và bản build các trình giả lập, bản thử lớp giả, tài liệu tham khảo của đợt khảo sát. Phần cần giữ đã chép sang `D:\xetulai\_platformio\giu_lai` và `docs/evidence/mo_phong_20260930/` trước khi xóa |
+| Năm thư mục trong `%TEMP%\pytest-of-<người dùng>`: `pytest-9` (29/09), `pytest-129` (lượt đầy đủ bị dừng), `pytest-131`–`133` (các lượt lồng) | ≈ 10,4 GB | thư mục `tmp_path` của các lượt test autopark. Cả năm còn tệp `.lock` của tiến trình đã chết, nên pytest giữ chúng 3 ngày chứ không tự xóa |
+
+Trước thay đổi ở cuối mục này, mỗi lượt `.venv-train` để lại ≈ 2,1 GB trong thư mục tạm của pytest. Trong đó ≈ 1 GB là
+ba thư mục của `test_labels.py::test_a_frozen_session_keeps_its_split_when_its_frozen_images_are_no_longer_reviewed`.
+Mặc định pytest giữ thư mục của 3 lượt gần nhất.
+
+`%TEMP%\pytest-of-<người dùng>` dùng chung cho mọi lượt pytest của tài khoản Windows này, kể cả của phiên tác tử của dự
+án khác. Vì vậy không xóa cả thư mục khi có thể có pytest khác đang chạy.
+
+Không đụng tới:
+- thư mục tạm của phiên tác tử của một dự án khác trên máy, vì tiến trình của dự án đó đang dùng nó;
+- ba thư mục pytest nhỏ mới nhất, để pytest tự xoay vòng;
+- WSL: esp-emulator chạy trong WSL từ bản sao ở `/tmp`, và kiểm 30/09 thì bản sao đó đã không còn;
+- bộ nhớ đệm pip, vì lúc kiểm nó gần như rỗng.
+
+**Đã làm theo quyết định của người dùng (30/09/2026, 11:53–11:59):** `pyproject.toml` có
+`tmp_path_retention_policy = "failed"` (pytest 9.1.1): pytest xóa thư mục `tmp_path` của mỗi test đạt ngay khi test
+xong; lượt đạt hết thì xóa cả thư mục của lượt đó. Lượt có test hỏng thì còn thư mục của test hỏng và của các fixture
+dùng chung (`tmp_path_factory`). Đã thử với một tệp test tạm ngoài repo (một test đạt, một test hỏng; rồi một lượt đạt
+hết).
+
+Thư mục của test đạt không còn để xem lại sau lượt chạy. Cần giữ thì chạy thêm `-o tmp_path_retention_policy=all`.
+
+**Toàn bộ bộ test trên mã có các thay đổi 11:53–11:59:** CHƯA CHẠY lúc viết đoạn này; sẽ chạy lại trên commit của đợt
+này (cây làm việc sạch), như lượt `38f64bb` ở mục 3.

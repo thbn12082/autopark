@@ -51,4 +51,4 @@ Chưa nhận / chưa kiểm kê. *(24/09/2026: thêm AS5600 và phần nguồn/E
 - MN300: phiếu kiểm kê [mn300_inventory.md](mn300_inventory.md) (gói hàng, pin/sạc, ESC, bộ thu, servo, motor, đầu nối, ảnh, câu hỏi cho shop). Khi nhận xe thì điền phiếu đó; mục này chỉ giữ dòng tóm tắt và link.
 - Bảng đo đặc tính xe (tốc độ, góc lái, bán kính quay, quãng dừng): [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md), mọi ô CHƯA ĐO.
 - Nguồn, cầu chì, E-stop LA38, phần tử ngắt động lực, bảng tải nháp và kịch bản lỗi: [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md), CHƯA ĐO / CHƯA CHỐT / CHƯA THỬ.
-- ESP32-S3 và giao thức laptop–xe: [GIAO_THUC_XE.md](GIAO_THUC_XE.md). Firmware C++ **chưa biên dịch**; chưa nối với bo thật nào.
+- ESP32-S3 và giao thức laptop–xe: [GIAO_THUC_XE.md](GIAO_THUC_XE.md). Firmware C++ **biên dịch cho ESP32-S3 từ 29/09/2026, chưa nạp bo**; chưa nối với bo thật nào.

@@ -1,0 +1,77 @@
+    2.015 | T ms=1173 us=1173007 timer_cb=108 (+108 in 1000 ms)
+    4.118 | T ms=2173 us=2173007 timer_cb=208 (+100 in 1000 ms)
+    6.266 | T ms=3173 us=3173006 timer_cb=308 (+100 in 1000 ms)
+    8.333 | T ms=4173 us=4173008 timer_cb=408 (+100 in 1000 ms)
+   10.458 | T ms=5173 us=5173007 timer_cb=508 (+100 in 1000 ms)
+   12.557 | T ms=6173 us=6173006 timer_cb=608 (+100 in 1000 ms)
+   14.707 | T ms=7173 us=7173006 timer_cb=708 (+100 in 1000 ms)
+   16.812 | T ms=8173 us=8173008 timer_cb=808 (+100 in 1000 ms)
+   18.884 | T ms=9173 us=9173006 timer_cb=908 (+100 in 1000 ms)
+   21.010 | T ms=10173 us=10173006 timer_cb=1008 (+100 in 1000 ms)
+   23.198 | T ms=11173 us=11173006 timer_cb=1108 (+100 in 1000 ms)
+   25.375 | T ms=12173 us=12173007 timer_cb=1208 (+100 in 1000 ms)
+   27.464 | T ms=13173 us=13173006 timer_cb=1308 (+100 in 1000 ms)
+   29.615 | T ms=14173 us=14173007 timer_cb=1408 (+100 in 1000 ms)
+   31.701 | T ms=15173 us=15173006 timer_cb=1508 (+100 in 1000 ms)
+   33.794 | T ms=16173 us=16173006 timer_cb=1608 (+100 in 1000 ms)
+   35.882 | T ms=17173 us=17173007 timer_cb=1708 (+100 in 1000 ms)
+   37.958 | T ms=18173 us=18173006 timer_cb=1808 (+100 in 1000 ms)
+   40.064 | T ms=19173 us=19173006 timer_cb=1908 (+100 in 1000 ms)
+   42.215 | T ms=20173 us=20173005 timer_cb=2008 (+100 in 1000 ms)
+   44.278 | T ms=21173 us=21173006 timer_cb=2108 (+100 in 1000 ms)
+# first READY: False
+   46.321 | T ms=22173 us=22173006 timer_cb=2208 (+100 in 1000 ms)
+   48.358 | T ms=23173 us=23173006 timer_cb=2308 (+100 in 1000 ms)
+   49.059 >> send 'W'
+   49.060 | CMD W at ms=23516
+   51.516 | E (25820) task_wdt: Task watchdog got triggered. The following tasks did not reset the watchdog in time:
+   51.516 | E (25820) task_wdt:  - loopTask (CPU 1)
+   51.517 | E (25820) task_wdt: Tasks currently running:
+   51.517 | E (25820) task_wdt: CPU 0: IDLE0
+   51.517 | E (25820) task_wdt: CPU 1: loopTask
+   51.517 | E (25820) task_wdt: Aborting.
+   51.517 | 
+   51.517 | PROBE_WRAP ran: outsel21=0x100 out=0x0 en=0x200000
+   51.517 | 
+   51.517 | abort() was called at PC 0x4200c86c on core 0
+   51.517 | 
+   51.517 | 
+   51.517 | Backtrace: 0x4037684e:0x3fc92840 0x4037a601:0x3fc92860 0x4037fe9d:0x3fc92880 0x4200c86c:0x3fc92900 0x403783c5:0x3fc92920 0x420257ef:0x3fcf4730 0x4200d536:0x3fcf4750 0x4037b7dc:0x3fcf4770
+   51.517 | 
+   51.517 | 
+   51.517 | 
+   51.517 | 
+   51.517 | ELF file SHA256: 566e28c7e2c11856
+   51.517 | 
+   51.540 | Rebooting...
+   57.312 | ESP-ROM:esp32s3-20210327
+   57.312 | Build:Mar 27 2021
+   57.312 | rst:0x9 (RTCWDT_SYS_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+   57.312 | SPIWP:0xee
+   57.312 | mode:DIO, clock div:1
+   57.312 | load:0x3fce3808,len:0x4bc
+   57.312 | load:0x403c9700,len:0xbd8
+   57.313 | load:0x403cc700,len:0x2a0c
+   57.316 | entry 0x403c98d0
+   57.391 | 
+   57.391 | PROBE v1 boot=2 rtc_mem_kept=1 reason=WDT(7) rom_reason0=9 rom_reason1=0 last_cmd=W
+   57.391 | MARKERS wrap=0xc0de0001 wrap_outsel21=0x100 shutdown=0x00000000
+   57.391 | BOOTREGS outsel21=0x100 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00800000
+   57.394 | NVS begin=1 boots_before=1 put=4
+   57.394 | RANDOM 6db22b0c 3be8b45e
+   57.394 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+   57.394 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   57.395 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   57.396 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   57.396 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   57.397 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   57.397 | FLASH esp_flash_read mode=QIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   57.398 | PINS pullup14=1 pulldown5=1 float6=1 GPIO_IN=0xffffffff
+   57.398 | TWDT init(1s,panic)=0 add=0
+   57.398 | LEDC probe: wrote 0x100e read 0x0000100e
+   57.408 | LEDC regs: ch0_conf0=0x00000004 ch0_duty=0x00004cc0 ch0_duty_r=0x00004cc0 timer0_conf=0x00030d4e outsel21=0x49
+   57.536 | PWM pin21 sampled 130378 times/60ms: rises=0 high_total_us=0 avg_period_us=-1
+   57.536 | READY
+# READY after 'W': True
+   59.672 | T ms=1177 us=1177006 timer_cb=108 (+108 in 1000 ms)
+# guest/wall ratio from T lines: median=0.476 min=0.457 max=0.491 n=22

@@ -1,0 +1,132 @@
+QEMU 9.2.2 monitor - type 'help' for more information
+(qemu) 
+[21:20:35] >> sendkey 2 2500
+s[K[Dse[K[D[Dsen[K[D[D[Dsend[K[D[D[D[Dsendk[K[D[D[D[D[Dsendke[K[D[D[D[D[D[Dsendkey[K[D[D[D[D[D[D[Dsendkey [K[D[D[D[D[D[D[D[Dsendkey 2[K[D[D[D[D[D[D[D[D[Dsendkey 2 [K[D[D[D[D[D[D[D[D[D[Dsendkey 2 2[K[D[D[D[D[D[D[D[D[D[D[Dsendkey 2 25[K[D[D[D[D[D[D[D[D[D[D[D[Dsendkey 2 250[K[D[D[D[D[D[D[D[D[D[D[D[D[Dsendkey 2 2500[K
+(qemu) 
+[21:20:39] >> xp /4wx 0x60019000
+x[K[Dxp[K[D[Dxp [K[D[D[Dxp /[K[D[D[D[Dxp /4[K[D[D[D[D[Dxp /4w[K[D[D[D[D[D[Dxp /4wx[K[D[D[D[D[D[D[Dxp /4wx [K[D[D[D[D[D[D[D[Dxp /4wx 0[K[D[D[D[D[D[D[D[D[Dxp /4wx 0x[K[D[D[D[D[D[D[D[D[D[Dxp /4wx 0x6[K[D[D[D[D[D[D[D[D[D[D[Dxp /4wx 0x60[K[D[D[D[D[D[D[D[D[D[D[D[Dxp /4wx 0x600[K[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /4wx 0x6001[K[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /4wx 0x60019[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /4wx 0x600190[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /4wx 0x6001900[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /4wx 0x60019000[K
+0000000060019000: 0x00000014 0x00000000 0x00004cc0 0xc0000000
+(qemu) 
+[21:20:40] >> xp /2wx 0x600190a0
+x[K[Dxp[K[D[Dxp [K[D[D[Dxp /[K[D[D[D[Dxp /2[K[D[D[D[D[Dxp /2w[K[D[D[D[D[D[Dxp /2wx[K[D[D[D[D[D[D[Dxp /2wx [K[D[D[D[D[D[D[D[Dxp /2wx 0[K[D[D[D[D[D[D[D[D[Dxp /2wx 0x[K[D[D[D[D[D[D[D[D[D[Dxp /2wx 0x6[K[D[D[D[D[D[D[D[D[D[D[Dxp /2wx 0x60[K[D[D[D[D[D[D[D[D[D[D[D[Dxp /2wx 0x600[K[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /2wx 0x6001[K[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /2wx 0x60019[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /2wx 0x600190[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /2wx 0x600190a[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /2wx 0x600190a0[K
+00000000600190a0: 0x02030d4e 0x02030d4e
+(qemu) 
+[21:20:42] >> info qtree
+i[K[Din[K[D[Dinf[K[D[D[Dinfo[K[D[D[D[Dinfo [K[D[D[D[D[Dinfo q[K[D[D[D[D[D[Dinfo qt[K[D[D[D[D[D[D[Dinfo qtr[K[D[D[D[D[D[D[D[Dinfo qtre[K[D[D[D[D[D[D[D[D[Dinfo qtree[K
+bus: main-system-bus
+  type System
+  dev: misc.esp32s3.pms, id ""
+    mmio ffffffffffffffff/0000000000001000
+  dev: misc.esp32s3.rsa, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/0000000000000834
+  dev: misc.esp32s3.aes, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/00000000000000bc
+  dev: misc.esp32.phya, id ""
+    mmio ffffffffffffffff/0000000000001000
+  dev: misc.esp32.fe, id ""
+    mmio ffffffffffffffff/0000000000001000
+  dev: misc.esp32.ana, id ""
+    mmio ffffffffffffffff/0000000000001000
+  dev: misc.esp32s3.sha, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/0000000000000100
+  dev: ssi.esp32s3.lcd, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/0000000000000100
+    bus: LCD
+      type SSI
+      dev: st7789v, id ""
+        gpio-out "touch_sensor" 4
+        gpio-out "reset" 1
+        gpio-out "buttons" 2
+        gpio-in "backlight" 1
+        gpio-in "cmd" 1
+        s3_skin = true
+        cs = 0 (0x0)
+  dev: esp32s3.gdma, id ""
+    gpio-out "CHAN_OUT" 5
+    gpio-out "CHAN_IN" 5
+    mmio ffffffffffffffff/0000000000000410
+  dev: esp32.i2c, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/0000000000000100
+    bus: i2c
+      type i2c-bus
+  dev: esp32.i2c, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/0000000000000100
+    bus: i2c
+      type i2c-bus
+      dev: mpu6050, id "mpu6050"
+        address = 104 (0x68)
+      dev: tmp105, id ""
+        gpio-out "" 1
+        address = 72 (0x48)
+  dev: esp32s3.gpio, id ""
+    gpio-in "esp32_gpios_func" 1
+    gpio-in "esp32_gpios_in" 49
+    gpio-out "rtcio-cpu-reset" 1
+    gpio-out "esp32_gpios" 49
+    gpio-out "sysbus-irq" 2
+    strap_mode = 4 (0x4)
+    mmio ffffffffffffffff/0000000000001000
+    mmio ffffffffffffffff/0000000000001000
+    mmio ffffffffffffffff/0000000000000100
+  dev: esp32s3.systimer, id ""
+    gpio-out "sysbus-irq" 3
+    mmio ffffffffffffffff/0000000000000100
+  dev: timer.esp32s3.timg, id ""
+    gpio-out "t1-interrupt" 1
+    gpio-out "t0-interrupt" 1
+    gpio-out "wdt-interrupt" 1
+    gpio-out "wdt-reset" 1
+    wdt_disable = false
+    mmio ffffffffffffffff/0000000000000100
+  dev: timer.esp32s3.timg, id ""
+    gpio-out "t1-interrupt" 1
+    gpio-out "t0-interrupt" 1
+    gpio-out "wdt-interrupt" 1
+    gpio-out "wdt-reset" 1
+    wdt_disable = false
+    mmio ffffffffffffffff/0000000000000100
+  dev: esp32s3.soc.clk, id ""
+    gpio-out "s3clk-update" 1
+    gpio-out "sysbus-irq" 4
+    mmio ffffffffffffffff/00000000000000a4
+  dev: nvram.esp32s3.efuse, id ""
+    gpio-out "sysbus-irq" 1
+    drive = ""
+    mmio ffffffffffffffff/0000000000000204
+  dev: esp32s3.icache, id ""
+    mmio ffffffffffffffff/0000000000001800
+  dev: ssi.esp32s3.spi, id ""
+    gpio-out "ssi-gpio-cs" 3
+    mmio ffffffffffffffff/0000000000000400
+    bus: spi
+      type SSI
+  dev: ssi.esp32s3.spi, id ""
+    gpio-out "ssi-gpio-cs" 3
+    mmio ffffffffffffffff/0000000000000400
+    bus: spi
+      type SSI
+      dev: ssi_psram, id ""
+        gpio-in "ssi-gpio-cs" 1
+        is_octal = true
+        size_mbytes = 4 (0x4)
+        cs = 1 (0x1)
+      dev: is25lp128, id ""
+        gpio-in "WP#" 1
+        gpio-in "ssi-gpio-cs" 1
+        write-enable = false
+        nonvolatile-cfg = 36863 (0x8fff)
+        spansion-cr1nv = 0 (0x0)
+        spansion-cr2nv = 8 (0x8)
+        spansion-cr3nv = 2 (0x2)
+        spansion-cr4nv = 16 (0x10)
+        drive = "mtd0"
+        cs = 0 (0x0)
+  dev: misc.esp32c3.usb_serial_jtag, id ""
+    mmio ffffffffffffffff/0000000000000084
+(qemu) 

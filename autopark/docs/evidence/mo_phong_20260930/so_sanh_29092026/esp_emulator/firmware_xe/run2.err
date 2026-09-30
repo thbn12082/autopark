@@ -1,0 +1,40 @@
+
+    ╻ ╻ ╻ ╻
+   ┏┻━┻━┻━┻┓    ┏━╸┏━┓┏━┓   ┏━╸┏┳┓╻ ╻
+  ━┫       ┣━   ┣╸ ┗━┓┣━┛╺━╸┣╸ ┃┃┃┃ ┃
+  ━┫ ESP32 ┣━   ┗━╸┗━┛╹     ┗━╸╹ ╹┗━┛
+  ━┫       ┣━
+   ┗┳━┳━┳━┳┛    ESP32 series emulator · v0.44.0
+    ╹ ╹ ╹ ╹
+
+[INFO  esp_emu] Loaded firmware: 8388608 bytes
+[INFO  machine] WiFi SoftAP: WPA2-PSK enabled for SSID 'myssid'
+[INFO  esp_emu] TAP auto-probe failed (TUNSETIFF failed for 'tap0': Operation not permitted (os error 1)); falling back to --net user
+[INFO  net_user] user-net: DNS forwarder upstream [10.255.255.254:53], restrict=false
+[INFO  net_user] user-net: backend ready (gateway 192.168.4.1, 0 hostfwd rules)
+[INFO  esp_emu] Network backend: user-mode (smoltcp NAT, 192.168.4.1 -> host loopback)
+[INFO  esp_emu] Loaded ROM ELF: <embedded esp32s3> (949552 bytes)
+[INFO  esp_emu] Booting from real ROM reset vector (use --skip-rom to bypass)
+[INFO  machine] ROM ELF: 5227 symbols loaded
+[INFO  machine] ROM ELF loaded, 10 functions patched for interception
+[INFO  machine] PSRAM configured as 0 KB
+[INFO  machine] CPU reset at ROM entry: PC=0x40000400, SP=0x3FCEB710
+[INFO  esp_emu] Loaded application ELF: 7494052 bytes
+[INFO  periph::ble_hci] BLE: no VHCI symbols found (firmware may not use Bluetooth)
+[INFO  periph::thread_radio] Thread: no IEEE 802.15.4 symbols found (firmware may not use Thread)
+[INFO  machine] DWARF line info loaded from application ELF
+[INFO  machine] Panic intercept: 'esp_system_abort' at 0x4037ADAC
+[INFO  machine] Panic intercept: 'abort' at 0x403806C4
+[INFO  machine] Panic intercept: 'esp_panic_handler' at 0x4200A0A0
+[INFO  esp_emu] trace: writing trace.json (open in https://ui.perfetto.dev)
+[INFO  esp_emu] Starting emulation (chip=esp32s3, batch_size=50000)
+[TRACE periph::usbjtag] USB_JTAG read offset 0x018
+[TRACE periph::usbjtag] USB_JTAG write offset 0x018 = 0x00000000
+[TRACE periph::usbjtag] USB_JTAG read offset 0x018
+[TRACE periph::usbjtag] USB_JTAG write offset 0x018 = 0x00000000
+[TRACE periph::usbjtag] USB_JTAG read offset 0x018
+[TRACE periph::usbjtag] USB_JTAG write offset 0x018 = 0x00000200
+[TRACE periph::usbjtag] USB_JTAG read offset 0x018
+[TRACE periph::usbjtag] USB_JTAG write offset 0x018 = 0x00004000
+[INFO  esp_emu] Timeout reached after 8.000353765s
+[INFO  machine] trace: 924 events written

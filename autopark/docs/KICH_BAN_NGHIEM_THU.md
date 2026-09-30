@@ -833,10 +833,10 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Đo độc lập, độ chính xác kỳ vọng | Máy hiện sóng (M1); R3 + R7 (M3) |
 | Số lần | 10 (4 + 3 + 3) |
 | Dữ liệu ghi | GD1–GD6 |
-| Công cụ, lệnh | Xe thật và bo: CHƯA CÓ (firmware C++ chưa biên dịch; T1) *(cập nhật 25/09/2026: T1 đã có từ `6db5087`; còn chặn: firmware chưa biên dịch và nạp được, và T2, vì START với cổng thật luôn bị từ chối `START_NO_POSE_SOURCE` nên chưa mở được lần chạy nào trên bo thật)* |
+| Công cụ, lệnh | Xe thật và bo: CHƯA CÓ (firmware C++ chưa biên dịch; T1) *(cập nhật 25/09/2026: T1 đã có từ `6db5087`; còn chặn: firmware chưa biên dịch và nạp được, và T2, vì START với cổng thật luôn bị từ chối `START_NO_POSE_SOURCE` nên chưa mở được lần chạy nào trên bo thật)* *(29/09/2026: firmware đã biên dịch; còn chặn: chưa có bo để nạp, và T2)* |
 | Điều kiện trước | ĐK-XT; L9 đạt ở M0–M1 |
 | Ngưỡng | N-P7, N-P10 |
-| Trạng thái | CHƯA THỬ (có test mô phỏng `SimVehicleIO.reset_firmware`, [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 10) |
+| Trạng thái | CHƯA THỬ (có test mô phỏng `SimVehicleIO.reset_firmware`, [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 10; từ 30/09/2026 thêm reset chip trong bo ảo QEMU, `tests/test_firmware_qemu.py::test_chip_reset_is_seen_as_firmware_reset`, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md); chưa thử trên bo) |
 
 **AT-4 — Nguồn yếu, sụt áp (chỉ ở mức bàn, có bảo vệ)**
 

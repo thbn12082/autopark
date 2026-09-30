@@ -1,0 +1,53 @@
+{
+  "url": "socket://127.0.0.1:5555",
+  "seconds": 30.0,
+  "burn_processes": 32,
+  "boot_id": "8de80e21",
+  "telemetry": 604,
+  "timing": {
+    "n": 604,
+    "host_span_s": 30.1662,
+    "dev_span_ms": 30150,
+    "rate_hz_host": 19.989,
+    "host_dt_ms": {
+      "min": 0.0,
+      "p50": 50.05,
+      "p95": 61.56,
+      "max": 211.01
+    },
+    "dev_dt_ms": {
+      "min": 40,
+      "p50": 50,
+      "max": 64
+    },
+    "device_ms_per_host_ms": 0.99911,
+    "host_minus_dev_offset_spread_ms": 175.07
+  },
+  "overruns": [],
+  "largest_device_gaps_ms": [
+    64,
+    57,
+    57,
+    56,
+    56,
+    55,
+    55,
+    53,
+    53,
+    53
+  ],
+  "largest_host_gaps_ms": [
+    211.0,
+    82.9,
+    81.0,
+    80.8,
+    79.9,
+    78.1,
+    77.6,
+    73.1,
+    72.6,
+    67.4
+  ],
+  "missed_device_messages": 0,
+  "fault_msgs": []
+}

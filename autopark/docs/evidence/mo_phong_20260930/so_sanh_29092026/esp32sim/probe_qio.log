@@ -1,0 +1,64 @@
+# esp32sim.wasm cpu_hz=240000000 jit=true
+   0.010 emu |    0.100 wall | usb   | ESP-ROM:esp32s3-20210327
+   0.010 emu |    0.100 wall | usb   | Build:Mar 27 2021
+   0.010 emu |    0.100 wall | usb   | rst:0x1 (POWERON),boot:0xf (SPI_FAST_FLASH_BOOT)
+   0.010 emu |    0.101 wall | usb   | configspi:0x00000008
+   0.010 emu |    0.101 wall | usb   | SPIWP:0x00
+   0.010 emu |    0.101 wall | usb   | mode:DIO, clock div:1
+   0.010 emu |    0.101 wall | usb   | load:0x3fce3808,len:0x4bc
+   0.010 emu |    0.101 wall | usb   | load:0x403c9700,len:0xbd8
+   0.010 emu |    0.101 wall | usb   | load:0x403cc700,len:0x2a0c
+   0.010 emu |    0.102 wall | uart0 | ESP-ROM:esp32s3-20210327
+   0.010 emu |    0.102 wall | uart0 | Build:Mar 27 2021
+   0.010 emu |    0.102 wall | uart0 | rst:0x1 (POWERON),boot:0xf (SPI_FAST_FLASH_BOOT)
+   0.010 emu |    0.102 wall | uart0 | configspi:0x00000008
+   0.010 emu |    0.102 wall | uart0 | SPIWP:0x00
+   0.010 emu |    0.102 wall | uart0 | mode:DIO, clock div:1
+   0.010 emu |    0.103 wall | uart0 | load:0x3fce3808,len:0x4bc
+   0.010 emu |    0.103 wall | uart0 | load:0x403c9700,len:0xbd8
+   0.010 emu |    0.103 wall | uart0 | load:0x403cc700,len:0x2a0c
+   0.010 emu |    0.103 wall | usb   | entry 0x403c98d0
+   0.010 emu |    0.103 wall | uart0 | entry 0x403c98d0
+   0.070 emu |    0.393 wall | uart0 | 
+   0.070 emu |    0.394 wall | uart0 | PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+   0.070 emu |    0.394 wall | uart0 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+   0.070 emu |    0.394 wall | uart0 | BOOTREGS outsel21=0x100 gpio_en=0x00000101 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+   0.070 emu |    0.394 wall | uart0 | NVS begin=1 boots_before=0 put=4
+   0.070 emu |    0.394 wall | uart0 | RANDOM bef8888e 7f89bc53
+   0.070 emu |    0.394 wall | uart0 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+   0.070 emu |    0.394 wall | uart0 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.394 wall | uart0 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.394 wall | uart0 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.394 wall | uart0 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.394 wall | uart0 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.394 wall | uart0 | FLASH esp_flash_read mode=QIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.394 wall | uart0 | PINS pullup14=1 pulldown5=1 float6=1 GPIO_IN=0xffffffff
+   0.070 emu |    0.394 wall | uart0 | TWDT init(1s,panic)=0 add=0
+   0.070 emu |    0.395 wall | uart0 | LEDC probe: wrote 0x100e read 0x0000100e
+   0.100 emu |    0.422 wall | uart0 | LEDC regs: ch0_conf0=0x00000014 ch0_duty=0x00004cc0 ch0_duty_r=0x00000000 timer0_conf=0x02030d4e outsel21=0x49
+   0.160 emu |    0.563 wall | uart0 | PWM pin21 sampled 115664 times/60ms: rises=0 high_total_us=60000 avg_period_us=-1
+   0.160 emu |    0.563 wall | uart0 | READY
+   1.160 emu |    1.991 wall | uart0 | T ms=1141 us=1141002 timer_cb=108 (+108 in 1000 ms)
+   2.160 emu |    3.389 wall | uart0 | T ms=2141 us=2141002 timer_cb=208 (+100 in 1000 ms)
+   3.000 emu | >> {"t":"key","src":"uart0","data":"P"}
+   3.160 emu |    4.776 wall | uart0 | T ms=3141 us=3141002 timer_cb=308 (+100 in 1000 ms)
+   3.500 emu | >> {"t":"btn","pin":"14","v":"1"}
+   3.600 emu | >> {"t":"key","src":"uart0","data":"P"}
+   4.000 emu | >> {"t":"key","src":"uart0","data":"R"}
+   4.160 emu |    6.218 wall | uart0 | T ms=4141 us=4141002 timer_cb=408 (+100 in 1000 ms)
+   5.160 emu |    7.655 wall | uart0 | T ms=5141 us=5141002 timer_cb=508 (+100 in 1000 ms)
+   6.160 emu |    9.049 wall | uart0 | T ms=6141 us=6141002 timer_cb=608 (+100 in 1000 ms)
+   7.000 emu | >> {"t":"key","src":"uart0","data":"A"}
+   7.160 emu |   10.474 wall | uart0 | T ms=7141 us=7141002 timer_cb=708 (+100 in 1000 ms)
+   8.160 emu |   11.881 wall | uart0 | T ms=8141 us=8141002 timer_cb=808 (+100 in 1000 ms)
+   9.160 emu |   13.258 wall | uart0 | T ms=9141 us=9141002 timer_cb=908 (+100 in 1000 ms)
+  10.000 emu | >> {"t":"key","src":"uart0","data":"W"}
+  10.160 emu |   14.660 wall | uart0 | T ms=10141 us=10141002 timer_cb=1008 (+100 in 1000 ms)
+  11.160 emu |   16.058 wall | uart0 | T ms=11141 us=11141002 timer_cb=1108 (+100 in 1000 ms)
+  12.160 emu |   17.445 wall | uart0 | T ms=12141 us=12141002 timer_cb=1208 (+100 in 1000 ms)
+  13.160 emu |   18.833 wall | uart0 | T ms=13141 us=13141002 timer_cb=1308 (+100 in 1000 ms)
+  14.160 emu |   20.206 wall | uart0 | T ms=14141 us=14141002 timer_cb=1408 (+100 in 1000 ms)
+  15.160 emu |   21.583 wall | uart0 | T ms=15141 us=15141002 timer_cb=1508 (+100 in 1000 ms)
+# emulated 16.00 s in 22.73 s wall = 0.704x real time; insns 3850.0 M (169.4 Minsn/s); jit compiled 1742
+# usb code points received: 252; first 64: 45 53 50 2d 52 4f 4d 3a 65 73 70 33 32 73 33 2d 32 30 32 31 30 33 32 37 d a 42 75 69 6c 64 3a 4d 61 72 20 32 37 20 32 30 32 31 d a 72 73 74 3a 30 78 31 20 28 50 4f 57 45 52 4f 4e 29 2c 62
+# host_log tail: 

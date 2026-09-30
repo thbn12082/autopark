@@ -1,0 +1,37 @@
+    0.036 | ESP-ROM:esp32s3-20210327
+    0.037 | Build:Mar 27 2021
+    0.037 | rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+    0.042 | configspi:0x1b7607de
+    0.042 | SPIWP:0x1c
+    0.043 | mode:DIO, clock div:1
+    0.043 | load:0x3fce3808,len:0x4bc
+    0.044 | load:0x403c9700,len:0xbd8
+    0.044 | load:0x403cc700,len:0x2a0c
+    0.047 | entry 0x403c98d0
+    0.234 | 
+    0.235 | PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+    0.236 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+    0.237 | BOOTREGS outsel21=0x0 gpio_en=0xf8000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    0.246 | NVS begin=1 boots_before=0 put=4
+    0.247 | RANDOM 788c1072 30afbe82
+    0.248 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+    0.249 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.250 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.251 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.252 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.252 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.253 | FLASH esp_flash_read mode=QIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.257 | PINS pullup14=1 pulldown5=0 float6=0 GPIO_IN=0xfc004001
+    0.258 | TWDT init(1s,panic)=0 add=0
+    0.258 | LEDC probe: wrote 0x100e read 0x0000100e
+    0.287 | LEDC regs: ch0_conf0=0x00000014 ch0_duty=0x00004cc0 ch0_duty_r=0x00004cc0 timer0_conf=0x02030d4e outsel21=0x49
+    0.348 | PWM pin21 sampled 25724 times/60ms: rises=0 high_total_us=0 avg_period_us=-1
+    0.348 | READY
+# first READY: True
+    1.352 | T ms=1325 us=1325038 timer_cb=108 (+108 in 1000 ms) pin14=1
+    2.356 | T ms=2325 us=2325004 timer_cb=208 (+100 in 1000 ms) pin14=1
+    3.360 | T ms=3325 us=3325002 timer_cb=308 (+100 in 1000 ms) pin14=1
+    4.353 >> send 'W'
+    4.356 | CMD W at ms=4316
+# READY after 'W': False
+# guest/wall ratio from T lines: median=0.997 min=0.996 max=0.997 n=2

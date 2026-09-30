@@ -16,7 +16,7 @@ thu kết quả cuối). Bộ kịch bản dùng các ngưỡng này: [KICH_BAN_
 cuối". Tệp này chỉ là bản nháp để chốt, không phải bộ ngưỡng cuối.
 
 Tình trạng làm nền (24/09/2026, theo [TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md)): chưa nhận MN300, ESP32-S3, phần nguồn và
-dừng; firmware C++ chưa biên dịch; AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape); định vị LiDAR
+dừng; firmware C++ chưa nạp bo (biên dịch được từ 29/09/2026); AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape); định vị LiDAR
 mới chạy offline, chưa có tham chiếu độc lập. Mọi số đo phần cứng hiện có là trên **máy bàn** i9-14900 + RTX 4000 Ada
 (22–24/09/2026). Trên laptop RTX 3050 Ti (máy nộp đồ án) chỉ có hồ sơ mô phỏng giai đoạn 0 (20/09/2026).
 *(Cập nhật 25/09/2026, `9d68257`: câu "AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape)" đã lỗi thời.

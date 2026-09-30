@@ -1,0 +1,35 @@
+    0.032 | ESP-ROM:esp32s3-20210327
+    0.032 | Build:Mar 27 2021
+    0.033 | rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+    0.037 | SPIWP:0xee
+    0.039 | mode:DIO, clock div:1
+    0.040 | load:0x3fce3808,len:0x41c
+    0.041 | load:0x403c9700,len:0x9a8
+    0.041 | load:0x403cc700,len:0x28ac
+    0.043 | entry 0x403c98b8
+    0.262 | 
+    0.262 | PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+    0.262 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+    0.265 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    0.276 | NVS begin=1 boots_before=0 put=4
+    0.276 | RANDOM 57dcf2da 7ae35468
+    0.277 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=3)
+    0.279 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.280 | FLASH esp_flash_read mode=FASTRD err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    0.280 | FLASH esp_flash_read mode=DOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    0.281 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.282 | FLASH esp_flash_read mode=QOUT err=0 first8=50 01 02 00 90 00 00 00 shift=-1
+    0.282 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 00 00 aa 50 01 02 shift=4
+    0.287 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    0.288 | TWDT init(1s,panic)=0 add=0
+    0.289 | LEDC probe: wrote 0x100e read 0x00000000
+    0.289 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+    0.289 | READY
+# first READY: True
+    1.295 | T ms=1272 us=1272039 timer_cb=99 (+99 in 1000 ms) pin14=0
+    2.299 | T ms=2272 us=2272004 timer_cb=200 (+101 in 1000 ms) pin14=0
+    3.303 | T ms=3272 us=3272008 timer_cb=300 (+100 in 1000 ms) pin14=0
+    4.295 >> send 'W'
+    4.298 | CMD W at ms=4261
+# READY after 'W': False
+# guest/wall ratio from T lines: median=0.996 min=0.996 max=0.996 n=2

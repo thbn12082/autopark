@@ -1,0 +1,80 @@
+Nhóm test planner_budget (15 test: test_bev 1, test_planner_hard_cases 10, test_vehicle_sensitivity 4), .venv-train, offscreen,
+máy bàn 30/09/2026, mã b37e9ee + sửa đổi chưa commit. Tiến trình mở từ shell PowerShell của tác tử (không cửa sổ).
+  default: .venv-train\Scripts\python.exe -X utf8 -m pytest -m planner_budget -q -p no:cacheprovider --junitxml <tệp>
+  noeco:   .venv-train\Scripts\python.exe -X utf8 pytest_noeco.py -m planner_budget -q -p no:cacheprovider --junitxml <tệp>
+Chạy lần lượt noeco 1, default 1, noeco 2, default 2. Giờ bắt đầu, tải CPU lúc bắt đầu (Win32_Processor.LoadPercentage),
+thời gian cả lệnh: noeco 1 11:23:52, 15 %, 39 s; default 1 11:24:31, 0 %, 107 s; noeco 2 11:26:18, 7 %, 43 s;
+default 2 11:27:01, 16 %, 57 s. Crawler 12 luồng (việc khác trên máy) chạy suốt các lượt này; một phiên tác tử khác
+(dự án khác) cũng có tiến trình chạy trên máy.
+
+== planner_budget_noeco_1.xml: tests=15 failures=0 errors=0 time=36.4s start=11:23:53
+   ok     1.42s test_fast_path_speedup_over_reference
+   ok     0.00s test_bo_ca_kho_van_hop_le
+   ok     0.99s test_ca_cot_chan_cua_o_giai_duoc_nhanh
+   ok     0.51s test_duong_di_qua_ung_dung_cung_giai_duoc
+   ok     2.92s test_ca_truoc_day_bo_tay_nay_giai_duoc[parallel_135]
+   ok     1.02s test_ca_truoc_day_bo_tay_nay_giai_duoc[perp_aisle_115]
+   ok     4.52s test_ca_truoc_day_bo_tay_nay_giai_duoc[uturn_w46]
+   ok     4.00s test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_122]
+   ok     4.00s test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_115]
+   ok     2.23s test_khong_hoi_quy_o_cac_ca_de
+   ok     0.30s test_nhat_ky_leo_thang_ghi_lai_tung_nac
+   ok     1.63s test_run_sweep_moi_bien_the_cung_mot_sa_ban
+   ok     2.27s test_xe_to_hon_nhieu_hong_ca_chat_ma_xe_mac_dinh_qua
+   ok     3.62s test_nhieu_tien_trinh_cho_cung_thu_tu_va_ket_qua
+   ok     3.71s test_cli_sensitivity_ghi_json_va_bang
+== planner_budget_default_1.xml: tests=15 failures=3 errors=0 time=103.4s start=11:24:32
+   ok     3.47s test_fast_path_speedup_over_reference
+   ok     0.01s test_bo_ca_kho_van_hop_le
+   ok     3.39s test_ca_cot_chan_cua_o_giai_duoc_nhanh
+   ok     1.69s test_duong_di_qua_ung_dung_cung_giai_duoc
+   ok     8.91s test_ca_truoc_day_bo_tay_nay_giai_duoc[parallel_135]
+   ok     3.14s test_ca_truoc_day_bo_tay_nay_giai_duoc[perp_aisle_115]
+   FAIL   8.04s test_ca_truoc_day_bo_tay_nay_giai_duoc[uturn_w46] :: AssertionError: uturn_w46: TIMEOUT — Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng assert False  +  where False = CaseResult(n
+   ok     4.01s test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_122]
+   ok     4.01s test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_115]
+   FAIL  16.79s test_khong_hoi_quy_o_cac_ca_de :: AssertionError: perp_aisle_170: TIMEOUT — Đã thử 1 nấc, không nấc nào ra đường. Cuối cùng: Hết thời gian kiểm chứng đường assert False  +  where False = CaseResult(name='
+   FAIL   6.06s test_nhat_ky_leo_thang_ghi_lai_tung_nac :: AssertionError: assert False  +  where False = PlanResult(status='TIMEOUT', message='Đã thử 2 nấc, không nấc nào ra đường. Cuối cùng: Hết thời gian kiểm chứng đường', tra
+   ok     9.94s test_run_sweep_moi_bien_the_cung_mot_sa_ban
+   ok     8.90s test_xe_to_hon_nhieu_hong_ca_chat_ma_xe_mac_dinh_qua
+   ok    10.38s test_nhieu_tien_trinh_cho_cung_thu_tu_va_ket_qua
+   ok     8.25s test_cli_sensitivity_ghi_json_va_bang
+== planner_budget_noeco_2.xml: tests=15 failures=0 errors=0 time=40.2s start=11:26:20
+   ok     1.44s test_fast_path_speedup_over_reference
+   ok     0.00s test_bo_ca_kho_van_hop_le
+   ok     1.05s test_ca_cot_chan_cua_o_giai_duoc_nhanh
+   ok     0.69s test_duong_di_qua_ung_dung_cung_giai_duoc
+   ok     6.06s test_ca_truoc_day_bo_tay_nay_giai_duoc[parallel_135]
+   ok     1.10s test_ca_truoc_day_bo_tay_nay_giai_duoc[perp_aisle_115]
+   ok     4.54s test_ca_truoc_day_bo_tay_nay_giai_duoc[uturn_w46]
+   ok     4.00s test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_122]
+   ok     4.00s test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_115]
+   ok     2.11s test_khong_hoi_quy_o_cac_ca_de
+   ok     0.28s test_nhat_ky_leo_thang_ghi_lai_tung_nac
+   ok     1.65s test_run_sweep_moi_bien_the_cung_mot_sa_ban
+   ok     2.23s test_xe_to_hon_nhieu_hong_ca_chat_ma_xe_mac_dinh_qua
+   ok     3.75s test_nhieu_tien_trinh_cho_cung_thu_tu_va_ket_qua
+   ok     3.10s test_cli_sensitivity_ghi_json_va_bang
+== planner_budget_default_2.xml: tests=15 failures=1 errors=0 time=54.7s start=11:27:02
+   ok     1.94s test_fast_path_speedup_over_reference
+   ok     0.01s test_bo_ca_kho_van_hop_le
+   ok     2.06s test_ca_cot_chan_cua_o_giai_duoc_nhanh
+   ok     0.99s test_duong_di_qua_ung_dung_cung_giai_duoc
+   ok     4.39s test_ca_truoc_day_bo_tay_nay_giai_duoc[parallel_135]
+   ok     2.24s test_ca_truoc_day_bo_tay_nay_giai_duoc[perp_aisle_115]
+   FAIL   8.00s test_ca_truoc_day_bo_tay_nay_giai_duoc[uturn_w46] :: AssertionError: uturn_w46: TIMEOUT — Đã thử 3 nấc, không nấc nào ra đường. Cuối cùng: Hết thời gian kiểm chứng đường assert False  +  where False = CaseResult(name='uturn
+   ok     4.00s test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_122]
+   ok     4.00s test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_115]
+   ok     4.53s test_khong_hoi_quy_o_cac_ca_de
+   ok     0.63s test_nhat_ky_leo_thang_ghi_lai_tung_nac
+   ok     3.51s test_run_sweep_moi_bien_the_cung_mot_sa_ban
+   ok     5.08s test_xe_to_hon_nhieu_hong_ca_chat_ma_xe_mac_dinh_qua
+   ok     6.07s test_nhieu_tien_trinh_cho_cung_thu_tu_va_ket_qua
+   ok     4.46s test_cli_sensitivity_ghi_json_va_bang
+
+--- Sau khi tests/conftest.py tắt EcoQoS cho tiến trình pytest (30/09/2026, cùng mã + autopark/power_throttling.py) ---
+Lệnh: .venv-train\Scripts\python.exe -X utf8 -m pytest -m planner_budget -p no:cacheprovider --junitxml planner_budget_conftest_<n>.xml
+(pytest thường, KHÔNG qua script bọc; mở từ shell của tác tử như các lượt default ở trên). Tệp JUnit có thuộc tính ecoqos=off.
+  lượt 1: bắt đầu 11:56:20, tải CPU 14 %, 15/15 đạt, 29,7 s (JUnit)
+  lượt 2: bắt đầu 11:56:51, tải CPU 7 %, 15/15 đạt, 30,0 s
+  lượt 3: bắt đầu 11:57:23, tải CPU 29 %, 15/15 đạt, 30,2 s

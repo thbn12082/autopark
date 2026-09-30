@@ -1,0 +1,128 @@
+    0.034 | ESP-ROM:esp32s3-20210327
+    0.034 | Build:Mar 27 2021
+    0.035 | rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+    0.040 | SPIWP:0xee
+    0.041 | mode:DIO, clock div:1
+    0.042 | load:0x3fce3808,len:0x4bc
+    0.042 | load:0x403c9700,len:0xbd8
+    0.043 | load:0x403cc700,len:0x2a0c
+    0.045 | entry 0x403c98d0
+    0.189 | E (77) esp_core_dump_flash: Incorrect size of core dump image: -65536
+    0.266 | 
+    0.267 | PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+    0.268 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+    0.269 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    0.279 | NVS begin=1 boots_before=0 put=4
+    0.280 | RANDOM 6e580349 29659c7b
+    0.282 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+    0.284 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.285 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.285 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.286 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.287 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.288 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 aa 50 01 02 00 90 shift=2
+    0.292 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    0.292 | TWDT init(1s,panic)=0 add=0
+    0.293 | LEDC probe: wrote 0x100e read 0x00000000
+    0.294 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+    0.294 | READY
+# first READY: True
+    1.299 | T ms=1273 us=1273038 timer_cb=100 (+100 in 1000 ms)
+    2.304 | T ms=2273 us=2273005 timer_cb=200 (+100 in 1000 ms)
+    3.310 | T ms=3273 us=3273003 timer_cb=300 (+100 in 1000 ms)
+    4.310 >> send 'P'
+    4.317 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    4.317 | T ms=4277 us=4277141 timer_cb=400 (+100 in 1004 ms)
+    5.317 | T ms=5273 us=5273007 timer_cb=499 (+99 in 996 ms)
+    6.320 >> send 'R'
+    6.336 | T ms=6273 us=6273005 timer_cb=600 (+101 in 1000 ms)
+    6.336 | CMD R at ms=6274
+    6.336 | 
+    6.336 | PROBE_SHUTDOWN handler ran
+    6.340 | ESP-ROM:esp32s3-20210327
+    6.340 | Build:Mar 27 2021
+    6.340 | rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+    6.345 | SPIWP:0xee
+    6.346 | mode:DIO, clock div:1
+    6.347 | load:0x3fce3808,len:0x4bc
+    6.347 | load:0x403c9700,len:0xbd8
+    6.349 | load:0x403cc700,len:0x2a0c
+    6.355 | entry 0x403c98d0
+    6.464 | E (3365) esp_core_dump_flash: Incorrect size of core dump image: -65536
+    6.530 | 
+    6.531 | PROBE v1 boot=2 rtc_mem_kept=1 reason=SW(3) rom_reason0=12 rom_reason1=12 last_cmd=R
+    6.531 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x5d5d0001
+    6.533 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    6.542 | NVS begin=1 boots_before=0 put=4
+    6.543 | RANDOM c0200f01 cb5b176f
+    6.544 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+    6.545 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    6.546 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    6.547 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    6.547 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    6.549 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    6.550 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 aa 50 01 02 00 90 shift=2
+    6.554 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    6.554 | TWDT init(1s,panic)=0 add=0
+    6.555 | LEDC probe: wrote 0x100e read 0x00000000
+    6.556 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+    6.556 | READY
+# READY after 'R': True
+    7.560 | T ms=7508 us=7508004 timer_cb=99 (+99 in 1000 ms)
+    8.563 | T ms=8508 us=8508006 timer_cb=199 (+100 in 1000 ms)
+    9.567 | T ms=9508 us=9508008 timer_cb=300 (+101 in 1000 ms)
+   10.563 >> send 'A'
+   10.565 | CMD A at ms=10501
+   10.568 | 
+   10.568 | PROBE_WRAP ran: outsel21=0x0 out=0x0 en=0x0
+   10.869 | 
+   10.869 | abort() was called at PC 0x420020ed on core 1
+   10.871 | 
+   10.871 | 
+   10.872 | Backtrace: 0x4037684e:0x3fcebb60 0x4037a601:0x3fcebb80 0x4037fe9d:0x3fcebba0 0x420020ed:0x3fcebc20 0x420043b5:0x3fcebc50
+   10.872 | 
+   10.872 | 
+   10.872 | 
+   10.872 | 
+   10.872 | ELF file SHA256: 566e28c7e2c11856
+   10.872 | 
+   10.916 | Rebooting...
+   10.931 | ESP-ROM:esp32s3-20210327
+   10.931 | Build:Mar 27 2021
+   10.932 | rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+   10.937 | SPIWP:0xee
+   10.937 | mode:DIO, clock div:1
+   10.939 | load:0x3fce3808,len:0x4bc
+   10.939 | load:0x403c9700,len:0xbd8
+   10.941 | load:0x403cc700,len:0x2a0c
+   10.946 | entry 0x403c98d0
+   11.057 | E (12389) esp_core_dump_flash: Incorrect size of core dump image: 688128000
+   11.124 | 
+   11.124 | PROBE v1 boot=3 rtc_mem_kept=1 reason=PANIC(4) rom_reason0=12 rom_reason1=12 last_cmd=A
+   11.125 | MARKERS wrap=0xc0de0001 wrap_outsel21=0x0 shutdown=0x00000000
+   11.126 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+   11.135 | NVS begin=1 boots_before=0 put=4
+   11.135 | RANDOM 1eb99aab 8eeb558c
+   11.137 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+   11.138 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   11.139 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   11.140 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   11.140 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   11.141 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   11.142 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 aa 50 01 02 00 90 shift=2
+   11.144 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+   11.144 | TWDT init(1s,panic)=0 add=0
+   11.145 | LEDC probe: wrote 0x100e read 0x00000000
+   11.146 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+   11.146 | READY
+# READY after 'A': True
+   12.150 | T ms=12083 us=12083004 timer_cb=100 (+100 in 1000 ms)
+   13.154 | T ms=13083 us=13083007 timer_cb=200 (+100 in 1000 ms)
+   14.157 | T ms=14083 us=14083004 timer_cb=300 (+100 in 1000 ms)
+   15.160 >> send 'W'
+   15.161 | T ms=15083 us=15083006 timer_cb=399 (+99 in 1000 ms)
+   15.163 | CMD W at ms=15086
+# READY after 'W': False
+   59.207 >> send 'I'
+# READY after 'I': False
+# guest/wall ratio from T lines: median=0.996 min=0.981 max=1.009 n=12

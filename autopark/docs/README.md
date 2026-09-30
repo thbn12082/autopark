@@ -86,6 +86,7 @@ Các lệnh LiDAR lấy cổng COM từ khóa `lidar_port` trong [configs/thiet_
 | [Giao thức xe](GIAO_THUC_XE.md) | Laptop–bo, telemetry, lệnh có hạn và điểm còn mở |
 | [VehicleIO và quan sát](CHE_DO_QUAN_SAT.md) | Các nhánh chạy, kiểm trước START, log |
 | [Firmware ESP32-S3](../firmware/esp32_vehicle/README.md) | C++/PlatformIO, test host, việc chưa triển khai |
+| [Mô phỏng firmware (bo ảo QEMU)](MO_PHONG_FIRMWARE.md) | Firmware thật trong QEMU với `SerialVehicleIO` qua `socket://`, test pytest, các trình giả lập đã thử và giới hạn (29–30/09/2026); không thay đo trên bo |
 | [Nguồn và dừng](GIAI_DOAN_6_CHUAN_BI.md) | Nháp bảng tải/sơ đồ, kịch bản lỗi chưa thử |
 
 ## Dữ liệu và giấy phép

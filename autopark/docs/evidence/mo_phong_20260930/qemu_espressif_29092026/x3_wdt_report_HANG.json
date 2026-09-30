@@ -1,0 +1,88 @@
+{
+  "boot_lines": [
+    [
+      0.074,
+      "ESP-ROM:esp32s3-20210327"
+    ],
+    [
+      0.091,
+      "Build:Mar 27 2021"
+    ],
+    [
+      0.091,
+      "rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)"
+    ],
+    [
+      0.091,
+      "SPIWP:0xee"
+    ],
+    [
+      0.107,
+      "mode:DIO, clock div:1"
+    ],
+    [
+      0.107,
+      "load:0x3fce3808,len:0x4bc"
+    ],
+    [
+      0.107,
+      "load:0x403c9700,len:0xbd8"
+    ],
+    [
+      0.107,
+      "load:0x403cc700,len:0x2a0c"
+    ],
+    [
+      0.107,
+      "entry 0x403c98d0"
+    ],
+    [
+      0.601,
+      "E (238) esp_core_dump_flash: Incorrect size of core dump image: -65536"
+    ]
+  ],
+  "tests": [
+    {
+      "trigger": "QEMU:HANG",
+      "hello_before": {
+        "session_id": "1d09c31d",
+        "boot_id": "15b776e0",
+        "fw": "1.0",
+        "reset_reason": "1 (POWER_ON)",
+        "state": "DISARMED",
+        "telemetry_period_s": 0.05,
+        "limits": {
+          "max_speed_mps": 0.3,
+          "max_steer_rad": 0.524,
+          "max_steer_rate_rad_s": 1.571,
+          "max_accel_mps2": 0.3,
+          "max_decel_mps2": 0.6,
+          "stop_decel_mps2": 0.6,
+          "max_validity_s": 0.3,
+          "link_timeout_s": 0.5
+        },
+        "hello_ack_rtt_ms": 34.14,
+        "attempts": 1
+      },
+      "events_on_connect_before": [],
+      "last_telemetry_dev_ms": 3160,
+      "raw_bytes_after_trigger": 87,
+      "lines": [
+        [
+          0.018,
+          "\\x01\\x83\\x1d\\xc3\t\\x1d\\x12\\x03\\x8a\\x0c\\x01\\x02\\x01\\x03\\x01\\x02\\x01\\x03\\xff\\xff\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x03\\xf82\\x00"
+        ],
+        [
+          0.033,
+          "AP_TEST: loop hang at 3217 ms"
+        ]
+      ],
+      "wrap_hook_called": false,
+      "rst_lines": [],
+      "host_s_trigger_to_first_byte": 0.018,
+      "hello_after": {
+        "error": "Hết 1.500 s chờ HELLO_ACK"
+      }
+    }
+  ]
+}

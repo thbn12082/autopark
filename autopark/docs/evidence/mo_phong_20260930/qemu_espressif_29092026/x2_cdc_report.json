@@ -1,0 +1,46 @@
+{
+  "tag": "x2_cdc",
+  "url": "socket://127.0.0.1:5565",
+  "started": "2026-09-29 16:49:37",
+  "port_open_s": 0.015,
+  "boot": {
+    "bytes": 297,
+    "lines": 10,
+    "first_byte_s": 0.05525390000548214,
+    "last_byte_s": 0.38644939998630434,
+    "file": "D:\\xetulai\\_platformio\\kiem_qemu\\logs\\x2_cdc_boot.txt"
+  },
+  "hello_error": "Hết 1.500 s chờ HELLO_ACK",
+  "hello_rx_bytes": 0,
+  "hello_stats": {
+    "frames_sent": 3,
+    "commands_sent": 0,
+    "requests_sent": 0,
+    "messages_received": 0,
+    "telemetry_received": 0,
+    "device_messages_missed": 0,
+    "stale_or_duplicate": 0,
+    "foreign_session": 0,
+    "bad_values": 0,
+    "link_errors": 0,
+    "telemetry_unpolled_dropped": 0,
+    "rejected": {},
+    "ack_rtt_s": null,
+    "ack_rtt_max_s": null,
+    "cmd_echo_s": null,
+    "cmd_echo_max_s": null,
+    "parser": {
+      "frames": 0,
+      "messages": 0,
+      "empty": 0,
+      "cobs": 0,
+      "short": 0,
+      "crc": 0,
+      "version": 0,
+      "type": 0,
+      "length": 0,
+      "oversize": 0
+    }
+  },
+  "finished": "2026-09-29 16:49:45"
+}

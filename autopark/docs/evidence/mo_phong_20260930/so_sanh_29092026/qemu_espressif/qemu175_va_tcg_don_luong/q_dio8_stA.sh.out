@@ -1,0 +1,5 @@
+drive exit=0
+./run_qemu.sh: line 16: 13738 Segmentation fault         "$Q" -machine esp32s3 -display none -drive file="$FB",if=mtd,format=raw -serial tcp:127.0.0.1:$PORT,server=on,wait=on -monitor tcp:127.0.0.1:$((PORT+1)),server=on,wait=off -d guest_errors,unimp -D "$FD" "$@" > "runs/$TAG.qout" 2> "runs/$TAG.qerr"
+D:\xetulai\_platformio\qemu\qemu\bin\qemu-system-xtensa.exe: -serial tcp:127.0.0.1:5661,server=on,wait=on: info: QEMU waiting for connection on: disconnected:tcp:127.0.0.1:5661,server=on
+D:\xetulai\_platformio\qemu\qemu\bin\qemu-system-xtensa.exe: [Digital Signature] Invalid padding
+D:\xetulai\_platformio\qemu\qemu\bin\qemu-system-xtensa.exe: [Digital Signature] Invalid digest

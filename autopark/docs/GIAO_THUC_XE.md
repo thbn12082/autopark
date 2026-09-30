@@ -4,10 +4,17 @@
 cứng"), mục 10 (dừng an toàn, reset, reconnect), mục 7 (telemetry có thời gian và cờ hợp lệ), mục 16.2–16.3.
 
 **Mức bằng chứng:** phần mềm + mô phỏng. Chưa có ESP32-S3, MN300, ESC, servo, encoder, AS5600, BNO085, VL53L1X
-hay phần cứng dừng. **Mã C++ firmware chưa từng được biên dịch**: máy bàn dùng tới 25/09/2026 không có trình biên
-dịch C/C++ lẫn PlatformIO; máy bàn từ 29/09/2026 có g++ 16.1.0 và cmake 4.4.1 trên PATH nhưng chưa thử biên dịch
-([chuyển máy](CHUYEN_MAY_BAN.md) mục 4).
-Phần đã chạy và được test là bản tham chiếu Python của firmware, bộ mã hóa giao thức và `VehicleIO`.
+hay phần cứng dừng. **Firmware C++ đã biên dịch cho ESP32-S3 (29/09/2026, PlatformIO, Arduino-ESP32 2.0.17 và 3.3.12,
+0 cảnh báo) nhưng CHƯA NẠP, CHƯA CHẠY trên bo nào** ([README firmware](../firmware/esp32_vehicle/README.md) mục "Biên dịch
+cho ESP32-S3"). Lõi C++ `src/core` đã biên dịch trên máy tính ngày 29/09/2026 (g++ 16.1.0, cmake 4.4.1) và
+khớp bản tham chiếu Python trên toàn bộ vector mẫu (`test/host`: 703 check, 0 lệch; [README
+firmware](../firmware/esp32_vehicle/README.md) mục "Cách kiểm trên máy tính"). Máy bàn dùng tới 25/09/2026 không có
+trình biên dịch C/C++ nào.
+Phần đã chạy và được test là bản tham chiếu Python của firmware, bộ mã hóa giao thức và `VehicleIO`. *(Cập nhật
+30/09/2026: còn lõi C++ `src/core` chạy trên máy tính từ 29/09/2026 (`test/host`, 703 check,
+`tests/test_transport_firmware_host.py`) và bản build thật của firmware chạy trong bo ảo QEMU ESP32-S3 (Arduino 2.0.17,
+Serial qua UART0, flash DIO, PWM tắt; `tests/test_firmware_qemu.py`, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)). Chưa có gì chạy trên
+bo thật.)*
 Không số nào dưới đây là số đo trên xe hay trên bo.
 
 | Thành phần | File | Đã kiểm bằng |
@@ -16,7 +23,7 @@ Không số nào dưới đây là số đo trên xe hay trên bo.
 | Bản tham chiếu firmware | `autopark/transport/firmware_model.py` | `tests/test_transport_firmware_model.py` |
 | `VehicleIO`: nhánh mô phỏng + nhánh serial | `autopark/transport/vehicle_io.py`, `loopback.py` | `tests/test_transport_vehicle_io.py` |
 | Vector mẫu chung Python ↔ C++ | `autopark/transport/vectors.py` → `firmware/esp32_vehicle/test/vectors.json` | cả hai file test Python ở trên |
-| Firmware C++ (lõi portable + lớp Arduino) | `firmware/esp32_vehicle/src/` (hướng dẫn biên dịch, test host, đo trên bo: [README firmware](../firmware/esp32_vehicle/README.md)) | **chưa biên dịch**; `test/host/test_main.cpp` sẵn sàng khi có trình biên dịch; kiểm tĩnh mã nguồn (không chạy): `tests/test_transport_firmware_source.py` |
+| Firmware C++ (lõi portable + lớp Arduino) | `firmware/esp32_vehicle/src/` (hướng dẫn biên dịch, test host, đo trên bo: [README firmware](../firmware/esp32_vehicle/README.md)) | lõi `src/core`: biên dịch và qua `test/host` trên máy tính (29/09/2026; trong bộ test Python: `tests/test_transport_firmware_host.py`, bỏ qua khi không có cmake/g++); cả firmware: biên dịch cho ESP32-S3 bằng PlatformIO (29/09/2026), **chưa nạp bo**; bản build thật chạy trong bo ảo QEMU (30/09/2026, env `esp32s3_qemu`: UART0, DIO, PWM tắt): `tests/test_firmware_qemu.py` qua `autopark/transport/qemu_board.py`, bỏ qua khi máy không có QEMU; kiểm tĩnh mã nguồn (không chạy): `tests/test_transport_firmware_source.py` |
 | Cấu hình mô phỏng | `configs/vehicle_io_sim.json` | test nạp file |
 | Nối `VehicleIO` vào phiên đỗ xe, chế độ quan sát *(thêm tối 24/09/2026)* | `autopark/application/vehicle_link.py`, `session.py` ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md)) | `tests/test_session_vehicle.py` (bo mô phỏng + cổng serial GIẢ) |
 
@@ -168,9 +175,9 @@ SUPPLY_LOW: mV; STALL: |effort| ‰ lúc chốt; còn lại 0). Gửi một lầ
 | Watchdog liên lạc CỦA BO: không nhận thông điệp hợp lệ nào | 500 ms | ARMED/RUNNING → DISARMED, `LINK_TIMEOUT`; phải ARM lại |
 | `TELEMETRY_STALE` CỦA LAPTOP: không có telemetry hợp lệ (mục 10) | 0,3 s (phải ≥ 3 chu kỳ telemetry) | CHỐT phía laptop: gửi DISARM, `send(enable=True)` bị từ chối tới khi `arm()` hoặc `connect()` |
 | Vòng điều khiển trễ (hai lần `step` cách nhau) | > 100 ms | FAULT `LOOP_OVERRUN` (chốt) |
-| Task watchdog ESP-IDF (chỉ trên bo) | 300 ms (Arduino 3.x); Arduino 2.x (bản build mặc định theo `platformio.ini`, `platform = espressif32`): 1 s nếu `esp_task_wdt_init(1, true)` thành công, nếu TWDT đã khởi tạo sẵn thì giữ thời hạn cũ (thường 5 s) — CẦN KIỂM TRÊN BO | TWDT: guard đã ép trung tính sau 100 ms; panic → móc kéo chân ESC xuống thấp (mất xung) tới `setup_outputs()`; chip khởi động lại → BOOT → DISARMED (chưa đo) |
+| Task watchdog ESP-IDF (chỉ trên bo) | 300 ms (Arduino 3.x); Arduino 2.x (bản build mặc định theo `platformio.ini`, `platform = espressif32`): 1 s (Arduino khởi tạo TWDT sẵn 5 s, `esp_task_wdt_init(1, true)` của IDF 4.4 đổi thời hạn chứ không báo lỗi; thanh ghi trong QEMU 29/09/2026: 1 s / 2 s; sửa 30/09/2026, trước đó ghi nhầm "giữ 5 s") — CẦN KIỂM TRÊN BO | TWDT: guard đã ép trung tính sau 100 ms; panic → móc kéo chân ESC xuống thấp (mất xung) tới `setup_outputs()`; chip khởi động lại → BOOT → DISARMED (chưa đo) |
 | Bộ hẹn giờ `esp_timer` ép ESC trung tính (chỉ trên bo) | loop im > 100 ms | xung ESC = trung tính |
-| Panic tức thời, interrupt watchdog, `esp_restart()` (chỉ trên bo) | — | chỉ reset CPU, LEDC không dừng; móc panic/shutdown kéo chân ESC xuống thấp tới `setup_outputs()` (chưa biên dịch, chưa đo); bật nguồn/system reset: chân thả nổi → điện trở kéo xuống ngoài |
+| Panic tức thời, interrupt watchdog, `esp_restart()` (chỉ trên bo) | — | chỉ reset CPU, LEDC không dừng; móc panic/shutdown kéo chân ESC xuống thấp tới `setup_outputs()` (đã biên dịch 29/09/2026, chưa đo); bật nguồn/system reset: chân thả nổi → điện trở kéo xuống ngoài |
 
 Thời hạn tính từ lúc **bo nhận**; trễ truyền trước đó bo không biết. Laptop thấy trễ qua `cmd_age_ms`,
 `stats.cmd_echo_s` và `stats.ack_rtt_s` (mục 10). PING giữ liên lạc nhưng không kéo dài lệnh chuyển động: nếu ứng
@@ -319,8 +326,17 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
 
 - Một lớp cơ sở `VehicleIO` (phiên, số thứ tự, chờ ACK, lọc telemetry, sự kiện) và hai nhánh:
   `SimVehicleIO` (laptop ↔ trễ/mất gói ↔ `FirmwareModel` → cơ cấu chấp hành có trễ + vùng chết → `SimVehicle` →
-  cảm biến có trễ + nhiễu) và `SerialVehicleIO` (pyserial; thử ở đây chỉ qua `FirmwareSerialLoopback`). Hai nhánh đi
-  qua **cùng byte** (có test so từng byte), cùng đơn vị: API m/s, rad; dây mm/s, mrad (làm tròn nửa ra xa 0).
+  cảm biến có trễ + nhiễu) và `SerialVehicleIO` (pyserial; thử ở đây qua `FirmwareSerialLoopback`, từ 30/09/2026 cả
+  bo ảo, ý dưới). Hai nhánh đi qua **cùng byte** (có test so từng byte), cùng đơn vị: API m/s, rad; dây mm/s, mrad
+  (làm tròn nửa ra xa 0).
+- *(Thêm 30/09/2026, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md).)* `SerialVehicleIO` còn được thử với **bo ảo**: firmware
+  thật (env PlatformIO `esp32s3_qemu`, Serial qua UART0) trong QEMU ESP32-S3, mở bằng
+  `SerialVehicleIO.open("socket://127.0.0.1:<cổng>")` (`autopark/transport/qemu_board.py`). Cùng ngày: `open()` nhận URL:
+  `socket://` qua `SocketPort` của dự án (`autopark/transport/socket_port.py`, `in_waiting` đúng số byte), URL khác của
+  pyserial (`rfc2217://`...) qua `serial_for_url`; `_pump` đọc cho tới hết byte sẵn có (tối đa 64 KB, 20 ms mỗi lần).
+  Trước đó, qua `socket://` của pyserial (`in_waiting` chỉ 0/1), vòng 50 Hz `poll(block=False)` nhận 2/≈ 40 khung trong
+  2 s kèm TELEMETRY_STALE ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 5). Cổng COM báo đúng số byte, nên theo mã thì hành vi với bo
+  thật không đổi; với bo thật CHƯA THỬ.
 - **Không mặc định cùng độ trễ.** Độ trễ mô phỏng là tham số trong `configs/vehicle_io_sim.json` (giả định: 4 ms mỗi
   chiều, cơ cấu chấp hành 30 ms, encoder 20 ms, góc lái 10 ms). Cả hai nhánh đo cùng hai đại lượng theo cùng cách:
   `stats.ack_rtt_s` (REQUEST → ACK) và `stats.cmd_echo_s` (COMMAND → telemetry đầu tiên báo đã nhận; cận trên, gồm
@@ -411,7 +427,8 @@ Chạy trong thư mục `autopark` của repo (thư mục có pyproject.toml), `
 .\.venv\Scripts\python.exe -X utf8 -m autopark.transport.vectors --check
 ```
 
-Nội dung test (đều không mở cổng thật nào):
+Nội dung test (đều không mở cổng nối tiếp thật nào; từ 30/09/2026 `test_transport_vehicle_io.py` có test mở cổng TCP cục
+bộ 127.0.0.1 cho `socket://`):
 - **Giao thức**: giá trị kiểm CRC; các ví dụ COBS chuẩn (kể cả khối 254/255 byte); khứ hồi mọi loại thông điệp với giá
   trị biên; bố cục byte little-endian; mã hóa từ chối giá trị tràn thay vì cắt ngầm; từng loại lỗi khung được đếm và
   khung sau vẫn nhận; cắt cụt ở mọi vị trí; giới hạn độ dài; lọc chiều; fuzz 12 seed (rác, lật bit, khung cụt): không
@@ -487,7 +504,8 @@ LEDC, wrap không gọi móc, lõi C++ kẹp ±1000, bỏ `check_stall`, mặc �
 liên tục, STALL bỏ qua dấu, `detail` 0, `reset_firmware` bỏ qua `hold`, cấu hình mô phỏng không lấy mặc định mô phỏng,
 kiểm STALL cả khi mạch hở): cả 22 đều làm ít nhất một test hỏng. Đột biến C++ chỉ bị bắt bằng kiểm tĩnh mã nguồn.
 
-Firmware C++ **chưa** qua `test/host` vì chưa biên dịch được.
+Firmware C++ **chưa** qua `test/host` vì chưa biên dịch được. *(Cập nhật 29/09/2026: lõi `src/core` nay qua
+`test/host`, 703 check, 0 lệch; đoạn cuối mục này.)*
 
 *(Tối 24/09/2026, máy bàn, `.venv`.)* Chạy lại sau khi `VehicleIO` được nối vào phiên đỗ xe: bốn tệp `test_transport_*`
 vẫn **184 đạt** (52 + 73 + 48 + 11); `tests/test_session_vehicle.py` 49 đạt + 1 `xfail` (khoảng trống an toàn ở mục 12).
@@ -518,19 +536,44 @@ thức, bản tham chiếu firmware, `VehicleIO` và kiểm tĩnh C++; `c43e8d3`
 `tests/test_session_vehicle.py` 60, `tests/test_vehicle_board_ui.py` 30, `tests/test_nearfield_tof.py` 54, không đổi.
 Bộ test đầy đủ chạy lại trên mã trùng `54cb3e2`: 1242 đạt, 7 bỏ qua (mô-đun cần torch), 0 lỗi. Firmware C++ vẫn chưa
 biên dịch: máy bàn dùng tới 25/09/2026 không có `g++`, `gcc`, `clang`, `cl`, `cmake` hay `pio` trên PATH (kiểm
-25/09/2026); máy bàn từ 29/09/2026 có g++ 16.1.0 và cmake 4.4.1 nhưng chưa thử biên dịch `test/host`
-([chuyển máy](CHUYEN_MAY_BAN.md) mục 4).
+25/09/2026).
+*(29/09/2026, máy bàn mới, g++ 16.1.0 MinGW-w64, cmake 4.4.1.)* **Lõi C++ `src/core` biên dịch lần đầu, không sửa dòng
+nào, và khớp bản tham chiếu Python: `test/host` 703 check, 0 lệch** (CRC, COBS, 13 thông điệp, 11 luồng byte, 10 kịch
+bản máy trạng thái so trạng thái/lỗi/effort và toàn bộ byte gửi đi ở từng bước), ở Debug, `-O1`, `-O2`, Release `-O3`
+và bản UBSan chế độ trap. Bảy đột biến vector, cả bảy bị bắt. Thêm `tests/test_transport_firmware_host.py` (2 test:
+build bằng cmake rồi chạy; vector sai một bit phải làm exe thoát 1), bỏ qua trên máy không có cmake hoặc trình biên
+dịch C++. Chi tiết, giới hạn (chỉ x86-64) và lỗi DLL khi chạy
+trong Git Bash: [README firmware](../firmware/esp32_vehicle/README.md) mục "Cách kiểm trên máy tính".
+*(Chiều 29/09/2026.)* **Cả firmware biên dịch cho ESP32-S3 bằng PlatformIO, 0 lỗi, 0 cảnh báo, không sửa dòng mã
+nào**: Arduino-ESP32 2.0.17 (`platformio.ini`, nay khóa `espressif32 @ 7.1.3`) và 3.3.12 (bản sao tạm), mỗi bản cả PWM
+tắt lẫn bật với chân giả. Objdump: móc panic và `esc_line_low_now` làm đúng thứ tự trong mã. Tìm ra một lỗi: với 3.x
+qua PlatformIO phải GIỮ cờ `-Wl,--wrap=esp_panic_handler` (chú thích cũ bảo xóa; xóa thì móc panic 3.x không bao giờ
+chạy). Chưa nạp, chưa chạy trên bo. [README firmware](../firmware/esp32_vehicle/README.md) mục "Biên dịch cho ESP32-S3".
+*(30/09/2026.)* **Firmware thật chạy trong bo ảo QEMU ESP32-S3** (QEMU của Espressif 9.2.2; bản build chỉ khác bản nạp vào
+xe ở Serial qua UART0 và flash DIO). `tests/test_firmware_qemu.py` (6 test bo ảo, bỏ qua trên máy không có QEMU): HELLO_ACK
+có giới hạn/chu kỳ/phiên bản bằng `FirmwareModel(FirmwareConfig())`; telemetry 20 Hz không lỗi khung; ARM → RUNNING, tốc
+độ mục tiêu có tăng và dốc không vượt giới hạn → ARMED/COMMAND_TIMEOUT; laptop im → DISARMED/LINK_TIMEOUT; COMMAND khi
+DISARMED → BAD_STATE; vòng `poll(block=False)` 50 Hz theo kịp telemetry (≥ 36/≈ 40 khung trong 2 s, không mất số thứ tự,
+không TELEMETRY_STALE); reset chip → FIRMWARE_RESET. Bo ảo không có LEDC, GPIO vào, I2C, watchdog kích
+hoạt, USB-CDC nối ra ngoài, nên không thay được bất kỳ phép đo nào trên bo. Chi tiết, độ tin cậy khi máy bận và bằng chứng:
+[MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md).
 
 ## 12. Chưa làm / giới hạn
 
-- C++ chưa biên dịch: lỗi cú pháp/kiểu có thể còn; hàm Arduino-ESP32 (`ledcAttach`/`ledcSetup`, `esp_task_wdt_*`,
-  `Serial.setTxTimeoutMs`) viết cho cả 2.x và 3.x theo hiểu biết, chưa đối chiếu tài liệu của đúng phiên bản core
-  (như `firmware/esp32_vehicle/README.md`), chưa thử trên phiên bản nào. Móc reset CPU
+- Firmware đã biên dịch (29/09/2026: 2.0.17 và 3.3.12, mục 11) nhưng chưa chạy trên bo (từ 30/09/2026 chạy được trong
+  bo ảo QEMU với Serial qua UART0; điều đó không chứng minh gì về chân, xung, USB-CDC hay thời gian trên bo thật); hàm Arduino-ESP32 (`ledcAttach`/`ledcSetup`, `esp_task_wdt_*`,
+  `Serial.setTxTimeoutMs`) viết cho cả 2.x và 3.x, nay biên dịch được với 2.0.17 và 3.3.12 (tên/chữ ký đúng); chưa chạy
+  trên bo thật; trong bo ảo QEMU chỉ nhánh 2.0.17 chạy, và chỉ phần không cần phần cứng (`esp_task_wdt_*` đặt đúng
+  thanh ghi 1 s / 2 s nhưng QEMU không cho kích hoạt; LEDC không có vì PWM tắt; HWCDC không có vì bản đó dùng UART0). Móc reset CPU
   (`esc_line_low_now`: thanh ghi `GPIO_OUT_W1TC_REG`/`GPIO_ENABLE_W1TS_REG`, `esp_rom_gpio_connect_out_signal`,
-  `SIG_GPIO_OUT_IDX`; `__wrap_esp_panic_handler` + `-Wl,--wrap` cho 2.x; `set_arduino_panic_handler` cho 3.x;
-  `esp_register_shutdown_handler`) viết theo hiểu biết về ESP-IDF/Arduino-ESP32, không đối chiếu được tài liệu trên máy
-  này; tên hàm/thanh ghi/tiêu đề phải kiểm khi biên dịch, và tác dụng phải đo bằng máy hiện sóng
+  `SIG_GPIO_OUT_IDX`; `__wrap_esp_panic_handler` cho 2.x; `set_arduino_panic_handler` cho 3.x; cả hai cần `-Wl,--wrap`;
+  `esp_register_shutdown_handler`) biên dịch được và mã máy đúng thứ tự (objdump, 29/09/2026); tác dụng thật phải đo bằng máy hiện sóng
   ([firmware/esp32_vehicle/README.md](../firmware/esp32_vehicle/README.md), đoạn "Cách kiểm trên bo" trong mục An toàn).
+- *(Thêm 30/09/2026.)* Trên bo thật, chữ ROM/bootloader (ROM của S3 in ra USB-Serial-JTAG theo mặc định) và log/backtrace
+  panic của app (`CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=1` trong SDK của Arduino 2.0.17) đi chung cổng USB với
+  luồng nhị phân. Bộ tách khung chịu được: trong bo ảo, reset chip → 367 byte chữ → 1 lỗi `oversize`, 0 lỗi COBS/CRC,
+  khung đầu tiên sau đoạn chữ bị bỏ cùng ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 5.5). Nghĩa là mỗi lần bo khởi động lại hay panic,
+  bộ đếm lỗi khung tăng và một khung mất; trên bo thật CHƯA THỬ. Tắt console phụ để tách hai luồng: CHƯA CHỐT.
 - Chưa có mã đọc encoder, AS5600, BNO085, VL53L1X, điện áp; firmware báo mọi số đo là không hợp lệ.
 - *(Cập nhật tối 24/09/2026; dòng cũ "chưa nối `VehicleIO` vào `session.py`, chưa ghi `commands.csv`/`telemetry.csv`"
   đã lỗi thời.)* `VehicleIO` đã được nối vào phiên đỗ xe: `application/vehicle_link.py` + `session.py`, ba nhánh SIM

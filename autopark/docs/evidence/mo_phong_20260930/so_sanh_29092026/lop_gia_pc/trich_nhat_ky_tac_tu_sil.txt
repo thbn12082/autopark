@@ -1,0 +1,111 @@
+# Trích nguyên văn từ nhật ký tác tử nghiên cứu 'giả lập API trên máy tính' lượt 1 (29/09/2026):
+# bản chạy thời gian thực của main.cpp thật (Serial giả ra TCP) và sil_client.py dùng SerialVehicleIO.
+
+===== agent-a2b69f14ceea6a165.jsonl
+$ SP="%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside"; P="$SP/glue_poc"; cd "$P"; (./build/sil_v2_pwm0.exe 5577 8 > build/sil_log.txt 2>&1 &); sleep 1; cd /d/xetulai/autopark/autopark && timeout 60 .venv/Scripts/python.exe "$(cygpath -w "$P/sil_client.py")" 5577 2>&1 | tail -20; sleep 8; cat "$P/build/sil_log.txt"
+----- đầu ra
+HELLO_ACK boot_id=12345590 reset_reason=1 state=DISARMED period=0.050s
+state after wait_ready: DISARMED
+ARM ok
+Traceback (most recent call last):
+  File "%USERPROFILE%\AppData\Local\Temp\claude\d--xetulai\<phiên>\scratchpad\hostside\glue_poc\sil_client.py", line 20, in <module>
+    io.send(0.2, 0.05)
+  File "D:\xetulai\autopark\autopark\autopark\transport\vehicle_io.py", line 569, in send
+    raise VehicleIOError("Laptop \u0111� coi l� m\u1ea5t li�n l\u1ea1c (TELEMETRY_STALE): ph\u1ea3i arm() l\u1ea1i m\u1edbi ch\u1ea1y ti\u1ebfp")
+autopark.transport.vehicle_io.VehicleIOError: Laptop \u0111� coi l� m\u1ea5t li�n l\u1ea1c (TELEMETRY_STALE): ph\u1ea3i arm() l\u1ea1i m\u1edbi ch\u1ea1y ti\u1ebfp
+SIL listening on 127.0.0.1:5577
+host connected at 1231 ms
+host disconnected at 1570 ms
+SIL done: loops=1940 guard_calls=606 bytes_in=348 bytes_out=461
+
+===== agent-a2b69f14ceea6a165.jsonl
+$ SP="%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside"; P="$SP/glue_poc"; cd "$P"
+cat > sil_client.py <<'EOF'
+"""Drive the host-compiled firmware glue through the project's real Python transport over TCP.
+
+Mode "pyserial": serial.serial_for_url("socket://...") as is. Mode "adapter": a thin pyserial-like wrapper whose
+in_waiting reports "many" when readable (pyserial's socket:// in_waiting returns only 0/1)."""
+import select
+import socket
+import sys
+import time
+
+import serial
+
+from autopark.transport.vehicle_io import SerialVehicleIO
+
+port = int(sys.argv[1]) if len(sys.argv) > 1 else 5555
+mode = sys.argv[2] if len(sys.argv) > 2 else "adapter"
+
+
+class SocketTransport:
+    def __init__(self, host, port, timeout=0.01):
+        self.s = socket.create_connection((host, port))
+        self.s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self.timeout = timeout
+
+    @property
+    def in_waiting(self):
+        r, _, _ = select.select([self.s], [], [], 0)
+        return 4096 if r else 0
+
+    def read(self, n):
+        r, _, _ = select.select([self.s], [], [], self.timeout)
+        if not r:
+            return b""
+        data = self.s.recv(n)
+        if not data:
+            raise OSError("socket closed")
+        return data
+
+    def write(self, data):
+        self.s.sendall(data)
+
+    def close(self):
+        self.s.close()
+
+
+t = SocketTransport("127.0.0.1", port) if mode == "adapter" else serial.serial_for_u
+----- đầu ra
+HELLO_ACK boot_id=12345590 reset_reason=1 state=DISARMED period=0.050s
+state after wait_ready: DISARMED
+ARM ok
+telemetry frames in 1.5 s: 30
+last telemetry: {'state': <State.RUNNING: 3>, 'fault': <Fault.NONE: 0>, 'stop_reason': <StopReason.BOOT: 1>, 'speed_ref_mps': 0.2, 'steer_ref_rad': 0.05, 'effort': 0.25, 'flags': <TelemetryFlag.LINK_OK|CMD_ACTIVE: 6>}
+events: []
+SIL listening on 127.0.0.1:5578
+host connected at 1260 ms
+host disconnected at 2767 ms
+SIL done: loops=1937 guard_calls=603 bytes_in=1418 bytes_out=1763
+
+===== agent-a2b69f14ceea6a165.jsonl
+$ SP="%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside"; P="$SP/glue_poc"; cd "$P"; (./build/sil_v2_pwm0.exe 5579 8 > build/sil_log3.txt 2>&1 &); sleep 1; cd /d/xetulai/autopark/autopark && timeout 60 .venv/Scripts/python.exe "$(cygpath -w "$P/sil_client.py")" 5579 pyserial 2>&1 | tail -4 | cut -c1-200; grep -n -A8 "def _wait" autopark/transport/vehicle_io.py | head -14; sleep 8; cat "$P/build/sil_log3.txt"
+----- đầu ra
+    instance.open()
+  File "D:\xetulai\autopark\autopark\.venv\Lib\site-packages\serial\urlhandler\protocol_socket.py", line 66, in open
+    raise SerialException("Could not open port {}: {}".format(self.portstr, msg))
+serial.serialutil.SerialException: Could not open port socket://127.0.0.1:5579: [WinError 10061] No connection could be made because the target machine actively refused it
+432:    def _wait(self, predicate: Callable[[], bool], timeout_s: float, what: str) -> None:
+433-        deadline = self.now() + timeout_s
+434-        while not predicate():
+435-            if self.now() >= deadline:
+436-                raise VehicleIOError(f"Hết {timeout_s:.3f} s chờ {what}")
+437-            self._pump()
+438-
+439-    # ---- phiên ---------------------------------------------------------------------------------------------------
+440-    def connect(self, timeout_s: float = 1.0) -> HelloInfo:
+SIL listening on 127.0.0.1:5579
+SIL done: loops=1103 guard_calls=548 bytes_in=0 bytes_out=0
+
+===== agent-a2b69f14ceea6a165.jsonl
+$ SP="%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/hostside"; P="$SP/glue_poc"; cd "$P"; (./build/sil_v2_pwm0.exe 5580 10 > build/sil_log4.txt 2>&1 &); sleep 3; cd /d/xetulai/autopark/autopark && timeout 60 .venv/Scripts/python.exe "$(cygpath -w "$P/sil_client.py")" 5580 pyserial 2>&1 | tail -4 | cut -c1-220; sleep 8; cat "$P/build/sil_log4.txt"
+----- đầu ra
+    io.send(0.2, 0.05)
+  File "D:\xetulai\autopark\autopark\autopark\transport\vehicle_io.py", line 569, in send
+    raise VehicleIOError("Laptop \u0111� coi l� m\u1ea5t li�n l\u1ea1c (TELEMETRY_STALE): ph\u1ea3i arm() l\u1ea1i m\u1edbi ch\u1ea1y ti\u1ebfp")
+autopark.transport.vehicle_io.VehicleIOError: Laptop \u0111� coi l� m\u1ea5t li�n l\u1ea1c (TELEMETRY_STALE): ph\u1ea3i arm() l\u1ea1i m\u1edbi ch\u1ea1y ti\u1ebfp
+SIL listening on 127.0.0.1:5580
+host connected at 4016 ms
+host disconnected at 4355 ms
+SIL done: loops=2364 guard_calls=739 bytes_in=329 bytes_out=461
+

@@ -4,7 +4,7 @@ AutoPark là đồ án xe mô hình tự đỗ trên sa bàn. Người dùng ch�
 
 **Hiện trạng:** phần mô phỏng đã được kiểm thử; LiDAR và bốn camera đã chạy trên bàn thử. Dự án chưa hoàn thành tích hợp và nghiệm thu xe thật.
 
-Biên tập ngày **26/09/2026**, dựa trên mã nguồn và hồ sơ đến commit `9d68257`; cập nhật **29/09/2026** sau khi chuyển sang máy bàn mới ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md)). Ngày biên tập không phải ngày đo; mỗi số đo ghi ngày và máy đo trong hồ sơ gốc.
+Biên tập ngày **26/09/2026**, dựa trên mã nguồn và hồ sơ đến commit `9d68257`; cập nhật **29/09/2026** sau khi chuyển sang máy bàn mới ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md)) và **30/09/2026** với bo ảo QEMU ([mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md)). Ngày biên tập không phải ngày đo; mỗi số đo ghi ngày và máy đo trong hồ sơ gốc.
 
 ## Bắt đầu từ đâu?
 
@@ -56,7 +56,7 @@ AI nhận diện vật cản. Bộ tìm đường và bộ bám đường tính 
 | LiDAR | Đọc/ghi scan, bản đồ tĩnh, công cụ định vị và khớp scan | Đo sai số độc lập, thử khi di chuyển |
 | Camera | Bốn luồng ảnh, AI trực tiếp, ghi/phát lại | Hiệu chuẩn, gá thật, USB ổn định, ảnh sa bàn có nhãn |
 | AI tạo vật cản | Đã nối vào phiên đỗ ở mức phần mềm | Bộ hiệu chuẩn thật và phép kiểm trên sa bàn |
-| Điều khiển xe | Giao thức, bo mô phỏng, mã firmware C++ | Biên dịch/nạp bo, cảm biến thật, nguồn tư thế thật |
+| Điều khiển xe | Giao thức, bo mô phỏng, firmware C++ biên dịch được (29/09/2026), chạy trong bo ảo QEMU (30/09/2026) | Nạp và đo trên bo, cảm biến thật, nguồn tư thế thật |
 | Nguồn và dừng | Bản nháp thiết kế và kịch bản lỗi | Lắp và đo trên phần cứng |
 
 **Giai đoạn 0 đạt ở mức mô phỏng. Các giai đoạn 1–10 chưa đạt điều kiện chuyển bước.**
@@ -73,7 +73,7 @@ Dự án yêu cầu Python từ 3.11; môi trường đã kiểm trong hồ sơ 
 
 Bản clone không kèm môi trường Python, checkpoint AI, dataset đầy đủ hoặc phiên trong `runs/`. Cần tạo hoặc chuyển các tệp này từ máy đã làm dự án. Mô phỏng cơ bản không cần checkpoint AI.
 
-Khi chép cả thư mục sang máy khác, chạy lại `cai_dat.cmd` và `cai_dat_train.cmd`: venv chép sang mà hỏng được đổi tên thành `*.hong-tu-may-cu` rồi tạo lại. Cổng COM của LiDAR đặt ở một chỗ, khóa `lidar_port` trong [autopark/configs/thiet_bi.json](autopark/configs/thiet_bi.json) (số COM của máy đó, hoặc `"auto"` để tự tìm bộ chuyển CP210x); đổi máy thì sửa dòng này. Các bước đổi máy và kết quả kiểm trên máy bàn hiện tại: [biên bản chuyển máy 29/09/2026](autopark/docs/CHUYEN_MAY_BAN.md).
+Khi chép cả thư mục sang máy khác, chạy lại `cai_dat.cmd` và `cai_dat_train.cmd`: venv chép sang mà hỏng được đổi tên thành `*.hong-tu-may-cu` rồi tạo lại. Cổng COM của LiDAR đặt ở một chỗ, khóa `lidar_port` trong [autopark/configs/thiet_bi.json](autopark/configs/thiet_bi.json) (số COM của máy đó, hoặc `"auto"` để tự tìm bộ chuyển CP210x); đổi máy thì sửa dòng này. Cùng tệp giữ đường dẫn QEMU và PlatformIO của bo ảo (từ 30/09/2026, [mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md)). Các bước đổi máy và kết quả kiểm trên máy bàn hiện tại: [biên bản chuyển máy 29/09/2026](autopark/docs/CHUYEN_MAY_BAN.md).
 
 ## Dữ liệu và ghi công
 

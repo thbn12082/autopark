@@ -1,0 +1,26 @@
+{"trial": 0, "mode": "mttcg", "boot_fail": "QEMU không khởi động được sau 1 lần: QEMU thoát lúc khởi động (mã 3221225477); xem %USERPROFILE%\\AppData\\Local\\Temp\\bo_ao_qemu_b3s1e69_"}
+{"trial": 0, "mode": "single", "boot_s": 1.09, "frames": 74, "max_step": 148, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 1, "mode": "mttcg", "boot_s": 0.85, "frames": 100, "max_step": 50, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 1, "mode": "single", "boot_s": 1.15, "frames": 74, "max_step": 160, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 2, "mode": "mttcg", "boot_s": 0.82, "frames": 100, "max_step": 50, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 2, "mode": "single", "boot_s": 1.18, "frames": 70, "max_step": 151, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 3, "mode": "mttcg", "boot_s": 0.83, "frames": 113, "max_step": 50, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 3, "mode": "single", "boot_s": 1.45, "frames": 75, "max_step": 137, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 4, "mode": "mttcg", "boot_s": 0.96, "frames": 109, "max_step": 50, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 4, "mode": "single", "boot_s": 1.32, "frames": 51, "max_step": 102, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 5, "mode": "mttcg", "boot_fail": "QEMU không khởi động được sau 1 lần: QEMU thoát lúc khởi động (mã 3221225477); xem %USERPROFILE%\\AppData\\Local\\Temp\\bo_ao_qemu_4mrkxs3r"}
+{"trial": 5, "mode": "single", "boot_s": 1.2, "frames": 52, "max_step": 102, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 6, "mode": "mttcg", "boot_s": 0.83, "frames": 100, "max_step": 50, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 6, "mode": "single", "boot_s": 1.31, "frames": 52, "max_step": 102, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 7, "mode": "mttcg", "boot_s": 0.83, "frames": 100, "max_step": 50, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 7, "mode": "single", "boot_s": 1.32, "frames": 53, "max_step": 102, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 8, "mode": "mttcg", "boot_s": 0.82, "frames": 100, "max_step": 51, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 8, "mode": "single", "boot_s": 1.34, "frames": 92, "max_step": 145, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 9, "mode": "mttcg", "boot_s": 1.43, "frames": 100, "max_step": 50, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 9, "mode": "single", "boot_s": 1.14, "frames": 79, "max_step": 128, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 10, "mode": "mttcg", "boot_s": 0.83, "frames": 100, "max_step": 50, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 10, "mode": "single", "boot_s": 1.1, "frames": 85, "max_step": 146, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+{"trial": 11, "mode": "mttcg", "boot_s": 0.83, "frames": 100, "max_step": 50, "overrun": false, "reset_ok": true, "alive_after_reset": true}
+{"trial": 11, "mode": "single", "boot_s": 2.29, "frames": 83, "max_step": 127, "overrun": true, "reset_ok": true, "alive_after_reset": true}
+SUMMARY mttcg {"trials": 12, "boot_fail": 2, "reset_fail": 0, "overrun": 0, "max_step": 51, "min_frames": 100}
+SUMMARY single {"trials": 12, "boot_fail": 0, "reset_fail": 0, "overrun": 12, "max_step": 160, "min_frames": 51}

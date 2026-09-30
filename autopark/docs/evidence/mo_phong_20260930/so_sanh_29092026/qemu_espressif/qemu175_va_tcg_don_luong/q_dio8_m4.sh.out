@@ -1,0 +1,3 @@
+./run_qemu.sh: line 14: 13462 Segmentation fault         "$Q" -machine esp32s3 -display none -drive file="$FB",if=mtd,format=raw -serial tcp:127.0.0.1:$PORT,server=on,wait=on -monitor tcp:127.0.0.1:$((PORT+1)),server=on,wait=off -d guest_errors,unimp -D "$FD" "$@" > "runs/$TAG.qout" 2> "runs/$TAG.qerr"
+drive exit=0
+D:\xetulai\_platformio\qemu\qemu\bin\qemu-system-xtensa.exe: -serial tcp:127.0.0.1:5708,server=on,wait=on: info: QEMU waiting for connection on: disconnected:tcp:127.0.0.1:5708,server=on

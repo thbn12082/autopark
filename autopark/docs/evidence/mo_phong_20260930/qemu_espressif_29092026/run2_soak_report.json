@@ -1,0 +1,96 @@
+{
+  "hello": {
+    "session_id": "ed203dfe",
+    "boot_id": "8de80e21",
+    "fw": "1.0",
+    "reset_reason": "1 (POWER_ON)",
+    "state": "FAULT",
+    "telemetry_period_s": 0.05,
+    "limits": {
+      "max_speed_mps": 0.3,
+      "max_steer_rad": 0.524,
+      "max_steer_rate_rad_s": 1.571,
+      "max_accel_mps2": 0.3,
+      "max_decel_mps2": 0.6,
+      "stop_decel_mps2": 0.6,
+      "max_validity_s": 0.3,
+      "link_timeout_s": 0.5
+    },
+    "hello_ack_rtt_ms": 13.81,
+    "attempts": 1
+  },
+  "boot_id_unchanged": true,
+  "first_telemetry": {
+    "dev_ms": 864657,
+    "state": "FAULT",
+    "fault": "LOOP_OVERRUN",
+    "stop": "FAULT"
+  },
+  "timing": {
+    "n": 200,
+    "host_span_s": 9.9647,
+    "dev_span_ms": 9955,
+    "rate_hz_host": 19.97,
+    "host_dt_ms": {
+      "min": 25.22,
+      "p50": 50.06,
+      "p95": 68.74,
+      "max": 75.67
+    },
+    "dev_dt_ms": {
+      "min": 49,
+      "p50": 50,
+      "max": 54
+    },
+    "device_ms_per_host_ms": 0.99905,
+    "host_minus_dev_offset_spread_ms": 31.84
+  },
+  "transitions": [
+    {
+      "t": 0.2153,
+      "dev_ms": 864857,
+      "state": "FAULT",
+      "stop": "FAULT",
+      "fault": "LOOP_OVERRUN",
+      "flags": "LINK_OK"
+    }
+  ],
+  "events": [
+    {
+      "t": 0.0154,
+      "code": "VEHICLE_FAULT",
+      "action": "STOP",
+      "message": "Bo báo lỗi LOOP_OVERRUN (trạng thái FAULT)"
+    }
+  ],
+  "stats": {
+    "frames_sent": 99,
+    "commands_sent": 0,
+    "requests_sent": 98,
+    "messages_received": 302,
+    "telemetry_received": 204,
+    "device_messages_missed": 0,
+    "stale_or_duplicate": 0,
+    "foreign_session": 0,
+    "bad_values": 0,
+    "link_errors": 0,
+    "telemetry_unpolled_dropped": 0,
+    "rejected": {},
+    "ack_rtt_s": null,
+    "ack_rtt_max_s": null,
+    "cmd_echo_s": null,
+    "cmd_echo_max_s": null,
+    "parser": {
+      "frames": 302,
+      "messages": 302,
+      "empty": 0,
+      "cobs": 0,
+      "short": 0,
+      "crc": 0,
+      "version": 0,
+      "type": 0,
+      "length": 0,
+      "oversize": 0
+    }
+  }
+}

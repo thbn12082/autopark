@@ -141,11 +141,11 @@ ba nhãn để tách những thứ kế hoạch không gọi tên riêng:
 
 | Nhãn | Nghĩa | Đã có tới 24/09/2026 |
 |---|---|---|
-| **MP** | Mô phỏng phần mềm, thông số xe giả định | Giai đoạn 0 ĐẠT sáu điều kiện ở mức mô phỏng (20/09, laptop i7-12700H); `VehicleIO` mô phỏng (24/09); *tối 24/09:* `VehicleIO` nối vào phiên đỗ xe và chế độ quan sát, chỉ với bo mô phỏng hoặc cổng serial giả, tư thế lý tưởng ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md)); có một khoảng trống an toàn đã biết khi có `Heartbeat`, chưa sửa (3.12b; *muộn tối 24/09/2026:* đã sửa, vẫn chỉ MP); *khuya 24/09/2026 (chưa commit):* phép thử độ nhạy theo kích thước xe với sa bàn cố định (hai lượt, dưới tải), kiểm lại nhãn 16 ca khó bằng đường chứng, thẻ "Bo điều khiển" và so giới hạn bo (bo mô phỏng, cổng serial giả) |
+| **MP** | Mô phỏng phần mềm, thông số xe giả định | Giai đoạn 0 ĐẠT sáu điều kiện ở mức mô phỏng (20/09, laptop i7-12700H); `VehicleIO` mô phỏng (24/09); *tối 24/09:* `VehicleIO` nối vào phiên đỗ xe và chế độ quan sát, chỉ với bo mô phỏng hoặc cổng serial giả, tư thế lý tưởng ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md)); có một khoảng trống an toàn đã biết khi có `Heartbeat`, chưa sửa (3.12b; *muộn tối 24/09/2026:* đã sửa, vẫn chỉ MP); *khuya 24/09/2026 (chưa commit):* phép thử độ nhạy theo kích thước xe với sa bàn cố định (hai lượt, dưới tải), kiểm lại nhãn 16 ca khó bằng đường chứng, thẻ "Bo điều khiển" và so giới hạn bo (bo mô phỏng, cổng serial giả); *30/09/2026:* lõi C++ firmware qua test host (29/09) và bản build thật chạy trong bo ảo QEMU với `SerialVehicleIO` ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)) |
 | **DL** | Chạy offline trên dữ liệu công khai lưu sẵn (WoodScape, ACDC, RoadObstacle21, AVM-SS, DROW v2) | AI huấn luyện và chấm trên máy bàn (21–23/09); *tối 24/09:* BEV minh họa trên ảnh WoodScape (`00000_FV`, thêm một lần ba ảnh khác thời điểm), không có nhãn mặt sàn để chấm ([BEV.md](BEV.md) mục 6); *khuya 24/09/2026 (chưa commit):* chấm RoadAnomaly21 (10 ảnh có nhãn, ba seed); odometry khớp scan trên DROW v2 (so với `.odom2`, không phải ground truth); phần so manifest của `evaluate.py --train-overlap` trên WoodScape val (0 trùng với 5.764 ảnh train) và AVM-SS val của `ai_ws_avm` (1.050/1.050 ảnh thuộc split chọn checkpoint), [HUAN_LUYEN.md](../../HUAN_LUYEN.md) cuối mục 8 |
 | **BT** | Thiết bị thật nằm trên bàn, chưa gá, đo trên **máy bàn** i9-14900 + RTX 4000 Ada | LiDAR C1 (22–24/09), bốn camera USB (23–24/09), bàn thử bốn camera + LiDAR + AI (23–24/09); *tối 24/09:* đo lại quy tắc ghép theo nhịp riêng và làm nóng AI (o01, o02, o07), ghi và phát lại một phiên thật (o03–o06); định vị LiDAR chạy **offline** trên bản ghi BT có sẵn, chỉ cho độ nhất quán; *khuya 24/09/2026:* **không có phiên đo mới**; chỉ chạy offline trên bản ghi BT có sẵn: độ lặp lại khoảng cách LiDAR (`lidar/repeatability.py`), odometry khớp scan trên sáu bản ghi C1 **đứng yên**; *đợt AI camera 25/09/2026 (chưa commit):* **không có phiên đo mới**; bản ghi o03 phát lại qua ngăn AI camera với mô hình thật (offline): với rig thật mọi lô bị chặn vì chưa hiệu chuẩn, 0 vật cản ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2) |
 | **TH** | Chỉ kiểm bằng ảnh tổng hợp hoặc thiết bị giả trong test | Công cụ hiệu chuẩn camera, công cụ gán nhãn (24/09); *tối 24/09:* BEV trên rig bốn camera tổng hợp, định vị LiDAR trên phòng tổng hợp, ghi/phát lại với nguồn giả, nhánh "camera lỡ nhịp" của quy tắc ghép (đồng hồ giả); *khuya 24/09/2026:* công cụ ngoại tham và ROI (ảnh tổng hợp, camera giả), BEV tăng tốc (rig tổng hợp), cầu nối ToF → `NearFieldReading`, "Kiểm kết nối bo" (cổng serial giả), chốt chấm ảnh đã học và `labels import --exclude` (dữ liệu giả; riêng phần so manifest của chốt chấm ảnh đã học đã chạy trên dữ liệu thật, là **DL**, xem dòng DL), demo hợp nhất bỏ ≥ 22 vòng (nguồn giả), `may_moi` tóm tắt lại (bản sao kết quả máy bàn); *đợt AI camera 25/09/2026 (chưa commit):* AI camera làm nguồn vật cản trong phiên đỗ xe (camera giả, rig bốn camera TỔNG HỢP, tệp hiệu chuẩn viết tay; 68 mục test) |
-| **TK** | Chỉ có thiết kế/đặc tả hoặc mã chưa chạy | Firmware C++ ESP32-S3 (chưa biên dịch), ngõ vào E-stop (chưa lắp); *tối 24/09:* bản nháp đo MN300 (giai đoạn 4), phiếu kiểm kê MN300, bảng tải, sơ đồ nguồn/dừng và 16 kịch bản thử lỗi (giai đoạn 6), mọi số CHƯA ĐO, mọi phép thử CHƯA THỬ; *khuya 24/09/2026:* bộ kịch bản nghiệm thu và ngưỡng đề xuất (CHỜ CHỐT), so sánh phương án định vị (đề xuất, CHỜ CHỐT) |
+| **TK** | Chỉ có thiết kế/đặc tả hoặc mã chưa chạy | Lớp dán Arduino của firmware ESP32-S3 trên chip: LEDC, E-stop, watchdog kích hoạt, USB-CDC (firmware biên dịch được từ 29/09/2026, chưa nạp bo; lõi C++ và bản build trong bo ảo QEMU: xem MP), ngõ vào E-stop (chưa lắp); *tối 24/09:* bản nháp đo MN300 (giai đoạn 4), phiếu kiểm kê MN300, bảng tải, sơ đồ nguồn/dừng và 16 kịch bản thử lỗi (giai đoạn 6), mọi số CHƯA ĐO, mọi phép thử CHƯA THỬ; *khuya 24/09/2026:* bộ kịch bản nghiệm thu và ngưỡng đề xuất (CHỜ CHỐT), so sánh phương án định vị (đề xuất, CHỜ CHỐT) |
 | **XT** | Xe thật | **Chưa có.** Chưa nhận MN300, ESP32-S3, phần nguồn/dừng |
 
 Laptop RTX 3050 Ti là máy mang đi nộp và trình diễn (người dùng xác nhận 24/09). Trên laptop mới chỉ có số của giai đoạn 0
@@ -296,7 +296,8 @@ Những điều sau phải có mặt trong khóa luận, ở chương thực ngh
 5. Hợp nhất nhiều lớp bản đồ có tuổi dữ liệu, cầu nối vật cản vào phiên, chạy với LiDAR thật đứng yên — MP + BT
    ([GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md)).
 6. Giao thức laptop–ESP32-S3 có thời hạn lệnh, watchdog, chốt mất liên lạc; `VehicleIO` mô phỏng/serial đi qua cùng byte;
-   bản tham chiếu firmware — MP; firmware C++ — TK ([GIAO_THUC_XE.md](GIAO_THUC_XE.md)).
+   bản tham chiếu firmware — MP; lõi C++ firmware (test host) và bản build trong bo ảo QEMU — MP (30/09/2026); lớp dán
+   Arduino trên chip — TK ([GIAO_THUC_XE.md](GIAO_THUC_XE.md)).
 7. Công cụ hiệu chuẩn camera fisheye và công cụ gán nhãn ảnh sa bàn — TH ([HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md),
    [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md)).
 
@@ -748,8 +749,12 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   watchdog bo 500 ms → DISARMED, `TELEMETRY_STALE` của laptop 0,3 s có chốt, trần effort 250 ‰ (CHƯA CHỐT), lỗi STALL,
   hai nhánh `VehicleIO` đi qua cùng byte, vector mẫu chung Python ↔ C++.
 - *Nguồn:* [GIAO_THUC_XE.md](GIAO_THUC_XE.md); [firmware/esp32_vehicle/README.md](../firmware/esp32_vehicle/README.md).
-  *Mức:* MP (Python); TK (C++).
-- *Giới hạn phải nói:* firmware C++ **chưa biên dịch lần nào**; chân GPIO, xung ESC/servo, hành vi ESC khi mất xung và khi
+  *Mức:* MP (Python; lõi C++ qua test host; bản build trong bo ảo QEMU từ 30/09/2026); TK (lớp dán trên chip: LEDC,
+  E-stop, watchdog kích hoạt, USB-CDC).
+- *Giới hạn phải nói:* firmware C++ **chưa nạp, chưa chạy trên bo** (29/09/2026: biên dịch cho ESP32-S3 bằng PlatformIO,
+  0 cảnh báo; lõi `src/core` khớp bản Python qua test host trên máy tính, 703 check; bản build thật chạy trong bo ảo
+  QEMU với phần mềm laptop từ 30/09/2026, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md): bo ảo không có LEDC, GPIO vào,
+  watchdog, USB-CDC thật, nên không phải bằng chứng về bo); chân GPIO, xung ESC/servo, hành vi ESC khi mất xung và khi
   lùi đều CHƯA CHỐT; `VehicleIO` chưa nối vào phiên và bộ bám quỹ đạo (việc đang làm, mục 8). *Cập nhật tối 24/09/2026:*
   đã nối vào phiên đỗ xe và bộ bám, **chỉ với bo mô phỏng và cổng serial giả** (3.12b). Cùng đợt: `SerialVehicleIO` có
   `poll(block=False)` và đồng hồ mặc định là `time.perf_counter` (trên Windows `time.monotonic` chỉ đổi mỗi 15,625 ms).
@@ -1237,7 +1242,7 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   mã nguồn); mô phỏng vòng tốc độ với số giả định: sai số trung bình < 1 mm/s nhưng vọt lố 26–57 %; ngừng gửi lệnh lúc
   0,15 m/s thì xe mô phỏng dừng sau 0,39 s, trôi 3,9 cm.
 - *Nguồn:* [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 10–11.
-- *Giới hạn phải nói:* mọi số là của **mô hình giả định**, không phải quãng dừng hay đáp ứng của xe thật; C++ chưa biên dịch.
+- *Giới hạn phải nói:* mọi số là của **mô hình giả định**, không phải quãng dừng hay đáp ứng của xe thật; C++ chưa chạy trên bo (lõi chỉ qua test host trên máy tính, 29/09/2026).
 - *Thêm tối 24/09/2026 — `VehicleIO` trong phiên đỗ xe và chế độ quan sát (MP)* ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md)
   mục 7): `tests/test_session_vehicle.py` 34 test (tính cả tham số hóa), đạt 34/34; chạy cùng các test giai đoạn 0, giao
   thức, hợp nhất, giao diện liên quan: 361 đạt, 0 lỗi (lần chạy lúc đó); kiểm đột biến 6 + 27, đều bị bắt. *(Cập nhật
@@ -1589,7 +1594,7 @@ dàn ý nhớ, **chưa đối chiếu** với bản gốc; phải tra trước k
 | H2 | Camera "HD Camera" VID 1BCF (Sunplus) PID 0B09 | Không có serial; mode đọc từ DirectShow ([camera_modes.csv](camera_modes.csv)); 130° là số nhà bán (kế hoạch 18, listing AdaChoi) | Không có datasheet; chỉ dẫn được số tự đo |
 | H3 | Hub UGREEN 4 cổng, chip Genesys Logic 05E3:0610 / 05E3:0626 | [usb_topology.md](usb_topology.md); kế hoạch nêu UGREEN 50985 là ứng viên | Mã model thực giao chưa ghi |
 | H4 | Silicon Labs CP2102N; driver CP210x 11.6.0.420 trên máy bàn tới 25/09/2026 (nơi đo mọi số LiDAR tới ngày đó), 11.2.0.167 trên máy bàn từ 29/09/2026 ([chuyển máy](CHUYEN_MAY_BAN.md)) | hardware_inventory | Đủ để ghi |
-| H5 | ESP32-S3, Arduino-ESP32 (2.x/3.x), ESP-IDF | Firmware viết theo hiểu biết, **chưa đối chiếu tài liệu** (GIAO_THUC_XE mục 12) | **Cần tra** khi biên dịch |
+| H5 | ESP32-S3, Arduino-ESP32 (2.x/3.x), ESP-IDF | Firmware biên dịch được với Arduino-ESP32 2.0.17 và 3.3.12 (29/09/2026); lời gọi `esp_task_wdt_init` đã đối chiếu `esp_task_wdt.h` của IDF 4.4 (30/09/2026); API LEDC và móc panic **chưa đối chiếu tài liệu** (GIAO_THUC_XE mục 12) | **Cần tra** tài liệu LEDC, móc panic trước khi nạp |
 | H6 | MN300 Tank300, BNO085, VL53L1X, AS5600, MT6701, LA38, UBEC/XL4015 | Chưa nhận; chỉ có link mua (kế hoạch 18) | Datasheet: **cần tra** khi dùng |
 
 ### 5.4. Phần mềm và thư viện
@@ -1629,7 +1634,8 @@ hoặc dẫn như hồ sơ thí nghiệm (kèm commit), theo mẫu trường.
 | "Đã thử chế độ quan sát / chạy xe qua VehicleIO" (*thêm tối 24/09*) | Chỉ bo mô phỏng và cổng serial giả, tư thế lý tưởng | "Nối `VehicleIO` vào phiên đỗ xe mới kiểm trong mô phỏng, tư thế lấy từ mô phỏng; chưa có bo hay xe" |
 | "Phiên đã dừng thì không bao giờ chạy tiếp" (*thêm tối 24/09, sau vòng kiểm tra*) | Có một trường hợp đã biết trên mô phỏng: vòng điều khiển treo quá hạn lệnh trong khi luồng `Heartbeat` giữ liên lạc → một COMMAND enable=1 sau khi bo đã về ARMED, bo ARMED → RUNNING thêm một lần (test `xfail(strict=True)`) | "Trong các test mô phỏng, phiên đã dừng không chạy tiếp, trừ một trường hợp đã biết (treo quá hạn lệnh khi có `Heartbeat`; GIAO_THUC_XE mục 12), CHƯA SỬA; chưa thử trên bo thật". *Cập nhật muộn tối 24/09/2026:* trường hợp đó đã sửa ở mức MP (3.12b); viết: "Trong test mô phỏng, sau bản sửa ngày 24/09, phiên đã dừng không gửi lại lệnh chạy, kể cả khi vòng điều khiển treo quá hạn lệnh trong lúc liên lạc vẫn được giữ; chưa thử trên bo thật". *(Cập nhật muộn tối 24/09/2026, sau vòng kiểm tra:)* câu này thiếu khoảng hở còn lại (khung báo bo về ARMED chưa tới laptop, suy ra từ mã, chưa có test; GIAO_THUC_XE mục 12, CHE_DO_QUAN_SAT mục 8); dùng câu nên viết mới ở 3.12b. |
 | "Hiệu chuẩn camera đạt RMS 0,071 px" | Ảnh tổng hợp | "Trên ảnh tổng hợp; chưa hiệu chuẩn camera thật nào" |
-| "Watchdog và E-stop đã kiểm chứng" | Bản tham chiếu Python; C++ chưa biên dịch; không phần cứng | "Logic watchdog kiểm trên bản tham chiếu Python; chưa thử trên bo" |
+| "Watchdog và E-stop đã kiểm chứng" | Bản tham chiếu Python (lõi C++ khớp nó qua test host trên máy tính từ 29/09/2026); firmware biên dịch được nhưng chưa chạy trên bo; không phần cứng | "Logic watchdog kiểm trên bản tham chiếu Python; chưa thử trên bo" |
+| "Firmware đã chạy/đã kiểm thử trên ESP32-S3" | Chỉ chạy trong bo ảo QEMU (Serial qua UART0, flash DIO; không LEDC, GPIO vào, watchdog kích hoạt, USB-CDC); chưa nạp bo | "Bản build firmware chạy trong bo ảo QEMU và nói chuyện đúng giao thức với phần mềm laptop (30/09/2026); chưa nạp, chưa chạy trên bo ESP32-S3" |
 | "Xe dừng trong 0,39 s / 3,9 cm" (hay 0,43 s / 4,1 cm, 0,18 s / 0,9 cm của phiên `VehicleIO` mô phỏng, tối 24/09) | Số của mô hình giả định | "Trong mô phỏng với số giả định…; quãng dừng thật chưa đo" |
 | "Suy luận 16,4 ms" (không kèm máy) | Máy bàn RTX 4000 Ada | "…trên máy bàn; laptop RTX 3050 Ti chưa đo" |
 | "Thêm AVM-SS cải thiện ban đêm" | Đã rút lại sau ba seed | "Trộn AVM-SS làm lỗi nguy hiểm trên ACDC tăng 4,1 → 13,5 %" |

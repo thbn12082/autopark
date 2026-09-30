@@ -1,0 +1,4 @@
+SIL listening on 127.0.0.1:5580
+host connected at 4016 ms
+host disconnected at 4355 ms
+SIL done: loops=2364 guard_calls=739 bytes_in=329 bytes_out=461

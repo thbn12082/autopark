@@ -1,0 +1,45 @@
+boot: 298 bytes; ESP-ROM:esp32s3-20210327 | Build:Mar 27 2021 | rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT) | SPIWP:0xee | mode:DIO, clock div:1 | load:0x3fce3808,len:0x4bc | load:0x403c9700,len:0xbd8 | load:0x403cc700,len:0x2a0c | entry 0x403c98d0 | E (6687) esp_core_dump_flash: Incorrect size of core dump image: -65536
+== QEMU:ABORT
+   [  0.024] \x01\x83\xc4i\x16-\x12\x04\x9b\x82\x03\x02\x01\x03\x01\x02\x01\x03\xff\xff\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x03 y
+   [  0.024] AP_TEST: abort at 230044 ms
+   [  0.024] AP_TEST: __wrap_esp_panic_handler called
+   [  0.024] 
+   [  0.349] abort() was called at PC 0x420030c9 on core 1
+   [  0.349] 
+   [  0.349] 
+   [  0.349] Backtrace: 0x4037679a:0x3fcebae0 0x4037a511:0x3fcebb00 0x4037fd45:0x3fcebb20 0x420030c9:0x3fcebba0 0x42004f3d:0x3fcebc50
+   [  0.349] 
+   [  0.349] 
+   [  0.349] 
+   [  0.349] 
+   [  0.349] ELF file SHA256: 3c970df690eeb046
+   [  0.349] 
+   [  0.580] Rebooting...
+   [  0.607] ESP-ROM:esp32s3-20210327
+   [  0.607] Build:Mar 27 2021
+   [  0.607] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+   [  0.643] SPIWP:0xee
+   [  0.658] mode:DIO, clock div:1
+   [  0.658] load:0x3fce3808,len:0x4bc
+   [  0.658] load:0x403c9700,len:0xbd8
+   [  0.674] load:0x403cc700,len:0x2a0c
+   [  0.685] entry 0x403c98d0
+   [  0.997] E (3974) esp_core_dump_flash: Incorrect size of core dump image: 696516608
+   summary: {"trigger": "QEMU:ABORT", "events_on_connect_before": [], "last_telemetry_dev_ms": 229993, "raw_bytes_after_trigger": 669, "wrap_hook_called": true, "rst_lines": ["rst:0xc (RTC_SW_CPU_RST)"], "host_s_trigger_to_first_byte": 0.024, "hello_after": {"session_id": "78388969", "boot_id": "621c557e", "fw": "1.0", "reset_reason": "5 (OTHER)", "state": "DISARMED", "telemetry_period_s": 0.05, "limits": {"max_speed_mps": 0.3, "max_steer_rad": 0.524, "max_steer_rate_rad_s": 1.571, "max_accel_mps2": 0.3, "max_decel_mps2": 0.6, "stop_decel_mps2": 0.6, "max_validity_s": 0.3, "link_timeout_s": 0.5}, "hello_ack_rtt_ms": 4.66, "attempts": 1}, "events_on_connect_after": [{"t": 0.0068, "code": "FIRMWARE_RESET", "action": "STOP", "message": "Bo đã khởi động lại (boot_id e60f4ca2 → 621c557e, lý do reset 5); trạng thái DISARMED"}], "host_s_trigger_to_hello_ack_after": 3.535}
+   hello_after: {"session_id": "78388969", "boot_id": "621c557e", "fw": "1.0", "reset_reason": "5 (OTHER)", "state": "DISARMED", "telemetry_period_s": 0.05, "limits": {"max_speed_mps": 0.3, "max_steer_rad": 0.524, "max_steer_rate_rad_s": 1.571, "max_accel_mps2": 0.3, "max_decel_mps2": 0.6, "stop_decel_mps2": 0.6, "max_validity_s": 0.3, "link_timeout_s": 0.5}, "hello_ack_rtt_ms": 4.66, "attempts": 1}
+== QEMU:RESTART
+   [  0.002] \x01\x83Px\xb6\x08#\x04\xcf\x94\x03\x02\x01\x03\x01\x02\x01\x03\xff\xff\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x03+\xda
+   [  0.016] AP_TEST: esp_restart at 234708 ms
+   [  0.036] ESP-ROM:esp32s3-20210327
+   [  0.055] Build:Mar 27 2021
+   [  0.055] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+   [  0.055] SPIWP:0xee
+   [  0.073] mode:DIO, clock div:1
+   [  0.073] load:0x3fce3808,len:0x4bc
+   [  0.073] load:0x403c9700,len:0xbd8
+   [  0.073] load:0x403cc700,len:0x2a0c
+   [  0.073] entry 0x403c98d0
+   [  0.333] E (13915) esp_core_dump_flash: Incorrect size of core dump image: 696516608
+   summary: {"trigger": "QEMU:RESTART", "events_on_connect_before": [], "last_telemetry_dev_ms": 234653, "raw_bytes_after_trigger": 400, "wrap_hook_called": false, "rst_lines": ["rst:0xc (RTC_SW_CPU_RST)"], "host_s_trigger_to_first_byte": 0.002, "hello_after": {"session_id": "7475ccda", "boot_id": "3799f0a1", "fw": "1.0", "reset_reason": "2 (SOFTWARE)", "state": "DISARMED", "telemetry_period_s": 0.05, "limits": {"max_speed_mps": 0.3, "max_steer_rad": 0.524, "max_steer_rate_rad_s": 1.571, "max_accel_mps2": 0.3, "max_decel_mps2": 0.6, "stop_decel_mps2": 0.6, "max_validity_s": 0.3, "link_timeout_s": 0.5}, "hello_ack_rtt_ms": 3.72, "attempts": 1}, "events_on_connect_after": [{"t": 0.0038, "code": "FIRMWARE_RESET", "action": "STOP", "message": "Bo đã khởi động lại (boot_id 621c557e → 3799f0a1, lý do reset 2); trạng thái DISARMED"}], "host_s_trigger_to_hello_ack_after": 2.863}
+   hello_after: {"session_id": "7475ccda", "boot_id": "3799f0a1", "fw": "1.0", "reset_reason": "2 (SOFTWARE)", "state": "DISARMED", "telemetry_period_s": 0.05, "limits": {"max_speed_mps": 0.3, "max_steer_rad": 0.524, "max_steer_rate_rad_s": 1.571, "max_accel_mps2": 0.3, "max_decel_mps2": 0.6, "stop_decel_mps2": 0.6, "max_validity_s": 0.3, "link_timeout_s": 0.5}, "hello_ack_rtt_ms": 3.72, "attempts": 1}
+report -> D:\xetulai\_platformio\kiem_qemu\logs\x3_wdt_report.json

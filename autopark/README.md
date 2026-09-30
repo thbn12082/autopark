@@ -87,9 +87,9 @@ $env:QT_QPA_PLATFORM = "offscreen"
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-Test cần torch được bỏ qua trong `.venv`; chạy cùng lệnh bằng `./.venv-train/Scripts/python.exe` để gồm cả chúng. Chạy test có ngân sách tìm đường khi máy rảnh, tách khỏi coverage và các chiến dịch tải CPU.
+Test cần torch được bỏ qua trong `.venv`; chạy cùng lệnh bằng `./.venv-train/Scripts/python.exe` để gồm cả chúng. Chạy test có ngân sách tìm đường khi máy rảnh, tách khỏi coverage và các chiến dịch tải CPU. Trên Windows 11, tiến trình pytest không có cửa sổ (ví dụ chạy nền) có thể chạy chậm tới ≈ 3 lần dù máy gần rảnh, đủ làm hỏng các test này (đo 30/09/2026). Vì vậy từ 30/09/2026 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest; đặt `AUTOPARK_KEEP_ECOQOS=1` để giữ mặc định của Windows. pytest xóa thư mục tạm của test đạt (`tmp_path_retention_policy = "failed"` trong `pyproject.toml`; cần giữ thì thêm `-o tmp_path_retention_policy=all`). Chi tiết: [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 8.
 
-Lần chạy toàn bộ gần nhất: 29/09/2026, máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), bằng lệnh trên (offscreen), commit `38f64bb` của đợt chuyển máy: `.venv` 1354 đạt, 8 bỏ qua (cần torch), 0 hỏng; `.venv-train` 1416 đạt, 0 hỏng. Số test đổi theo mã; tệp kết quả và lần chạy đối chứng trên mã cũ ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2–3.
+Lần chạy toàn bộ gần nhất: 30/09/2026, máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), bằng lệnh trên (offscreen), mã `b37e9ee` cộng sửa đổi chưa commit của đợt bo ảo QEMU tính tới 10:21, tức trước khi `tests/conftest.py` tắt EcoQoS. Kết quả: `.venv` 1376 đạt, 8 bỏ qua (cần torch), 0 hỏng. `.venv-train` 1437 đạt, 1 hỏng ở cả hai lượt: `uturn_w46`, một test ngân sách thời gian; cùng test đó đạt khi tiến trình tự tắt EcoQoS. Số test đổi theo mã; tệp kết quả và các lượt trước ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2, 3, 6, 8.
 
 Tạo phiên mẫu rồi phát lại:
 
@@ -248,7 +248,7 @@ Cấu hình cổng serial hiện chưa có nguồn tư thế thật, nên đi v�
 
 **Kiểm kết nối bo** thực hiện HELLO, kiểm giới hạn và đọc telemetry; không ARM/COMMAND. Cấu hình bo thật hiện thiếu nguồn tư thế thật nên START bị chặn.
 
-[Giao thức](docs/GIAO_THUC_XE.md), [quan sát](docs/CHE_DO_QUAN_SAT.md), [firmware](firmware/esp32_vehicle/README.md).
+[Giao thức](docs/GIAO_THUC_XE.md), [quan sát](docs/CHE_DO_QUAN_SAT.md), [firmware](firmware/esp32_vehicle/README.md), [bo ảo QEMU và các trình giả lập đã thử](docs/MO_PHONG_FIRMWARE.md) (30/09/2026: firmware thật chạy trong QEMU, laptop nói chuyện bằng `SerialVehicleIO` qua `socket://`; giao diện chưa chọn được bo ảo).
 
 ## 10. Cấu trúc mã
 

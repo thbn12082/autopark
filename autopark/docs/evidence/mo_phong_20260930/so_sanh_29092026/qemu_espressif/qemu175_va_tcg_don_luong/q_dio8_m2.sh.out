@@ -1,0 +1,2 @@
+drive exit=0
+D:\xetulai\_platformio\qemu\qemu\bin\qemu-system-xtensa.exe: -serial tcp:127.0.0.1:5704,server=on,wait=on: info: QEMU waiting for connection on: disconnected:tcp:127.0.0.1:5704,server=on

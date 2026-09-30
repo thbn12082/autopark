@@ -1,0 +1,1000 @@
+[   0.031] ESP-ROM:esp32s3-20210327
+[   0.043] Build:Mar 27 2021
+[   0.043] rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+[   0.043] SPIWP:0xee
+[   0.043] mode:DIO, clock div:1
+[   0.043] load:0x3fce3808,len:0x4bc
+[   0.043] load:0x403c9700,len:0xbd8
+[   0.043] load:0x403cc700,len:0x2a0c
+[   0.043] entry 0x403c98d0
+[   0.184] 
+[   0.508] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   0.508] 
+[   0.508] 
+[   0.508] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   0.508] 
+[   0.508] 
+[   0.508] 
+[   0.508] 
+[   0.508] ELF file SHA256: d280c2a9a0d41d03
+[   0.508] 
+[   0.508] E (130) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   0.508] Rebooting...
+[   0.508] ESP-ROM:esp32s3-20210327
+[   0.514] Build:Mar 27 2021
+[   0.514] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   0.514] SPIWP:0xee
+[   0.544] mode:DIO, clock div:1
+[   0.544] load:0x3fce3808,len:0x4bc
+[   0.544] load:0x403c9700,len:0xbd8
+[   0.544] load:0x403cc700,len:0x2a0c
+[   0.544] entry 0x403c98d0
+[   0.639] 
+[   0.933] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   0.933] 
+[   0.933] 
+[   0.933] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   0.933] 
+[   0.933] 
+[   0.933] 
+[   0.933] 
+[   0.933] ELF file SHA256: d280c2a9a0d41d03
+[   0.953] 
+[   0.953] E (504) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   0.953] Rebooting...
+[   0.953] ESP-ROM:esp32s3-20210327
+[   0.969] Build:Mar 27 2021
+[   0.969] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   0.969] SPIWP:0xee
+[   0.969] mode:DIO, clock div:1
+[   0.969] load:0x3fce3808,len:0x4bc
+[   0.969] load:0x403c9700,len:0xbd8
+[   0.969] load:0x403cc700,len:0x2a0c
+[   0.969] entry 0x403c98d0
+[   1.062] 
+[   1.384] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   1.384] 
+[   1.384] 
+[   1.384] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   1.384] 
+[   1.384] 
+[   1.384] 
+[   1.384] 
+[   1.384] ELF file SHA256: d280c2a9a0d41d03
+[   1.384] 
+[   1.384] E (1623) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   1.384] Rebooting...
+[   1.384] ESP-ROM:esp32s3-20210327
+[   1.390] Build:Mar 27 2021
+[   1.390] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   1.390] SPIWP:0xee
+[   1.424] mode:DIO, clock div:1
+[   1.424] load:0x3fce3808,len:0x4bc
+[   1.424] load:0x403c9700,len:0xbd8
+[   1.424] load:0x403cc700,len:0x2a0c
+[   1.424] entry 0x403c98d0
+[   1.503] 
+[   1.816] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   1.816] 
+[   1.816] 
+[   1.816] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   1.816] 
+[   1.816] 
+[   1.816] 
+[   1.816] 
+[   1.816] ELF file SHA256: d280c2a9a0d41d03
+[   1.816] 
+[   1.816] E (4981) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   1.816] Rebooting...
+[   1.824] ESP-ROM:esp32s3-20210327
+[   1.824] Build:Mar 27 2021
+[   1.824] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   1.824] SPIWP:0xee
+[   1.824] mode:DIO, clock div:1
+[   1.824] load:0x3fce3808,len:0x4bc
+[   1.847] load:0x403c9700,len:0xbd8
+[   1.847] load:0x403cc700,len:0x2a0c
+[   1.847] entry 0x403c98d0
+[   1.940] 
+[   2.231] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   2.231] 
+[   2.249] 
+[   2.249] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   2.249] 
+[   2.249] 
+[   2.249] 
+[   2.249] 
+[   2.249] ELF file SHA256: d280c2a9a0d41d03
+[   2.249] 
+[   2.249] E (15053) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   2.249] Rebooting...
+[   2.249] ESP-ROM:esp32s3-20210327
+[   2.269] Build:Mar 27 2021
+[   2.269] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   2.269] SPIWP:0xee
+[   2.269] mode:DIO, clock div:1
+[   2.269] load:0x3fce3808,len:0x4bc
+[   2.269] load:0x403c9700,len:0xbd8
+[   2.269] load:0x403cc700,len:0x2a0c
+[   2.269] entry 0x403c98d0
+[   2.380] 
+[   2.683] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   2.683] 
+[   2.683] 
+[   2.683] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   2.683] 
+[   2.683] 
+[   2.683] 
+[   2.683] 
+[   2.683] ELF file SHA256: d280c2a9a0d41d03
+[   2.683] 
+[   2.683] E (9486) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   2.695] Rebooting...
+[   2.699] ESP-ROM:esp32s3-20210327
+[   2.726] Build:Mar 27 2021
+[   2.726] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   2.726] SPIWP:0xee
+[   2.726] mode:DIO, clock div:1
+[   2.726] load:0x3fce3808,len:0x4bc
+[   2.726] load:0x403c9700,len:0xbd8
+[   2.726] load:0x403cc700,len:0x2a0c
+[   2.726] entry 0x403c98d0
+[   2.820] 
+[   3.111] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   3.131] 
+[   3.131] 
+[   3.131] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   3.131] 
+[   3.131] 
+[   3.131] 
+[   3.131] 
+[   3.131] ELF file SHA256: d280c2a9a0d41d03
+[   3.131] 
+[   3.131] E (10673) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   3.131] Rebooting...
+[   3.131] ESP-ROM:esp32s3-20210327
+[   3.138] Build:Mar 27 2021
+[   3.138] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   3.138] SPIWP:0xee
+[   3.138] mode:DIO, clock div:1
+[   3.163] load:0x3fce3808,len:0x4bc
+[   3.163] load:0x403c9700,len:0xbd8
+[   3.163] load:0x403cc700,len:0x2a0c
+[   3.163] entry 0x403c98d0
+[   3.238] 
+[   3.540] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   3.543] 
+[   3.543] 
+[   3.543] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   3.556] 
+[   3.556] 
+[   3.556] 
+[   3.556] 
+[   3.556] ELF file SHA256: d280c2a9a0d41d03
+[   3.556] 
+[   3.556] E (14235) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   3.556] Rebooting...
+[   3.560] ESP-ROM:esp32s3-20210327
+[   3.576] Build:Mar 27 2021
+[   3.576] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   3.576] SPIWP:0xee
+[   3.576] mode:DIO, clock div:1
+[   3.576] load:0x3fce3808,len:0x4bc
+[   3.576] load:0x403c9700,len:0xbd8
+[   3.576] load:0x403cc700,len:0x2a0c
+[   3.576] entry 0x403c98d0
+[   3.670] 
+[   3.996] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   3.996] 
+[   3.996] 
+[   3.996] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   3.996] 
+[   3.996] 
+[   3.996] 
+[   3.996] 
+[   3.996] ELF file SHA256: d280c2a9a0d41d03
+[   3.996] 
+[   3.996] E (7025) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   3.996] Rebooting...
+[   3.996] ESP-ROM:esp32s3-20210327
+[   4.016] Build:Mar 27 2021
+[   4.016] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   4.016] SPIWP:0xee
+[   4.016] mode:DIO, clock div:1
+[   4.016] load:0x3fce3808,len:0x4bc
+[   4.016] load:0x403c9700,len:0xbd8
+[   4.016] load:0x403cc700,len:0x2a0c
+[   4.016] entry 0x403c98d0
+[   4.155] 
+[   4.464] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   4.464] 
+[   4.464] 
+[   4.464] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   4.464] 
+[   4.464] 
+[   4.464] 
+[   4.464] 
+[   4.464] ELF file SHA256: d280c2a9a0d41d03
+[   4.464] 
+[   4.464] E (3306) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   4.464] Rebooting...
+[   4.464] ESP-ROM:esp32s3-20210327
+[   4.465] Build:Mar 27 2021
+[   4.465] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   4.482] SPIWP:0xee
+[   4.482] mode:DIO, clock div:1
+[   4.482] load:0x3fce3808,len:0x4bc
+[   4.482] load:0x403c9700,len:0xbd8
+[   4.482] load:0x403cc700,len:0x2a0c
+[   4.482] entry 0x403c98d0
+[   4.609] 
+[   4.924] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   4.924] 
+[   4.924] 
+[   4.924] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   4.924] 
+[   4.924] 
+[   4.924] 
+[   4.924] 
+[   4.924] ELF file SHA256: d280c2a9a0d41d03
+[   4.924] 
+[   4.924] E (10041) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   4.924] Rebooting...
+[   4.924] ESP-ROM:esp32s3-20210327
+[   4.934] Build:Mar 27 2021
+[   4.934] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   4.934] SPIWP:0xee
+[   4.934] mode:DIO, clock div:1
+[   4.934] load:0x3fce3808,len:0x4bc
+[   4.934] load:0x403c9700,len:0xbd8
+[   4.934] load:0x403cc700,len:0x2a0c
+[   4.957] entry 0x403c98d0
+[   5.030] 
+[   5.352] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   5.352] 
+[   5.352] 
+[   5.352] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   5.352] 
+[   5.352] 
+[   5.352] 
+[   5.352] 
+[   5.352] ELF file SHA256: d280c2a9a0d41d03
+[   5.352] 
+[   5.352] E (12337) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   5.352] Rebooting...
+[   5.352] ESP-ROM:esp32s3-20210327
+[   5.359] Build:Mar 27 2021
+[   5.359] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   5.359] SPIWP:0xee
+[   5.378] mode:DIO, clock div:1
+[   5.378] load:0x3fce3808,len:0x4bc
+[   5.378] load:0x403c9700,len:0xbd8
+[   5.378] load:0x403cc700,len:0x2a0c
+[   5.378] entry 0x403c98d0
+[   5.490] 
+[   5.803] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   5.803] 
+[   5.803] 
+[   5.803] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   5.803] 
+[   5.803] 
+[   5.803] 
+[   5.803] 
+[   5.803] ELF file SHA256: d280c2a9a0d41d03
+[   5.803] 
+[   5.803] E (1340) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   5.803] Rebooting...
+[   5.803] ESP-ROM:esp32s3-20210327
+[   5.809] Build:Mar 27 2021
+[   5.809] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   5.809] SPIWP:0xee
+[   5.834] mode:DIO, clock div:1
+[   5.834] load:0x3fce3808,len:0x4bc
+[   5.834] load:0x403c9700,len:0xbd8
+[   5.834] load:0x403cc700,len:0x2a0c
+[   5.834] entry 0x403c98d0
+[   5.911] 
+[   6.215] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   6.215] 
+[   6.215] 
+[   6.215] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   6.233] 
+[   6.233] 
+[   6.233] 
+[   6.233] 
+[   6.233] ELF file SHA256: d280c2a9a0d41d03
+[   6.233] 
+[   6.233] E (4131) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   6.233] Rebooting...
+[   6.233] ESP-ROM:esp32s3-20210327
+[   6.248] Build:Mar 27 2021
+[   6.248] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   6.248] SPIWP:0xee
+[   6.248] mode:DIO, clock div:1
+[   6.248] load:0x3fce3808,len:0x4bc
+[   6.248] load:0x403c9700,len:0xbd8
+[   6.248] load:0x403cc700,len:0x2a0c
+[   6.248] entry 0x403c98d0
+[   6.344] 
+[   6.652] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   6.652] 
+[   6.652] 
+[   6.652] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   6.652] 
+[   6.652] 
+[   6.666] 
+[   6.666] 
+[   6.666] ELF file SHA256: d280c2a9a0d41d03
+[   6.666] 
+[   6.666] E (12505) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   6.666] Rebooting...
+[   6.668] ESP-ROM:esp32s3-20210327
+[   6.684] Build:Mar 27 2021
+[   6.684] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   6.684] SPIWP:0xee
+[   6.684] mode:DIO, clock div:1
+[   6.684] load:0x3fce3808,len:0x4bc
+[   6.684] load:0x403c9700,len:0xbd8
+[   6.684] load:0x403cc700,len:0x2a0c
+[   6.684] entry 0x403c98d0
+[   6.810] 
+[   7.110] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   7.110] 
+[   7.110] 
+[   7.110] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   7.110] 
+[   7.110] 
+[   7.110] 
+[   7.110] 
+[   7.110] ELF file SHA256: d280c2a9a0d41d03
+[   7.110] 
+[   7.110] E (1839) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   7.110] Rebooting...
+[   7.121] ESP-ROM:esp32s3-20210327
+[   7.121] Build:Mar 27 2021
+[   7.121] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   7.121] SPIWP:0xee
+[   7.121] mode:DIO, clock div:1
+[   7.121] load:0x3fce3808,len:0x4bc
+[   7.121] load:0x403c9700,len:0xbd8
+[   7.121] load:0x403cc700,len:0x2a0c
+[   7.141] entry 0x403c98d0
+[   7.233] 
+[   7.528] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   7.528] 
+[   7.528] 
+[   7.528] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   7.544] 
+[   7.544] 
+[   7.544] 
+[   7.544] 
+[   7.544] ELF file SHA256: d280c2a9a0d41d03
+[   7.544] 
+[   7.544] E (5628) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   7.544] Rebooting...
+[   7.544] ESP-ROM:esp32s3-20210327
+[   7.560] Build:Mar 27 2021
+[   7.560] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   7.560] SPIWP:0xee
+[   7.560] mode:DIO, clock div:1
+[   7.560] load:0x3fce3808,len:0x4bc
+[   7.560] load:0x403c9700,len:0xbd8
+[   7.560] load:0x403cc700,len:0x2a0c
+[   7.560] entry 0x403c98d0
+[   7.653] 
+[   7.975] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   7.975] 
+[   7.975] 
+[   7.975] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   7.975] 
+[   7.975] 
+[   7.975] 
+[   7.975] 
+[   7.975] ELF file SHA256: d280c2a9a0d41d03
+[   7.975] 
+[   7.975] E (16996) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   7.975] Rebooting...
+[   7.975] ESP-ROM:esp32s3-20210327
+[   7.982] Build:Mar 27 2021
+[   7.982] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   7.982] SPIWP:0xee
+[   8.012] mode:DIO, clock div:1
+[   8.012] load:0x3fce3808,len:0x4bc
+[   8.012] load:0x403c9700,len:0xbd8
+[   8.012] load:0x403cc700,len:0x2a0c
+[   8.012] entry 0x403c98d0
+[   8.106] 
+[   8.411] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   8.411] 
+[   8.411] 
+[   8.411] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   8.411] 
+[   8.411] 
+[   8.411] 
+[   8.411] 
+[   8.411] ELF file SHA256: d280c2a9a0d41d03
+[   8.411] 
+[   8.411] E (15310) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   8.411] Rebooting...
+[   8.411] ESP-ROM:esp32s3-20210327
+[   8.422] Build:Mar 27 2021
+[   8.422] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   8.422] SPIWP:0xee
+[   8.433] mode:DIO, clock div:1
+[   8.433] load:0x3fce3808,len:0x4bc
+[   8.433] load:0x403c9700,len:0xbd8
+[   8.433] load:0x403cc700,len:0x2a0c
+[   8.433] entry 0x403c98d0
+[   8.545] 
+[   8.842] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   8.842] 
+[   8.842] 
+[   8.842] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   8.842] 
+[   8.842] 
+[   8.842] 
+[   8.842] 
+[   8.842] ELF file SHA256: d280c2a9a0d41d03
+[   8.842] 
+[   8.842] E (10252) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   8.842] Rebooting...
+[   8.856] ESP-ROM:esp32s3-20210327
+[   8.856] Build:Mar 27 2021
+[   8.856] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   8.856] SPIWP:0xee
+[   8.856] mode:DIO, clock div:1
+[   8.856] load:0x3fce3808,len:0x4bc
+[   8.856] load:0x403c9700,len:0xbd8
+[   8.856] load:0x403cc700,len:0x2a0c
+[   8.874] entry 0x403c98d0
+[   8.967] 
+[   9.262] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   9.262] 
+[   9.262] 
+[   9.262] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   9.279] 
+[   9.279] 
+[   9.279] 
+[   9.279] 
+[   9.279] ELF file SHA256: d280c2a9a0d41d03
+[   9.279] 
+[   9.279] E (12970) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   9.279] Rebooting...
+[   9.279] ESP-ROM:esp32s3-20210327
+[   9.295] Build:Mar 27 2021
+[   9.295] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   9.295] SPIWP:0xee
+[   9.295] mode:DIO, clock div:1
+[   9.295] load:0x3fce3808,len:0x4bc
+[   9.295] load:0x403c9700,len:0xbd8
+[   9.295] load:0x403cc700,len:0x2a0c
+[   9.295] entry 0x403c98d0
+[   9.390] 
+[   9.701] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[   9.701] 
+[   9.701] 
+[   9.701] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[   9.719] 
+[   9.719] 
+[   9.719] 
+[   9.719] 
+[   9.719] ELF file SHA256: d280c2a9a0d41d03
+[   9.719] 
+[   9.719] E (3232) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[   9.719] Rebooting...
+[   9.719] ESP-ROM:esp32s3-20210327
+[   9.735] Build:Mar 27 2021
+[   9.735] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[   9.735] SPIWP:0xee
+[   9.735] mode:DIO, clock div:1
+[   9.735] load:0x3fce3808,len:0x4bc
+[   9.735] load:0x403c9700,len:0xbd8
+[   9.735] load:0x403cc700,len:0x2a0c
+[   9.735] entry 0x403c98d0
+[   9.827] 
+[  10.145] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  10.145] 
+[  10.145] 
+[  10.145] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  10.145] 
+[  10.145] 
+[  10.145] 
+[  10.145] 
+[  10.145] ELF file SHA256: d280c2a9a0d41d03
+[  10.145] 
+[  10.145] E (9808) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  10.145] Rebooting...
+[  10.155] ESP-ROM:esp32s3-20210327
+[  10.155] Build:Mar 27 2021
+[  10.155] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  10.155] SPIWP:0xee
+[  10.176] mode:DIO, clock div:1
+[  10.176] load:0x3fce3808,len:0x4bc
+[  10.176] load:0x403c9700,len:0xbd8
+[  10.176] load:0x403cc700,len:0x2a0c
+[  10.176] entry 0x403c98d0
+[  10.263] 
+[  10.574] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  10.574] 
+[  10.574] 
+[  10.574] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  10.592] 
+[  10.592] 
+[  10.592] 
+[  10.592] 
+[  10.592] ELF file SHA256: d280c2a9a0d41d03
+[  10.592] 
+[  10.592] E (11644) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  10.592] Rebooting...
+[  10.592] ESP-ROM:esp32s3-20210327
+[  10.608] Build:Mar 27 2021
+[  10.608] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  10.608] SPIWP:0xee
+[  10.608] mode:DIO, clock div:1
+[  10.608] load:0x3fce3808,len:0x4bc
+[  10.608] load:0x403c9700,len:0xbd8
+[  10.608] load:0x403cc700,len:0x2a0c
+[  10.608] entry 0x403c98d0
+[  10.702] 
+[  11.020] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  11.020] 
+[  11.020] 
+[  11.020] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  11.020] 
+[  11.020] 
+[  11.020] 
+[  11.020] 
+[  11.020] ELF file SHA256: d280c2a9a0d41d03
+[  11.020] 
+[  11.020] E (17148) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  11.020] Rebooting...
+[  11.033] ESP-ROM:esp32s3-20210327
+[  11.033] Build:Mar 27 2021
+[  11.033] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  11.033] SPIWP:0xee
+[  11.044] mode:DIO, clock div:1
+[  11.044] load:0x3fce3808,len:0x4bc
+[  11.044] load:0x403c9700,len:0xbd8
+[  11.044] load:0x403cc700,len:0x2a0c
+[  11.044] entry 0x403c98d0
+[  11.137] 
+[  11.450] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  11.450] 
+[  11.450] 
+[  11.450] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  11.469] 
+[  11.469] 
+[  11.469] 
+[  11.469] 
+[  11.469] ELF file SHA256: d280c2a9a0d41d03
+[  11.469] 
+[  11.469] E (15767) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  11.469] Rebooting...
+[  11.469] ESP-ROM:esp32s3-20210327
+[  11.485] Build:Mar 27 2021
+[  11.485] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  11.485] SPIWP:0xee
+[  11.485] mode:DIO, clock div:1
+[  11.485] load:0x3fce3808,len:0x4bc
+[  11.485] load:0x403c9700,len:0xbd8
+[  11.485] load:0x403cc700,len:0x2a0c
+[  11.485] entry 0x403c98d0
+[  11.578] 
+[  11.907] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  11.907] 
+[  11.907] 
+[  11.907] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  11.907] 
+[  11.907] 
+[  11.907] 
+[  11.907] 
+[  11.907] ELF file SHA256: d280c2a9a0d41d03
+[  11.907] 
+[  11.907] E (11621) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  11.907] Rebooting...
+[  11.907] ESP-ROM:esp32s3-20210327
+[  11.923] Build:Mar 27 2021
+[  11.923] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  11.923] SPIWP:0xee
+[  11.923] mode:DIO, clock div:1
+[  11.923] load:0x3fce3808,len:0x4bc
+[  11.923] load:0x403c9700,len:0xbd8
+[  11.923] load:0x403cc700,len:0x2a0c
+[  11.923] entry 0x403c98d0
+[  12.014] 
+[  12.335] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  12.335] 
+[  12.335] 
+[  12.335] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  12.335] 
+[  12.335] 
+[  12.335] 
+[  12.335] 
+[  12.335] ELF file SHA256: d280c2a9a0d41d03
+[  12.335] 
+[  12.335] E (17078) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  12.335] Rebooting...
+[  12.335] ESP-ROM:esp32s3-20210327
+[  12.342] Build:Mar 27 2021
+[  12.342] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  12.342] SPIWP:0xee
+[  12.370] mode:DIO, clock div:1
+[  12.370] load:0x3fce3808,len:0x4bc
+[  12.370] load:0x403c9700,len:0xbd8
+[  12.370] load:0x403cc700,len:0x2a0c
+[  12.370] entry 0x403c98d0
+[  12.464] 
+[  12.746] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  12.746] 
+[  12.746] 
+[  12.746] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  12.763] 
+[  12.763] 
+[  12.763] 
+[  12.763] 
+[  12.763] ELF file SHA256: d280c2a9a0d41d03
+[  12.763] 
+[  12.763] E (15552) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  12.763] Rebooting...
+[  12.779] ESP-ROM:esp32s3-20210327
+[  12.779] Build:Mar 27 2021
+[  12.779] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  12.779] SPIWP:0xee
+[  12.779] mode:DIO, clock div:1
+[  12.779] load:0x3fce3808,len:0x4bc
+[  12.779] load:0x403c9700,len:0xbd8
+[  12.779] load:0x403cc700,len:0x2a0c
+[  12.779] entry 0x403c98d0
+[  12.888] 
+[  13.194] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  13.194] 
+[  13.194] 
+[  13.194] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  13.194] 
+[  13.194] 
+[  13.194] 
+[  13.194] 
+[  13.194] ELF file SHA256: d280c2a9a0d41d03
+[  13.194] 
+[  13.194] E (10974) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  13.194] Rebooting...
+[  13.194] ESP-ROM:esp32s3-20210327
+[  13.200] Build:Mar 27 2021
+[  13.200] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  13.200] SPIWP:0xee
+[  13.235] mode:DIO, clock div:1
+[  13.235] load:0x3fce3808,len:0x4bc
+[  13.235] load:0x403c9700,len:0xbd8
+[  13.235] load:0x403cc700,len:0x2a0c
+[  13.235] entry 0x403c98d0
+[  13.312] 
+[  13.620] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  13.620] 
+[  13.620] 
+[  13.620] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  13.620] 
+[  13.620] 
+[  13.620] 
+[  13.620] 
+[  13.620] ELF file SHA256: d280c2a9a0d41d03
+[  13.620] 
+[  13.620] E (15141) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  13.637] Rebooting...
+[  13.637] ESP-ROM:esp32s3-20210327
+[  13.637] Build:Mar 27 2021
+[  13.637] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  13.654] SPIWP:0xee
+[  13.654] mode:DIO, clock div:1
+[  13.654] load:0x3fce3808,len:0x4bc
+[  13.654] load:0x403c9700,len:0xbd8
+[  13.654] load:0x403cc700,len:0x2a0c
+[  13.654] entry 0x403c98d0
+[  13.748] 
+[  14.069] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  14.069] 
+[  14.069] 
+[  14.069] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  14.069] 
+[  14.069] 
+[  14.069] 
+[  14.069] 
+[  14.069] ELF file SHA256: d280c2a9a0d41d03
+[  14.069] 
+[  14.069] E (9743) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  14.069] Rebooting...
+[  14.069] ESP-ROM:esp32s3-20210327
+[  14.075] Build:Mar 27 2021
+[  14.075] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  14.075] SPIWP:0xee
+[  14.094] mode:DIO, clock div:1
+[  14.094] load:0x3fce3808,len:0x4bc
+[  14.094] load:0x403c9700,len:0xbd8
+[  14.094] load:0x403cc700,len:0x2a0c
+[  14.094] entry 0x403c98d0
+[  14.189] 
+[  14.498] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  14.498] 
+[  14.498] 
+[  14.498] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  14.498] 
+[  14.498] 
+[  14.498] 
+[  14.498] 
+[  14.498] ELF file SHA256: d280c2a9a0d41d03
+[  14.498] 
+[  14.498] E (11445) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  14.498] Rebooting...
+[  14.517] ESP-ROM:esp32s3-20210327
+[  14.517] Build:Mar 27 2021
+[  14.517] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  14.517] SPIWP:0xee
+[  14.517] mode:DIO, clock div:1
+[  14.517] load:0x3fce3808,len:0x4bc
+[  14.517] load:0x403c9700,len:0xbd8
+[  14.517] load:0x403cc700,len:0x2a0c
+[  14.517] entry 0x403c98d0
+[  14.623] 
+[  14.931] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  14.931] 
+[  14.931] 
+[  14.931] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  14.931] 
+[  14.931] 
+[  14.931] 
+[  14.931] 
+[  14.931] ELF file SHA256: d280c2a9a0d41d03
+[  14.931] 
+[  14.931] E (16549) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  14.931] Rebooting...
+[  14.931] ESP-ROM:esp32s3-20210327
+[  14.937] Build:Mar 27 2021
+[  14.937] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  14.937] SPIWP:0xee
+[  14.965] mode:DIO, clock div:1
+[  14.965] load:0x3fce3808,len:0x4bc
+[  14.965] load:0x403c9700,len:0xbd8
+[  14.965] load:0x403cc700,len:0x2a0c
+[  14.965] entry 0x403c98d0
+[  15.060] 
+[  15.340] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  15.340] 
+[  15.340] 
+[  15.340] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  15.340] 
+[  15.340] 
+[  15.340] 
+[  15.340] 
+[  15.340] ELF file SHA256: d280c2a9a0d41d03
+[  15.356] 
+[  15.356] E (13965) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  15.356] Rebooting...
+[  15.356] ESP-ROM:esp32s3-20210327
+[  15.387] Build:Mar 27 2021
+[  15.387] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  15.387] SPIWP:0xee
+[  15.387] mode:DIO, clock div:1
+[  15.387] load:0x3fce3808,len:0x4bc
+[  15.387] load:0x403c9700,len:0xbd8
+[  15.387] load:0x403cc700,len:0x2a0c
+[  15.387] entry 0x403c98d0
+[  15.465] 
+[  15.788] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  15.788] 
+[  15.788] 
+[  15.788] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  15.788] 
+[  15.788] 
+[  15.788] 
+[  15.788] 
+[  15.788] ELF file SHA256: d280c2a9a0d41d03
+[  15.788] 
+[  15.788] E (6214) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  15.788] Rebooting...
+[  15.788] ESP-ROM:esp32s3-20210327
+[  15.794] Build:Mar 27 2021
+[  15.794] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  15.794] SPIWP:0xee
+[  15.825] mode:DIO, clock div:1
+[  15.825] load:0x3fce3808,len:0x4bc
+[  15.825] load:0x403c9700,len:0xbd8
+[  15.825] load:0x403cc700,len:0x2a0c
+[  15.825] entry 0x403c98d0
+[  15.917] 
+[  16.227] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  16.227] 
+[  16.227] 
+[  16.227] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  16.227] 
+[  16.227] 
+[  16.227] 
+[  16.227] 
+[  16.227] ELF file SHA256: d280c2a9a0d41d03
+[  16.227] 
+[  16.227] E (859) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  16.227] Rebooting...
+[  16.227] ESP-ROM:esp32s3-20210327
+[  16.233] Build:Mar 27 2021
+[  16.233] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  16.233] SPIWP:0xee
+[  16.260] mode:DIO, clock div:1
+[  16.260] load:0x3fce3808,len:0x4bc
+[  16.260] load:0x403c9700,len:0xbd8
+[  16.260] load:0x403cc700,len:0x2a0c
+[  16.260] entry 0x403c98d0
+[  16.333] 
+[  16.637] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  16.637] 
+[  16.637] 
+[  16.637] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  16.651] 
+[  16.651] 
+[  16.651] 
+[  16.651] 
+[  16.651] ELF file SHA256: d280c2a9a0d41d03
+[  16.651] 
+[  16.651] E (2685) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  16.651] Rebooting...
+[  16.655] ESP-ROM:esp32s3-20210327
+[  16.672] Build:Mar 27 2021
+[  16.672] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  16.672] SPIWP:0xee
+[  16.672] mode:DIO, clock div:1
+[  16.672] load:0x3fce3808,len:0x4bc
+[  16.672] load:0x403c9700,len:0xbd8
+[  16.672] load:0x403cc700,len:0x2a0c
+[  16.672] entry 0x403c98d0
+[  16.777] 
+[  17.068] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  17.088] 
+[  17.088] 
+[  17.088] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  17.088] 
+[  17.088] 
+[  17.088] 
+[  17.088] 
+[  17.088] ELF file SHA256: d280c2a9a0d41d03
+[  17.088] 
+[  17.088] E (8167) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  17.088] Rebooting...
+[  17.088] ESP-ROM:esp32s3-20210327
+[  17.090] Build:Mar 27 2021
+[  17.090] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  17.119] SPIWP:0xee
+[  17.119] mode:DIO, clock div:1
+[  17.119] load:0x3fce3808,len:0x4bc
+[  17.119] load:0x403c9700,len:0xbd8
+[  17.119] load:0x403cc700,len:0x2a0c
+[  17.119] entry 0x403c98d0
+[  17.199] 
+[  17.522] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  17.522] 
+[  17.522] 
+[  17.522] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  17.522] 
+[  17.522] 
+[  17.522] 
+[  17.522] 
+[  17.522] ELF file SHA256: d280c2a9a0d41d03
+[  17.522] 
+[  17.522] E (6717) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  17.522] Rebooting...
+[  17.528] ESP-ROM:esp32s3-20210327
+[  17.528] Build:Mar 27 2021
+[  17.528] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  17.528] SPIWP:0xee
+[  17.552] mode:DIO, clock div:1
+[  17.552] load:0x3fce3808,len:0x4bc
+[  17.552] load:0x403c9700,len:0xbd8
+[  17.552] load:0x403cc700,len:0x2a0c
+[  17.552] entry 0x403c98d0
+[  17.643] 
+[  17.949] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  17.949] 
+[  17.949] 
+[  17.949] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  17.965] 
+[  17.965] 
+[  17.965] 
+[  17.965] 
+[  17.965] ELF file SHA256: d280c2a9a0d41d03
+[  17.965] 
+[  17.965] E (2371) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  17.965] Rebooting...
+[  17.965] ESP-ROM:esp32s3-20210327
+[  17.981] Build:Mar 27 2021
+[  17.981] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  17.981] SPIWP:0xee
+[  17.981] mode:DIO, clock div:1
+[  17.981] load:0x3fce3808,len:0x4bc
+[  17.981] load:0x403c9700,len:0xbd8
+[  17.981] load:0x403cc700,len:0x2a0c
+[  17.981] entry 0x403c98d0
+[  18.079] 
+[  18.387] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  18.387] 
+[  18.387] 
+[  18.387] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  18.387] 
+[  18.387] 
+[  18.387] 
+[  18.387] 
+[  18.387] ELF file SHA256: d280c2a9a0d41d03
+[  18.387] 
+[  18.387] E (7225) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  18.403] Rebooting...
+[  18.403] ESP-ROM:esp32s3-20210327
+[  18.419] Build:Mar 27 2021
+[  18.419] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  18.419] SPIWP:0xee
+[  18.419] mode:DIO, clock div:1
+[  18.419] load:0x3fce3808,len:0x4bc
+[  18.419] load:0x403c9700,len:0xbd8
+[  18.419] load:0x403cc700,len:0x2a0c
+[  18.419] entry 0x403c98d0
+[  18.550] 
+[  18.849] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  18.849] 
+[  18.849] 
+[  18.849] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  18.849] 
+[  18.849] 
+[  18.849] 
+[  18.849] 
+[  18.849] ELF file SHA256: d280c2a9a0d41d03
+[  18.849] 
+[  18.849] E (3895) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  18.849] Rebooting...
+[  18.849] ESP-ROM:esp32s3-20210327
+[  18.855] Build:Mar 27 2021
+[  18.855] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  18.855] SPIWP:0xee
+[  18.881] mode:DIO, clock div:1
+[  18.881] load:0x3fce3808,len:0x4bc
+[  18.881] load:0x403c9700,len:0xbd8
+[  18.881] load:0x403cc700,len:0x2a0c
+[  18.881] entry 0x403c98d0
+[  18.956] 
+[  19.261] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  19.261] 
+[  19.261] 
+[  19.261] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  19.275] 
+[  19.275] 
+[  19.275] 
+[  19.275] 
+[  19.275] ELF file SHA256: d280c2a9a0d41d03
+[  19.275] 
+[  19.275] E (11795) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  19.275] Rebooting...
+[  19.278] ESP-ROM:esp32s3-20210327
+[  19.298] Build:Mar 27 2021
+[  19.298] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  19.298] SPIWP:0xee
+[  19.298] mode:DIO, clock div:1
+[  19.298] load:0x3fce3808,len:0x4bc
+[  19.298] load:0x403c9700,len:0xbd8
+[  19.298] load:0x403cc700,len:0x2a0c
+[  19.298] entry 0x403c98d0
+[  19.388] 
+[  19.691] assert failed: 0x4200bf9e <cached disabled>:328 (<cached disabled>)
+[  19.712] 
+[  19.712] 
+[  19.712] Backtrace: 0x4037678e:0x3fceb180 0x4037a505:0x3fceb1a0 0x4037fe39:0x3fceb1c0 0x4200bf9e:0x3fceb2f0 0x40376ac3:0x3fceb320 0x403cd86b:0x3fceb350 0x403cdb2a:0x3fceb380 0x403c9925:0x3fceb4b0 0x40045c01:0x3fceb570 0x40043ab6:0x3fceb6f0 0x40034c45:0x3fceb710
+[  19.712] 
+[  19.712] 
+[  19.712] 
+[  19.712] 
+[  19.712] ELF file SHA256: d280c2a9a0d41d03
+[  19.712] 
+[  19.712] E (17602) esp_core_dump_flash: Core dump flash config is corrupted! CRC=0x7bd5c66f instead of 0x0
+[  19.712] Rebooting...
+[  19.712] ESP-ROM:esp32s3-20210327
+[  19.718] Build:Mar 27 2021
+[  19.718] rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+[  19.718] SPIWP:0xee
+[  19.743] mode:DIO, clock div:1
+[  19.743] load:0x3fce3808,len:0x4bc
+[  19.743] load:0x403c9700,len:0xbd8
+[  19.743] load:0x403cc700,len:0x2a0c
+[  19.743] entry 0x403c98d0
+[  19.825] 

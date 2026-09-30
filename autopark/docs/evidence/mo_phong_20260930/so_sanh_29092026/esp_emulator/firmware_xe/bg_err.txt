@@ -1,0 +1,18 @@
+[INFO  esp_emu] Loaded firmware: 8388608 bytes
+[INFO  machine] WiFi SoftAP: WPA2-PSK enabled for SSID 'myssid'
+[INFO  esp_emu] TAP auto-probe failed (TUNSETIFF failed for 'tap0': Operation not permitted (os error 1)); falling back to --net user
+[INFO  net_user] user-net: DNS forwarder upstream [10.255.255.254:53], restrict=false
+[INFO  net_user] user-net: backend ready (gateway 192.168.4.1, 0 hostfwd rules)
+[INFO  esp_emu] Network backend: user-mode (smoltcp NAT, 192.168.4.1 -> host loopback)
+[INFO  esp_emu] Loaded ROM ELF: <embedded esp32s3> (949552 bytes)
+[INFO  esp_emu] Booting from real ROM reset vector (use --skip-rom to bypass)
+[INFO  machine] ROM ELF: 5227 symbols loaded
+[INFO  machine] ROM ELF loaded, 10 functions patched for interception
+[INFO  machine] PSRAM configured as 0 KB
+[INFO  machine] CPU reset at ROM entry: PC=0x40000400, SP=0x3FCEB710
+[INFO  uart_tcp] UART TCP server listening on 127.0.0.1:5556
+[INFO  esp_emu] UART bridged to TCP 127.0.0.1:5556; stdin/stdout disconnected
+[INFO  esp_emu] Starting emulation (chip=esp32s3, batch_size=50000)
+[INFO  uart_tcp] UART TCP client connected: 127.0.0.1:59561
+[INFO  uart_tcp] UART TCP client disconnected: 127.0.0.1:59561
+[INFO  esp_emu] Timeout reached after 45.000145296s

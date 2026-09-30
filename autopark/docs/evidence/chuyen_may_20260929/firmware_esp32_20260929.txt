@@ -1,0 +1,114 @@
+# Biên dịch firmware ESP32-S3 bằng PlatformIO, máy bàn mới, 29/09/2026 16:05. CHƯA NẠP, CHƯA CHẠY trên bo.
+# Mã: HEAD b37e9ee + sửa đổi chưa commit (platformio.ini khóa espressif32 @ 7.1.3; main.cpp chỉ đổi chú thích:
+#   git diff -- src/main.cpp chỉ có dòng bắt đầu bằng //: 0 dòng mã đổi).
+# PlatformIO Core 6.2.0 trong venv riêng D:\xetulai\_platformio\penv; PLATFORMIO_CORE_DIR=D:\xetulai\_platformio\core.
+
+## 1. Bản build chính: pio run -e esp32s3 (platformio.ini của repo, AP_ENABLE_PWM_OUTPUTS=0), build sạch
+Processing esp32s3 (platform: espressif32 @ 7.1.3; board: esp32-s3-devkitc-1; framework: arduino)
+PLATFORM: Espressif 32 (7.1.3) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+ - framework-arduinoespressif32 @ 4.20017.260907+sha.dcc1105b 
+ - tool-esptoolpy @ 2.41100.260830 (4.11.0) 
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5 
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+RAM:   [=         ]   6.2% (used 20192 bytes from 327680 bytes)
+Flash: [=         ]   8.1% (used 271469 bytes from 3342336 bytes)
+========================= [SUCCESS] Took 8.08 seconds =========================
+Số dòng 'warning' trong log: 0
+Cờ biên dịch src/main.cpp (dòng lệnh g++ của main.cpp.o trong log -v; framework tự thêm -Wno-sign-compare -Wno-unused-parameter): -std=gnu++17 -Wall -Wextra -Os -Wno-error=unused-function -Wno-error=unused-variable -Wno-error=deprecated-declarations -Wno-unused-parameter -Wno-sign-compare -Wwrite-strings -Wno-error=unused-but-set-variable -DARDUINO_USB_MODE=1 -DARDUINO_USB_CDC_ON_BOOT=1 -DAP_ENABLE_PWM_OUTPUTS=0 
+Cờ liên kết -Wl,--wrap=esp_panic_handler: có trong cấu hình build (platformio.ini); có hiệu lực: xem mục 2 (panic_handler gọi __wrap).
+sha256 .pio/build/esp32s3/firmware.bin: faad568e56769739e118a1df0578543f502be583587749df5835095677527d93
+sha256 .pio/build/esp32s3/firmware.elf: ddd6d22d4c606b2def119ce77ae22e45449f1741e8eb8cfb68cc94df9b75dad4
+
+## 2. Móc panic Arduino 2.x trong ELF của bản build chính (objdump)
+40375244 T __wrap_esp_panic_handler
+42002f58 t (anonymous namespace)::output_guard(void*)
+4200a0a0 T esp_panic_handler
+panic_handler (IDF) nạp địa chỉ __wrap_esp_panic_handler rồi callx8:
+4200a81f:	d85a81        	l32r	a8, 42000988 <_stext+0x968>
+4200a822:	0008e0        	callx8	a8
+literal 0x42000988 = 44523740 (little-endian = __wrap_esp_panic_handler)
+40375244 <__wrap_esp_panic_handler>:
+40375244:	004136        	entry	a1, 32
+40375247:	20a220        	or	a10, a2, a2
+4037524a:	fc6e81        	l32r	a8, 40374404 <_iram_text_start>
+4037524d:	0008e0        	callx8	a8
+40375250:	f01d      	retw.n
+literal 0x40374404 = a0a00042 (= esp_panic_handler thật). Với PWM=0, esc_line_low_now rỗng và được bỏ đi.
+
+## 3. Bật PWM, chân giả (bản sao tạm D:\xetulai\_platformio\kiem_pwm, KHÔNG phải cấu hình thật)
+Chỉ để biên dịch các nhánh #if AP_ENABLE_PWM_OUTPUTS (LEDC, thanh ghi GPIO, esp_rom_gpio_connect_out_signal, móc panic).
+Sửa trên bản sao: kPinEsc = 4, kPinServo = 5, kPinEstop = 6, -DAP_ENABLE_PWM_OUTPUTS=1. Arduino-ESP32 2.0.17 (espressif32 7.1.3):
+RAM:   [=         ]   6.2% (used 20216 bytes from 327680 bytes)
+Flash: [=         ]   8.3% (used 276081 bytes from 3342336 bytes)
+========================= [SUCCESS] Took 4.01 seconds =========================
+Số dòng 'warning': 0
+esc_line_low_now (IRAM) và __wrap_esp_panic_handler, objdump (bản 2.0.17, chân giả 4):
+40375258 <_ZN12_GLOBAL__N_116esc_line_low_nowEv>:
+40375258:	004136        	entry	a1, 32
+4037525b:	fc6a91        	l32r	a9, 40374404 <_iram_text_start>
+4037525e:	081c      	movi.n	a8, 16
+40375260:	0020c0        	memw
+40375263:	0989      	s32i.n	a8, a9, 0
+40375265:	fc6891        	l32r	a9, 40374408 <_iram_text_start+0x4>
+40375268:	0d0c      	movi.n	a13, 0
+4037526a:	0020c0        	memw
+4037526d:	0989      	s32i.n	a8, a9, 0
+4037526f:	0dcd      	mov.n	a12, a13
+40375271:	00a1b2        	movi	a11, 0x100
+40375274:	4a0c      	movi.n	a10, 4
+40375276:	fc6581        	l32r	a8, 4037440c <_iram_text_start+0x8>
+40375279:	0008e0        	callx8	a8
+4037527c:	f01d      	retw.n
+40375280 <__wrap_esp_panic_handler>:
+40375280:	004136        	entry	a1, 32
+40375283:	fffd65        	call8	40375258 <_ZN12_GLOBAL__N_116esc_line_low_nowEv>
+40375286:	02ad      	mov.n	a10, a2
+40375288:	fc6281        	l32r	a8, 40374410 <_iram_text_start+0xc>
+4037528b:	0008e0        	callx8	a8
+4037528e:	f01d      	retw.n
+Literal: 0x40374404 = 0x6000400C (GPIO_OUT_W1TC_REG), 0x40374408 = 0x60004024 (GPIO_ENABLE_W1TS_REG),
+0x4037440C = 0x40001AA0 (esp_rom_gpio_connect_out_signal, ROM). Tham số gọi: a10 = 4 (chân), a11 = 0x100 (SIG_GPIO_OUT_IDX),
+a12 = a13 = 0. Ghi 0x10 (bit chân 4) vào OUT_W1TC TRƯỚC, rồi ENABLE_W1TS, rồi đổi nguồn tín hiệu: đúng thứ tự trong mã.
+
+## 4. Arduino-ESP32 3.x (bản sao tạm D:\xetulai\_platformio\kiem_v3_pwm0 / kiem_v3_pwm1)
+platform = https://github.com/pioarduino/platform-espressif32/releases/download/stable/platform-espressif32.zip
+PLATFORM: Espressif 32 (55.3.312) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
+ - framework-arduinoespressif32 @ 3.3.12 
+ - framework-arduinoespressif32-libs @ 5.5.5+sha.b774170ff46 
+ - toolchain-xtensa-esp-elf @ 14.2.0+20260121
+PWM tắt (main.cpp của repo): RAM:   [=         ]   7.3% (used 24040 bytes from 327680 bytes) Flash: [=         ]   9.4% (used 314801 bytes from 3342336 bytes) ======================== [SUCCESS] Took 183.80 seconds ========================  warning: 0
+PWM bật, chân giả 4/5/6:     RAM:   [=         ]   7.3% (used 24056 bytes from 327680 bytes) Flash: [=         ]   9.7% (used 322773 bytes from 3342336 bytes) ========================= [SUCCESS] Took 10.47 seconds =========================  warning: 0
+Nhánh AP_ARDUINO_V3 có vào bản build: nm có ap_on_panic (IRAM 0x40375368), ledcAttach, esp_task_wdt_reconfigure,
+set_arduino_panic_handler, esp_register_shutdown_handler. esc_line_low_now (IRAM 0x40375340) giống hệt mục 3.
+
+PHÁT HIỆN: hai lượt trên làm theo chú thích cũ (3.x thì XÓA -Wl,--wrap=esp_panic_handler). Khi đó ELF KHÔNG có
+__wrap_esp_panic_handler: lõi 3.3.12 định nghĩa nó ở cores/esp32/esp32-hal-misc.c và Arduino IDE thêm cờ ở platform.txt
+dòng 54 ("-Wl,--wrap=esp_panic_handler"), nhưng bản build PlatformIO/pioarduino không thêm cờ đó. Nghĩa là
+set_arduino_panic_handler(ap_on_panic) đăng ký móc mà panic không bao giờ gọi tới -> chân ESC KHÔNG bị kéo thấp khi panic.
+Build lại kiem_v3_pwm1 GIỮ cờ --wrap: SUCCESS, 0 warning, và chuỗi gọi trong ELF:
+  (trong panic_handler của IDF) 4200c0d9:	f92025        	call8	420052dc <__wrap_esp_panic_handler>
+420052dc <__wrap_esp_panic_handler>:
+420052dc:	004136        	entry	a1, 32
+420052df:	ebd581        	l32r	a8, 42000234 <_stext+0x214> (3fc98f7c <_panic_handler>)
+420052e2:	002882        	l32i	a8, a8, 0
+420052e5:	005816        	beqz	a8, 420052ee <__wrap_esp_panic_handler+0x12>
+420052e8:	20a220        	or	a10, a2, a2
+420052eb:	ffcc65        	call8	42004fb0 <handle_custom_backtrace>
+420052ee:	02ad      	mov.n	a10, a2
+420052f0:	237865        	call8	42028a78 <esp_panic_handler>
+420052f3:	f01d      	retw.n
+  handle_custom_backtrace: ... l32r a8, (3fc98f7c <_panic_handler>) ... callx8 a8   (con trỏ do set_arduino_panic_handler ghi)
+40375368 <_ZN12_GLOBAL__N_111ap_on_panicEP20arduino_panic_info_tPv>:
+40375368:	004136        	entry	a1, 32
+4037536b:	fffd65        	call8	40375340 <_ZN12_GLOBAL__N_116esc_line_low_nowEv>
+4037536e:	f01d      	retw.n
+=> Sửa chú thích main.cpp và platformio.ini: GIỮ cờ --wrap cả khi chuyển sang 3.x. Trên 3.x móc chạy SAU khi lõi dựng
+backtrace (handle_custom_backtrace, __wrap nằm ở flash 0x420052dc), bản 2.x thì móc ở IRAM chạy đầu tiên: chênh thời gian
+tới lúc chân ESC xuống thấp CẦN ĐO trên bo.
+
+## 5. Ghi chú môi trường
+Hai nền tảng (espressif32 7.1.3 và pioarduino) dùng chung một PLATFORMIO_CORE_DIR làm hỏng bản 7.1.3 (thiếu intelhex khi
+tạo bootloader.bin; pioarduino tạo thêm core\penv, và gói intelhex không còn trong venv PlatformIO — cơ chế cụ thể
+chưa tra). Đã xóa phần của pioarduino khỏi core và cài lại
+tool-esptoolpy; build sạch lại ra SUCCESS với cùng kích thước (mục 1). Kiểm lại 3.x thì dùng PLATFORMIO_CORE_DIR riêng.

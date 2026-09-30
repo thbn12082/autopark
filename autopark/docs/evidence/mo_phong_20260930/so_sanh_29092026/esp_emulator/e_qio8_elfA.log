@@ -1,0 +1,27 @@
+    2.074 | T ms=1173 us=1173007 timer_cb=108 (+108 in 1000 ms)
+    4.173 | T ms=2173 us=2173007 timer_cb=208 (+100 in 1000 ms)
+    6.296 | T ms=3173 us=3173006 timer_cb=308 (+100 in 1000 ms)
+    8.457 | T ms=4173 us=4173008 timer_cb=408 (+100 in 1000 ms)
+   10.588 | T ms=5173 us=5173007 timer_cb=508 (+100 in 1000 ms)
+   12.744 | T ms=6173 us=6173006 timer_cb=608 (+100 in 1000 ms)
+   14.907 | T ms=7173 us=7173006 timer_cb=708 (+100 in 1000 ms)
+   17.037 | T ms=8173 us=8173008 timer_cb=808 (+100 in 1000 ms)
+   19.177 | T ms=9173 us=9173006 timer_cb=908 (+100 in 1000 ms)
+   21.295 | T ms=10173 us=10173006 timer_cb=1008 (+100 in 1000 ms)
+   23.426 | T ms=11173 us=11173006 timer_cb=1108 (+100 in 1000 ms)
+   25.603 | T ms=12173 us=12173007 timer_cb=1208 (+100 in 1000 ms)
+   27.743 | T ms=13173 us=13173006 timer_cb=1308 (+100 in 1000 ms)
+   29.862 | T ms=14173 us=14173007 timer_cb=1408 (+100 in 1000 ms)
+   32.028 | T ms=15173 us=15173006 timer_cb=1508 (+100 in 1000 ms)
+   34.139 | T ms=16173 us=16173006 timer_cb=1608 (+100 in 1000 ms)
+   36.267 | T ms=17173 us=17173007 timer_cb=1708 (+100 in 1000 ms)
+   38.417 | T ms=18173 us=18173006 timer_cb=1808 (+100 in 1000 ms)
+   40.559 | T ms=19173 us=19173006 timer_cb=1908 (+100 in 1000 ms)
+   42.709 | T ms=20173 us=20173005 timer_cb=2008 (+100 in 1000 ms)
+   44.846 | T ms=21173 us=21173006 timer_cb=2108 (+100 in 1000 ms)
+# first READY: False
+   47.000 | T ms=22173 us=22173006 timer_cb=2208 (+100 in 1000 ms)
+   49.055 >> send 'A'
+   49.056 | CMD A at ms=23134
+# READY after 'A': False
+# guest/wall ratio from T lines: median=0.467 min=0.459 max=0.476 n=21

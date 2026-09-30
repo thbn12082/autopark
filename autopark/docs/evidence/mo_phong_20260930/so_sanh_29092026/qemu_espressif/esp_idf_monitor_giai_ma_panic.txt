@@ -1,0 +1,98 @@
+--- esp-idf-monitor 1.10.0 on socket://127.0.0.1:5701 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x4bc
+load:0x403c9700,len:0xbd8
+load:0x403cc700,len:0x2a0c
+entry 0x403c98d0
+E (77) esp_core_dump_flash: Incorrect size of core dump image: -65536
+
+PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+NVS begin=1 boots_before=0 put=4
+RANDOM d4916a97 33687690
+FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=QIO err=0 first8=00 00 aa 50 01 02 00 90 shift=2
+PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+TWDT init(1s,panic)=0 add=0
+LEDC probe: wrote 0x100e read 0x00000000
+LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+READY
+T ms=1275 us=1275045 timer_cb=99 (+99 in 1000 ms) pin14=0
+T ms=2275 us=2275007 timer_cb=200 (+101 in 1000 ms) pin14=0
+AUTO command A
+CMD A at ms=3000
+
+PROBE_WRAP ran: outsel21=0x0 out=0x0 en=0x0
+
+abort() was called at PC 0x420021b3 on core 1
+--- 0x420021b3: loop() at D:\xetulai\_platformio\kiem_probe/src/main.cpp:248
+
+
+Backtrace: 0x4037684e:0x3fcebb50 0x4037a601:0x3fcebb70 0x4037fe9d:0x3fcebb90 0x420021b3:0x3fcebc10 0x42004425:0x3fcebc50
+--- 0x4037684e: panic_abort at /home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/esp_system/panic.c:408
+--- 0x4037a601: esp_system_abort at /home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/esp_system/esp_system.c:137
+--- 0x4037fe9d: abort at /home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/newlib/abort.c:46
+--- 0x420021b3: loop() at D:\xetulai\_platformio\kiem_probe/src/main.cpp:248
+--- 0x42004425: loopTask(void*) at D:/xetulai/_platformio/core/packages/framework-arduinoespressif32/cores/esp32/main.cpp:50
+
+
+
+
+ELF file SHA256: ea6794d9a15bae04
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x4bc
+load:0x403c9700,len:0xbd8
+load:0x403cc700,len:0x2a0c
+entry 0x403c98d0
+E (1901) esp_core_dump_flash: Incorrect size of core dump image: 690225152
+
+PROBE v1 boot=2 rtc_mem_kept=1 reason=PANIC(4) rom_reason0=12 rom_reason1=12 last_cmd=A
+MARKERS wrap=0xc0de0001 wrap_outsel21=0x0 shutdown=0x00000000
+BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+NVS begin=1 boots_before=0 put=4
+RANDOM 709268cc 9ec8d245
+FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+FLASH esp_flash_read mode=QIO err=0 first8=00 00 aa 50 01 02 00 90 shift=2
+PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+TWDT init(1s,panic)=0 add=0
+LEDC probe: wrote 0x100e read 0x00000000
+LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+READY
+T ms=4584 us=4584004 timer_cb=99 (+99 in 1000 ms) pin14=0
+T ms=5584 us=5584007 timer_cb=199 (+100 in 1000 ms) pin14=0
+T ms=6584 us=6584003 timer_cb=299 (+100 in 1000 ms) pin14=0
+T ms=7584 us=7584006 timer_cb=399 (+100 in 1000 ms) pin14=0
+T ms=8584 us=8584004 timer_cb=500 (+101 in 1000 ms) pin14=0
+T ms=9584 us=9584003 timer_cb=599 (+99 in 1000 ms) pin14=0
+T ms=10584 us=10584006 timer_cb=699 (+100 in 1000 ms) pin14=0
+T ms=11584 us=11584003 timer_cb=799 (+100 in 1000 ms) pin14=0
+T ms=12584 us=12584002 timer_cb=899 (+100 in 1000 ms) pin14=0
+T ms=13584 us=13584001 timer_cb=999 (+100 in 1000 ms) pin14=0
+T ms=14584 us=14584003 timer_cb=1099 (+100 in 1000 ms) pin14=0
+T ms=15584 us=15584004 timer_cb=1199 (+100 in 1000 ms) pin14=0
+T ms=16584 us=16584001 timer_cb=1299 (+100 in 1000 ms) pin14=0
+T ms=17584 us=17584002 timer_cb=1399 (+100 in 1000 ms) pin14=0
+T ms=18584 us=18584003 timer_cb=1499 (+100 in 1000 ms) pin14=0
+T ms=19584 us=19584006 timer_cb=1599 (+100 in 1000 ms) pin14=0

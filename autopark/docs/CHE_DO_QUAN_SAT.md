@@ -211,7 +211,8 @@ khi đang chỉnh hoặc sẵn sàng; từ lúc chạy tới lúc đặt lại t
   `serial.tools.list_ports.comports()`. Cổng chỉ được liệt kê khi mở danh sách hoặc bấm "Quét cổng", không liệt kê lúc
   dựng cửa sổ. Việc liệt kê không mở cổng. Cổng có VID 303A được ghi thêm "Espressif"; đây chỉ là gợi ý, không dùng để
   lọc. Cổng đã chọn mà không còn thấy (rút cáp) vẫn được giữ, ghi "(không thấy — đã rút?)"; giao diện không tự đổi
-  sang bo khác.
+  sang bo khác. *(30/09/2026: danh sách chỉ có bo mô phỏng và cổng COM, nên bo ảo QEMU (`socket://…`,
+  [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)) chưa chọn được từ giao diện; dùng từ Python.)*
 - **Chọn một cổng thật** ở `VEHICLE_IO` hay `OBSERVE` tạo `VehicleLink.serial_port(mode, cổng)`, gồm
   `SerialVehicleIO.deferred` (cổng CHƯA mở) và `NoPoseSource`. Bấm Bắt đầu đỗ thì hiện hộp thoại "Không bắt đầu
   được": chưa có nguồn tư thế thật, cổng chưa được mở, không gửi gì tới bo (mục 3, bước 0). Tư thế mô phỏng
@@ -482,7 +483,7 @@ hình bo nhanh dùng trong test (`boot_hold_ms` 200), cùng phép thử cho 160 
 ## 8. Chưa kiểm / giới hạn
 
 - **Chưa chạy với ESP32-S3 hay MN300.** `SerialVehicleIO` mới chỉ nối vào phiên qua cổng serial GIẢ (mục 7), chưa
-  từng qua cổng thật. Firmware C++ chưa biên dịch ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12). Trước bản sửa ngày
+  từng qua cổng thật. Firmware C++ chưa biên dịch ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12). *(29/09/2026: lõi `src/core` đã biên dịch và qua test host, 703 check, 0 lệch; chiều cùng ngày cả firmware biên dịch cho ESP32-S3; chưa nạp bo.)* Trước bản sửa ngày
   24/09/2026, nhánh này chạy phiên ở khoảng 0,4 lần thời gian thực (mỗi bước chờ timeout đọc 10 ms), nên mọi log
   qua `SerialVehicleIO` có trước ngày đó (nếu có) không dùng được để đánh giá nhịp điều khiển.
 - Nếu chạy thêm luồng `Heartbeat` bên cạnh phiên, `poll(block=False)` của vòng điều khiển vẫn có thể phải chờ khóa

@@ -224,7 +224,7 @@ Tách ba kết quả LiDAR: đọc scan, tạo map, định vị lại. Scan t�
 
 ## 9. Giai đoạn 5 — ESP32 và điều khiển có phản hồi
 
-**Hiện tại:** bo mô phỏng/giao thức có test; C++ chưa biên dịch trong hồ sơ.
+**Hiện tại:** bo mô phỏng/giao thức có test; lõi C++ biên dịch và khớp bản Python qua test host trên máy tính (29/09/2026); cả firmware biên dịch cho ESP32-S3 bằng PlatformIO (29/09/2026), chưa nạp bo; firmware thật chạy được trong bo ảo QEMU với phần mềm laptop (30/09/2026, autopark/docs/MO_PHONG_FIRMWARE.md), không thay được đo trên bo.
 
 **Khi chờ:** đặc tả giao thức, bo giả, test vector, kiểm trạng thái kết nối và lệnh hết hạn. Biên dịch/test host khi có toolchain.
 

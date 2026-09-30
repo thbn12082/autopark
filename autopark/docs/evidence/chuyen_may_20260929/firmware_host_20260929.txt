@@ -1,0 +1,86 @@
+# Test host firmware (src/core), máy bàn mới, 29/09/2026 15:30
+# Mã: HEAD b37e9ee + sửa đổi chưa commit ở test/host (CMakeLists.txt -static, ctest; xóa to_hex không dùng).
+# src/core không sửa: git diff --stat -- src/core ra trống.
+# Chạy trong Git Bash, thư mục firmware/esp32_vehicle.
+
+$ g++ --version | head -1; cmake --version | head -1; ninja --version
+g++.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r4) 16.1.0
+cmake version 4.4.1
+1.13.2
+
+$ python -X utf8 -m autopark.transport.vectors --check   (thư mục autopark của repo)
+D:\xetulai\autopark\autopark\firmware\esp32_vehicle\test\vectors.json is up to date
+exit=0
+
+$ cmake -S test/host -B build/host-Debug -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build/host-Debug
+-- The CXX compiler identification is GNU 16.1.0
+-- Configuring done (0.7s)
+[1/6] Building CXX object CMakeFiles/host_tests.dir/D_/xetulai/autopark/autopark/firmware/esp32_vehicle/src/core/crc16.cpp.obj
+[2/6] Building CXX object CMakeFiles/host_tests.dir/D_/xetulai/autopark/autopark/firmware/esp32_vehicle/src/core/cobs.cpp.obj
+[3/6] Building CXX object CMakeFiles/host_tests.dir/D_/xetulai/autopark/autopark/firmware/esp32_vehicle/src/core/protocol.cpp.obj
+[4/6] Building CXX object CMakeFiles/host_tests.dir/D_/xetulai/autopark/autopark/firmware/esp32_vehicle/src/core/vehicle_core.cpp.obj
+[5/6] Building CXX object CMakeFiles/host_tests.dir/test_main.cpp.obj
+[6/6] Linking CXX executable host_tests.exe
+$ ctest --test-dir build/host-Debug
+1/1 Test #1: vectors ..........................   Passed    0.13 sec
+100% tests passed out of 1
+$ ./build/host-Debug/host_tests.exe test/vectors.json
+703 checks, 0 failures
+exit=0
+$ objdump -p build/host-Debug/host_tests.exe | grep -c 'libstdc++\|libgcc'   (0 = không phụ thuộc DLL runtime GCC)
+0
+
+$ cmake -S test/host -B build/host-Release -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build/host-Release
+-- The CXX compiler identification is GNU 16.1.0
+-- Configuring done (0.7s)
+[1/6] Building CXX object CMakeFiles/host_tests.dir/D_/xetulai/autopark/autopark/firmware/esp32_vehicle/src/core/cobs.cpp.obj
+[2/6] Building CXX object CMakeFiles/host_tests.dir/D_/xetulai/autopark/autopark/firmware/esp32_vehicle/src/core/crc16.cpp.obj
+[3/6] Building CXX object CMakeFiles/host_tests.dir/D_/xetulai/autopark/autopark/firmware/esp32_vehicle/src/core/protocol.cpp.obj
+[4/6] Building CXX object CMakeFiles/host_tests.dir/D_/xetulai/autopark/autopark/firmware/esp32_vehicle/src/core/vehicle_core.cpp.obj
+[5/6] Building CXX object CMakeFiles/host_tests.dir/test_main.cpp.obj
+[6/6] Linking CXX executable host_tests.exe
+$ ctest --test-dir build/host-Release
+1/1 Test #1: vectors ..........................   Passed    0.12 sec
+100% tests passed out of 1
+$ ./build/host-Release/host_tests.exe test/vectors.json
+703 checks, 0 failures
+exit=0
+$ objdump -p build/host-Release/host_tests.exe | grep -c 'libstdc++\|libgcc'   (0 = không phụ thuộc DLL runtime GCC)
+0
+
+# Lệnh g++ tay, nhiều cấu hình (tất cả có -static)
+$ g++ -std=c++17 -O1 -Wall -Wextra -Isrc/core src/core/*.cpp test/host/test_main.cpp -static -o build/ht_readme.exe
+  compile exit=0; run: 703 checks, 0 failures exit=0
+$ g++ -std=c++17 -O2 -Wall -Wextra -Isrc/core src/core/*.cpp test/host/test_main.cpp -static -o build/ht_o2.exe
+  compile exit=0; run: 703 checks, 0 failures exit=0
+$ g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wcast-align -Wnull-dereference -Wdouble-promotion -Isrc/core src/core/*.cpp test/host/test_main.cpp -static -o build/ht_strict.exe
+  compile exit=0; run: 703 checks, 0 failures exit=0
+$ g++ -std=c++17 -O1 -g -fsanitize=undefined -fsanitize-trap=all -D_GLIBCXX_ASSERTIONS -Wall -Wextra -Isrc/core src/core/*.cpp test/host/test_main.cpp -static -o build/ht_ubsan.exe
+  compile exit=0; run: 703 checks, 0 failures exit=0
+$ g++ -std=c++17 -O0 -g -ftrapv -Wall -Wextra -Isrc/core src/core/*.cpp test/host/test_main.cpp -static -o build/ht_o0trapv.exe
+  compile exit=0; run: 703 checks, 0 failures exit=0
+
+# Đột biến: sửa một giá trị kỳ vọng trong bản sao vectors.json, exe phải thoát 1
+crc: exit=1 703 checks, 1 failures
+cobs: exit=1 703 checks, 2 failures
+message: exit=1 703 checks, 1 failures
+stream: exit=1 703 checks, 1 failures
+scenario_state: exit=1 703 checks, 1 failures
+scenario_effort: exit=1 703 checks, 1 failures
+scenario_tx: exit=1 703 checks, 1 failures
+
+# Tái hiện lỗi DLL: cùng mã, liên kết ĐỘNG, chạy trong Git Bash rồi trong PowerShell
+$ ./build/ht_dynamic.exe test/vectors.json   (Git Bash)
+/usr/bin/bash: line 34: 111173 Segmentation fault         ./build/ht_dynamic.exe test/vectors.json 2>&1
+exit=139
+# Chú ý: PowerShell gọi từ trong Git Bash thừa hưởng PATH của Git Bash nên cũng hỏng (exit=-1073741819 = 0xC0000005).
+# Dưới đây: PowerShell mở riêng (PATH của Windows, không có C:\Program Files\Git\mingw64\bin).
+$ .\build\ht_dynamic.exe test\vectors.json   (PowerShell riêng)
+703 checks, 0 failures
+exit=0
+$ Get-Command libstdc++-6.dll -All   (PowerShell riêng)
+%USERPROFILE%\AppData\Local\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin\libstdc++-6.dll
+$ which -a libstdc++-6.dll   (Git Bash; /mingw64/bin = C:\Program Files\Git\mingw64\bin)
+/mingw64/bin/libstdc++-6.dll
+/mingw64/bin/libstdc++-6.dll
+%USERPROFILE%/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/libstdc++-6.dll

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="15" time="103.436" timestamp="2026-09-30T11:24:32.681673+07:00" hostname="DESKTOP-OKHD2PP"><testcase classname="tests.test_bev" name="test_fast_path_speedup_over_reference" time="3.471" /><testcase classname="tests.test_planner_hard_cases" name="test_bo_ca_kho_van_hop_le" time="0.007" /><testcase classname="tests.test_planner_hard_cases" name="test_ca_cot_chan_cua_o_giai_duoc_nhanh" time="3.386" /><testcase classname="tests.test_planner_hard_cases" name="test_duong_di_qua_ung_dung_cung_giai_duoc" time="1.693" /><testcase classname="tests.test_planner_hard_cases" name="test_ca_truoc_day_bo_tay_nay_giai_duoc[parallel_135]" time="8.910" /><testcase classname="tests.test_planner_hard_cases" name="test_ca_truoc_day_bo_tay_nay_giai_duoc[perp_aisle_115]" time="3.142" /><testcase classname="tests.test_planner_hard_cases" name="test_ca_truoc_day_bo_tay_nay_giai_duoc[uturn_w46]" time="8.041"><failure message="AssertionError: uturn_w46: TIMEOUT — Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng&#10;assert False&#10; +  where False = CaseResult(name='uturn_w46', difficulty='xtight', expected='feasible', status='TIMEOUT', elapsed=8.038841700006742, po...=nan, yaw_err=nan, message='Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng').solved">cases = {'parallel_160': HardCase(name='parallel_160', scenario=Scenario(name='parallel_160', bounds=Bounds(xmin=0.0, ymin=0.0...d='feasible', note='Đỗ song song, ô dài 36 cm = 1.15× thân xe, làn rộng 40 cm. Xe đã đi quá ô nên phải lùi vào.'), ...}
+real_cfg = VehicleConfig(name='xe_mo_phong_giai_doan_0_gia_dinh', wheelbase=0.19, width=0.14, front_overhang=0.06, rear_overhang=...àn hiện có. KHÔNG phải số đo hay thông số xác nhận của MN300 Tank300 1/12. Thay cấu hình sau khi đo xe ở giai đoạn 4.')
+name = 'uturn_w46'
+
+    @pytest.mark.parametrize("name", ["parallel_135", "perp_aisle_115", "uturn_w46"])
+    def test_ca_truoc_day_bo_tay_nay_giai_duoc(cases, real_cfg, name):
+        """Ba ca mà bản gốc trả về NO_PATH; đã đo lần lượt 5,42 s / 0,61 s / 3,70 s."""
+        result = run_case(portfolio.plan, cases[name], real_cfg, time_limit=8.0)
+&gt;       assert result.solved, f"{name}: {result.status} — {result.message}"
+E       AssertionError: uturn_w46: TIMEOUT — Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng
+E       assert False
+E        +  where False = CaseResult(name='uturn_w46', difficulty='xtight', expected='feasible', status='TIMEOUT', elapsed=8.038841700006742, po...=nan, yaw_err=nan, message='Đã thử 4 nấc, không nấc nào ra đường. Cuối cùng: Đã hết thời gian tìm đường và kiểm chứng').solved
+
+tests\test_planner_hard_cases.py:66: AssertionError</failure></testcase><testcase classname="tests.test_planner_hard_cases" name="test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_122]" time="4.008" /><testcase classname="tests.test_planner_hard_cases" name="test_ca_rat_chat_khong_bao_thanh_cong_gia[parallel_115]" time="4.008" /><testcase classname="tests.test_planner_hard_cases" name="test_khong_hoi_quy_o_cac_ca_de" time="16.793"><failure message="AssertionError: perp_aisle_170: TIMEOUT — Đã thử 1 nấc, không nấc nào ra đường. Cuối cùng: Hết thời gian kiểm chứng đường&#10;assert False&#10; +  where False = CaseResult(name='perp_aisle_170', difficulty='easy', expected='feasible', status='TIMEOUT', elapsed=8.138160000002244,...e, pos_err=nan, yaw_err=nan, message='Đã thử 1 nấc, không nấc nào ra đường. Cuối cùng: Hết thời gian kiểm chứng đường').solved">cases = {'parallel_160': HardCase(name='parallel_160', scenario=Scenario(name='parallel_160', bounds=Bounds(xmin=0.0, ymin=0.0...d='feasible', note='Đỗ song song, ô dài 36 cm = 1.15× thân xe, làn rộng 40 cm. Xe đã đi quá ô nên phải lùi vào.'), ...}
+real_cfg = VehicleConfig(name='xe_mo_phong_giai_doan_0_gia_dinh', wheelbase=0.19, width=0.14, front_overhang=0.06, rear_overhang=...àn hiện có. KHÔNG phải số đo hay thông số xác nhận của MN300 Tank300 1/12. Thay cấu hình sau khi đo xe ở giai đoạn 4.')
+
+    def test_khong_hoi_quy_o_cac_ca_de(cases, real_cfg):
+        """Bốn ca dễ và vừa phải luôn nhanh: đo được 0,29 s / 0,58 s / 0,33 s / 0,41 s."""
+        for name in ("parallel_160", "perp_aisle_170", "reverse_long_corridor", "lateral_shift"):
+            result = run_case(portfolio.plan, cases[name], real_cfg, time_limit=8.0)
+&gt;           assert result.solved, f"{name}: {result.status} — {result.message}"
+E           AssertionError: perp_aisle_170: TIMEOUT — Đã thử 1 nấc, không nấc nào ra đường. Cuối cùng: Hết thời gian kiểm chứng đường
+E           assert False
+E            +  where False = CaseResult(name='perp_aisle_170', difficulty='easy', expected='feasible', status='TIMEOUT', elapsed=8.138160000002244,...e, pos_err=nan, yaw_err=nan, message='Đã thử 1 nấc, không nấc nào ra đường. Cuối cùng: Hết thời gian kiểm chứng đường').solved
+
+tests\test_planner_hard_cases.py:93: AssertionError</failure></testcase><testcase classname="tests.test_planner_hard_cases" name="test_nhat_ky_leo_thang_ghi_lai_tung_nac" time="6.062"><failure message="AssertionError: assert False&#10; +  where False = PlanResult(status='TIMEOUT', message='Đã thử 2 nấc, không nấc nào ra đường. Cuối cùng: Hết thời gian kiểm chứng đường', trajectory=None, elapsed=6.051187900004152, expanded=0, popped=0, rs_tries=0, margin_used=0.0).ok">cases = {'parallel_160': HardCase(name='parallel_160', scenario=Scenario(name='parallel_160', bounds=Bounds(xmin=0.0, ymin=0.0...d='feasible', note='Đỗ song song, ô dài 36 cm = 1.15× thân xe, làn rộng 40 cm. Xe đã đi quá ô nên phải lùi vào.'), ...}
+real_cfg = VehicleConfig(name='xe_mo_phong_giai_doan_0_gia_dinh', wheelbase=0.19, width=0.14, front_overhang=0.06, rear_overhang=...àn hiện có. KHÔNG phải số đo hay thông số xác nhận của MN300 Tank300 1/12. Thay cấu hình sau khi đo xe ở giai đoạn 4.')
+
+    def test_nhat_ky_leo_thang_ghi_lai_tung_nac(cases, real_cfg):
+        """Danh mục phải ghi lại đã thử nấc nào, để giải thích được vì sao chậm hay hỏng."""
+        sc = cases["parallel_160"].scenario
+        log: list[portfolio.Attempt] = []
+        result = portfolio.plan(sc.start, sc.goal.pose, real_cfg, sc.obstacles, sc.bounds,
+                                time_limit=6.0, attempts=log)
+&gt;       assert result.ok
+E       AssertionError: assert False
+E        +  where False = PlanResult(status='TIMEOUT', message='Đã thử 2 nấc, không nấc nào ra đường. Cuối cùng: Hết thời gian kiểm chứng đường', trajectory=None, elapsed=6.051187900004152, expanded=0, popped=0, rs_tries=0, margin_used=0.0).ok
+
+tests\test_planner_hard_cases.py:103: AssertionError</failure></testcase><testcase classname="tests.test_vehicle_sensitivity" name="test_run_sweep_moi_bien_the_cung_mot_sa_ban" time="9.943" /><testcase classname="tests.test_vehicle_sensitivity" name="test_xe_to_hon_nhieu_hong_ca_chat_ma_xe_mac_dinh_qua" time="8.897" /><testcase classname="tests.test_vehicle_sensitivity" name="test_nhieu_tien_trinh_cho_cung_thu_tu_va_ket_qua" time="10.381" /><testcase classname="tests.test_vehicle_sensitivity" name="test_cli_sensitivity_ghi_json_va_bang" time="8.254" /></testsuite></testsuites>

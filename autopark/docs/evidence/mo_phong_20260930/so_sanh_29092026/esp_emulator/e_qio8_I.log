@@ -1,0 +1,123 @@
+    2.087 | T ms=1173 us=1173007 timer_cb=108 (+108 in 1000 ms)
+    4.238 | T ms=2173 us=2173007 timer_cb=208 (+100 in 1000 ms)
+    6.328 | T ms=3173 us=3173006 timer_cb=308 (+100 in 1000 ms)
+    8.424 | T ms=4173 us=4173008 timer_cb=408 (+100 in 1000 ms)
+   10.507 | T ms=5173 us=5173007 timer_cb=508 (+100 in 1000 ms)
+   12.593 | T ms=6173 us=6173006 timer_cb=608 (+100 in 1000 ms)
+   14.699 | T ms=7173 us=7173006 timer_cb=708 (+100 in 1000 ms)
+   16.821 | T ms=8173 us=8173008 timer_cb=808 (+100 in 1000 ms)
+   18.929 | T ms=9173 us=9173006 timer_cb=908 (+100 in 1000 ms)
+   21.098 | T ms=10173 us=10173006 timer_cb=1008 (+100 in 1000 ms)
+   23.202 | T ms=11173 us=11173006 timer_cb=1108 (+100 in 1000 ms)
+   25.272 | T ms=12173 us=12173007 timer_cb=1208 (+100 in 1000 ms)
+   27.351 | T ms=13173 us=13173006 timer_cb=1308 (+100 in 1000 ms)
+   29.421 | T ms=14173 us=14173007 timer_cb=1408 (+100 in 1000 ms)
+   31.473 | T ms=15173 us=15173006 timer_cb=1508 (+100 in 1000 ms)
+   33.533 | T ms=16173 us=16173006 timer_cb=1608 (+100 in 1000 ms)
+   35.597 | T ms=17173 us=17173007 timer_cb=1708 (+100 in 1000 ms)
+   37.715 | T ms=18173 us=18173006 timer_cb=1808 (+100 in 1000 ms)
+   39.857 | T ms=19173 us=19173006 timer_cb=1908 (+100 in 1000 ms)
+   41.962 | T ms=20173 us=20173005 timer_cb=2008 (+100 in 1000 ms)
+   44.050 | T ms=21173 us=21173006 timer_cb=2108 (+100 in 1000 ms)
+# first READY: False
+   46.127 | T ms=22173 us=22173006 timer_cb=2208 (+100 in 1000 ms)
+   48.205 | T ms=23173 us=23173006 timer_cb=2308 (+100 in 1000 ms)
+   49.007 >> send 'I'
+   49.008 | CMD I at ms=23564
+   50.813 | 
+   50.813 | PROBE_WRAP ran: outsel21=0x100 out=0x0 en=0x200000
+   50.813 | Guru Meditation Error: Core  1 panic'ed (Interrupt wdt timeout on CPU1). 
+   50.813 | 
+   50.813 | Core  1 register dump:
+   50.813 | PC      : 0x420020df  PS      : 0x00060724  A0      : 0x820043b8  A1      : 0x3fcebc20  
+   50.813 | A2      : 0x00060720  A3      : 0x00000001  A4      : 0x3fc94e50  A5      : 0x00000057  
+   50.813 | A6      : 0x00000000  A7      : 0x5000000c  A8      : 0x820020d4  A9      : 0x3fcebc00  
+   50.813 | A10     : 0x3fc94e50  A11     : 0xad152767  A12     : 0xad152767  A13     : 0x3fcebbbc  
+   50.813 | A14     : 0x3fc951f0  A15     : 0x3fcebbbc  SAR     : 0x00000004  EXCCAUSE: 0x00000006  
+   50.813 | EXCVADDR: 0x00000000  LBEG    : 0x400556d5  LEND    : 0x400556e5  LCOUNT  : 0xffffffff  
+   50.813 | 
+   50.813 | 
+   50.813 | Backtrace: 0x420020dc:0x3fcebc20 0x420043b5:0x3fcebc50
+   50.813 | 
+   50.813 | 
+   50.813 | Core  0 register dump:
+   50.813 | PC      : 0x4200c725  PS      : 0x00060b24  A0      : 0x8200cb30  A1      : 0x3fcf46e0  
+   50.815 | A2      : 0x3fcf48ec  A3      : 0x3fcf470f  A4      : 0x3fc95484  A5      : 0x00060b23  
+   50.815 | A6      : 0x00060b20  A7      : 0x00000001  A8      : 0x00000000  A9      : 0x3fce9a50  
+   50.815 | A10     : 0x00000000  A11     : 0x00000003  A12     : 0x00060b23  A13     : 0x00000007  
+   50.815 | A14     : 0x02c91ac8  A15     : 0x00ffffff  SAR     : 0x0000001d  EXCCAUSE: 0x00000006  
+   50.815 | EXCVADDR: 0x00000000  LBEG    : 0x00000000  LEND    : 0x00000000  LCOUNT  : 0x00000000  
+   50.815 | 
+   50.815 | 
+   50.815 | Backtrace: 0x4200c722:0x3fcf46e0 0x4200cb2d:0x3fcf4700 0x4200cb63:0x3fcf4730 0x4200d526:0x3fcf4750 0x4037b7dc:0x3fcf4770
+   50.815 | 
+   50.815 | 
+   50.815 | 
+   50.815 | 
+   50.815 | ELF file SHA256: 566e28c7e2c11856
+   50.815 | 
+   50.815 | 
+   50.815 | PROBE_WRAP ran: outsel21=0x100 out=0x0 en=0x200000
+   50.815 | Guru Meditation Error: Core  1 panic'ed (Interrupt wdt timeout on CPU1). 
+   50.815 | 
+   50.815 | Core  1 register dump:
+   50.815 | PC      : 0x403818b7  PS      : 0x00020e24  A0      : 0x82012922  A1      : 0x3fceba10  
+   50.815 | A2      : 0x00020e23  A3      : 0xa5a5a5a5  A4      : 0x82012922  A5      : 0x00060e25  
+   50.815 | A6      : 0xfffbfff0  A7      : 0x00000046  A8      : 0x3fc93418  A9      : 0x00000001  
+   50.815 | A10     : 0x60000000  A11     : 0x00000080  A12     : 0x0000000a  A13     : 0x3fceb9fc  
+   50.815 | A14     : 0x00000001  A15     : 0x3fcf4770  SAR     : 0x0000000a  EXCCAUSE: 0x00000006  
+   50.815 | EXCVADDR: 0x00000000  LBEG    : 0x400570e8  LEND    : 0x400570f3  LCOUNT  : 0x00000000  
+   50.815 | 
+   50.815 | 
+   50.815 | Backtrace: 0x403818b4:0x3fceba10 0x4201291f:0x3fceba20 0x42012f21:0x3fceba40 0x4200c6f2:0x3fceba60 0x403752c5:0x3fcebad0 0x4200ccca:0x3fcebaf0 0x40376bf5:0x3fcebb40 0x40376c7c:0x3fcebb60 0x00040022:0x3fcebc20 |<-CORRUPTED
+   50.815 | 
+   50.815 | 
+   50.815 | Core  0 register dump:
+   50.815 | PC      : 0x4200c725  PS      : 0x00060b24  A0      : 0x8200cb30  A1      : 0x3fcf46e0  
+   50.815 | A2      : 0x3fcf48ec  A3      : 0x3fcf470f  A4      : 0x3fc95484  A5      : 0x00060b23  
+   50.815 | A6      : 0x00060b20  A7      : 0x00000001  A8      : 0x00000000  A9      : 0x3fce9a50  
+   50.815 | A10     : 0x00000000  A11     : 0x00000003  A12     : 0x00060b23  A13     : 0x00000007  
+   50.816 | A14     : 0x02c91ac8  A15     : 0x00ffffff  SAR     : 0x0000001d  EXCCAUSE: 0x00000006  
+   50.816 | EXCVADDR: 0x00000000  LBEG    : 0x00000000  LEND    : 0x00000000  LCOUNT  : 0x00000000  
+   50.816 | 
+   50.816 | 
+   50.816 | Backtrace: 0x4200c722:0x3fcf46e0 0x4200cb2d:0x3fcf4700 0x4200cb63:0x3fcf4730 0x4200d526:0x3fcf4750 0x4037b7dc:0x3fcf4770
+   50.816 | 
+   50.816 | 
+   50.816 | 
+   50.816 | 
+   50.816 | ELF file SHA256: 566e28c7e2c11856
+   50.816 | 
+   50.816 | Re-entered core dump! Exception happened during core dump!
+   50.816 | Rebooting...
+   56.923 | ESP-ROM:esp32s3-20210327
+   56.923 | Build:Mar 27 2021
+   56.923 | rst:0x9 (RTCWDT_SYS_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+   56.923 | SPIWP:0xee
+   56.923 | mode:DIO, clock div:1
+   56.923 | load:0x3fce3808,len:0x4bc
+   56.923 | load:0x403c9700,len:0xbd8
+   56.925 | load:0x403cc700,len:0x2a0c
+   56.925 | entry 0x403c98d0
+   56.987 | 
+   56.987 | PROBE v1 boot=2 rtc_mem_kept=1 reason=WDT(7) rom_reason0=9 rom_reason1=0 last_cmd=I
+   56.987 | MARKERS wrap=0xc0de0001 wrap_outsel21=0x100 shutdown=0x00000000
+   56.987 | BOOTREGS outsel21=0x100 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00800000
+   56.991 | NVS begin=1 boots_before=1 put=4
+   56.991 | RANDOM bcc6881b 31c31582
+   56.991 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+   56.991 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   56.992 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   56.992 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   56.992 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   56.993 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   56.993 | FLASH esp_flash_read mode=QIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   56.994 | PINS pullup14=1 pulldown5=1 float6=1 GPIO_IN=0xffffffff
+   56.994 | TWDT init(1s,panic)=0 add=0
+   56.994 | LEDC probe: wrote 0x100e read 0x0000100e
+   57.015 | LEDC regs: ch0_conf0=0x00000004 ch0_duty=0x00004cc0 ch0_duty_r=0x00004cc0 timer0_conf=0x00030d4e outsel21=0x49
+   57.147 | PWM pin21 sampled 130378 times/60ms: rises=0 high_total_us=0 avg_period_us=-1
+   57.147 | READY
+# READY after 'I': True
+   59.287 | T ms=1173 us=1173006 timer_cb=108 (+108 in 1000 ms)
+# guest/wall ratio from T lines: median=0.479 min=0.461 max=0.487 n=22

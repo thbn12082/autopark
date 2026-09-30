@@ -1,0 +1,56 @@
+    0.035 | ESP-ROM:esp32s3-20210327
+    0.035 | Build:Mar 27 2021
+    0.037 | rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+    0.041 | SPIWP:0xee
+    0.042 | mode:DIO, clock div:1
+    0.043 | load:0x3fce3808,len:0x4bc
+    0.043 | load:0x403c9700,len:0xbd8
+    0.044 | load:0x403cc700,len:0x2a0c
+    0.045 | entry 0x403c98d0
+    0.272 | E (118) esp_core_dump_flash: Incorrect size of core dump image: -65536
+    0.705 | 
+    0.706 | PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+    0.707 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+    0.708 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    0.731 | NVS begin=1 boots_before=0 put=4
+    0.731 | RANDOM 377c0f81 35f53855
+    0.737 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+    0.739 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.741 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.742 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.744 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.745 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.746 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 aa 50 01 02 00 90 shift=2
+    0.753 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    0.754 | TWDT init(1s,panic)=0 add=0
+    0.754 | LEDC probe: wrote 0x100e read 0x00000000
+    0.755 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+    0.853 | READY
+# first READY: True
+    1.862 | T ms=1841 us=1841481 timer_cb=103 (+103 in 1008 ms)
+    2.869 | T ms=2847 us=2847731 timer_cb=202 (+99 in 1006 ms)
+    3.876 | T ms=3854 us=3854688 timer_cb=304 (+102 in 1007 ms)
+    4.870 >> send 'R'
+    4.881 | CMD R at ms=4858
+    4.881 | 
+    4.882 | PROBE_SHUTDOWN handler ran
+    4.897 | ESP-ROM:esp32s3-20210327
+    4.899 | Build:Mar 27 2021
+    4.899 | rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+    4.904 | SPIWP:0xee
+    4.904 | mode:DIO, clock div:1
+    4.905 | load:0x3fce3808,len:0x4bc
+    4.905 | load:0x403c9700,len:0xbd8
+    4.906 | load:0x403cc700,len:0x2a0c
+    4.912 | entry 0x403c98d0
+    5.001 | ESP-ROM:esp32s3-20210327
+    5.001 | Build:Mar 27 2021
+    5.001 | rst:0xc (RTC_SW_CPU_RST),boot:0x4 (SPI_FLASH_BOOT)
+    5.005 | SPIWP:0xee
+    5.006 | mode:DIO, clock div:1
+    5.006 | load:0x3fce3808,len:0x4bc
+    5.007 | load:0x403c9700,len:0xbd8
+    5.008 | load:0x403cc700,len:0x2a0c
+    5.013 | entry 0x403c98d0
+# READY after 'R': False
+   37.879 >> send 'A'

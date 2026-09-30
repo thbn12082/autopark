@@ -2,7 +2,7 @@
 
 Tài liệu này giải thích dự án đang ở đâu và cần làm gì tiếp theo. [Cách cài/chạy](autopark/README.md) và [mục lục kỹ thuật](autopark/docs/README.md) nằm riêng để dễ tra.
 
-Biên tập 26/09/2026 theo hồ sơ đến commit `9d68257`; cập nhật 29/09/2026 sau khi chuyển sang máy bàn mới ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md)). Các số lấy từ hồ sơ có ngày: mô phỏng giai đoạn 0 (20/09) chạy trên laptop; số cảm biến, AI và bàn thử đến 25/09 đo trên máy bàn trước; số ngày 29/09 đo trên máy bàn hiện tại. Lần sửa tài liệu không đo thêm.
+Biên tập 26/09/2026 theo hồ sơ đến commit `9d68257`; cập nhật 29/09/2026 sau khi chuyển sang máy bàn mới ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md)). Các số lấy từ hồ sơ có ngày: mô phỏng giai đoạn 0 (20/09) chạy trên laptop; số cảm biến, AI và bàn thử đến 25/09 đo trên máy bàn trước; số ngày 29/09 đo trên máy bàn hiện tại. Lần sửa ngày 29/09 không đo thêm; cập nhật 30/09/2026 thêm bo ảo QEMU, số của nó có bằng chứng trong [mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md).
 
 Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. [Phạm vi sử dụng](autopark/docs/GIAY_PHEP_DU_LIEU.md).
 
@@ -51,7 +51,7 @@ Cổng LiDAR đặt ở một chỗ: [`autopark/configs/thiet_bi.json`](autopark
 | 2 | Bốn camera, BEV | Có bàn thử/phần mềm; thiếu hiệu chuẩn và gá, USB còn lỗi khung |
 | 3 | Hợp nhất trên bàn | Có lớp bản đồ; chưa có IMU/ToF/ESP32 thật |
 | 4 | Đo MN300 | Có bảng đo và thử độ nhạy mô phỏng; chưa có xe để đo |
-| 5 | ESP32, điều khiển phản hồi | Có giao thức/bo mô phỏng; firmware C++ chưa biên dịch trong hồ sơ |
+| 5 | ESP32, điều khiển phản hồi | Có giao thức/bo mô phỏng; firmware C++: lõi qua test host trên máy tính, firmware biên dịch cho ESP32-S3 bằng PlatformIO (29/09/2026), chưa nạp bo; chạy được trong bo ảo QEMU (30/09/2026, [mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md)) |
 | 6 | Nguồn và dừng | Có bản nháp/kịch bản; chưa lắp và đo |
 | 7 | Gá cảm biến lên xe | Chưa làm |
 | 8 | Hợp nhất khi xe chạy | Có phần mềm chuẩn bị; thiếu tư thế thật và kiểm đồng bộ |
@@ -168,9 +168,9 @@ Có giao thức COBS + CRC, phiên kết nối, số thứ tự, lệnh có hạ
 
 Giao diện cho chọn cổng/kiểm kết nối. START với cấu hình serial bị chặn khi thiếu tư thế thật. Chế độ quan sát tính lệnh và ghi log nhưng không gửi lệnh chạy.
 
-C++ chưa biên dịch/nạp bo theo hồ sơ; phần đọc cảm biến thật còn thiếu. Khoảng hở được ghi nhận: trước khi laptop nhận telemetry báo hết hạn lệnh, có thể xuất hiện enable mới. Đề xuất chốt firmware sau `COMMAND_TIMEOUT` chưa triển khai. Replay giai đoạn 0 hiện từ chối phiên VehicleIO.
+Lõi C++ qua test host trên máy tính; firmware biên dịch cho ESP32-S3 bằng PlatformIO (29/09/2026), chưa nạp bo; chạy được trong bo ảo QEMU (30/09/2026, [mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md)); phần đọc cảm biến thật còn thiếu. Khoảng hở được ghi nhận: trước khi laptop nhận telemetry báo hết hạn lệnh, có thể xuất hiện enable mới. Đề xuất chốt firmware sau `COMMAND_TIMEOUT` chưa triển khai. Replay giai đoạn 0 hiện từ chối phiên VehicleIO.
 
-[Giao thức và điểm còn mở](autopark/docs/GIAO_THUC_XE.md), [quan sát](autopark/docs/CHE_DO_QUAN_SAT.md), [firmware](autopark/firmware/esp32_vehicle/README.md).
+[Giao thức và điểm còn mở](autopark/docs/GIAO_THUC_XE.md), [quan sát](autopark/docs/CHE_DO_QUAN_SAT.md), [firmware](autopark/firmware/esp32_vehicle/README.md), [bo ảo QEMU và các trình giả lập đã thử](autopark/docs/MO_PHONG_FIRMWARE.md).
 
 ### 4.10. Nguồn và an toàn
 
@@ -261,11 +261,11 @@ Bản viết lại không thay đổi quyết định kỹ thuật hoặc tự d
 
 ### 5.3. Việc cần thiết bị mới
 
-Nhận/đo MN300; biên dịch/nạp ESP32; đọc phản hồi; lắp nguồn/dừng; kiểm từng phần trước khi gá lên xe. [Sáu đợt mua](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md).
+Nhận/đo MN300; nạp ESP32 (đã biên dịch 29/09/2026); đọc phản hồi; lắp nguồn/dừng; kiểm từng phần trước khi gá lên xe. [Sáu đợt mua](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md).
 
 ### 5.4. Phần mềm có thể chuẩn bị
 
-Biên dịch/test firmware host (máy bàn hiện tại có g++ 16.1.0 và cmake 4.4.1, chưa thử); làm nguồn tư thế thật; hoàn thiện ghi sự kiện dừng và đồng bộ video–log; xử lý công cụ thiếu T1–T15 trong [kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md). Thay đổi giao thức cần được thiết kế/kiểm riêng.
+Cho giao diện chọn được bo ảo QEMU (`socket://`, hiện chỉ dùng từ Python); làm nguồn tư thế thật; hoàn thiện ghi sự kiện dừng và đồng bộ video–log; xử lý công cụ thiếu T1–T15 trong [kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md). Thay đổi giao thức cần được thiết kế/kiểm riêng.
 
 ## 6. Bản đồ tài liệu
 
@@ -289,8 +289,10 @@ Biên dịch/test firmware host (máy bàn hiện tại có g++ 16.1.0 và cmake
 | 29/09, mã `9d68257` | `.venv`: 1.315 đạt, 7 bỏ qua; `.venv-train`: 1.376 đạt | Toàn bộ test, máy bàn hiện tại; trùng số máy bàn trước |
 | 29/09, sau sửa đổi chuyển máy | `.venv`: 1.353 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.415 đạt; 0 hỏng | Toàn bộ test, máy bàn hiện tại, mã `9d68257` cộng sửa đổi cổng LiDAR, đọc/ghi ảnh, cài đặt |
 | 29/09, commit `38f64bb` | `.venv`: 1.354 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.416 đạt; 0 hỏng | Toàn bộ test, máy bàn hiện tại, commit của đợt chuyển máy; thêm một test tệp tham chiếu `may_moi` 29/09 |
+| 29/09 chiều, test host firmware | `.venv`: 1.356 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.418 đạt; 0 hỏng | `b37e9ee` cộng hai test build và chạy test host của firmware |
+| 30/09 sáng, bo ảo QEMU | `.venv`: 1.376 đạt, 8 bỏ qua (cần torch), 0 hỏng; `.venv-train`: 1.437 đạt, 1 hỏng (`uturn_w46`, ngân sách thời gian) ở cả hai lượt | Mã chưa commit tính tới 10:21, trước khi `tests/conftest.py` tắt EcoQoS: `b37e9ee` cộng bo ảo QEMU (13 test, 6 trong đó chạy firmware thật trong QEMU) và sửa `SerialVehicleIO` (7 test). `uturn_w46` đạt khi tiến trình pytest tự tắt EcoQoS của Windows |
 
-Không cộng các lượt thành tổng test. Các lượt ngày 29/09 chạy offscreen; tệp kết quả và giới hạn ở [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 2–3.
+Không cộng các lượt thành tổng test. Các lượt ngày 29–30/09 chạy offscreen; tệp kết quả và giới hạn ở [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 2, 3, 6, 8.
 
 `runs/`, dataset đầy đủ, cache, checkpoint và môi trường Python không có trong Git. Bằng chứng nhỏ nằm ở `autopark/docs/evidence/`.
 

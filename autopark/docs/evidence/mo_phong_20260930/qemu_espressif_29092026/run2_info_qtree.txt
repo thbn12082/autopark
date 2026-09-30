@@ -1,0 +1,93 @@
+﻿### info qtree
+bus: main-system-bus
+  type System
+  dev: unimplemented-device, id ""
+    size = 8192 (0x2000)
+    name = "esp32s3.iomux-apb"
+    mmio 00000000c0009000/0000000000002000
+  dev: unimplemented-device, id ""
+    size = 8192 (0x2000)
+    name = "esp32s3.iomux"
+    mmio 0000000060009000/0000000000002000
+  dev: unimplemented-device, id ""
+    size = 4096 (0x1000)
+    name = "esp32s3.rmt-apb"
+    mmio 00000000c0016000/0000000000001000
+  dev: unimplemented-device, id ""
+    size = 4096 (0x1000)
+    name = "esp32s3.rmt"
+    mmio 0000000060016000/0000000000001000
+  dev: display.esp.rgb, id ""
+    mmio ffffffffffffffff/000000000000001c
+  dev: misc.esp32s3.pms, id ""
+    mmio ffffffffffffffff/0000000000001000
+  dev: misc.esp32s3.rsa, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/0000000000000834
+  dev: misc.esp32s3.aes, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/00000000000000bc
+  dev: misc.esp32s3.sha, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/0000000000000100
+  dev: esp32s3.gdma, id ""
+    gpio-out "CHAN_OUT" 5
+    gpio-out "CHAN_IN" 5
+    mmio ffffffffffffffff/0000000000000410
+  dev: esp32s3.gpio, id ""
+    gpio-out "sysbus-irq" 1
+    strap_mode = 4 (0x4)
+    mmio ffffffffffffffff/0000000000001000
+  dev: esp32s3.systimer, id ""
+    gpio-out "sysbus-irq" 3
+    mmio ffffffffffffffff/0000000000000100
+  dev: timer.esp32s3.timg, id ""
+    gpio-out "t1-interrupt" 1
+    gpio-out "t0-interrupt" 1
+    gpio-out "wdt-interrupt" 1
+    gpio-out "wdt-reset" 1
+    wdt_disable = false
+    mmio ffffffffffffffff/0000000000000100
+  dev: timer.esp32s3.timg, id ""
+    gpio-out "t1-interrupt" 1
+    gpio-out "t0-interrupt" 1
+    gpio-out "wdt-interrupt" 1
+    gpio-out "wdt-reset" 1
+    wdt_disable = false
+    mmio ffffffffffffffff/0000000000000100
+  dev: esp32s3.soc.clk, id ""
+    gpio-out "sysbus-irq" 4
+    mmio ffffffffffffffff/00000000000000a4
+  dev: nvram.esp32s3.efuse, id ""
+    gpio-out "sysbus-irq" 1
+    drive = ""
+    mmio ffffffffffffffff/0000000000000204
+  dev: esp32s3.icache, id ""
+    mmio ffffffffffffffff/0000000000001800
+  dev: ssi.esp32s3.spi, id ""
+    gpio-out "ssi-gpio-cs" 3
+    mmio ffffffffffffffff/0000000000000400
+    bus: spi
+      type SSI
+      dev: is25lp128, id ""
+        gpio-in "WP#" 1
+        gpio-in "ssi-gpio-cs" 1
+        write-enable = false
+        nonvolatile-cfg = 36863 (0x8fff)
+        spansion-cr1nv = 0 (0x0)
+        spansion-cr2nv = 8 (0x8)
+        spansion-cr3nv = 2 (0x2)
+        spansion-cr4nv = 16 (0x10)
+        drive = "mtd0"
+        cs = 0 (0x0)
+  dev: misc.esp32c3.usb_serial_jtag, id ""
+    mmio ffffffffffffffff/0000000000000084
+  dev: open_eth, id ""
+    gpio-out "sysbus-irq" 1
+    mac = "52:54:00:12:34:56"
+    netdev = "hub0port0"
+    mmio ffffffffffffffff/0000000000000054
+    mmio ffffffffffffffff/0000000000000400
+  dev: esp32s3.twai, id ""
+    gpio-out "sysbus-irq" 1
+    mmio ffffffffffffffff/0000000000000200

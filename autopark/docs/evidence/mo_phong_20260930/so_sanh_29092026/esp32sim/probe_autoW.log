@@ -1,0 +1,49 @@
+# esp32sim.wasm cpu_hz=240000000 jit=true
+   0.010 emu |    0.104 wall | usb   | ESP-ROM:esp32s3-20210327
+   0.010 emu |    0.104 wall | usb   | Build:Mar 27 2021
+   0.010 emu |    0.104 wall | usb   | rst:0x1 (POWERON),boot:0xf (SPI_FAST_FLASH_BOOT)
+   0.010 emu |    0.104 wall | usb   | configspi:0x00000008
+   0.010 emu |    0.104 wall | usb   | SPIWP:0x00
+   0.010 emu |    0.104 wall | usb   | mode:DIO, clock div:1
+   0.010 emu |    0.105 wall | usb   | load:0x3fce3808,len:0x4bc
+   0.010 emu |    0.105 wall | usb   | load:0x403c9700,len:0xbd8
+   0.010 emu |    0.105 wall | usb   | load:0x403cc700,len:0x2a0c
+   0.010 emu |    0.106 wall | uart0 | ESP-ROM:esp32s3-20210327
+   0.010 emu |    0.106 wall | uart0 | Build:Mar 27 2021
+   0.010 emu |    0.106 wall | uart0 | rst:0x1 (POWERON),boot:0xf (SPI_FAST_FLASH_BOOT)
+   0.010 emu |    0.106 wall | uart0 | configspi:0x00000008
+   0.010 emu |    0.106 wall | uart0 | SPIWP:0x00
+   0.010 emu |    0.106 wall | uart0 | mode:DIO, clock div:1
+   0.010 emu |    0.106 wall | uart0 | load:0x3fce3808,len:0x4bc
+   0.010 emu |    0.106 wall | uart0 | load:0x403c9700,len:0xbd8
+   0.010 emu |    0.106 wall | uart0 | load:0x403cc700,len:0x2a0c
+   0.010 emu |    0.106 wall | usb   | entry 0x403c98d0
+   0.010 emu |    0.106 wall | uart0 | entry 0x403c98d0
+   0.070 emu |    0.409 wall | uart0 | 
+   0.070 emu |    0.410 wall | uart0 | PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+   0.070 emu |    0.410 wall | uart0 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+   0.070 emu |    0.410 wall | uart0 | BOOTREGS outsel21=0x100 gpio_en=0x00000101 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+   0.070 emu |    0.410 wall | uart0 | NVS begin=1 boots_before=0 put=4
+   0.070 emu |    0.411 wall | uart0 | RANDOM bef8888e 7f89bc53
+   0.070 emu |    0.411 wall | uart0 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+   0.070 emu |    0.411 wall | uart0 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.411 wall | uart0 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.411 wall | uart0 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.411 wall | uart0 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.411 wall | uart0 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.411 wall | uart0 | FLASH esp_flash_read mode=QIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+   0.070 emu |    0.411 wall | uart0 | PINS pullup14=1 pulldown5=1 float6=1 GPIO_IN=0xffffffff
+   0.070 emu |    0.411 wall | uart0 | TWDT init(1s,panic)=0 add=0
+   0.070 emu |    0.411 wall | uart0 | LEDC probe: wrote 0x100e read 0x0000100e
+   0.100 emu |    0.438 wall | uart0 | LEDC regs: ch0_conf0=0x00000014 ch0_duty=0x00004cc0 ch0_duty_r=0x00000000 timer0_conf=0x02030d4e outsel21=0x49
+   0.160 emu |    0.577 wall | uart0 | PWM pin21 sampled 115664 times/60ms: rises=0 high_total_us=60000 avg_period_us=-1
+   0.160 emu |    0.577 wall | uart0 | READY
+   1.160 emu |    2.216 wall | uart0 | T ms=1141 us=1141005 timer_cb=108 (+108 in 1000 ms) pin14=1
+   1.500 emu | >> {"t":"btn","pin":"14","v":"1"}
+   2.160 emu |    3.783 wall | uart0 | T ms=2141 us=2141005 timer_cb=208 (+100 in 1000 ms) pin14=0
+   2.500 emu | >> {"t":"btn","pin":"14","v":"0"}
+   3.020 emu |    5.148 wall | uart0 | AUTO command W
+   3.020 emu |    5.149 wall | uart0 | CMD W at ms=3000
+# emulated 12.00 s in 3622.30 s wall = 0.003x real time; insns 2884.8 M (0.8 Minsn/s); jit compiled 1722
+# usb code points received: 252
+# host_log tail: 

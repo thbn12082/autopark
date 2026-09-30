@@ -1,0 +1,2 @@
+SIL listening on 127.0.0.1:5579
+SIL done: loops=1103 guard_calls=548 bytes_in=0 bytes_out=0

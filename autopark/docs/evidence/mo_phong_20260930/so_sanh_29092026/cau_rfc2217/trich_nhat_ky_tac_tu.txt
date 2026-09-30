@@ -1,0 +1,68 @@
+# Trích nguyên văn đầu ra từ nhật ký tác tử bổ sung ngày 29/09/2026 (không có log gốc riêng):
+# vòng không chặn của SerialVehicleIO qua cầu rfc2217_server.py của pyserial và qua socket:// thô, với QEMU.
+
+===== agent-a1c41d5814b01119c.jsonl
+$ SP="%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad"; cd "$SP/bridge"; python - <<'EOF'
+p='loop_client.py'
+s=open(p).read()
+s=s.replace('port = serial.serial_for_url(url, timeout=0.01, write_timeout=0.05)',
+            'kw = {} if url.startswith("rfc2217://") else {"write_timeout": 0.05}  # pyserial 3.5 rfc2217: write_timeout unsupported\n        port = serial.serial_for_url(url, timeout=0.01, **kw)')
+s=s.replace('info = io.connect(timeout_s=3.0)',
+            'for attempt in range(8):\n    try:\n        info = io.connect(timeout_s=1.5)\n        break\n    except Exception as e:  # noqa: BLE001\n        print("connect attempt", attempt, "failed:", str(e)[:60])\nelse:\n    raise SystemExit("no HELLO_ACK")')
+open(p,'w').write(s)
+EOF
+Q=/d/xetulai/_platformio/qemu/qemu/bin/qemu-system-xtensa.exe; PY=/d/xetulai/autopark/autopark/.venv/Scripts/python.exe; IMG=$(cygpath -w /d/xetulai/_platformio/kiem_probe/runs/br_uart0.bin); cp /d/xetulai/_platformio/kiem_qemu/img/flash_uart0_16MB.bin /d/xetulai/_platformio/kiem_probe/runs/br_uart0.bin;
+$Q -machine esp32s3 -display none -drive file="$IMG",if=mtd,format=raw -serial tcp:127.0.0.1:5593,server=on,wait=on > qa.out 2> qa.err & QP=$!; sleep 1; echo "=== A: plain socket://"; $PY loop_client.py socket://127.0.0.1:5593 10 2>&1 | tail -4; kill $QP; sleep 1;
+$Q -machine esp32s3 -display none -drive file="$IMG",if=mtd,format=raw -serial tcp:127.0.0.1:5594,server=on,wait=on > qb.out 2> qb.er
+----- đầu ra
+=== A: plain socket://
+  File "%USERPROFILE%\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u1ebf' in position 1: character maps to <undefined>
+=== B: rfc2217:// via pyserial rfc2217_server.py bridge
+connected: HelloInfo(session_id=2162459933, boot_id=4023328325, firmware_version='1.0', reset_reason=1, state=<State.DISARMED: 1>, telemetry_period_s=0.05, limits=VehicleLimits(max_speed_mps=0.3, max_steer_rad=0.524, max_steer_rate_rad_s=1.571, max_accel_mps2=0.3, max_decel_mps2=0.6, stop_decel_mps2=0.6, max_validity_s=0.3, link_timeout_s=0.5), received_at=0.0041858000004140195)
+armed
+url=rfc2217://127.0.0.1:2218 seconds=10.0 telemetry=200 (expected ~200) sends_ok=200 send_errors=0 events={}
+in_waiting type check: serial.rfc2217
+
+===== agent-a1c41d5814b01119c.jsonl
+$ SP="%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad"; cd "$SP/bridge"; export PYTHONIOENCODING=utf-8; Q=/d/xetulai/_platformio/qemu/qemu/bin/qemu-system-xtensa.exe; PY=/d/xetulai/autopark/autopark/.venv/Scripts/python.exe; IMG=$(cygpath -w /d/xetulai/_platformio/kiem_probe/runs/br_uart0.bin); cp /d/xetulai/_platformio/kiem_qemu/img/flash_uart0_16MB.bin /d/xetulai/_platformio/kiem_probe/runs/br_uart0.bin;
+$Q -machine esp32s3 -display none -drive file="$IMG",if=mtd,format=raw -serial tcp:127.0.0.1:5595,server=on,wait=on > qa.out 2> qa.err & QP=$!; sleep 1; echo "=== A: plain socket://"; $PY loop_client.py socket://127.0.0.1:5595 10 2>&1 | tail -6; kill $QP; sleep 1
+----- đầu ra
+=== A: plain socket://
+connect attempt 0 failed: Hết 1.500 s chờ HELLO_ACK
+connected: HelloInfo(session_id=1143630600, boot_id=4058029841, firmware_version='1.0', reset_reason=1, state=<State.DISARMED: 1>, telemetry_period_s=0.05, limits=VehicleLimits(max_speed_mps=0.3, max_steer_rad=0.524, max_steer_rate_rad_s=1.571, max_accel_mps2=0.3, max_decel_mps2=0.6, stop_decel_mps2=0.6, max_validity_s=0.3, link_timeout_s=0.5), received_at=1.5095823999999993)
+armed
+url=socket://127.0.0.1:5595 seconds=10.0 telemetry=73 (expected ~200) sends_ok=200 send_errors=0 events={}
+in_waiting type check: serial.urlhandler.protocol_socket
+
+===== agent-a3818279c7defb258.jsonl
+$ cd "%USERPROFILE%/AppData/Local/Temp/claude/d--xetulai/<phiên>/scratchpad/fc" && cat vsc_LICENSE.txt | head -60; echo =====; grep -n -i "license\|free\|open.source\|never leaves\|trial\|telemetry\|rfc2217\|gdb\|S3\|platformio" vsc_readme.md | head -40
+----- đầu ra
+wokwi-vscode - https://wokwi.com/
+
+Copyright (c) 2019-2024 CodeMagic LTD - All Rights Reserved.
+
+The List of third party components licenses used in this extension can be viewed here:
+
+https://wokwi.com/legal/licenses
+
+Your use of this extension implies your acceptance of our Terms available at:
+
+https://wokwi.com/legal/terms
+
+Wokwi for VS Code is a proprietary (closed source) software.
+
+IMPORTANT:
+Wokwi is a tool made by software developers for software developers with passion and love for what we do.
+Pirating the tool is not only illegal and just morally wrong, it is also unfair to other fellow programmers who are using it legally,
+and very harmful for the tool and its future.
+=====
+3:Wokwi is an embedded systems and IoT simulator supporting ESP32, Arduino, and the Raspberry Pi Pico. Your code never leaves your computer - Wokwi runs the simulation inside VS Code, using the firmware binaries from your project.
+11:- Integration with ESP-IDF, PlatformIO, and Arduino.
+15:- GDB integration - Debug your code using the VS Code debugger.
+17:Please note that Wokwi for VS Code is a commercial product and requires a license after a free trial period.
+32:## Telemetry
+34:This extension collects telemetry data to help us build a better product. The data is anonymous and does not include any personal information. The extension respects the `telemetry.enableTelemetry` setting in VS Code. To opt out of telemetry, set `"telemetry.enableTelemetry": false` in your VS Code settings.
+

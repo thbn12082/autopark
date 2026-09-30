@@ -1,0 +1,47 @@
+Đo riêng ca uturn_w46 (như tests/test_planner_hard_cases.py::test_ca_truoc_day_bo_tay_nay_giai_duoc, time_limit=8.0)
+Máy bàn Dell Precision 3680 (i9-14900), 30/09/2026, mã: b37e9ee + sửa đổi chưa commit (không đổi mã lập kế hoạch).
+Tiến trình Python mở từ shell PowerShell của tác tử (không có cửa sổ hiện). Script: uturn_probe.py (cùng thư mục).
+  default = để nguyên; noeco = tiến trình tự tắt EcoQoS (SetProcessInformation, ProcessPowerThrottling,
+  ControlMask=EXECUTION_SPEED, StateMask=0) trước khi đo. Mỗi dòng "#i" là một lần gọi run_case trong CÙNG tiến trình.
+Tải CPU (Win32_Processor.LoadPercentage) đo ngay trước/sau mỗi lượt. Crawler 12 luồng (việc khác trên máy,
+bắt đầu 10:24:57, --minutes 30) còn trong danh sách tiến trình ở lượt 1
+nhưng tải CPU đo được 0–12 %.
+
+--- Lượt 1 (lệnh: .venv-train default 3; .venv-train noeco 3; .venv default 2) ---
+load before: 0
+crawler still running
+10:54:57 default #0: OK elapsed=4.57s cusps=21
+10:55:05 default #1: TRACKING_FAILED elapsed=8.00s cusps=0
+10:55:13 default #2: TRACKING_FAILED elapsed=8.00s cusps=0
+SetProcessInformation: True
+10:55:17 noeco #0: OK elapsed=3.62s cusps=18
+10:55:22 noeco #1: OK elapsed=3.61s cusps=18
+10:55:26 noeco #2: OK elapsed=3.62s cusps=18
+10:55:32 default #0: OK elapsed=4.55s cusps=21
+10:55:40 default #1: TRACKING_FAILED elapsed=8.00s cusps=0
+load after: 12
+
+--- Lượt 2, đảo thứ tự (lệnh: .venv noeco 3; .venv-train default 3; .venv-train noeco 2) ---
+load before: 3
+SetProcessInformation: True
+10:56:17 noeco #0: OK elapsed=3.62s cusps=18
+10:56:21 noeco #1: OK elapsed=3.61s cusps=18
+10:56:25 noeco #2: OK elapsed=3.62s cusps=18
+10:56:31 default #0: OK elapsed=4.57s cusps=20
+10:56:39 default #1: TRACKING_FAILED elapsed=8.00s cusps=0
+10:56:47 default #2: TRACKING_FAILED elapsed=8.00s cusps=0
+SetProcessInformation: True
+10:56:51 noeco #0: OK elapsed=3.64s cusps=18
+10:56:55 noeco #1: OK elapsed=3.62s cusps=18
+load after: 1
+
+Tổng: noeco 8/8 đạt, 3,61–3,64 s, 18 lần đổi chiều (docstring của test ghi số đo 08/09/2026: 3,70 s).
+default: lần đầu mỗi tiến trình đạt (3/3, 4,55–4,57 s, 20–21 lần đổi chiều); các lần sau trong cùng tiến trình
+hỏng TRACKING_FAILED ở 8,00 s (5/5). Cơ chế chính xác của Windows (dồn sang lõi E hay hạ xung, và vì sao lần đầu
+thoát) CHƯA rõ; chỉ biết tắt EcoQoS cho tiến trình thì hết.
+
+--- Test bo ảo có để lại tải cho test lập kế hoạch chạy sau nó không (linger_probe.py / linger_probe.log) ---
+Lệnh (10:52–10:53): .venv-train pytest tests/test_firmware_qemu.py tests/test_planner_hard_cases.py -p linger_probe
+Trước mỗi test của test_planner_hard_cases: số tiến trình qemu-system-xtensa = 0, luồng Python duy nhất MainThread
+(linger_probe.log). Kết quả lượt đó (pytest_bo_ao_roi_lap_ke_hoach.xml, 23 test): 13 test bo ảo đạt; uturn_w46
+hỏng (TIMEOUT ở 8,0 s, tiến trình default); 9 test còn lại của test_planner_hard_cases đạt.

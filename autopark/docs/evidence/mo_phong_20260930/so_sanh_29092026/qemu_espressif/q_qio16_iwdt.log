@@ -1,0 +1,36 @@
+    0.033 | ESP-ROM:esp32s3-20210327
+    0.033 | Build:Mar 27 2021
+    0.034 | rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+    0.039 | SPIWP:0xee
+    0.040 | mode:DIO, clock div:1
+    0.040 | load:0x3fce3808,len:0x4bc
+    0.041 | load:0x403c9700,len:0xbd8
+    0.041 | load:0x403cc700,len:0x2a0c
+    0.044 | entry 0x403c98d0
+    0.188 | E (76) esp_core_dump_flash: Incorrect size of core dump image: -65536
+    0.266 | 
+    0.266 | PROBE v1 boot=1 rtc_mem_kept=0 reason=POWERON(1) rom_reason0=1 rom_reason1=1 last_cmd=-
+    0.267 | MARKERS wrap=0x00000000 wrap_outsel21=0x0 shutdown=0x00000000
+    0.268 | BOOTREGS outsel21=0x0 gpio_en=0x00000000 gpio_out=0x00000000 ledc_ch0_conf0=0x00000000 ledc_ch0_duty_r=0x00000000 ledc_timer0=0x00000000
+    0.280 | NVS begin=1 boots_before=0 put=4
+    0.280 | RANDOM bca22543 e278c8c1
+    0.282 | FLASH mmap@0x8000: aa 50 01 02 00 90 00 00 (default read_mode=5)
+    0.284 | FLASH esp_flash_read mode=SLOWRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.284 | FLASH esp_flash_read mode=FASTRD err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.286 | FLASH esp_flash_read mode=DOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.286 | FLASH esp_flash_read mode=DIO err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.287 | FLASH esp_flash_read mode=QOUT err=0 first8=aa 50 01 02 00 90 00 00 shift=0
+    0.288 | FLASH esp_flash_read mode=QIO err=0 first8=00 00 aa 50 01 02 00 90 shift=2
+    0.293 | PINS pullup14=0 pulldown5=0 float6=0 GPIO_IN=0x00000000
+    0.293 | TWDT init(1s,panic)=0 add=0
+    0.294 | LEDC probe: wrote 0x100e read 0x00000000
+    0.295 | LEDC NOT MODELLED: skipping ledcSetup (it would divide by zero)
+    0.295 | READY
+# first READY: True
+    1.299 | T ms=1276 us=1276042 timer_cb=100 (+100 in 1000 ms)
+    2.302 | T ms=2276 us=2276005 timer_cb=200 (+100 in 1000 ms)
+    3.306 | T ms=3276 us=3276005 timer_cb=300 (+100 in 1000 ms)
+    4.304 >> send 'I'
+    4.306 | CMD I at ms=4270
+# READY after 'I': False
+# guest/wall ratio from T lines: median=0.997 min=0.996 max=0.997 n=2
