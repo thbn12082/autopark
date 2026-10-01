@@ -1,0 +1,6 @@
+# Chạy trên commit c03ff94 (cây làm việc sạch), máy bàn, bắt đầu 01/10/2026 19:07:29
+kiem: exit=0
+chạy lặp: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua
+.venv: bắt đầu 19:09:17, tải CPU 2 %, exit=0, 1388 test, 0 hỏng, 0 lỗi, 8 bỏ qua, 349 s (JUnit), 349 s (cả lệnh), ecoqos=off, hỏng: []
+.venv-train: bắt đầu 19:15:08, tải CPU 2 %, exit=0, 1442 test, 0 hỏng, 0 lỗi, 0 bỏ qua, 370 s (JUnit), 371 s (cả lệnh), ecoqos=off, hỏng: []
+# kết thúc 19:21:19

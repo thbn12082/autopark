@@ -387,3 +387,29 @@ làm việc sạch, cùng máy, 30/09/2026 13:47–14:02, offscreen, từ shell 
   - Chạy lặp `tests/test_firmware_qemu.py` 10 lượt: 10/10 lượt đạt cả 13 test (6 trong đó chạy firmware thật trong
     QEMU), không có cảnh báo #175 hay LOOP_OVERRUN
     ([chay_lap_test_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/chay_lap_test_bo_ao_ebbec83.txt)).
+
+## 9. Đợt biên tập tài liệu, chạy lại trên commit `c03ff94` (01/10/2026)
+
+Commit `c03ff94` (01/10/2026, đã push lên `origin/main`) gồm đợt viết lại tài liệu ngày 30/09/2026 sau hai vòng kiểm
+lại các chỗ sửa, cùng các sửa chữ trong mã (docstring, chú thích, một tooltip, mô tả gói; không đổi hành vi) và cách
+đếm khung của `python -m autopark.transport.qemu_board kiem` ([mục lục kỹ thuật](README.md), đoạn "Các đợt biên
+tập"). Mã chỉ khác `ebbec83` ở các chỗ đó, nên lượt này là kiểm lại, không có test mới.
+
+Chạy trên commit đó, cây làm việc sạch, cùng máy, 01/10/2026 19:07–19:21, offscreen, từ shell của tác tử, bằng bản sửa của
+script ở mục 8 (ngày lấy lúc chạy, thư mục kết quả là tham số):
+[chay_tren_commit.py](evidence/bien_tap_20261001/chay_tren_commit.py); tóm tắt:
+[chay_tren_commit_c03ff94.txt](evidence/bien_tap_20261001/chay_tren_commit_c03ff94.txt).
+
+| Lượt (giờ bắt đầu, tải CPU) | Kết quả | Thời gian | Tệp |
+|---|---|---|---|
+| `.venv` (19:09, 2 %) | **1380 đạt, 8 bỏ qua** (cần torch), 0 hỏng | 349 s | [pytest_venv_c03ff94.xml](evidence/bien_tap_20261001/pytest_venv_c03ff94.xml) |
+| `.venv-train` (19:15, 2 %) | **1442 đạt**, 0 bỏ qua, 0 hỏng | 370 s | [pytest_venv_train_c03ff94.xml](evidence/bien_tap_20261001/pytest_venv_train_c03ff94.xml) |
+
+- Cả hai tệp JUnit ghi `ecoqos=off`. Số test trùng lượt trên `ebbec83` (mục 8).
+- Bo ảo trên cùng commit, lần đầu chạy cách đếm khung tách riêng trên mã đã commit: `kiem` đạt, 39 khung
+  trong 2 s (≈ 19,5 Hz), cộng 16 khung nhận trước đó lúc kết nối và chờ bo ra khỏi BOOT, QEMU khởi động
+  1 lần ([kiem_bo_ao_c03ff94.txt](evidence/bien_tap_20261001/kiem_bo_ao_c03ff94.txt)).
+- Chạy lặp `tests/test_firmware_qemu.py` 10 lượt (19:07–19:09): 10/10 lượt đạt cả 13 test (6 trong đó
+  chạy firmware thật trong QEMU), không có cảnh báo #175 hay LOOP_OVERRUN
+  ([chay_lap_test_bo_ao_c03ff94.txt](evidence/bien_tap_20261001/chay_lap_test_bo_ao_c03ff94.txt)).
+- Chạy được trong bo ảo không chứng minh gì về bo thật ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1).

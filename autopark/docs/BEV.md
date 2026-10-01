@@ -471,8 +471,8 @@ giữ nguyên, không nới, cộng 6 test mới. Lần chạy cuối lúc 21:58
   chạy bằng `.venv` được 86 đạt (38 + 29 + 19), 0 lỗi. Lần chạy đủ bộ test ngày 25/09 trên máy bàn: `.venv` 1 242
   đạt, 7 bỏ qua; `.venv-train` 386 đạt (các tệp cần torch, cùng test nhãn, bàn thử, kiểm máy, hiệu chuẩn, ngoại
   tham, ROI); 0 lỗi.)* *(Cập nhật 01/10/2026: 386 là nhóm chọn của `.venv-train`, không phải toàn bộ bộ test
-  ([TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 7); lượt toàn bộ mới nhất trên `ebbec83`:
-  [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8.)*
+  ([TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 7); lượt toàn bộ mới nhất trên `c03ff94`:
+  [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 9.)*
 
 Sáu test mới:
 

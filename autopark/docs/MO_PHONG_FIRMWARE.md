@@ -78,6 +78,13 @@ Kết quả (mã sau review, chạy 10:11–10:13 ngày 30/09/2026, máy bàn; t
   - Chạy lặp 10 lượt: 10/10 lượt đạt cả 13 test (6 trong đó chạy firmware thật trong QEMU), không có cảnh báo #175 hay
     LOOP_OVERRUN
     ([chay_lap_test_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/chay_lap_test_bo_ao_ebbec83.txt)).
+- Chạy lại trên commit `c03ff94` (01/10/2026, cây làm việc sạch, 19:07–19:09; mã đã commit cách đếm tách riêng):
+  - `kiem` đạt: 39 khung trong 2 s (≈ 19,5 Hz), cộng 16 khung nhận trước đó, QEMU khởi động
+    1 lần ([kiem_bo_ao_c03ff94.txt](evidence/bien_tap_20261001/kiem_bo_ao_c03ff94.txt)).
+  - Chạy lặp 10 lượt: 10/10 lượt đạt cả 13 test (6 trong đó chạy firmware thật trong QEMU), không có cảnh báo #175
+    hay LOOP_OVERRUN ([chay_lap_test_bo_ao_c03ff94.txt](evidence/bien_tap_20261001/chay_lap_test_bo_ao_c03ff94.txt));
+    toàn bộ bộ test:
+    [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 9.
 
 **Độ tin cậy khi máy bận** (30/09/2026; máy bàn đang chạy việc khác của người dùng):
 - Lúc sáng, khi máy đang rất bận (đo nhanh bằng `Get-Process`: Edge chạy ẩn dựng hình bằng CPU ≈ 13 lõi, một job mô
@@ -326,6 +333,8 @@ Thư mục [evidence/mo_phong_20260930/](evidence/mo_phong_20260930/):
   các tệp bằng chứng đã được thay bằng `%USERPROFILE%`, `<phiên>` và mô tả chung; ngoài ra nội dung giữ nguyên.
 - Tệp có mã commit `ebbec83` (`kiem_bo_ao_ebbec83.txt`, `chay_lap_test_bo_ao_ebbec83.txt`, `pytest_venv*_ebbec83.xml`,
   `chay_tren_commit_ebbec83.txt`, script `chay_tren_commit.py`): chạy lại trên commit, cây làm việc sạch.
+- [bien_tap_20261001/](evidence/bien_tap_20261001/): chạy lại trên commit `c03ff94` (01/10/2026, cây làm việc sạch) bằng bản sửa của
+  `chay_tren_commit.py` ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 9).
 - `pytest_venv*_30092026*.xml`: toàn bộ bộ test ngày 30/09. [ecoqos_30092026/](evidence/mo_phong_20260930/ecoqos_30092026/):
   vì sao test ngân sách thời gian `uturn_w46` hỏng khi chạy từ tiến trình không cửa sổ. Cả hai được giải thích ở
   [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8.

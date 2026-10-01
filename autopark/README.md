@@ -126,9 +126,9 @@ $env:QT_QPA_PLATFORM = "offscreen"
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-Ngày 30/09/2026 bước này chạy bằng script [chay_tren_commit.py](docs/evidence/mo_phong_20260930/chay_tren_commit.py): script chạy thêm `qemu_board kiem` và 10 lượt test bo ảo, rồi ghi thẳng vào `docs/evidence/mo_phong_20260930/`. Sơ đồ 9.2 trong [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).
+Ngày 30/09/2026 bước này chạy bằng script [chay_tren_commit.py](docs/evidence/mo_phong_20260930/chay_tren_commit.py): script chạy thêm `qemu_board kiem` và 10 lượt test bo ảo, rồi ghi thẳng vào `docs/evidence/mo_phong_20260930/`. Ngày 01/10/2026 dùng bản sửa của script đó, [docs/evidence/bien_tap_20261001/chay_tren_commit.py](docs/evidence/bien_tap_20261001/chay_tren_commit.py): ngày lấy lúc chạy, thư mục kết quả là tham số (`.venv\Scripts\python.exe -X utf8 docs\evidence\bien_tap_20261001\chay_tren_commit.py <commit> <thư mục kết quả>`). Sơ đồ 9.2 trong [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).
 
-Lần chạy toàn bộ gần nhất: 30/09/2026, máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), bằng lệnh trên (offscreen), commit `ebbec83` của đợt bo ảo QEMU, cây làm việc sạch: `.venv` 1380 đạt, 8 bỏ qua (cần torch), 0 hỏng, 365 s; `.venv-train` 1442 đạt, 0 hỏng, 400 s. Cả hai tệp JUnit ghi `ecoqos=off`. Số test đổi theo mã; tệp kết quả và các lượt trước ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2, 3, 6, 8.
+Lần chạy toàn bộ gần nhất: 01/10/2026, máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), bằng bản sửa của script ở trên (offscreen), commit `c03ff94` của đợt biên tập tài liệu, cây làm việc sạch: `.venv` 1380 đạt, 8 bỏ qua (cần torch), 0 hỏng, 349 s; `.venv-train` 1442 đạt, 0 hỏng, 370 s; cùng số test với lượt trên `ebbec83` (30/09/2026). Cả hai tệp JUnit ghi `ecoqos=off`. Số test đổi theo mã; tệp kết quả và các lượt trước ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2, 3, 6, 8, 9.
 
 Tạo phiên mẫu rồi phát lại:
 

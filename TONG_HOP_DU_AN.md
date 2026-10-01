@@ -416,7 +416,7 @@ Cho giao diện chọn được bo ảo QEMU (`socket://`, hiện chỉ dùng t�
 - [Mục lục kỹ thuật](autopark/docs/README.md): hướng dẫn/biên bản theo công việc.
 - [Mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md): bo ảo QEMU, các trình giả lập đã thử và giới hạn (29–30/09/2026).
 - [Firmware ESP32-S3](autopark/firmware/esp32_vehicle/README.md): kiểm trên máy tính, biên dịch, bo ảo, trình tự thử trên bo.
-- [Chuyển máy bàn](autopark/docs/CHUYEN_MAY_BAN.md): máy bàn hiện tại, cổng LiDAR, cài lại môi trường, đổi tên thư mục sang `D:\xetulai`, PlatformIO, số kiểm 29–30/09/2026 (test host và biên dịch firmware, bo ảo QEMU, EcoQoS, số test trên `ebbec83`; mục 2, 3, 6–8), các bước lần sau đổi máy.
+- [Chuyển máy bàn](autopark/docs/CHUYEN_MAY_BAN.md): máy bàn hiện tại, cổng LiDAR, cài lại môi trường, đổi tên thư mục sang `D:\xetulai`, PlatformIO, số kiểm 29/09–01/10/2026 (test host và biên dịch firmware, bo ảo QEMU, EcoQoS, số test trên `ebbec83` và `c03ff94`; mục 2, 3, 6–9), các bước lần sau đổi máy.
 - [Máy nộp đồ án](autopark/docs/MAY_NOP_DO_AN.md): cài và đo lại trên laptop trình diễn.
 
 ## 7. Cách đọc bằng chứng
@@ -434,9 +434,10 @@ Cho giao diện chọn được bo ảo QEMU (`socket://`, hiện chỉ dùng t�
 | 29/09, commit `38f64bb` | `.venv`: 1.354 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.416 đạt; 0 hỏng | Toàn bộ test, máy bàn hiện tại, commit của đợt chuyển máy; thêm một test tệp tham chiếu `may_moi` 29/09 |
 | 29/09 chiều, test host firmware | `.venv`: 1.356 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.418 đạt; 0 hỏng | `b37e9ee` cộng hai test build và chạy test host của firmware |
 | 30/09 sáng, bo ảo QEMU | `.venv`: 1.376 đạt, 8 bỏ qua (cần torch), 0 hỏng; `.venv-train`: 1.437 đạt, 1 hỏng (`uturn_w46`, ngân sách thời gian) ở cả hai lượt | Mã chưa commit tính tới 10:21, trước khi `tests/conftest.py` tắt EcoQoS: `b37e9ee` cộng bo ảo QEMU (13 test, 6 trong đó chạy firmware thật trong QEMU) và sửa `SerialVehicleIO` (7 test). `uturn_w46` đạt khi tiến trình pytest tự tắt EcoQoS của Windows |
-| 30/09, commit `ebbec83` | `.venv`: 1.380 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.442 đạt; 0 hỏng | Lượt mới nhất, mã giống `ff4a018`. Toàn bộ test trên commit của đợt bo ảo, cây làm việc sạch, 365 s và 400 s; thêm 4 test EcoQoS; `tests/conftest.py` tắt EcoQoS cho tiến trình pytest (JUnit ghi `ecoqos=off`) |
+| 30/09, commit `ebbec83` | `.venv`: 1.380 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.442 đạt; 0 hỏng | Mã giống `ff4a018`. Toàn bộ test trên commit của đợt bo ảo, cây làm việc sạch, 365 s và 400 s; thêm 4 test EcoQoS; `tests/conftest.py` tắt EcoQoS cho tiến trình pytest (JUnit ghi `ecoqos=off`) |
+| 01/10, commit `c03ff94` | `.venv`: 1.380 đạt, 8 bỏ qua (cần torch); `.venv-train`: 1.442 đạt; 0 hỏng | Lượt mới nhất. Toàn bộ test trên commit của đợt biên tập tài liệu (mã chỉ khác `ebbec83` ở chữ và cách đếm khung của `qemu_board kiem`; không thêm test), cây làm việc sạch, 349 s và 370 s, JUnit ghi `ecoqos=off` |
 
-Không cộng các lượt thành tổng test. Lượt 20/09 ghi ở [báo cáo giai đoạn 0](BAO_CAO_GIAI_DOAN_0.md) mục 6; các lượt 25/09 ở [bản tổng hợp `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/TONG_HOP_DU_AN.md). Các lượt ngày 29–30/09 chạy offscreen; tệp kết quả và giới hạn ở [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 2, 3, 6, 8.
+Không cộng các lượt thành tổng test. Lượt 20/09 ghi ở [báo cáo giai đoạn 0](BAO_CAO_GIAI_DOAN_0.md) mục 6; các lượt 25/09 ở [bản tổng hợp `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/TONG_HOP_DU_AN.md). Các lượt ngày 29/09–01/10 chạy offscreen; tệp kết quả và giới hạn ở [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 2, 3, 6, 8, 9.
 
 `runs/`, dataset đầy đủ, cache, checkpoint và môi trường Python không có trong Git. Bằng chứng nhỏ nằm ở `autopark/docs/evidence/`. Lượt chạy lại các lệnh README trên máy bàn hiện tại ngày 29/09/2026 có tệp gốc ở `autopark/runs/kiem_may_20260929/` (git-ignore) và bản tóm tắt trong Git: [kiem_may_20260929.md](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md).
 

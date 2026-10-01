@@ -2553,17 +2553,19 @@ sequenceDiagram
     N->>J: dẫn số vào tài liệu bằng commit riêng
 ```
 
-Đọc thế nào: lượt mới nhất (commit `ebbec83`, cây làm việc sạch, máy bàn, 30/09/2026, offscreen, JUnit ghi
-`ecoqos=off`): `.venv` 1380 đạt, 8 bỏ qua (cần torch), 0 hỏng, 365 s; `.venv-train` 1442 đạt, 0 hỏng, 400 s; bo ảo 10/10
-lượt đạt, mỗi lượt 13 test, 6 trong đó chạy firmware thật trong QEMU. Script không tự checkout commit: người chạy phải ở
+Đọc thế nào: lượt mới nhất (commit `c03ff94`, cây làm việc sạch, máy bàn, 01/10/2026, offscreen, JUnit ghi
+`ecoqos=off`): `.venv` 1380 đạt, 8 bỏ qua (cần torch), 0 hỏng, 349 s; `.venv-train` 1442 đạt, 0 hỏng, 370 s; bo ảo 10/10
+lượt đạt, mỗi lượt 13 test, 6 trong đó chạy firmware thật trong QEMU. Lượt trên `ebbec83` (30/09/2026) cho cùng
+số test. Script không tự checkout commit: người chạy phải ở
 đúng commit với cây làm việc sạch. Mục `[tool.pytest.ini_options]` của `pyproject.toml` đặt
 `tmp_path_retention_policy = "failed"`: chỉ giữ thư mục tạm của test hỏng.
 
-Chi tiết: [chay_tren_commit.py](evidence/mo_phong_20260930/chay_tren_commit.py) ·
-[chay_tren_commit_ebbec83.txt](evidence/mo_phong_20260930/chay_tren_commit_ebbec83.txt) ·
-[pytest_venv_ebbec83.xml](evidence/mo_phong_20260930/pytest_venv_ebbec83.xml) ·
-[pytest_venv_train_ebbec83.xml](evidence/mo_phong_20260930/pytest_venv_train_ebbec83.xml) ·
-[CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8 · [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) · mã:
+Chi tiết: [chay_tren_commit.py](evidence/mo_phong_20260930/chay_tren_commit.py) (bản sửa 01/10/2026:
+[evidence/bien_tap_20261001/chay_tren_commit.py](evidence/bien_tap_20261001/chay_tren_commit.py)) ·
+[chay_tren_commit_c03ff94.txt](evidence/bien_tap_20261001/chay_tren_commit_c03ff94.txt) ·
+[pytest_venv_c03ff94.xml](evidence/bien_tap_20261001/pytest_venv_c03ff94.xml) ·
+[pytest_venv_train_c03ff94.xml](evidence/bien_tap_20261001/pytest_venv_train_c03ff94.xml) ·
+[CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8, 9 · [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) · mã:
 [conftest.py](../tests/conftest.py), [power_throttling.py](../autopark/power_throttling.py),
 [pyproject.toml](../pyproject.toml).
 

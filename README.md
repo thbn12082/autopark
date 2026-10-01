@@ -195,8 +195,8 @@ chưa làm. GĐ 10 có dàn ý khóa luận, kịch bản và ngưỡng nháp, c
 từng giai đoạn: [tổng quan](TONG_HOP_DU_AN.md) mục 3; sơ đồ 8.1 và 8.3 trong
 [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
-Số test là kiểm trên máy tính, không thay số đo thiết bị. Lượt mới nhất (commit `ebbec83`, cây làm việc sạch, máy bàn,
-offscreen, 30/09/2026): [tóm tắt](autopark/docs/evidence/mo_phong_20260930/chay_tren_commit_ebbec83.txt); các lượt trước
+Số test là kiểm trên máy tính, không thay số đo thiết bị. Lượt mới nhất (commit `c03ff94`, cây làm việc sạch, máy bàn,
+offscreen, 01/10/2026): [tóm tắt](autopark/docs/evidence/bien_tap_20261001/chay_tren_commit_c03ff94.txt); các lượt trước
 và giới hạn: [tổng quan](TONG_HOP_DU_AN.md) mục 7.
 
 ## Chạy mô phỏng trên Windows
