@@ -1,6 +1,6 @@
 # Kiểm kê phần cứng — giai đoạn 1
 
-Cập nhật: 25/09/2026 (quét lại `*.rig.json` dưới `runs/`: 39 tệp, kết luận về camera ≈ 29 khung/s không đổi), tối 24/09/2026 (có phiên một camera chạy ≈ 29 khung/s ở phơi sáng tự động, không cố định một cổng: cổng 3 (s01–s07, t01, t02 ngày 23/09) và cổng 1 (t05 ngày 23/09; m02, o01 ngày 24/09); nói rõ bao nhiêu camera bị cắt khung khi chạy ba hay bốn chiếc; link phiếu kiểm kê MN300 và bản nháp giai đoạn 4, 6), 24/09/2026 (kiểm lại LiDAR; khung bị cắt ở 720p; mã hiệu chuẩn camera; vai trò hai máy do người dùng xác nhận; bổ sung danh sách chưa nhận), 23/09/2026 (camera và hub), 22/09/2026 (LiDAR). Chỉ ghi những gì đã cầm trên tay hoặc máy đọc được; mục "chưa ghi" là chưa kiểm, không phải giả định.
+Cập nhật: 30/09/2026 (firmware chạy trong bo ảo QEMU, mục cuối), 29/09/2026 (máy bàn mới Dell Precision 3680: LiDAR ở COM3, driver CP210x 11.2.0.167, hub ở cổng gốc 18 và 8; [chuyển máy](CHUYEN_MAY_BAN.md)), 25/09/2026 (quét lại `*.rig.json` dưới `runs/`: 39 tệp, kết luận về camera ≈ 29 khung/s không đổi), tối 24/09/2026 (có phiên một camera chạy ≈ 29 khung/s ở phơi sáng tự động, không cố định một cổng: cổng 3 (s01–s07, t01, t02 ngày 23/09) và cổng 1 (t05 ngày 23/09; m02, o01 ngày 24/09); nói rõ bao nhiêu camera bị cắt khung khi chạy ba hay bốn chiếc; link phiếu kiểm kê MN300 và bản nháp giai đoạn 4, 6), 24/09/2026 (kiểm lại LiDAR; khung bị cắt ở 720p; mã hiệu chuẩn camera; vai trò hai máy do người dùng xác nhận; bổ sung danh sách chưa nhận), 23/09/2026 (camera và hub), 22/09/2026 (LiDAR). Chỉ ghi những gì đã cầm trên tay hoặc máy đọc được; mục "chưa ghi" là chưa kiểm, không phải giả định.
 
 ## RPLIDAR C1 (đợt mua 1)
 
@@ -51,4 +51,4 @@ Chưa nhận / chưa kiểm kê. *(24/09/2026: thêm AS5600 và phần nguồn/E
 - MN300: phiếu kiểm kê [mn300_inventory.md](mn300_inventory.md) (gói hàng, pin/sạc, ESC, bộ thu, servo, motor, đầu nối, ảnh, câu hỏi cho shop). Khi nhận xe thì điền phiếu đó; mục này chỉ giữ dòng tóm tắt và link.
 - Bảng đo đặc tính xe (tốc độ, góc lái, bán kính quay, quãng dừng): [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md), mọi ô CHƯA ĐO.
 - Nguồn, cầu chì, E-stop LA38, phần tử ngắt động lực, bảng tải nháp và kịch bản lỗi: [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md), CHƯA ĐO / CHƯA CHỐT / CHƯA THỬ.
-- ESP32-S3 và giao thức laptop–xe: [GIAO_THUC_XE.md](GIAO_THUC_XE.md). Firmware C++ **biên dịch cho ESP32-S3 từ 29/09/2026, chưa nạp bo**; chưa nối với bo thật nào.
+- ESP32-S3 và giao thức laptop–xe: [GIAO_THUC_XE.md](GIAO_THUC_XE.md). Firmware C++ **biên dịch cho ESP32-S3 từ 29/09/2026 và chạy trong bo ảo QEMU từ 30/09/2026 (chỉ là giả lập, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)), chưa nạp bo**; chưa nối với bo thật nào.

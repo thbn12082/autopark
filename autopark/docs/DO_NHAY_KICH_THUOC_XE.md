@@ -1,13 +1,15 @@
 # Độ nhạy của planner theo kích thước xe, với sa bàn cố định (24/09/2026)
 
-**Kế hoạch đối chiếu:** [v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 8 (giai đoạn 4, "Khi chưa có xe": để
-hình học xe với nhãn `CHƯA ĐO` và thử độ nhạy planner theo kích thước giả định). Đề xuất phép thử và lý do cần nó:
-[GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) mục 5.1 và 5.3.
+**Kế hoạch đối chiếu:** [v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 8 (giai đoạn 4, "Khi chưa có xe" theo
+[bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), nay là đoạn
+"Khi chờ": để hình học xe với nhãn `CHƯA ĐO` và thử độ nhạy planner theo kích thước giả định). Đề xuất phép thử và lý
+do cần nó: [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) mục 5.1 và 5.3.
 
 **Mức bằng chứng: CHỈ MÔ PHỎNG.** Mọi kết quả dưới đây là planner + bộ bám quỹ đạo + xe động học lý tưởng trong mô
-phỏng, trên máy bàn i9-14900, tối 24/09/2026. Xe tham chiếu là `configs/vehicle_default.json` (dài 0,31 m, rộng
-0,14 m, chiều dài cơ sở 0,19 m, nhô trước/sau 0,06/0,06 m, lái tối đa 30°): **mọi giá trị trong tệp đó là GIẢ ĐỊNH –
-CHƯA ĐO**, không phải thông số MN300. Chưa nhận MN300; chưa có số đo nào của xe thật. Kết quả không nói xe thật đỗ được
+phỏng, trên máy bàn trước (i9-14900, repo ở `D:\ap`; từ 29/09/2026 máy bàn là máy mới Dell Precision 3680 cùng cấu
+hình, [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md)), tối 24/09/2026. Xe tham chiếu là `configs/vehicle_default.json` (dài
+0,31 m, rộng 0,14 m, chiều dài cơ sở 0,19 m, nhô trước/sau 0,06/0,06 m, lái tối đa 30°): **mọi giá trị trong tệp đó
+là GIẢ ĐỊNH – CHƯA ĐO**, không phải thông số MN300. Chưa nhận MN300; chưa có số đo nào của xe thật. Kết quả không nói xe thật đỗ được
 hay không; nó chỉ nói planner hiện tại phản ứng thế nào khi kích thước xe lệch khỏi giả định trên một sa bàn giữ nguyên.
 
 | Thành phần | Tệp |
@@ -366,7 +368,12 @@ Chỉ ghi điều hai lượt cùng cho thấy. Tất cả là mô phỏng, quan
 - **Một hạt giống RRT, một lần chạy mỗi ô.** Nấc `ngẫu nhiên` của portfolio phụ thuộc hạt giống và thời gian; chưa chạy
   nhiều hạt giống để có tỉ lệ.
 - **Tải máy** (mục 4). Muốn số thời gian dùng được cho khóa luận thì chạy lại khi máy rảnh, `--workers 1`, và ghi rõ
-  điều kiện. CHƯA LÀM.
+  điều kiện. CHƯA LÀM. *(Cập nhật 30/09/2026: ngoài tải máy, cách Windows xếp lịch tiến trình cũng ảnh hưởng: tiến
+  trình không có cửa sổ, để Windows tự quyết EcoQoS, chạy chậm hơn hẳn dù máy gần rảnh (ví dụ một test lập đường:
+  0,99 s và 1,05 s khi tắt EcoQoS, 3,39 s và 2,06 s khi để Windows tự quyết; [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md)
+  mục 8). `tests/conftest.py` chỉ tắt EcoQoS cho tiến trình pytest; lệnh `sensitivity` và các tiến trình con
+  `--workers` của nó không tự tắt. Khi chạy lại phải ghi cả trạng thái EcoQoS; chạy từ một cửa sổ terminal đang hiện có
+  tránh được việc hạ tốc hay không: CHƯA THỬ.)*
 - **Mức thô.** Chỉ có 5/10/20 %; "mức lật đầu tiên" chỉ khoanh ngưỡng trong khoảng giữa hai mức, không phải ngưỡng
   chính xác.
 - **Hết giờ ≠ vô nghiệm; giải được ≠ an toàn trên xe thật.** Khoảng hở nhỏ nhất vài mm trong mô phỏng (mục 7) không còn
@@ -380,6 +387,7 @@ Chỉ ghi điều hai lượt cùng cho thấy. Tất cả là mô phỏng, quan
 
 1. Khi có số đo B1/B2 của MN300 (GIAI_DOAN_4_CHUAN_BI.md mục 3): lập `configs/vehicle_measured.json` rồi chạy lệnh
    `--plan-config` ở mục 3, ngân sách 20 s, khi máy rảnh. Đặt kết quả cạnh bảng ở đây.
-2. Chạy lại một lượt khi máy rảnh, `--workers 1`, để có số thời gian sạch cho khóa luận.
+2. Chạy lại một lượt khi máy rảnh, `--workers 1`, để có số thời gian sạch cho khóa luận. *(Cập nhật 30/09/2026: ghi
+   cả trạng thái EcoQoS của tiến trình, mục 8.)*
 3. Nếu cần ngưỡng mịn hơn cho một ca (ví dụ `parallel_135`): `--scenes parallel_135 --params length --levels 1,2,3,4,5`.
 4. Sa bàn thật của đồ án chưa dựng; khi dựng, thêm nó vào `scenarios/` để công cụ tự chạy trên nó.

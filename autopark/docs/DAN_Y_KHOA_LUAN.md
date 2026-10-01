@@ -1,4 +1,4 @@
-# Dàn ý khóa luận đề xuất — xe mô hình tự đỗ (bản nháp 24/09/2026, cập nhật tối, muộn tối, khuya 24/09/2026 và 25/09/2026)
+# Dàn ý khóa luận đề xuất — xe mô hình tự đỗ (bản nháp 24/09/2026, cập nhật tối, muộn tối, khuya 24/09/2026 và 25/09/2026; ghi chú 29–30/09/2026)
 
 > **Ghi công bắt buộc theo giấy phép dữ liệu:** nghiên cứu nhận thức trong dự án này được thực hiện với **Valeo WoodScape
 > Dataset** (<https://github.com/valeoai/WoodScape>; địa chỉ cũ `woodscape.valeo.com` / `woodscape.valeo.ai`, kiểm
@@ -11,6 +11,11 @@
 `9bcc30c`; đợt khuya `65b7127` … `54cb3e2`; rà tài liệu 02:54 ngày 25/09 `89cd58f`; đợt AI camera `b01dea4` (mã),
 `99e9a9e` (giấy phép), `9d68257` (tài liệu, gồm các ghi chú "đợt AI camera" trong tệp này). Chữ "chưa commit" trong tệp là
 trạng thái lúc viết đoạn đó; commit của từng việc đợt khuya ở đoạn "Cập nhật 25/09/2026" cuối các ghi chú đầu tệp.
+*(Cập nhật 30/09/2026: mã tới `ff4a018` (= `origin/main`). Sau `9d68257` có ba đợt: viết lại tài liệu ngày 26/09
+(`668bf5e`, `2ee2940`); chuyển máy bàn ngày 29/09 (`76bee39`, `38f64bb`, `b37e9ee`); bo ảo QEMU ngày 30/09 (`13b3871`,
+`cbb218a`, `ebbec83`, `ff4a018`). Hai đợt sau ở [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md). Các ghi chú 29–30/09 có từ
+trước đã vào `38f64bb` và `ebbec83`; các ghi chú ngày 30/09/2026 thêm khi rà tệp này sau `ff4a018` là thay đổi chưa
+commit lúc viết.)*
 
 **Tệp này là gì:** dàn ý **đề xuất** cho khóa luận, dựng từ các biên bản đã có trong repo tới 24/09/2026. Nó không phải
 khóa luận, không thêm số đo hay kết quả mới. Mọi con số dưới đây chép từ một tài liệu hoặc tệp đo được nêu kèm. Chỗ nào
@@ -105,7 +110,9 @@ lại LiDAR, bản nhỏ k01, demo hợp nhất bỏ ≥ 22 vòng), `6db5087` (t
 tắt lại), `54cb3e2` (kịch bản và ngưỡng nghiệm thu nháp, đồng bộ tài liệu, kể cả tệp này). Số của đợt khuya dẫn kèm
 commit tương ứng. **(2) Test.** Hai trường hợp hỏng của `tests/test_planner_hard_cases.py` đã sửa ngày 25/09, trước
 commit (nằm trong `10a4735`; 4.2). Toàn bộ bộ test chạy lại ngày 25/09 trên máy bàn rảnh: `.venv` 1242 đạt, 7 bỏ qua,
-0 hỏng; `.venv-train` 386 đạt (đầu TONG_HOP_DU_AN.md); không còn `xfail`. Kiểm lại lúc rà: số test đếm bằng
+0 hỏng; `.venv-train` 386 đạt (nhóm chọn, không phải toàn bộ; TONG_HOP_DU_AN.md mục 7, lúc viết ở đầu tệp đó); không
+còn `xfail`. *(Cập nhật 30/09/2026: lượt toàn bộ mới nhất trên `ebbec83`: `.venv` 1.380 đạt, 8 bỏ qua; `.venv-train`
+1.442 đạt; 0 hỏng; [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8.)* Kiểm lại lúc rà: số test đếm bằng
 `--collect-only` ở `54cb3e2` khớp các số test của đợt khuya ghi trong tệp này; lệnh năm tệp ở cuối mục 8 chạy lại được
 269 đạt (mục 8). **(3) Không đổi:** laptop RTX 3050 Ti vẫn chưa chạy gì ngoài giai đoạn 0 (nay `git pull` là có mọi thứ
 ở trên); chưa có nội tham, ngoại tham đo hay ROI cho camera nào; AI chưa nối vào lập đường *(đợt AI camera 25/09/2026:
@@ -128,6 +135,12 @@ phát lại một bản ghi BT (o03) với mô hình thật; chưa camera nào �
 tệp, phần 0 (dòng BT, TH), mục 1 (ý 3, 4), 3.8, 3.8b, 3.10, 3.11, bảng 4.12 dòng 3 và 8, mục 4 (giấy phép của ảnh), 5.1
 (D1), 5.4, mục 6, mục 7 (việc 2, thêm việc 26), mục 8; thêm 3.11b. Không thêm số đo nào ngoài số trong các tài liệu kể
 trên và lần chạy test ghi ở mục 8.
+
+*Cập nhật 30/09/2026 (rà sau `ff4a018`; không có phiên đo mới trên thiết bị):* đã sửa (giữ câu cũ, thêm ghi chú có
+ngày): tiêu đề và trạng thái commit đầu tệp; đoạn "Cập nhật 25/09/2026" ở trên (số test mới nhất); mục 1 ý 8, 9, 10;
+4.1; 4.2 (giới hạn: EcoQoS); 4.3 (báo động giả WoodScape test ở 0,15 là 3,09 %, không phải 3,97 %); 4.8; bảng 4.12
+dòng 6, 9; mục 4 (dòng sơ đồ nguồn và dừng; sáu dòng bằng chứng 29–30/09); mục 7 việc 14, 23, 26; mục 8. Số test mới
+nhất: `ebbec83` ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8).
 
 **Cách đọc mỗi mục ở phần 3:** *Viết được* (nội dung đã có cơ sở) · *Nguồn* (tài liệu, mục) · *Mức* (mức bằng chứng, phần
 0) · *Hình/bảng* (có sẵn ở đâu) · *Còn thiếu* (trước khi viết được) · *Giới hạn phải nói* (câu bắt buộc có trong khóa luận).
@@ -195,15 +208,19 @@ Những điều sau phải có mặt trong khóa luận, ở chương thực ngh
    [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) (37 kịch bản, phương pháp đo độc lập R1–R7); mức TK, mọi ngưỡng ĐỀ XUẤT –
    CHỜ CHỐT. Câu ở trên vẫn đúng cho tới khi người dùng và GVHD duyệt; không trích số N-… như ngưỡng đã chốt.)
 8. **Nhiều bằng chứng nằm trong `autopark/runs/` (git-ignore)**, chỉ có trên máy bàn và chưa có bản sao lưu nào được ghi
-   nhận (TONG_HOP mục 5.1). Hình và bảng lấy từ đó phải sao lưu trước khi viết.
+   nhận (việc 3 ở mục 7 của tệp này; ý gốc ở TONG_HOP_DU_AN.md mục 5.1 bản `9d68257`). Hình và bảng lấy từ đó phải sao
+   lưu trước khi viết.
 9. **Số của giai đoạn 0 (20/09) đo trên bản mã cũ.** Từ đó mã đã thêm nhiều khối. Muốn dẫn số test, số ca, coverage trong
    khóa luận thì phải chạy lại trên bản mã cuối và ghi ngày, máy, commit. *(Cập nhật 25/09/2026:* toàn bộ bộ test đã
    chạy lại ngày 25/09 trên máy bàn, trên cây làm việc sau đó được commit thành `65b7127` … `54cb3e2`: `.venv` 1242 đạt,
    7 bỏ qua; `.venv-train` 386 đạt. Chiến dịch 2.880 ca và coverage chưa chạy lại; trước khi nộp vẫn phải chạy lại trên
-   bản mã nộp.)
-10. **Công cụ AI trong quá trình làm.** Các biên bản ghi nhiều vòng rà soát "bằng agent" (ví dụ HUAN_LUYEN mục 13,
-    GIAI_DOAN_2_BAN_THU mục 8, TONG_HOP đầu tệp). Quy định của trường về khai báo dùng công cụ AI: **cần tra**. Lời cam
-    đoan và phần phương pháp phải khớp quy định đó.
+   bản mã nộp.) *(Cập nhật 30/09/2026: 386 là nhóm chọn của `.venv-train`, không phải toàn bộ (TONG_HOP_DU_AN.md mục 7).
+   Lượt toàn bộ mới nhất trên `ebbec83`, máy bàn Dell Precision 3680: `.venv` 1.380 đạt, 8 bỏ qua; `.venv-train` 1.442
+   đạt; 0 hỏng ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8). Chiến dịch 2.880 ca và coverage vẫn chưa chạy lại.)*
+10. **Công cụ AI trong quá trình làm.** Các biên bản ghi nhiều vòng rà soát "bằng agent" (ví dụ HUAN_LUYEN mục 13 và
+    đầu TONG_HOP ở bản `9d68257`; GIAI_DOAN_2_BAN_THU mục 8; đầu tệp [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md): khảo
+    sát bằng 13 tác tử ngày 29/09/2026 và các lượt review bằng tác tử ngày 30/09/2026). Quy định của trường về khai báo
+    dùng công cụ AI: **cần tra**. Lời cam đoan và phần phương pháp phải khớp quy định đó.
 11. **Việc tối 24/09/2026 chưa commit** (thêm tối 24/09/2026). Quy tắc ghép theo nhịp riêng, làm nóng AI, BEV, ghi/phát
     lại, định vị LiDAR, chế độ quan sát và các bản nháp giai đoạn 4/6 đều nằm trên HEAD `2bd37b6` dưới dạng thay đổi chưa
     commit. Bản rút gọn số đo tối 24/09 có trong
@@ -754,10 +771,11 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
 - *Giới hạn phải nói:* firmware C++ **chưa nạp, chưa chạy trên bo** (29/09/2026: biên dịch cho ESP32-S3 bằng PlatformIO,
   0 cảnh báo; lõi `src/core` khớp bản Python qua test host trên máy tính, 703 check; bản build thật chạy trong bo ảo
   QEMU với phần mềm laptop từ 30/09/2026, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md): bo ảo không có LEDC, GPIO vào,
-  watchdog, USB-CDC thật, nên không phải bằng chứng về bo); chân GPIO, xung ESC/servo, hành vi ESC khi mất xung và khi
-  lùi đều CHƯA CHỐT; `VehicleIO` chưa nối vào phiên và bộ bám quỹ đạo (việc đang làm, mục 8). *Cập nhật tối 24/09/2026:*
-  đã nối vào phiên đỗ xe và bộ bám, **chỉ với bo mô phỏng và cổng serial giả** (3.12b). Cùng đợt: `SerialVehicleIO` có
-  `poll(block=False)` và đồng hồ mặc định là `time.perf_counter` (trên Windows `time.monotonic` chỉ đổi mỗi 15,625 ms).
+  task watchdog kích hoạt, USB-CDC thật, nên không phải bằng chứng về bo); chân GPIO, xung ESC/servo, hành vi ESC khi
+  mất xung và khi lùi đều CHƯA CHỐT; `VehicleIO` chưa nối vào phiên và bộ bám quỹ đạo (việc đang làm, mục 8).
+  *Cập nhật tối 24/09/2026:* đã nối vào phiên đỗ xe và bộ bám, **chỉ với bo mô phỏng và cổng serial giả** (3.12b).
+  Cùng đợt: `SerialVehicleIO` có `poll(block=False)` và đồng hồ mặc định là `time.perf_counter` (trên Windows
+  `time.monotonic` chỉ đổi mỗi 15,625 ms).
   *(Bản trước ở đây ghi: "GIAO_THUC_XE mục 12 còn ghi `VehicleIO` chưa nối vào phiên; dòng đó đã lỗi thời
   (GIAI_DOAN_6_CHUAN_BI.md ghi nhận)". Cập nhật tối 24/09/2026:)* GIAO_THUC_XE mục 12 đã được sửa cùng tối: dòng cũ "chưa
   nối `VehicleIO` vào `session.py`, chưa ghi `commands.csv`/`telemetry.csv`" nay được ghi là lỗi thời ngay tại chỗ. Mục đó
@@ -907,7 +925,8 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   kín vòng của chiến dịch 20/09 có trạng thái, sự kiện chèn và lý do dừng từng phiên
   (`runs/robustness_final_2026-09-20/cases.jsonl`, git-ignore), có thể phân loại lại theo 9 nhóm. Ở mức XT: chưa có.
 - *Còn thiếu:* ngưỡng nghiệm thu (16.2), bộ kịch bản nghiệm thu (16.3), cách đo độc lập và định nghĩa thành công/thất bại,
-  **phải chốt trước khi thu kết quả cuối** (kế hoạch 14 "Khi chưa đủ bộ xe"); mẫu biên bản lần thử có cột kết quả, can
+  **phải chốt trước khi thu kết quả cuối** (kế hoạch mục 14, đoạn "Khi chưa đủ bộ xe" ở bản `9d68257`, nay là đoạn
+  "Khi chờ"); mẫu biên bản lần thử có cột kết quả, can
   thiệp và nhóm nguyên nhân. Bảng kịch bản đang được soạn nháp (mục 8). *(Cập nhật khuya 24/09/2026, chưa commit (cập nhật 25/09/2026: đã commit, `54cb3e2`):* bản
   nháp đã có, mức TK, CHỜ CHỐT: [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) có 37 kịch bản trong 9 nhóm, bảy phương
   pháp đo độc lập R1–R7 (camera trên cao là chính, kiểm nó bằng "xe giả" TC-1), gói dữ liệu GD1–GD6, mẫu biên bản có cột
@@ -963,8 +982,11 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   theo chú thích trong mã; chỉ đòi planner trả NO_PATH hoặc TIMEOUT). Đối chứng âm "có chứng minh" riêng chưa được thêm
   (TONG_HOP_DU_AN.md mục 5.4).)
 - *Giới hạn phải nói:* thông số xe giả định; miền tham số 0,7–1,4 lần kích thước chỉ là miền thử; 25/240 COMPLETED **không
-  phải tỉ lệ đỗ thành công** (chiến dịch cố tình chèn lỗi); tìm đường trong thời hạn phụ thuộc tải CPU; cờ dừng mô phỏng
-  không chứng minh phanh hay E-stop.
+  phải tỉ lệ đỗ thành công** (chiến dịch cố tình chèn lỗi); tìm đường trong thời hạn phụ thuộc tải CPU *(cập nhật
+  30/09/2026: và cách Windows xếp lịch tiến trình: trên máy bàn hiện tại `uturn_w46` hỏng cả khi máy gần rảnh nếu để
+  Windows tự quyết EcoQoS; từ 30/09/2026 `tests/conftest.py` tắt EcoQoS cho pytest;
+  [KIEM_THU_DO_BEN_GIAI_DOAN_0.md](KIEM_THU_DO_BEN_GIAI_DOAN_0.md) mục 4, [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8)*;
+  cờ dừng mô phỏng không chứng minh phanh hay E-stop.
 
 **4.3. AI trên dữ liệu công khai — DL, máy bàn i9-14900 + RTX 4000 Ada, 21–23/09/2026**
 - *Viết được:*
@@ -985,8 +1007,8 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
     lại".
   - Ngưỡng 0,15 (chọn trên val theo F2), ba seed (mục 17.1): vật cản → FREE trên ACDC 2,2 ± 0,2 % (báo động giả 7,6 ±
     1,2 %), RO21 recall 79,9 ± 3,2 %. Chỉ seed 20260920 (mục 10): WoodScape test 0,69 % (hai seed kia chưa chấm test ở
-    0,15), ACDC 2,28 %, RO21 vật cản → FREE 18,2 %; báo động giả WoodScape test 1,37 → 3,97 %. Loss có trọng số lớp chỉ
-    dịch điểm làm việc.
+    0,15), ACDC 2,28 %, RO21 vật cản → FREE 18,2 %; báo động giả WoodScape test 1,37 → 3,09 % *(sửa 30/09/2026: trước
+    ghi nhầm 3,97 %, là 1 − precision của lớp BLOCKED)*. Loss có trọng số lớp chỉ dịch điểm làm việc.
   - Thêm AVM-SS/ACDC (phần III): không lượt nào vượt lượt nền trên hai tập chưa chạm; trộn WoodScape + AVM làm vật cản →
     FREE trên ACDC tăng 4,1 ± 0,4 % → 13,5 ± 2,8 %; hai kết luận nháp đã rút lại.
   - Độ trễ một ảnh khi GPU rảnh: torch CUDA fp32 4,4 ms, onnxruntime CPU 7,6 ms (máy bàn).
@@ -1242,7 +1264,9 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   mã nguồn); mô phỏng vòng tốc độ với số giả định: sai số trung bình < 1 mm/s nhưng vọt lố 26–57 %; ngừng gửi lệnh lúc
   0,15 m/s thì xe mô phỏng dừng sau 0,39 s, trôi 3,9 cm.
 - *Nguồn:* [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 10–11.
-- *Giới hạn phải nói:* mọi số là của **mô hình giả định**, không phải quãng dừng hay đáp ứng của xe thật; C++ chưa chạy trên bo (lõi chỉ qua test host trên máy tính, 29/09/2026).
+- *Giới hạn phải nói:* mọi số là của **mô hình giả định**, không phải quãng dừng hay đáp ứng của xe thật; C++ chưa chạy
+  trên bo thật: lõi qua test host trên máy tính (29/09/2026); cả firmware biên dịch cho ESP32-S3 (29/09/2026) và chạy
+  trong bo ảo QEMU (30/09/2026, mức MP, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)).
 - *Thêm tối 24/09/2026 — `VehicleIO` trong phiên đỗ xe và chế độ quan sát (MP)* ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md)
   mục 7): `tests/test_session_vehicle.py` 34 test (tính cả tham số hóa), đạt 34/34; chạy cùng các test giai đoạn 0, giao
   thức, hợp nhất, giao diện liên quan: 361 đạt, 0 lỗi (lần chạy lúc đó); kiểm đột biến 6 + 27, đều bị bắt. *(Cập nhật
@@ -1394,10 +1418,10 @@ Không điều kiện nào được đánh dấu đạt (kế hoạch 17.4, 24/0
 | 3 | AI/CV cho thông tin cục bộ cho planner, có đo sai số/nhầm lẫn | Đo trên dữ liệu công khai (DL); chạy trực tiếp để quan sát (BT); *tối 24/09:* BEV trên rig tổng hợp và ảnh WoodScape (TH, DL); *khuya 24/09 (chưa commit):* BEV ≈ 7–12 ms trên rig tổng hợp (TH); RoadAnomaly21 (DL); *đợt AI camera 25/09/2026 (chưa commit):* AI camera nối vào phiên đỗ xe làm nguồn vật cản (TH; phát lại bản ghi o03: mọi lô bị chặn vì chưa hiệu chuẩn), 3.11b | Hiệu chuẩn, ngoại tham, ROI để chạy BEV trên camera dự án; đo sai số BEV; nối vào costmap/planner; chấm trên sa bàn; quyết định giấy phép. *(Đợt AI camera 25/09/2026: "nối vào costmap/planner" đã làm ở mức phần mềm; "quyết định giấy phép" đã có (cách đọc A, Valeo chưa xác nhận); các việc còn lại giữ nguyên)* |
 | 4 | Chọn vị trí/hướng, xem trước, ra lệnh bắt đầu | Có trong giao diện mô phỏng (MP) | Trên xe thật |
 | 5 | Quỹ đạo xét giới hạn lái và toàn thân xe | Có, với thông số giả định (MP). *Khuya 24/09 (chưa commit):* độ nhạy theo kích thước xe và đường chứng của 16 ca khó, kiểm độc lập với planner (MP) | Thông số MN300 đo được; *khuya 24/09:* tiêu chí số lần đổi chiều CHƯA CHỐT |
-| 6 | Xe thực thi có phản hồi tốc độ/góc | Vòng tốc độ trong mô phỏng `VehicleIO` (MP); *tối 24/09:* `VehicleIO` nối vào phiên đỗ xe, đỗ xong với bo mô phỏng và tư thế lý tưởng; chế độ quan sát không gửi COMMAND nào (MP) | Encoder, AS5600, ESP32-S3, xe; nguồn tư thế thật |
+| 6 | Xe thực thi có phản hồi tốc độ/góc | Vòng tốc độ trong mô phỏng `VehicleIO` (MP); *tối 24/09:* `VehicleIO` nối vào phiên đỗ xe, đỗ xong với bo mô phỏng và tư thế lý tưởng; chế độ quan sát không gửi COMMAND nào (MP); *(30/09/2026: bản build firmware thật chạy trong bo ảo QEMU với `SerialVehicleIO`: dốc tốc độ mục tiêu, hết hạn lệnh, mất liên lạc, reset chip; mức MP/giả lập, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md). Firmware chưa có mã đọc cảm biến nên chưa có phản hồi đo được; chưa nạp bo)* | Encoder, AS5600, ESP32-S3, xe; nguồn tư thế thật |
 | 7 | Hoàn thành các bài đỗ theo tiêu chí đã chốt | — *(khuya 24/09: bản đề xuất tiêu chí N-D… và kịch bản DO, TK, chưa duyệt)* | Tiêu chí chưa chốt; xe |
 | 8 | Vật cản/dữ liệu không hợp lệ làm dừng hoặc từ chối chạy | Dừng khi có vật mới trên đường hoặc mất LiDAR: chỉ kiểm bằng mô phỏng và nguồn quét kịch bản (MP). LiDAR thật đứng yên (22/09) chỉ cho thấy đỗ xong với 0 dừng giả trên cảnh tĩnh (BT), không phải bằng chứng về hành vi dừng. *Tối 24/09:* phiên đỗ xe qua `VehicleIO` mô phỏng dừng khi telemetry/tư thế cũ và từ chối START khi trạng thái thật không khớp (MP). *Đợt AI camera 25/09/2026 (chưa commit):* hộp AI camera mới trên đường làm xe ảo dừng qua MAP_CHANGED; AI không dùng được lúc chạy thì cảnh báo, hay dừng khi tích "AI bắt buộc" (camera giả, MP; 3.11b) | Đưa tay/hộp và rút cáp với LiDAR thật khi xe ảo đang chạy (cần người); trên xe. *Tối 24/09:* sửa khoảng trống an toàn khi có `Heartbeat` (một COMMAND enable=1 sau khi bo đã về ARMED, chỉ thấy trên mô phỏng; 3.12b), CHƯA LÀM. *Muộn tối 24/09:* đã sửa ở mức MP; còn thử trên bo thật. *(Cập nhật muộn tối 24/09/2026:)* còn một khoảng hở suy ra từ mã, chưa có test: bo vừa về ARMED mà khung báo điều đó chưa tới laptop (≈ 50 ms + trễ USB) thì vẫn có thể có một enable=1 (GIAO_THUC_XE mục 12; 3.12b). Xử lý rút cáp LiDAR trong phần mềm có test với cổng giả (TH, 4.4); rút cáp thật chưa thử. *(Khuya 24/09/2026:)* START bị từ chối khi giới hạn bo lệch nguy hiểm so với cấu hình và khi chọn bo thật mà chưa có nguồn tư thế (MP, cổng giả, 3.12b); cầu nối ToF (TH). Chốt firmware sau `COMMAND_TIMEOUT` để đóng khoảng hở trên: chờ người dùng duyệt, CHƯA LÀM |
-| 9 | Nguồn, watchdog, E-stop đã kiểm chứng | Watchdog ở bản tham chiếu Python (MP); ngõ vào E-stop đã chọn (TK); *tối 24/09:* bảng tải, sơ đồ nguồn/dừng, 16 kịch bản thử lỗi soạn nháp (TK, CHƯA THỬ) | Toàn bộ phần cứng nguồn/dừng |
+| 9 | Nguồn, watchdog, E-stop đã kiểm chứng | Watchdog ở bản tham chiếu Python (MP); ngõ vào E-stop đã chọn (TK); *tối 24/09:* bảng tải, sơ đồ nguồn/dừng, 16 kịch bản thử lỗi soạn nháp (TK, CHƯA THỬ); *(30/09/2026: hết hạn lệnh, watchdog liên lạc và logic chốt E-stop của lõi C++ còn được kiểm qua test host (29/09/2026); hết hạn lệnh và mất liên lạc còn chạy trong bo ảo QEMU (30/09/2026); đều mức MP. Task watchdog kích hoạt thật, `output_guard`, móc panic và ngõ vào E-stop thật chưa kiểm ở đâu, [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md))* | Toàn bộ phần cứng nguồn/dừng |
 | 10 | Có dữ liệu, cấu hình, hướng dẫn tái hiện | Replay mô phỏng; hồ sơ đo bàn thử; hướng dẫn laptop; *tối 24/09:* ghi/phát lại phiên bàn thử, một phiên thật phát lại đúng số bộ (BT) | Sao lưu `runs/`; chạy lại trên laptop và bản mã cuối; commit việc tối 24/09 (*khuya 24/09/2026:* đã commit và push lúc 20:22, `bfcbfc2` … `9bcc30c`; còn commit đợt khuya (*cập nhật 25/09/2026:* đã commit và push, `65b7127` … `54cb3e2`); kết quả độ nhạy và RA21 hiện chỉ ở `runs/` hoặc thư mục tạm) |
 
 ### Chương 5. Kết luận và hướng phát triển
@@ -1461,7 +1485,9 @@ chưa có trên GitHub; *sửa sau vòng kiểm tra tối 24/09/2026:* thêm dò
 commit; *cập nhật muộn tối 24/09/2026:* thêm dòng tham chiếu 19:08, nay **bốn** dòng cuối bảng chưa commit; *sửa khuya
 24/09/2026:* bốn dòng đó nay **đã commit** trong `bfcbfc2`, `b100a5d`, `9bcc30c` và có trên GitHub; các dòng thêm khuya
 24/09 ở cuối bảng thì **chưa commit**; *cập nhật 25/09/2026:* các dòng đó nay đã commit và có trên GitHub, `hard_cases/`
-trong `10a4735`, `lidar/do_lap_lai_*`, `k01_kiem_suc_khoe.*` và `odometry_khop_scan_*` trong `a7cec5e`):
+trong `10a4735`, `lidar/do_lap_lai_*`, `k01_kiem_suc_khoe.*` và `odometry_khop_scan_*` trong `a7cec5e`; *cập nhật
+30/09/2026:* mọi tệp trong bảng đã commit và có trên GitHub (HEAD `ff4a018` = `origin/main`), chữ "chưa commit" ở từng
+dòng là trạng thái lúc viết; thêm sáu dòng cuối cho bằng chứng ngày 29–30/09/2026):
 
 | Tệp | Nội dung | Ngày, mức | Dùng cho |
 |---|---|---|---|
@@ -1480,12 +1506,18 @@ trong `10a4735`, `lidar/do_lap_lai_*`, `k01_kiem_suc_khoe.*` và `odometry_khop_
 | [kiem_toan_ke_hoach_20260924.json](evidence/ke_hoach/kiem_toan_ke_hoach_20260924.json) | 275 việc của kế hoạch, trạng thái, bằng chứng | 24/09 | Mở đầu, phụ lục D |
 | [cho_nhip_rieng_ghi_phat_lai_20260924.json](evidence/rig/cho_nhip_rieng_ghi_phat_lai_20260924.json) (*thêm tối 24/09*; **chưa commit**) | Bản rút gọn m01, m02 (`may_moi` 24/09 lúc 15:25, quy tắc trước; khác phiên camera m01, m02 ngày 23/09) và o01–o07 (quy tắc theo nhịp riêng, ghi o03, phát lại o04–o06, làm nóng o07); chuỗi thời gian lô AI đầu tiên theo cỡ lô | 24/09 tối, BT | 4.6, 4.6b |
 | [dinh_vi_p07_tren_p07.png](evidence/lidar/dinh_vi_p07_tren_p07.png), [dinh_vi_live_headless_tren_p07.png](evidence/lidar/dinh_vi_live_headless_tren_p07.png), [dinh_vi_k01_tren_p07.png](evidence/lidar/dinh_vi_k01_tren_p07.png), [dinh_vi_k01_global_tren_p07.png](evidence/lidar/dinh_vi_k01_global_tren_p07.png) + [dinh_vi_tren_p07_20260924.json](evidence/lidar/dinh_vi_tren_p07_20260924.json) (*thêm tối 24/09*; **chưa commit**) | Overlay định vị p07 / live_headless / k01 / k01 `--global --every 5` trên bản đồ p07, dựng bằng mã đã sửa màu; tóm tắt lệnh, tham số, hash mã, kết quả từng lần chạy (thời gian mỗi vòng trong tệp đo khi máy bận, không trích) | 24/09 tối, BT offline trên bản ghi 22/09 và 24/09 (độ nhất quán, chưa có tham chiếu độc lập) | 3.6b, 4.4 |
-| Sơ đồ nguồn và sơ đồ dừng dạng mermaid trong [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md) mục 2–3 (*thêm tối 24/09*; **chưa commit**) | Bản nháp, nhiều ô CHƯA CHỐT | 24/09 tối, TK | 3.13 (chỉ dùng làm hình nháp, ghi rõ chưa lắp) |
+| Sơ đồ nguồn và sơ đồ dừng dạng mermaid trong [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md) mục 2–3 (*thêm tối 24/09*; **chưa commit**) | Bản nháp, nhiều ô CHƯA CHỐT. *(Cập nhật 30/09/2026: hai sơ đồ đã vẽ lại theo mã ở `ff4a018`, có màu trạng thái; bản 24/09 ghi task watchdog 300 ms, bản nạp vào xe (Arduino-ESP32 2.0.17) là 1 s. Một phần logic dừng nay đã kiểm ở mức MP (bản Python, test host lõi C++, bo ảo QEMU); phần cứng nguồn và dừng vẫn chưa lắp.)* | 24/09 tối, TK | 3.13 (chỉ dùng làm hình nháp, ghi rõ chưa lắp) |
 | [tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json) (*thêm muộn tối 24/09*; **chưa commit**) | Tham chiếu máy bàn trước của lệnh đo laptop, dùng tới 25/09/2026: `may_moi` lúc 19:08 bằng mã mới (quy tắc chờ theo nhịp riêng, làm nóng AI, `ai_warm_up_ms`); không ghi độ lệch trong bộ | 24/09 tối, BT | 4.5, 4.6, 4.10 |
 | [tham_chieu_20260929.json](evidence/may_ban/tham_chieu_20260929.json) (*thêm 29/09/2026*) | Tham chiếu hiện dùng của lệnh đo laptop: `may_moi` lúc 12:59 trên máy bàn hiện tại (Dell Precision 3680, cùng cấu hình, mã `9d68257`), `digest` có quy tắc chờ, làm nóng AI và độ lệch bộ ảnh; cảnh camera không ghi lại; người dùng chọn ngày 29/09/2026 ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2) | 29/09, BT | 4.5, 4.6, 4.10 |
 | [witness_20260924.json](evidence/hard_cases/witness_20260924.json), [witness_ngan_song_song_20260924.json](evidence/hard_cases/witness_ngan_song_song_20260924.json), ảnh [parallel_122_ngan_20260924.png](evidence/hard_cases/parallel_122_ngan_20260924.png), [parallel_115_ngan_20260924.png](evidence/hard_cases/parallel_115_ngan_20260924.png), [zigzag_corridor_20260924.png](evidence/hard_cases/zigzag_corridor_20260924.png) (*thêm khuya 24/09*; **chưa commit**) | Đường chứng cho nhãn 16 ca khó; đường chứng ngắn 5 / 13 lần đổi chiều của hai ca đỗ song song; các lần chạy planner và tái bám ở các tệp JSON cùng thư mục (thời gian đo dưới tải, không phải số đo) | 24/09 khuya, MP (xe giả định) | 4.2 |
 | [do_lap_lai_20260924.json](evidence/lidar/do_lap_lai_20260924.json), [do_lap_lai_p07_nen_phong.png](evidence/lidar/do_lap_lai_p07_nen_phong.png), [do_lap_lai_k01_kiem_suc_khoe.png](evidence/lidar/do_lap_lai_k01_kiem_suc_khoe.png), [k01_kiem_suc_khoe.png](evidence/lidar/k01_kiem_suc_khoe.png) (+ [.json](evidence/lidar/k01_kiem_suc_khoe.json), [.analysis.json](evidence/lidar/k01_kiem_suc_khoe.analysis.json)) (*thêm khuya 24/09*; **chưa commit**) | Độ lặp lại khoảng cách của p07, live_headless, k01 (không phải sai số so với thước); vòng quét và phân tích của k01 | 22/09 và 24/09 (bản ghi), tính khuya 24/09; BT offline | 4.4 |
 | [odometry_khop_scan_20260924.json](evidence/lidar/odometry_khop_scan_20260924.json) và các ảnh `odometry_khop_scan_*.png` cùng thư mục; bản trước khi sửa khóa trục giữ ở `*_khoa_cung_truoc_sua.*` (*thêm khuya 24/09*; **chưa commit**) | Odometry khớp scan trên tổng hợp, DROW v2 (so với `.odom2`, không phải ground truth) và C1 đứng yên | 24/09 khuya; TH, DL, BT offline | 1.6, 3.6, 4.4 |
+| JUnit trong [chuyen_may_20260929/](evidence/chuyen_may_20260929/): `pytest_venv*_9d68257.xml`, `*_sau_sua_20260929.xml`, `*_38f64bb.xml`, `*_firmware_host_20260929.xml` (*thêm 30/09/2026*) | Toàn bộ bộ test trên máy bàn hiện tại ngày 29/09: ở `9d68257` (`.venv` 1.315 đạt, 7 bỏ qua; `.venv-train` 1.376 đạt, trùng số máy bàn trước), sau sửa đổi chuyển máy, ở `38f64bb` và khi thêm test host firmware ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2, 3, 6) | 29/09, MP + TH (test tự động, không chạm thiết bị) | 4.2, mục 1 ý 9, phụ lục |
+| [may_moi/tom_tat.md](evidence/chuyen_may_20260929/may_moi/tom_tat.md) và các tệp cùng thư mục (*thêm 30/09/2026*) | `do_may_moi.cmd` trên máy bàn hiện tại (LiDAR COM3, bốn camera, AI; 202 s), so với tham chiếu máy bàn trước 24/09 19:08; cảnh camera không ghi lại | 29/09, BT | 4.5, 4.6, 4.10 |
+| [kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md) (*thêm 30/09/2026*) | Chạy lại các lệnh README trên máy bàn hiện tại 29/09/2026 15:08–15:19 (mã `b37e9ee`): phase0 năm phiên; ghi LiDAR 10 s ở COM3; `rig.bench --lidar` 30 s bốn camera + LiDAR + AI có ghi phiên rồi phát lại; một lượt `may_moi` nữa; chấm val, train thử 1 epoch; hồ sơ gốc git-ignore ở `runs/kiem_may_20260929/` | 29/09; BT (LiDAR, bàn thử, `may_moi`), MP (phase0), DL (chấm val, train thử) | 4.2, 4.3, 4.4, 4.6, 4.6b, 4.10 |
+| [firmware_host_20260929.txt](evidence/chuyen_may_20260929/firmware_host_20260929.txt), [firmware_esp32_20260929.txt](evidence/chuyen_may_20260929/firmware_esp32_20260929.txt) (*thêm 30/09/2026*) | Lõi C++ firmware qua test host: 703 check, 0 lỗi, khớp bản Python; biên dịch cả firmware cho ESP32-S3 bằng PlatformIO: SUCCESS, 0 cảnh báo; chưa nạp, chưa chạy trên bo | 29/09, MP (test host), TK (biên dịch) | 3.12, 4.8 |
+| [bo_ao_30092026/](evidence/mo_phong_20260930/bo_ao_30092026/), [nghien_cuu/](evidence/mo_phong_20260930/nghien_cuu/), `qemu_espressif_29092026/`, `so_sanh_29092026/` trong `evidence/mo_phong_20260930/` (*thêm 30/09/2026*) | Firmware thật trong bo ảo QEMU (lệnh `qemu_board kiem`, 10 lượt chạy lặp `tests/test_firmware_qemu.py`: 13 test, 6 trong đó chạy firmware thật trong QEMU) và khảo sát các trình giả lập ngày 29/09 ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)) | 29–30/09, MP (giả lập, không phải bo thật) | 3.12, 4.8 |
+| [ecoqos_30092026/](evidence/mo_phong_20260930/ecoqos_30092026/), [pytest_venv_ebbec83.xml](evidence/mo_phong_20260930/pytest_venv_ebbec83.xml), [pytest_venv_train_ebbec83.xml](evidence/mo_phong_20260930/pytest_venv_train_ebbec83.xml) và các JUnit sáng 30/09 cùng thư mục (*thêm 30/09/2026*) | EcoQoS làm hỏng test có hạn giờ (`uturn_w46`) khi máy gần rảnh; toàn bộ bộ test trên commit `ebbec83`: `.venv` 1.380 đạt, 8 bỏ qua; `.venv-train` 1.442 đạt; 0 hỏng ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8) | 30/09, MP + TH (test tự động, không chạm thiết bị) | 4.2, mục 1 ý 9 |
 
 **Không có trong git** (`autopark/runs/`, chỉ trên máy bàn, **phải sao lưu trước**): video mô phỏng
 `runs/phase0_after_robustness/*/simulation.mp4` và `summary.json`; chiến dịch `runs/robustness_final_2026-09-20/`; ảnh
@@ -1635,7 +1667,7 @@ hoặc dẫn như hồ sơ thí nghiệm (kèm commit), theo mẫu trường.
 | "Phiên đã dừng thì không bao giờ chạy tiếp" (*thêm tối 24/09, sau vòng kiểm tra*) | Có một trường hợp đã biết trên mô phỏng: vòng điều khiển treo quá hạn lệnh trong khi luồng `Heartbeat` giữ liên lạc → một COMMAND enable=1 sau khi bo đã về ARMED, bo ARMED → RUNNING thêm một lần (test `xfail(strict=True)`) | "Trong các test mô phỏng, phiên đã dừng không chạy tiếp, trừ một trường hợp đã biết (treo quá hạn lệnh khi có `Heartbeat`; GIAO_THUC_XE mục 12), CHƯA SỬA; chưa thử trên bo thật". *Cập nhật muộn tối 24/09/2026:* trường hợp đó đã sửa ở mức MP (3.12b); viết: "Trong test mô phỏng, sau bản sửa ngày 24/09, phiên đã dừng không gửi lại lệnh chạy, kể cả khi vòng điều khiển treo quá hạn lệnh trong lúc liên lạc vẫn được giữ; chưa thử trên bo thật". *(Cập nhật muộn tối 24/09/2026, sau vòng kiểm tra:)* câu này thiếu khoảng hở còn lại (khung báo bo về ARMED chưa tới laptop, suy ra từ mã, chưa có test; GIAO_THUC_XE mục 12, CHE_DO_QUAN_SAT mục 8); dùng câu nên viết mới ở 3.12b. |
 | "Hiệu chuẩn camera đạt RMS 0,071 px" | Ảnh tổng hợp | "Trên ảnh tổng hợp; chưa hiệu chuẩn camera thật nào" |
 | "Watchdog và E-stop đã kiểm chứng" | Bản tham chiếu Python (lõi C++ khớp nó qua test host trên máy tính từ 29/09/2026); firmware biên dịch được nhưng chưa chạy trên bo; không phần cứng | "Logic watchdog kiểm trên bản tham chiếu Python; chưa thử trên bo" |
-| "Firmware đã chạy/đã kiểm thử trên ESP32-S3" | Chỉ chạy trong bo ảo QEMU (Serial qua UART0, flash DIO; không LEDC, GPIO vào, watchdog kích hoạt, USB-CDC); chưa nạp bo | "Bản build firmware chạy trong bo ảo QEMU và nói chuyện đúng giao thức với phần mềm laptop (30/09/2026); chưa nạp, chưa chạy trên bo ESP32-S3" |
+| "Firmware đã chạy/đã kiểm thử trên ESP32-S3" | Chỉ chạy trong bo ảo QEMU (Serial qua UART0, flash DIO; không LEDC, GPIO vào, task watchdog kích hoạt, USB-CDC); chưa nạp bo | "Bản build firmware chạy trong bo ảo QEMU và nói chuyện đúng giao thức với phần mềm laptop (30/09/2026); chưa nạp, chưa chạy trên bo ESP32-S3" |
 | "Xe dừng trong 0,39 s / 3,9 cm" (hay 0,43 s / 4,1 cm, 0,18 s / 0,9 cm của phiên `VehicleIO` mô phỏng, tối 24/09) | Số của mô hình giả định | "Trong mô phỏng với số giả định…; quãng dừng thật chưa đo" |
 | "Suy luận 16,4 ms" (không kèm máy) | Máy bàn RTX 4000 Ada | "…trên máy bàn; laptop RTX 3050 Ti chưa đo" |
 | "Thêm AVM-SS cải thiện ban đêm" | Đã rút lại sau ba seed | "Trộn AVM-SS làm lỗi nguy hiểm trên ACDC tăng 4,1 → 13,5 %" |
@@ -1665,7 +1697,7 @@ hoặc dẫn như hồ sơ thí nghiệm (kèm commit), theo mẫu trường.
 | 11 | Chụp ảnh sa bàn; tập chấm tô tay `--no-draft`; chấm ba checkpoint ở 0,50 và 0,15 | Người + máy có GPU | 4.3 (phần quan trọng nhất của AI) |
 | 12 | Chọn phương án SLAM/định vị và kiểm đầu vào. *Cập nhật tối 24/09:* định vị trên bản đồ tĩnh đã có công cụ; còn: hai phiên liên tiếp không chạm C1 (nguyên nhân +4,3°), dời C1 tới 3–6 vị trí đo bằng thước, chốt ngưỡng ([DINH_VI_LIDAR.md](DINH_VI_LIDAR.md) mục 7); SLAM chỉ khi cần bản đồ lớn hơn. *(Khuya 24/09/2026:* so sánh phương án và đề xuất đã có ([SO_SANH_DINH_VI_SLAM.md](SO_SANH_DINH_VI_SLAM.md) mục 7), người dùng chọn; thêm phép đẩy C1 trên tấm ván theo đường dán băng có mốc (mục 8.4) để có bản ghi C1 di chuyển đầu tiên) | Người dùng + người (đặt C1) + phần mềm | 1.6, 2.7, 3.6b, 4.4, bảng 4.12 dòng 1 |
 | 13 | Lưu thành biên bản các số đo chọn thang lập đường đang chỉ nằm trong docstring | Phần mềm | 1.5, 3.5 |
-| 14 | Chạy lại toàn bộ test và chiến dịch trên bản mã cuối, ghi commit, máy, ngày. *(Cập nhật 25/09/2026:* toàn bộ bộ test đã chạy một lần trên máy bàn, trên mã nay là `65b7127` … `54cb3e2`: `.venv` 1242 đạt, 7 bỏ qua; `.venv-train` 386 đạt. Chiến dịch và coverage chưa chạy lại; trước khi nộp vẫn phải chạy lại trên bản mã nộp) | Phần mềm | 4.2, phụ lục |
+| 14 | Chạy lại toàn bộ test và chiến dịch trên bản mã cuối, ghi commit, máy, ngày. *(Cập nhật 25/09/2026:* toàn bộ bộ test đã chạy một lần trên máy bàn, trên mã nay là `65b7127` … `54cb3e2`: `.venv` 1242 đạt, 7 bỏ qua; `.venv-train` 386 đạt. Chiến dịch và coverage chưa chạy lại; trước khi nộp vẫn phải chạy lại trên bản mã nộp) *(Cập nhật 30/09/2026: 386 là nhóm chọn của `.venv-train`, không phải toàn bộ. Lượt toàn bộ mới nhất trên `ebbec83`, máy bàn Dell Precision 3680: `.venv` 1.380 đạt, 8 bỏ qua; `.venv-train` 1.442 đạt; 0 hỏng ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8). Chiến dịch 2.880 ca và coverage vẫn chưa chạy lại.)* | Phần mềm | 4.2, phụ lục |
 | 15 | Nhận và tích hợp phần cứng đợt 3–6, giai đoạn 4–9. *Thêm tối 24/09:* khi nhận xe, điền phiếu kiểm kê trước khi can thiệp điện, đo theo B0–B8, thử lỗi theo L1–L16 (bản nháp giai đoạn 4/6) | Mua + người | 3.2, 3.13, 4.11 |
 | 16 | Viết hướng dẫn lắp/chạy/dừng; quay video các phiên thử trên xe | Người | Phụ lục A, K và 4.11 |
 | 17 | Tra đủ các mục "cần tra" ở mục 5; lưu bản PDF datasheet C1 | Người | Tài liệu tham khảo |
@@ -1674,10 +1706,10 @@ hoặc dẫn như hồ sơ thí nghiệm (kèm commit), theo mẫu trường.
 | 20 | *(thêm tối 24/09)* Ghi một phiên có camera bị cắt/xé khung thật (720p, cảnh sáng), phát lại với `--max-wait-ms 60` và `--max-wait-ms 0` trên cùng bản ghi | Người + thiết bị | 3.7, 4.6, 4.6b |
 | 21 | *(thêm tối 24/09)* Tạo lại và chép vào `docs/evidence/` bản nhỏ của kết quả định vị (bằng mã đã sửa màu overlay) và của `bev.png` tổng hợp; sao lưu `runs/rig_recordings/`. *(Cập nhật tối 24/09: phần định vị đã xong, `evidence/lidar/dinh_vi_*`, chưa commit (cập nhật 25/09/2026: đã commit, `b100a5d`), xem mục 4; còn `bev.png` tổng hợp và sao lưu `runs/rig_recordings/`)* | Phần mềm + người (sao lưu) | 3.8b, 4.6b, 4.9b (bản đầu kèm 3.6b, 4.4) |
 | 22 | *(thêm tối 24/09)* Đo trên laptop các phần mới: làm nóng AI, quy tắc ghép theo nhịp riêng, ghi phiên, thời gian BEV và định vị; ghi lại tệp tham chiếu máy bàn bằng mã mới để so. *(Cập nhật muộn tối 24/09:)* phần "ghi lại tệp tham chiếu" đã xong (`tham_chieu_20260924_toi.json`, 19:08, chưa commit); phần đo trên laptop còn nguyên, và phải chờ commit + push để laptop có mã mới. *(Khuya 24/09/2026:* mã tối 24/09 đã có trên `origin/main`; thêm `bev bench` trên laptop; dòng mới của `tom_tat.md` cần commit đợt khuya; cập nhật 25/09/2026: đã commit, `77eb51f`, và push, laptop `git pull` là có) | Laptop + thiết bị | 4.10 |
-| 23 | *(thêm khuya 24/09/2026)* Commit và push đợt khuya (người dùng quyết định); trước đó sửa `tests/test_planner_hard_cases.py` theo nhãn mới (hai trường hợp đang hỏng) và chạy lại toàn bộ bộ test, ghi số kèm commit. *(Cập nhật 25/09/2026: đã làm: test sửa và đổi tên thành `test_ca_rat_chat_khong_bao_thanh_cong_gia`; toàn bộ bộ test `.venv` 1242 đạt, 7 bỏ qua, `.venv-train` 386 đạt; commit lúc 00:54 ngày 25/09, `65b7127` … `54cb3e2`, đã push. Còn: ghi mã commit cạnh số khi viết khóa luận)* | Người dùng + phần mềm | Mọi mục có ghi "khuya 24/09" |
+| 23 | *(thêm khuya 24/09/2026)* Commit và push đợt khuya (người dùng quyết định); trước đó sửa `tests/test_planner_hard_cases.py` theo nhãn mới (hai trường hợp đang hỏng) và chạy lại toàn bộ bộ test, ghi số kèm commit. *(Cập nhật 25/09/2026: đã làm: test sửa và đổi tên thành `test_ca_rat_chat_khong_bao_thanh_cong_gia`; toàn bộ bộ test `.venv` 1242 đạt, 7 bỏ qua, `.venv-train` 386 đạt; commit lúc 00:54 ngày 25/09, `65b7127` … `54cb3e2`, đã push. Còn: ghi mã commit cạnh số khi viết khóa luận)* *(30/09/2026: 386 là nhóm chọn của `.venv-train`, không phải toàn bộ; TONG_HOP_DU_AN.md mục 7.)* | Người dùng + phần mềm | Mọi mục có ghi "khuya 24/09" |
 | 24 | *(thêm khuya 24/09/2026)* Quyết định: phương án định vị (việc 12); chốt firmware sau `COMMAND_TIMEOUT` (đổi hành vi firmware, chờ duyệt, CHƯA LÀM); chính sách so giới hạn bo; mặt nạ sức khỏe ToF và bộ đếm quãng đường (đổi giao thức); tiêu chí số lần đổi chiều | Người dùng | 1.6, 3.11, 3.12b, 4.2, 4.12 |
 | 25 | *(thêm khuya 24/09/2026)* Làm các phép "làm được ngay" của bộ kịch bản: DV-1, DV-2 cùng buổi đặt hộp, LD-1 chạy dài 30 phút; chạy lại độ nhạy khi máy rảnh (`--workers 1`) để có số thời gian dùng được | Người + thiết bị; phần mềm | 4.4, 4.6, 4.11 |
-| 26 | *(thêm ở đợt AI camera 25/09/2026)* Commit và push đợt AI camera (người dùng quyết định), chạy lại toàn bộ bộ test và ghi số kèm commit; sau hiệu chuẩn (việc 10) chạy ngăn AI camera với camera thật và đặt vật mẫu ở vị trí đo bằng thước; chốt tham số và chính sách "AI bắt buộc" sau khi chấm AI trên sa bàn (việc 11); chọn checkpoint cho vòng điều khiển (chỉ lượt chỉ WoodScape, ĐỀ XUẤT – CHỜ CHỐT) | Người dùng + người + thiết bị | 3.11b, 4.12 dòng 3, 8 |
+| 26 | *(thêm ở đợt AI camera 25/09/2026)* Commit và push đợt AI camera (người dùng quyết định), chạy lại toàn bộ bộ test và ghi số kèm commit; sau hiệu chuẩn (việc 10) chạy ngăn AI camera với camera thật và đặt vật mẫu ở vị trí đo bằng thước; chốt tham số và chính sách "AI bắt buộc" sau khi chấm AI trên sa bàn (việc 11); chọn checkpoint cho vòng điều khiển (chỉ lượt chỉ WoodScape, ĐỀ XUẤT – CHỜ CHỐT). *(Cập nhật 30/09/2026: phần commit, push và chạy lại toàn bộ test đã xong: `b01dea4`, `99e9a9e`, `9d68257`; toàn bộ test ngày 25/09 trên máy bàn trước và ngày 29/09 ở `9d68257` trên máy bàn hiện tại cùng cho `.venv` 1.315 đạt, 7 bỏ qua; `.venv-train` 1.376 đạt. Số mới nhất ở `ebbec83`: `.venv` 1.380 đạt, 8 bỏ qua; `.venv-train` 1.442 đạt. Còn lại: chạy ngăn AI camera với camera thật sau hiệu chuẩn, chốt tham số và chính sách "AI bắt buộc", chọn checkpoint.)* | Người dùng + người + thiết bị | 3.11b, 4.12 dòng 3, 8 |
 
 ## 8. Việc phần mềm làm song song (yêu cầu của người dùng ngày 24/09/2026; đã có biên bản, cập nhật tối 24/09/2026)
 
@@ -1738,7 +1770,8 @@ trùng HEAD; không kiểm máy có rảnh không):* lệnh năm tệp ở trên
 `test_lidar_localize.py` 29, `test_session_vehicle.py` 60, `test_rig_replay.py` 27, `test_multicam_rig.py` 115; tức
 263 + 6). Chạy lại đúng lệnh đó, thêm `-rxX -W error::SyntaxWarning -p no:cacheprovider`: **269 đạt**, 0 lỗi, 0 `xfail`, 0 cảnh báo, 103,2 s.
 Toàn bộ bộ test ngày 25/09 (trước commit đợt khuya, máy rảnh): `.venv` 1242 đạt, 7 bỏ qua, 0 hỏng; `.venv-train` 386
-đạt (đầu TONG_HOP_DU_AN.md). Việc 19 và 23 ở mục 7 đã xong phần commit; còn ghi commit cạnh số khi viết.
+đạt (nhóm chọn, không phải toàn bộ; TONG_HOP_DU_AN.md mục 7, lúc viết ở đầu tệp đó). Việc 19 và 23 ở mục 7 đã xong
+phần commit; còn ghi commit cạnh số khi viết.
 
 ### Đợt thứ ba: việc làm khuya 24/09/2026 (không nằm trong các commit lúc 20:22, chưa commit, nằm trên `9bcc30c`)
 
@@ -1765,7 +1798,7 @@ hỏng của `tests/test_planner_hard_cases.py` đã sửa (4.2).)
 | Demo hợp nhất bỏ ≥ 22 vòng khởi động, `--warmup` | [GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md) mục 2 | **TH**: nguồn giả, C1 giả; số tia/vòng của vòng nền tính lại trên ba bản ghi có sẵn (BT offline) | 3.11 | CHƯA chạy với C1 thật; ảnh hưởng lên bản đồ nền CHƯA ĐO |
 | `may_moi`: dòng mới của `tom_tat.md`, tóm tắt lại thư mục đã có | [MAY_NOP_DO_AN.md](MAY_NOP_DO_AN.md) mục 2, 4, 4.1 | **TH**: bản sao hai lần chạy máy bàn (15:25, 19:08); 21 test | 4.10, mục 7 việc 22 | Laptop CHƯA CHẠY; dòng mới chỉ có trên laptop sau khi commit đợt khuya (cập nhật 25/09/2026: đã commit, `77eb51f`, và push; laptop `git pull` là có) |
 
-### Đợt AI camera: việc làm 25/09/2026 (sau `89cd58f`, chưa commit)
+### Đợt AI camera: việc làm 25/09/2026 (sau `89cd58f`, chưa commit lúc viết; đã commit 25/09/2026: `b01dea4`, `99e9a9e`, `9d68257`)
 
 Hai việc; **không có phiên đo mới trên thiết bị**, không mở camera, LiDAR hay cổng COM. Chưa việc nào chạy trên laptop RTX
 3050 Ti. Số test đếm bằng `--collect-only` và chạy lại khi cập nhật dàn ý (dưới bảng).
@@ -1781,3 +1814,6 @@ bộ 15 tệp liên quan (hai tệp mới cùng `test_lidar_dock_ui`, `test_bev`
 `test_session_run`, `test_session_vehicle`, `test_phase0`, `test_ui_smoke`, `test_rig_replay`, `test_extrinsics_calib`,
 `test_roi_tool`, `test_fisheye_calib`) **343 đạt** ở `.venv-train` (129 s) và **343 đạt** ở `.venv` (127 s). Toàn bộ bộ
 test chưa chạy lại sau đợt này; mọi số phải chạy lại ngay trước commit và dẫn kèm mã commit (mục 7 việc 26).
+*(Cập nhật 30/09/2026: đã chạy lại toàn bộ ngày 25/09 trên máy bàn trước và ngày 29/09 ở `9d68257` trên máy bàn hiện
+tại: `.venv` 1.315 đạt, 7 bỏ qua; `.venv-train` 1.376 đạt. Mới nhất trên `ebbec83`: `.venv` 1.380 đạt, 8 bỏ qua;
+`.venv-train` 1.442 đạt; 0 hỏng. Nguồn: TONG_HOP_DU_AN.md mục 7; [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2, 8.)*

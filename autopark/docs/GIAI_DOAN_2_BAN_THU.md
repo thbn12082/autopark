@@ -2,7 +2,7 @@
 
 Máy bàn i9-14900 + RTX 4000 Ada, Windows 11, **chưa phải laptop RTX 3050 Ti mang đi nộp đồ án**. Bốn camera "HD Camera" qua hub UGREEN
 (bus-powered, nhánh USB 2.0), RPLIDAR C1 trên COM4, mô hình AI tham chiếu `runs/ai_woodscape_rtx4000_v1/best.pt`. Số đo trong tệp này làm trên máy bàn dùng tới 25/09/2026; máy bàn từ 29/09/2026 là máy khác cùng cấu hình, LiDAR ở COM3 ([chuyển máy](CHUYEN_MAY_BAN.md)).
-Camera nằm trên bàn, chưa gá, chưa hiệu chuẩn. Kế hoạch v3.1, giai đoạn 2 "Khi đủ bốn camera":
+Camera nằm trên bàn, chưa gá, chưa hiệu chuẩn. Kế hoạch v3.1 [bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), giai đoạn 2 "Khi đủ bốn camera" *(cập nhật 30/09/2026: [bản hiện tại](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) gọi là mục 6, đoạn "Có đồ", không đánh số bước)*:
 
 - bước 2: *"Ghi FPS/độ trễ/mất hình riêng từng camera; chạy đồng thời với LiDAR và AI, không chỉ thử mở bốn cửa sổ."*
 - bước 5: *"Đồng bộ ở mức phần mềm và ghi sai lệch thời gian còn lại."*
@@ -577,7 +577,7 @@ một tiến trình, chạy lần lượt các lô 4, 4, 3, 3, 2, 1, 4, 3 ảnh:
 
 ## Cách chạy
 
-Từ thư mục `autopark`, trong `.venv-train` (có torch cho AI và PySide6 cho giao diện; `pip install -e .[rig]` nếu dựng lại môi trường):
+Từ thư mục `autopark`, trong `.venv-train` (có torch cho AI và PySide6 cho giao diện; dựng lại môi trường bằng `cai_dat_train.cmd`, tệp khóa `requirements-train.lock`, [README](../README.md) mục 5):
 
 ```powershell
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar

@@ -9,8 +9,8 @@ Espressif và esp-emulator với bản build đưa `Serial` qua UART0, esp32sim 
 a159x36/qemu mới chạy sketch thử khả năng, CHƯA chạy firmware xe. Cái dùng được nhất đã được đưa vào repo thành **bo ảo**
 (mục 1): QEMU của Espressif (GPL) chạy bản build thật, laptop nói chuyện bằng đúng `SerialVehicleIO`. Bo ảo kiểm được
 giao thức, máy trạng thái, dốc tốc độ, hết hạn lệnh, mất liên lạc, reset chip. Nó KHÔNG kiểm được xung ESC/servo, chân
-E-stop, cảm biến, USB-CDC thật, watchdog kích hoạt, thời gian thực chính xác: các việc đó cần công cụ khác (mục 3–4) hoặc
-bo thật với máy phân tích logic. Chạy được trong giả lập không chứng minh gì về bo thật.
+E-stop, cảm biến, USB-CDC thật, task watchdog kích hoạt, thời gian thực chính xác: các việc đó cần công cụ khác (mục 3–4)
+hoặc bo thật với máy phân tích logic. Chạy được trong giả lập không chứng minh gì về bo thật.
 
 Cách làm: khảo sát ngày 29/09/2026 bằng 13 tác tử (5 nhóm nghiên cứu, mỗi nhóm một tác tử phản biện đối chiếu nguồn
 gốc, một tác tử thử QEMU với firmware thật, một tác tử rà chỗ thiếu, một tác tử bổ sung); các tác tử tự tải và chạy QEMU,
@@ -27,7 +27,7 @@ thô của khảo sát 29/09:
 | [`configs/thiet_bi.json`](../configs/thiet_bi.json) | khóa `qemu_xtensa` (qemu-system-xtensa của Espressif), `platformio_python` (python có gói platformio), `platformio_core_dir` (phải là thư mục có sẵn); đổi máy chỉ sửa tệp này |
 | [`platformio.ini`](../firmware/esp32_vehicle/platformio.ini) env `esp32s3_qemu` | mã nguồn y hệt env `esp32s3`; chỉ khác: `Serial` qua UART0 (`ARDUINO_USB_CDC_ON_BOOT=0`) và flash DIO (mục 2.1). Không nạp bản này vào xe |
 | [`qemu/tao_anh_flash.py`](../firmware/esp32_vehicle/qemu/tao_anh_flash.py) | sau build, ghép bootloader + bảng phân vùng + boot_app0 + app thành `.pio/build/esp32s3_qemu/qemu_flash.bin` (8 MB); offset lấy từ builder của PlatformIO |
-| [`autopark/transport/qemu_board.py`](../autopark/transport/qemu_board.py) | `QemuBoard`: chạy QEMU với một bản sao ảnh, UART0 ra `socket://127.0.0.1:<cổng>`, monitor HMP, chỉ báo sẵn sàng khi firmware trả HELLO_ACK, thử lại tối đa 5 lần khi QEMU chết lúc khởi động (mỗi lần cổng mới); trên Windows gắn QEMU vào một Job Object nên QEMU chết theo tiến trình Python (Ctrl+C, bị kill), không bị bỏ lại chạy ngầm |
+| [`autopark/transport/qemu_board.py`](../autopark/transport/qemu_board.py) | `QemuBoard`: chạy QEMU với một bản sao ảnh, UART0 ra `socket://127.0.0.1:<cổng>`, monitor HMP, chỉ báo sẵn sàng khi firmware trả HELLO_ACK, khởi động QEMU tối đa 5 lần (thử lại tới 4 lần) khi QEMU chết lúc khởi động (cổng tự chọn thì mỗi lần một cổng mới); trên Windows gắn QEMU vào một Job Object nên QEMU chết theo tiến trình Python (Ctrl+C, bị kill), không bị bỏ lại chạy ngầm |
 | [`autopark/transport/socket_port.py`](../autopark/transport/socket_port.py) | `SocketPort`: cổng kiểu pyserial trên TCP cho URL `socket://`, thay `socket://` của pyserial (mục 5.1–5.3) |
 | [`tests/test_firmware_qemu.py`](../tests/test_firmware_qemu.py) | 6 test bo ảo; 5 test đọc cấu hình và 2 test cơ chế chạy lại (bo giả, chạy ở mọi máy); máy không có QEMU thì phần bo ảo bỏ qua |
 
@@ -50,23 +50,33 @@ khiển") hiện chỉ liệt kê cổng COM, nên CHƯA dùng bo ảo từ giao
 |---|---|
 | `test_hello_ack_matches_the_python_reference` | giới hạn, chu kỳ telemetry, phiên bản trong HELLO_ACK = của `FirmwareModel(FirmwareConfig())`; lý do reset POWER_ON; DISARMED |
 | `test_telemetry_is_20hz_with_clean_frames` | ≥ 17 khung/s, trung vị bước thời gian bo 50 ms, không lỗi khung, không mất số thứ tự |
-| `test_command_ramps_then_expires_and_host_silence_disarms` | ARM → RUNNING; tốc độ mục tiêu có tăng (≥ 0,03 m/s) và dốc không vượt giới hạn; hết hạn lệnh → ARMED/COMMAND_TIMEOUT; laptop im → DISARMED/LINK_TIMEOUT không sớm hơn `link_timeout` |
+| `test_command_ramps_then_expires_and_host_silence_disarms` | ARM rồi COMMAND enable=1 → RUNNING; tốc độ mục tiêu có tăng (≥ 0,03 m/s) và dốc không vượt giới hạn; hết hạn lệnh → ARMED/COMMAND_TIMEOUT; laptop im → DISARMED/LINK_TIMEOUT không sớm hơn `link_timeout` |
 | `test_command_while_disarmed_is_rejected` | COMMAND khi DISARMED → ACK BAD_STATE |
 | `test_nonblocking_control_loop_keeps_up_with_telemetry` | vòng 50 Hz `poll(block=False)` như `Session`: ≥ 36/≈ 40 khung trong 2 s, không mất số thứ tự, không TELEMETRY_STALE (hồi quy lỗi mục 5.1) |
 | `test_chip_reset_is_seen_as_firmware_reset` | reset cả chip (HMP `system_reset`) → laptop thấy mất liên lạc, phiên mới có boot_id mới, sự kiện FIRMWARE_RESET |
 
 Kết quả (mã sau review, chạy 10:11–10:13 ngày 30/09/2026, máy bàn; trước khi `QemuBoard` chuyển sang hàm chung
 `autopark/power_throttling.py` lúc 11:53; lượt trên commit: [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8):
-- `kiem` đạt: HELLO_ACK POWER_ON, DISARMED, 50 ms; 55 khung trong 2 s; QEMU khởi động 1 lần
-  ([kiem_bo_ao.txt](evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao.txt)). Một lượt `kiem` lúc sáng cùng ngày (mã
-  trước review) phải khởi động QEMU 3 lần (2 lần QEMU tự thoát, lỗi #175 ở dưới; đầu ra console, không lưu log).
-- Chạy lặp riêng `tests/test_firmware_qemu.py` 10 lượt: 10/10 lượt đạt cả 13 test, không lượt nào phải chạy lại
+- `kiem` đạt: HELLO_ACK báo lý do reset POWER_ON, chu kỳ telemetry 50 ms; trạng thái DISARMED in ra là trạng thái đọc
+  sau khi chờ bo ra khỏi BOOT (`wait_ready`); QEMU khởi động 1 lần
+  ([kiem_bo_ao.txt](evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao.txt)). Tệp đó ghi "55 khung trong 2 s", nhưng
+  bản `kiem` lúc ấy đếm gộp cả khung nhận trong lúc kết nối và chờ bo ra khỏi BOOT: theo lượt đếm tách riêng dưới đây,
+  khoảng 16 khung trong số đó tới trước cửa sổ đo và khoảng 39 khung trong 2 s. Bản `kiem` đếm tách riêng (mã
+  `ff4a018` + sửa cách đếm, chưa commit lúc chạy; hai lượt ≈ 15:00 ngày 30/09/2026) cho 40 và 39 khung trong 2 s
+  (≈ 20 Hz), cộng 16 khung nhận trước đó; lượt đầu phải khởi động QEMU 2 lần (lỗi #175)
+  ([kiem_bo_ao_dem_rieng.txt](evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao_dem_rieng.txt)). Một lượt `kiem` lúc
+  sáng cùng ngày (mã trước review) phải khởi động QEMU 3 lần (2 lần QEMU tự thoát, lỗi #175 ở dưới; đầu ra console,
+  không lưu log).
+- Chạy lặp riêng `tests/test_firmware_qemu.py` 10 lượt: 10/10 lượt đạt cả 13 test (6 trong đó chạy firmware thật trong
+  QEMU), không lượt nào phải chạy lại
   ([chay_lap_test_bo_ao.txt](evidence/mo_phong_20260930/bo_ao_30092026/chay_lap_test_bo_ao.txt)). Số của toàn bộ bộ test:
   [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8.
 - Chạy lại trên commit `ebbec83` (cây làm việc sạch, 13:47–13:49):
-  - `kiem` đạt: 55 khung trong 2 s, QEMU khởi động 1 lần
+  - `kiem` đạt: 55 khung tính từ lúc kết nối, cùng cách đếm gộp như trên (≈ 16 khung chờ bo ra khỏi BOOT + ≈ 39
+    khung trong 2 s), QEMU khởi động 1 lần
     ([kiem_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao_ebbec83.txt)).
-  - Chạy lặp 10 lượt: 10/10 lượt đạt cả 13 test, không có cảnh báo #175 hay LOOP_OVERRUN
+  - Chạy lặp 10 lượt: 10/10 lượt đạt cả 13 test (6 trong đó chạy firmware thật trong QEMU), không có cảnh báo #175 hay
+    LOOP_OVERRUN
     ([chay_lap_test_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/chay_lap_test_bo_ao_ebbec83.txt)).
 
 **Độ tin cậy khi máy bận** (30/09/2026; máy bàn đang chạy việc khác của người dùng):
@@ -310,7 +320,8 @@ Thư mục [evidence/mo_phong_20260930/](evidence/mo_phong_20260930/):
   trích nguyên văn từ nhật ký tác tử, cho các số không có log gốc riêng.
 - [bo_ao_30092026/](evidence/mo_phong_20260930/bo_ao_30092026/): `kiem` và chạy lặp test bo ảo (10:11–10:13, mã sau
   review), JUnit của test bo ảo và `vehicle_io` lúc 08:56 (mã trước review: 11 + 68 test; mã commit có 13 + 71), đo độ
-  tin cậy khởi động, đo A/B ưu tiên tiến trình.
+  tin cậy khởi động, đo A/B ưu tiên tiến trình; `kiem_bo_ao_dem_rieng.txt`: hai lượt `kiem` đếm tách khung trước cửa sổ
+  2 s (≈ 15:00, mã `ff4a018` + sửa cách đếm, chưa commit lúc chạy; mục 1).
 - Trước khi commit (30/09/2026), đường dẫn hồ sơ người dùng Windows, mã phiên tác tử và tên các việc khác trên máy trong
   các tệp bằng chứng đã được thay bằng `%USERPROFILE%`, `<phiên>` và mô tả chung; ngoài ra nội dung giữ nguyên.
 - Tệp có mã commit `ebbec83` (`kiem_bo_ao_ebbec83.txt`, `chay_lap_test_bo_ao_ebbec83.txt`, `pytest_venv*_ebbec83.xml`,

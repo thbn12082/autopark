@@ -1,9 +1,10 @@
 # Định vị LiDAR trên bản đồ tĩnh đã lưu (giai đoạn 1, bước 6) — 24/09/2026
 
-**Kế hoạch đối chiếu:** [v3.1 mục 5 "Khi nhận LiDAR"](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), bước 6: *"Nạp lại
+**Kế hoạch đối chiếu:** [v3.1 bản `9d68257`, mục 5 "Khi nhận LiDAR"](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), bước 6: *"Nạp lại
 bản đồ, thử định vị tại các vị trí có tham chiếu độc lập. Tách 'đọc scan được', 'tạo map được' và 'định vị lại được'
 thành ba kết quả."* Điều kiện chuyển bước liên quan: *"Có dữ liệu và phép thử lưu/nạp bản đồ; phần định vị chưa đạt
-được báo riêng."*
+được báo riêng."* *(Cập nhật 30/09/2026: tên đoạn, số bước và câu trích theo bản trước đợt biên tập 26/09/2026;
+[bản hiện tại](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) giữ mục 5, đoạn "Có đồ".)*
 
 **Mức bằng chứng:** chỉ có dữ liệu tổng hợp (test) và ba bản ghi thật có sẵn từ ngày 22/09 và 24/09. Ngày 24/09 không
 chạy thiết bị nào *(cập nhật 25/09/2026: câu này chỉ nói phần việc định vị, chạy offline. Ngày 24/09 vẫn có phiên

@@ -1,9 +1,11 @@
 # Giai đoạn 6 — nguồn và dừng an toàn: bản nháp khi chưa có nguồn final (24/09/2026)
 
 **Kế hoạch đối chiếu:** [v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 10 (giai đoạn 6, "Khi chưa có nguồn
-final": bảng điện áp/dòng tải, tách đường nguồn, xác định phần tử mà LA38 tác động, chọn cầu chì/dây/đầu nối, viết trước
-các tình huống lỗi), mục 3 (đợt mua 6), mục 16.2 (ngưỡng "Phản ứng lỗi" cần chốt), mục 16.3 (kịch bản "Điều khiển/an
-toàn"). Thiết kế firmware và giao thức: [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 0, 5, 6, 12;
+final" theo [bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md):
+bảng điện áp/dòng tải, tách đường nguồn, xác định phần tử mà LA38 tác động, chọn cầu chì/dây/đầu nối, viết trước các
+tình huống lỗi; bản hiện tại gọi là đoạn "Khi chờ"), mục 3 (đợt mua 6), mục 16.2 (ngưỡng "Phản ứng lỗi" cần chốt), mục
+16.3 (kịch bản "Điều khiển/an toàn"). *(Cập nhật 30/09/2026: các "mục N bước M" của kế hoạch trong tệp này cũng theo bản
+`9d68257`.)* Thiết kế firmware và giao thức: [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 0, 5, 6, 12;
 [firmware README](../firmware/esp32_vehicle/README.md) mục "An toàn". Nối `VehicleIO` vào phiên đỗ xe (từ 24/09/2026,
 chỉ bo mô phỏng): [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md). Lúc kiểm (24/09/2026), mục 12 của GIAO_THUC_XE.md còn ghi
 `VehicleIO` chưa nối vào phiên; dòng đó đã lỗi thời. *(Cập nhật tối 24/09/2026: mục 12 của GIAO_THUC_XE.md nay đã ghi
@@ -15,8 +17,10 @@ ngắt, ESP32-S3, MN300). Dự án chưa đo điện áp hay dòng của thiết
 của RPLIDAR C1 ([hardware_inventory.md](hardware_inventory.md)). Firmware C++ **chưa nạp bo** (biên dịch cho ESP32-S3 từ 29/09/2026); mọi hành vi "theo thiết
 kế" dưới đây lấy từ đặc tả, từ bản tham chiếu Python đã có test, hoặc từ mã C++ (ghi rõ ở từng chỗ). *(Cập nhật 30/09/2026: lõi C++ `src/core` chạy trong test host từ
 29/09/2026 (703 check, khớp bản Python, gồm kịch bản hết hạn lệnh và mất liên lạc); bản build thật chạy trong bo ảo QEMU
-từ 30/09/2026 ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1). Bo ảo không có LEDC, GPIO vào, watchdog không kích
-hoạt, nên tác dụng của `output_guard`, móc panic, E-stop và watchdog vẫn chưa được kiểm ở đâu.)* Không hành vi
+từ 30/09/2026 ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1). Bo ảo không có LEDC, GPIO vào, task watchdog không kích
+hoạt, nên tác dụng của `output_guard`, móc panic, task watchdog khi kích hoạt và ngõ vào E-stop thật vẫn chưa được kiểm
+ở đâu. Chỉ phần logic đã kiểm trên máy tính: watchdog liên lạc 500 ms (`LINK_TIMEOUT`) ở bản Python, test host và bo
+ảo QEMU; logic chốt E-stop (vector `estop_latch`) ở bản Python và test host (mục 3.1).)* Không hành vi
 nào đã thử trên thiết bị.
 
 Kế hoạch đặt tên các đầu ra `power_budget.md`, "sơ đồ nguồn", "sơ đồ dừng", "bảng định mức còn cần kiểm tra". Bản nháp
@@ -88,38 +92,49 @@ Dụng cụ cần: đồng hồ vạn năng, đồng hồ đo dòng USB (dự á
 ## 2. Sơ đồ nguồn (nháp)
 
 Hai miền tách nhau: **miền logic/USB** (laptop cấp) và **miền động lực** (pin xe cấp). Ô ghi CHƯA CHỐT là chỗ chưa quyết
-định; đường chấm là liên kết chưa biết có hay không.
+định; đường chấm là liên kết chưa biết có hay không. *(Sơ đồ vẽ lại 30/09/2026: bỏ thẻ HTML, thêm màu trạng thái và tần
+số xung; các ô còn lại như bản 24/09.)*
 
 ```mermaid
 flowchart LR
-  subgraph LOGIC["Miền logic / USB — laptop cấp"]
-    LAP["Laptop<br/>(pin hoặc adapter)"]
-    HUB["Hub UGREEN 4 cổng<br/>bus-powered (23/09)"]
-    CAM["4 camera USB<br/>dòng CHƯA ĐO"]
-    CP["Adapter CP2102N"]
-    LID["RPLIDAR C1<br/>5 V, 230–260 mA làm việc<br/>800 mA khởi động (datasheet)"]
-    ESP["ESP32-S3<br/>loại bo CHƯA CHỐT"]
-    SEN["BNO085, VL53L1X,<br/>AS5600, encoder<br/>CẦN TRA datasheet"]
+    subgraph LOGIC["Miền logic và USB, laptop cấp"]
+        LAP["Laptop (pin hoặc adapter)"]
+        HUB["Hub UGREEN 4 cổng, bus-powered (23/09)"]
+        CAM["4 camera USB, dòng CHƯA ĐO"]
+        CP["Adapter CP2102N"]
+        LID["RPLIDAR C1: 5 V, 230 đến 260 mA làm việc, 800 mA khởi động (datasheet)"]
+        ESP["ESP32-S3, loại bo CHƯA CHỐT"]
+        SEN["BNO085, VL53L1X, AS5600, encoder: CẦN TRA datasheet"]
+    end
+    subgraph TRAC["Miền động lực, pin xe cấp"]
+        BAT["Pin xe MN300, loại và điện áp CHƯA ĐO"]
+        FUSE["Cầu chì, định mức CHƯA CHỐT"]
+        CUT["Phần tử ngắt động lực do LA38 tác động, CHƯA CHỐT"]
+        ESC["ESC nguyên bản, CHƯA ĐO, nhận xung PWM riêng hay không CHƯA XÁC NHẬN"]
+        MOT["Motor"]
+        SRV["Servo lái"]
+        REG["UBEC hoặc XL4015, CHƯA CHỌN"]
+    end
     LAP -->|USB| HUB --> CAM
     LAP -->|USB| CP --> LID
-    LAP -->|"USB CDC: dữ liệu<br/>cấp nguồn cho bo? CHƯA CHỐT"| ESP
+    LAP -->|USB CDC dữ liệu, cấp nguồn cho bo CHƯA CHỐT| ESP
     ESP -->|3V3| SEN
-  end
-  subgraph TRAC["Miền động lực — pin xe cấp"]
-    BAT["Pin xe MN300<br/>loại/điện áp CHƯA ĐO"]
-    FUSE["Cầu chì<br/>định mức CHƯA CHỐT"]
-    CUT["Phần tử ngắt động lực<br/>do LA38 tác động<br/>CHƯA CHỐT"]
-    ESC["ESC nguyên bản<br/>CHƯA ĐO; nhận xung PWM riêng? CHƯA XÁC NHẬN"]
-    MOT["Motor"]
-    SRV["Servo lái"]
-    REG["UBEC / XL4015?<br/>CHƯA CHỌN"]
     BAT --> FUSE --> CUT --> ESC --> MOT
-    ESC -.->|"BEC? CHƯA ĐO"| SRV
-    FUSE -.->|"nuôi servo hoặc logic? CHƯA CHỐT"| REG
-  end
-  ESP -.->|"xung ga (tín hiệu) — CHƯA CHỐT: phụ thuộc phiếu kiểm kê C1.2, C2.4, G3, G4, mục H"| ESC
-  ESP -.->|"xung lái (tín hiệu) — CHƯA CHỐT: phụ thuộc phiếu kiểm kê C2.3, C3.2, G4"| SRV
+    ESC -.->|BEC CHƯA ĐO| SRV
+    FUSE -.->|nuôi servo hoặc logic, CHƯA CHỐT| REG
+    ESP -.->|xung ga 50 Hz, CHƯA CHỐT, phiếu kiểm kê C1.2 C2.4 G3 G4 mục H| ESC
+    ESP -.->|xung lái 50 Hz, CHƯA CHỐT, phiếu kiểm kê C2.3 C3.2 G4| SRV
+    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
+    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
+    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
+    class HUB,CAM,CP,LID daco
+    class LAP,ESP,SEN,BAT,FUSE,CUT,ESC,MOT,SRV,REG chuaLam
 ```
+
+Ở sơ đồ này, xanh: thiết bị đã có và đã chạy trên bàn thử, cấp điện qua USB của máy bàn (dòng tiêu thụ chưa đo) ·
+Vàng: chỉ trong mô phỏng/giả lập (không ô nào) · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị.
+Laptop (đỏ) chưa lần nào cấp điện cho LiDAR, hub hay camera (mục 1.1: mọi số đo đến nay trên máy bàn). Chưa đo dòng
+thiết bị nào. Tần số xung 50 Hz là hằng `kPwmHz` trong `src/main.cpp`, chưa xác nhận với ESC/servo thật.
 
 Cùng nội dung dạng chữ:
 
@@ -166,39 +181,71 @@ TÍN HIỆU GIỮA HAI MIỀN:
 Ba lớp dừng, theo nguyên tắc của kế hoạch mục 2.1: "E-stop vật lý là đường dừng riêng, không phụ thuộc giao diện laptop".
 Kế hoạch mục 10: "Một nút bấm đơn lẻ không được đánh dấu là đã hoàn tất E-stop".
 
+Sơ đồ vẽ lại 30/09/2026 theo mã firmware và laptop ở `ff4a018` (`src/main.cpp`, `vehicle_core`, `firmware_model.py`,
+`vehicle_io.py`, `application/vehicle_link.py`). Bản 24/09 ghi task watchdog 300 ms, đó là số của Arduino 3.x; bản nạp
+vào xe dùng Arduino-ESP32 2.0.17 (`espressif32 @ 7.1.3`), `setup_task_watchdog()` gọi `esp_task_wdt_init(1, true)`, tức
+1 s.
+
 ```mermaid
 flowchart TD
-  subgraph HW["Đường 1 — phần cứng, không qua phần mềm (CHƯA LẮP)"]
-    E1["Nhấn LA38"] --> E2["Tiếp điểm cắt động lực, trực tiếp<br/>hoặc qua phần tử ngắt: CHƯA CHỐT"]
-    E2 --> E3["ESC mất nguồn động lực"]
-  end
-  subgraph FW["Đường 2 — firmware ESP32-S3 (C++ đã biên dịch, CHƯA NẠP BO)"]
-    F0["Tiếp điểm tín hiệu NC → kPinEstop<br/>(NC nối GND, kéo lên, hở mạch = đang nhấn)"] --> F1["FAULT ESTOP: effort = 0 ngay, chốt"]
-    W1["Lệnh hết hạn (laptop gửi 150 ms, bo kẹp ≤ 300 ms)"] --> F2["RUNNING → ARMED, dốc về trung tính (stop_decel)"]
-    W2["500 ms không nhận thông điệp hợp lệ"] --> F3["→ DISARMED (LINK_TIMEOUT), dốc về trung tính"]
-    W3["loop im > 100 ms (chỉ trên bo)"] --> F4["output_guard ép xung ESC về trung tính"]
-    W4["loop treo > 300 ms (Arduino 3.x)"] --> F5["panic → móc kéo chân ESC xuống thấp<br/>→ khởi động lại → BOOT → DISARMED"]
-  end
-  subgraph HOST["Đường 3 — laptop (VehicleIO)"]
-    H0["Nút STOP → request_stop()<br/>(nối vào phiên 24/09, chỉ bo mô phỏng)"] --> H1
-    H1["stop(): COMMAND enable=0"] --> H4["bo: RUNNING → ARMED, dốc về trung tính"]
-    H2["disarm()"] --> H5["bo: → DISARMED, dốc về trung tính"]
-    H3["0,3 s không có telemetry"] --> H6["TELEMETRY_STALE: gửi DISARM, chốt<br/>chỉ arm() hoặc connect() gỡ"]
-  end
-  F1 --> T["telemetry: cờ ESTOP_INPUT + FAULT<br/>→ laptop sự kiện VEHICLE_FAULT (STOP)"]
+    subgraph HW["Đường 1: phần cứng, không qua phần mềm (CHƯA LẮP)"]
+        H1["Nhấn LA38, hoặc đứt dây điều khiển nếu chọn phương án an toàn khi hở mạch (B ở mục 3.2)"] --> H2["Tiếp điểm của nút hoặc phần tử ngắt cắt động lực ESC: phương án A, B, C ở mục 3.2, CHƯA CHỐT"]
+        H2 --> H4["ESC mất nguồn động lực"]
+        H3["Điện trở kéo xuống khoảng 10 kΩ trên dây ESC: phủ lúc bật nguồn, system reset, sụt áp"]
+    end
+    subgraph FW["Đường 2: firmware ESP32-S3 (đã biên dịch 29/09/2026, CHƯA NẠP BO)"]
+        F1["Ngõ E-stop: tiếp điểm NC nối GND, kéo lên, hở mạch là đang nhấn (kPinEstop còn -1)"] --> F2["FAULT ESTOP: effort 0 ngay, chốt tới CLEAR_FAULT"]
+        F3["COMMAND hết hạn: laptop gửi 150 ms, bo kẹp 300 ms"] --> F4["RUNNING về ARMED, dốc về 0 theo stop_decel 600 mm/s²"]
+        F5["500 ms không nhận thông điệp hợp lệ"] --> F6["DISARMED, LINK_TIMEOUT, dốc về 0"]
+        F7["Hai nhịp step cách nhau quá 100 ms"] --> F8["FAULT LOOP_OVERRUN"]
+        F9["Trần effort 250 ‰ và kiểm STALL 1000 ms (cần encoder)"]
+        F10["output_guard (esp_timer 10 ms): loop im quá 100 ms thì ép xung ESC về 1500 µs"]
+        F11["Task watchdog 1 s với bản nạp vào xe, Arduino 2.0.17 (300 ms nếu chuyển sang 3.x): panic"] --> F12["Móc panic và shutdown: esc_line_low_now kéo chân ESC xuống thấp"]
+        F12 --> F13["Chip khởi động lại: BOOT giữ trung tính 1000 ms rồi DISARMED"]
+    end
+    subgraph PC["Đường 3: laptop (VehicleIO, VehicleLink)"]
+        L0["Nút STOP: request_stop()"]
+        L1["TELEMETRY_STALE 0,3 s: gửi DISARM, chốt, chỉ arm() hoặc connect() gỡ"]
+        L2["Session dừng: stop() gửi enable=0 mỗi nhịp, bo về ARMED và dốc về 0, end_run gửi DISARM, bo về DISARMED"]
+        L3["Không tự chạy lại: lập lại đường, Bắt đầu đỗ, arm() mới"]
+    end
+    F2 -->|cờ ESTOP_INPUT và FAULT trong telemetry, sự kiện VEHICLE_FAULT| L2
+    F4 -->|VEHICLE_STOPPED| L2
+    F6 -->|telemetry| L2
+    F8 -->|FAULT| L2
+    F13 -->|telemetry ngừng| L1
+    F13 -->|ACK NO_SESSION, SESSION_LOST| L2
+    L0 --> L2
+    L1 --> L2 --> L3
+    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
+    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
+    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
+    class H1,H2,H3,H4,F1,F10,F11,F12 chuaLam
+    class F2,F3,F4,F5,F6,F7,F8,F9,L0,L1,L2,L3 daco
+    class F13 giaLap
 ```
+
+Ở sơ đồ này, xanh: logic đã kiểm trên máy tính (đường 2: bản tham chiếu Python và lõi C++ qua test host, một phần
+trong bo ảo QEMU; đường 3: với bo mô phỏng và cổng serial giả), chưa ô nào chạy trên bo thật · Vàng: chuỗi khởi động
+lại, mới thấy trong bo ảo (reset chip qua monitor) và trong mô phỏng · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết
+bị. QEMU không cho task watchdog kích hoạt ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 2.1). Khi chip khởi động lại
+giữa lần chạy, laptop thấy telemetry ngừng hoặc ACK `NO_SESSION` (`SESSION_LOST`), cái nào tới trước thì làm phiên
+dừng; với telemetry ngừng, phiên đỗ dừng vì `STALE_TELEMETRY` của `VehicleLink` sau 0,15 s, trước `TELEMETRY_STALE`
+của `VehicleIO` sau 0,3 s (`tests/test_session_vehicle.py`, rút cáp giả; phiên đỗ chưa chạy với bo ảo).
+`FIRMWARE_RESET` (`boot_id` mới) chỉ sinh ở lần `connect()` sau (lần chạy mới) và chỉ được ghi log trước START, không
+làm dừng lần chạy nào (`application/vehicle_link.py`, `_open_run`).
 
 ### 3.1. Bảng các đường dừng
 
 | Đường | Kích hoạt | Tác động lên | Không phụ thuộc phần mềm? | Hằng số thời gian theo thiết kế | Trạng thái |
 |---|---|---|---|---|---|
 | LA38 → phần tử ngắt | nhấn nút; đứt dây điều khiển (nếu thiết kế an toàn khi hở mạch) | nguồn động lực của ESC | có (theo ý đồ thiết kế) | CHƯA ĐO (phụ thuộc phần tử) | phần tử CHƯA CHỐT, chưa lắp |
-| LA38 tiếp điểm tín hiệu (`kPinEstop`) → firmware | nhấn nút; đứt dây; tuột đầu nối | effort = 0, FAULT chốt | không | mỗi chu kỳ điều khiển 10 ms | đã chọn kiểu đấu; `kPinEstop` = −1; chưa lắp, chưa thử |
+| LA38 tiếp điểm tín hiệu (`kPinEstop`) → firmware | nhấn nút; đứt dây; tuột đầu nối | effort = 0, FAULT chốt | không | mỗi chu kỳ điều khiển 10 ms | đã chọn kiểu đấu; `kPinEstop` = −1; ngõ vào thật chưa lắp, chưa thử. *(Cập nhật 30/09/2026: logic chốt FAULT khi `inputs.estop` đã kiểm ở bản tham chiếu Python và lõi C++ qua test host, vector `estop_latch`; bo ảo QEMU không có GPIO vào)* |
 | Thời hạn lệnh | laptop ngừng gửi COMMAND | dốc mục tiêu về 0 | không | ≤ 300 ms (kẹp) rồi dốc 600 mm/s² | có test trên bản tham chiếu Python; lõi C++ qua test host (29/09/2026) và bản build thật trong bo ảo QEMU (30/09/2026) |
-| Watchdog liên lạc của bo | 500 ms không nhận gì | DISARMED | không | 500 ms | có test Python; lõi C++ qua test host và bản build thật trong bo ảo QEMU (30/09/2026) |
+| Watchdog liên lạc của bo | 500 ms không nhận thông điệp hợp lệ | DISARMED | không | 500 ms | có test Python; lõi C++ qua test host và bản build thật trong bo ảo QEMU (30/09/2026) |
 | `output_guard` | loop firmware im > 100 ms | xung ESC = trung tính | không (chạy trên bo) | 100–110 ms (README) | chỉ trong C++, đã biên dịch 29/09/2026, chưa chạy trên bo |
 | Task watchdog + móc panic | loop treo > 300 ms (3.x); 1 s (2.x; sửa 30/09/2026, trước ghi "1 s hoặc giữ mặc định") | chân ESC thấp, chip khởi động lại | không | xem [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 5 | chỉ trong C++, đã biên dịch 29/09/2026, CẦN KIỂM TRÊN BO |
-| `stop()` / `disarm()` của laptop | nút STOP, phiên dừng/kết thúc | ARMED / DISARMED, dốc | không | trễ truyền + dốc | Đã nối vào phiên từ 24/09/2026 ở hai chế độ VEHICLE_IO/OBSERVE, **chỉ với bo mô phỏng** (`SimVehicleIO` + `FirmwareModel`; [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md), `application/vehicle_link.py`). Ở VEHICLE_IO: nút STOP → `request_stop()` → COMMAND enable=0 mỗi nhịp điều khiển; kết thúc lần chạy → enable=0 rồi DISARM (có test mô phỏng, `tests/test_session_vehicle.py`). Ở OBSERVE không gửi lệnh nào. Giao diện chưa có chọn cổng serial tới bo thật; đường này trên bo thật CHƯA THỬ. *(Cập nhật 25/09/2026: thẻ "Bo điều khiển" nay chọn được cổng COM, commit `6db5087`, nhưng START với bo thật luôn bị từ chối vì chưa có nguồn tư thế thật; chỉ nút "Kiểm kết nối bo" mở cổng, và nó không ARM, không gửi COMMAND nào ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 6). Đường này trên bo thật vẫn CHƯA THỬ)* |
+| `stop()` / `disarm()` của laptop | nút STOP, phiên dừng/kết thúc | ARMED / DISARMED, dốc | không | trễ truyền + dốc | Đã nối vào phiên từ 24/09/2026 ở hai chế độ VEHICLE_IO/OBSERVE, **chỉ với bo mô phỏng** (`SimVehicleIO` + `FirmwareModel`; [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md), `application/vehicle_link.py`). Ở VEHICLE_IO: nút STOP → `request_stop()` → COMMAND enable=0 mỗi nhịp điều khiển; kết thúc lần chạy → enable=0 rồi DISARM (có test mô phỏng, `tests/test_session_vehicle.py`). Ở OBSERVE không gửi lệnh nào. Thẻ "Bo điều khiển" chọn được cổng COM (từ 25/09/2026, commit `6db5087`), nhưng START với bo thật luôn bị từ chối vì chưa có nguồn tư thế thật; chỉ nút "Kiểm kết nối bo" mở cổng, và nó gửi HELLO rồi đọc telemetry (có thể thêm DISARM mà `VehicleIO` tự gửi khi mất liên lạc), không ARM, không gửi COMMAND nào ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 6). Bo ảo QEMU chưa chọn được từ giao diện. Đường `stop()`/`disarm()` trên bo thật: CHƯA THỬ |
 | `TELEMETRY_STALE` của laptop | 0,3 s không có telemetry | gửi DISARM, chốt `send(enable=True)` | không | 0,3 s | có test Python |
 
 Mô phỏng `VehicleIO` giả định E-stop cắt động lực (`actuator.estop_cuts_power: true` trong
@@ -229,7 +276,7 @@ mục 13).
 | Nhả E-stop | vẫn FAULT (CLEAR_FAULT bị từ chối `ESTOP_ACTIVE` khi nút còn nhấn) | FAULT trong telemetry | CLEAR_FAULT → DISARMED → ARM → COMMAND enable mới | GIAO_THUC_XE mục 6 |
 | Động lực có lại sau khi đóng phần tử ngắt | không đổi (bo không mất điện nếu miền logic tách riêng) | — | như trên; ESC vừa có điện lại nhận xung trung tính vì effort = 0; ESC xử lý lúc bật nguồn thế nào: CHƯA CHỐT (phiếu kiểm kê C1.12) | — |
 | Rút rồi cắm lại USB laptop–bo | DISARMED sau `reopen()` + `connect()` (phiên mới) | `LINK_ERROR` lúc rút | `reopen()` → `connect()` → `arm()` → COMMAND mới; lệnh phiên cũ bị từ chối. Lỗi cổng làm `SerialVehicleIO` đóng cổng (`transport = None`), nên gọi thẳng `connect()` sẽ báo `VehicleIOError("Cổng chưa mở")`. `reopen()` chỉ dùng được khi đối tượng được tạo bằng `SerialVehicleIO.open(port)`, vì cần hàm mở lại cổng | GIAO_THUC_XE mục 4, 6, 11; `transport/vehicle_io.py` `SerialVehicleIO` (docstring, `_link_failed`, `reopen`); test `test_serial_unplug_raises_link_error_and_reconnect_stays_disarmed` (cổng giả) |
-| Bo khởi động lại (watchdog, sụt áp, mất điện) | BOOT (giữ trung tính `boot_hold_ms` 1000 ms) → DISARMED | telemetry ngừng → `TELEMETRY_STALE`; ACK `NO_SESSION`; `boot_id` mới → `FIRMWARE_RESET`; `reset_reason` trong HELLO_ACK (bo ảo QEMU 30/09/2026: `TELEMETRY_STALE` hoặc `SESSION_LOST` rồi `FIRMWARE_RESET`, test `test_chip_reset_is_seen_as_firmware_reset`; trên bo thật chữ ROM/log đi chung cổng USB làm tăng bộ đếm lỗi khung, MO_PHONG_FIRMWARE.md mục 5.5, CHƯA THỬ) | `connect()` → `arm()` → COMMAND mới. CẦN KIỂM trên bo thật: nếu bo dùng USB CDC gốc của ESP32-S3 thì khi bo reset, Windows có thể bỏ rồi tạo lại cổng COM; khi đó cũng có `LINK_ERROR` và phải `reopen()` trước `connect()` | GIAO_THUC_XE mục 3, 4 |
+| Bo khởi động lại (watchdog, sụt áp, mất điện) | BOOT (giữ trung tính `boot_hold_ms` 1000 ms) → DISARMED | telemetry ngừng → `TELEMETRY_STALE`; ACK `NO_SESSION` → `SESSION_LOST`; `boot_id` mới → `FIRMWARE_RESET` ở lần `connect()` sau (chỉ ghi log trước START); `reset_reason` trong HELLO_ACK (bo ảo QEMU 30/09/2026: `TELEMETRY_STALE` hoặc `SESSION_LOST` rồi `FIRMWARE_RESET`, test `test_chip_reset_is_seen_as_firmware_reset`; trên bo thật chữ ROM/log đi chung cổng USB làm tăng bộ đếm lỗi khung, MO_PHONG_FIRMWARE.md mục 5.5, CHƯA THỬ) | `connect()` → `arm()` → COMMAND mới. CẦN KIỂM trên bo thật: nếu bo dùng USB CDC gốc của ESP32-S3 thì khi bo reset, Windows có thể bỏ rồi tạo lại cổng COM; khi đó cũng có `LINK_ERROR` và phải `reopen()` trước `connect()` | GIAO_THUC_XE mục 3, 4 |
 | Ứng dụng laptop khởi động lại | DISARMED sau HELLO mới | — | `connect()` → `arm()` | GIAO_THUC_XE mục 6 |
 | `TELEMETRY_STALE` rồi telemetry có lại | có thể vẫn ARMED | `TELEMETRY_RESUMED` (LOG), chốt vẫn giữ | `arm()` hoặc `connect()` | GIAO_THUC_XE mục 5 |
 | STALL, LOOP_OVERRUN, SUPPLY_LOW | FAULT | `VEHICLE_FAULT` | CLEAR_FAULT (SUPPLY_LOW chỉ khi điện áp đo lại ≥ ngưỡng) → ARM → COMMAND mới | GIAO_THUC_XE mục 6 |

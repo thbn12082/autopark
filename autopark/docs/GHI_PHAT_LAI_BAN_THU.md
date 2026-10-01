@@ -179,7 +179,10 @@ phép đổi mà `LidarWorker` dùng. `created_utc` ứng với `t_start_s`, nê
    - PNG ≈ 65 MB/s. Mã hóa PNG khoảng 7,7 ms × 95 khung/s, gần trọn một lõi cho một luồng ghi, nên PNG chỉ dùng cho đoạn ngắn.
    - Số tệp: ≈ 95 tệp ảnh/s, tức 57.000 tệp cho 10 phút.
    - Ổ D: máy bàn dùng tới 25/09/2026 còn trống 75 GB (đo 24/09), đủ ≈ 80 phút ở 480p JPEG; máy bàn từ 29/09/2026 còn
-     ≈ 30,6 GB (đo 29/09/2026, [chuyển máy](CHUYEN_MAY_BAN.md) mục 4).
+     ≈ 30,6 GB (đo 29/09/2026, [chuyển máy](CHUYEN_MAY_BAN.md) mục 4), rồi ≈ 28 GB sau khi cài PlatformIO chiều cùng ngày
+     (mục 7 của biên bản đó). *(Cập nhật 30/09/2026: đo lại bằng `Get-PSDrive` lúc 15:23, ổ D của máy bàn hiện tại còn
+     62,58 GB, đủ ≈ 70 phút ở 480p JPEG với cảnh nhiều chi tiết như trên; không lưu log, chưa ghi vì sao ổ trống thêm. Đo
+     lại trước mỗi phiên ghi dài.)*
    - LiDAR: ≈ 510 tia × 9 byte × 10 Hz ≈ 46 KB/s trước khi nén.
 7. **Hàng đợi và RAM.**
    - Hàng đợi ghi giới hạn 192 MB ảnh chưa mã hóa (≈ 2 s của bốn camera 480p; ≈ 0,7 s ở 720p). Đầy thì khung bị bỏ và đếm

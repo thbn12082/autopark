@@ -40,8 +40,10 @@ Mã: [autopark/fusion/camera_ai.py](../autopark/fusion/camera_ai.py) (nguồn v�
 - **Đang chạy (RUNNING)**: hộp AI MỚI (không nằm trong vật cản đã biết nới một ô) chạm hành lang thân xe dọc phần quỹ
   đạo còn lại (nới 10 cm) → `inject_obstacle` → phiên phát MAP_CHANGED, xe dừng và chờ lập lại đường. Đây là đường dừng
   sẵn có của giai đoạn 0, không có đường nào khác. Hộp mới ngoài hành lang chỉ được ghi nhớ.
-- Ngăn chỉ đọc camera, chạy AI và chèn vật cản vào phiên. Nó không có liên hệ nào tới phần cứng chấp hành. Xe thật dừng
-  qua đường dừng của phiên (VehicleIO), như với vật cản LiDAR.
+- Ngăn chỉ đọc camera, chạy AI và chèn vật cản vào phiên. Nó không có liên hệ nào tới phần cứng chấp hành. Khi có xe,
+  xe sẽ dừng qua đường dừng của phiên (VehicleIO), như với vật cản LiDAR. Hiện đường này chỉ chạy với bo mô phỏng; với
+  bo thật, START bị từ chối vì chưa có nguồn tư thế thật ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 3). CHƯA THỬ
+  trên xe.
 
 ## 2. Giấy phép: quyết định 25/09/2026
 
@@ -120,7 +122,7 @@ chặn mọi lô khi nguồn là "live".
 
 | Tham số | Giá trị | Vì sao |
 |---|---|---|
-| `t_blocked` (ô ngăn "vật cản khi P ≥") | **0,15** | Ngưỡng an toàn của [HUAN_LUYEN.md](../../HUAN_LUYEN.md) mục 10 là quy tắc "pixel là vật cản khi P(BLOCKED) ≥ 0,15" (tối đa F2 trên val WoodScape). Nguồn vật cản chỉ dùng ô OCCUPIED, nên ngưỡng này phải là `t_blocked`. Nếu giữ mặc định của lệnh `bev` (0,15 là `t_free`, `t_blocked` = 0,50) thì ngưỡng an toàn không còn tác dụng gì lên vật cản: vật cản chỉ còn từ p ≥ 0,50. Cái giá: trên WoodScape test, 3,97 % pixel trống bị gọi vật cản ở 0,15 (1,37 % ở 0,50); trên ACDC tuyết là 15 %. Trên sa bàn **chưa đo**. |
+| `t_blocked` (ô ngăn "vật cản khi P ≥") | **0,15** | Ngưỡng an toàn của [HUAN_LUYEN.md](../../HUAN_LUYEN.md) mục 10 là quy tắc "pixel là vật cản khi P(BLOCKED) ≥ 0,15" (tối đa F2 trên val WoodScape). Nguồn vật cản chỉ dùng ô OCCUPIED, nên ngưỡng này phải là `t_blocked`. Nếu giữ mặc định của lệnh `bev` (0,15 là `t_free`, `t_blocked` = 0,50) thì ngưỡng an toàn không còn tác dụng gì lên vật cản: vật cản chỉ còn từ p ≥ 0,50. Cái giá: trên WoodScape test, 3,09 % pixel trống bị gọi vật cản ở 0,15 (1,37 % ở 0,50) *(sửa 30/09/2026: trước ghi nhầm 3,97 %, là 1 − precision của lớp BLOCKED)*; trên ACDC tuyết là 15 %. Trên sa bàn **chưa đo**. |
 | `t_free` | 0,05 | Không đổi tập OCCUPIED (test `test_ai_threshold_maps_the_safe_015_to_t_blocked_and_t_free_does_not_change_occupied`). FREE của camera không được planner dùng. |
 | Lọc thời gian | ≥ 2 trong 3 lô | Như quy tắc 2/3 của LiDAR (đo trên LiDAR thật 22/09: một lần chạm gây ô chớp tắt). Với AI **chưa đo**. Ô "lần thấy" không vượt được ô "lô gộp": bớt số lô gộp thì số lần thấy giảm theo trên màn hình (trước 25/09/2026 ô vẫn hiện 2 mà luật thật là 1/1). |
 | Tuổi tối đa | 0,5 s | Tuổi tính từ khung CŨ nhất của lô mới nhất. Ngăn đọc đồng hồ **sau** khi lấy lô, nên tuổi không bao giờ âm dù luồng giao diện đứng giữa hai bước. |
@@ -161,7 +163,8 @@ Vì thế `camera_ai` không dùng hàm đó (mục 10).
 - **"Camera cố định trên bàn"** (mặc định): hệ xe của BEV đặt ở tư thế xuất phát của sa bàn lúc còn chỉnh, rồi giữ nguyên
   khi chạy, như LiDAR đặt trên bàn. Xe ảo chạy đi nhưng camera không đi theo.
 - **"Camera gắn trên xe"**: khi xe chạy (hay đã dừng sau lần chạy), dùng tư thế xe của phiên: mô phỏng, hoặc thế giới
-  gương của VehicleIO trên xe thật. Tư thế là tư thế **lúc ngăn xử lý lô**, không nội suy về lúc chụp. Sai số vị trí
+  gương của VehicleIO (hiện chỉ với bo mô phỏng và `SimTruthPose`; trên xe thật CHƯA THỬ, cần nguồn tư thế thật). Tư
+  thế là tư thế **lúc ngăn xử lý lô**, không nội suy về lúc chụp. Sai số vị trí
   ≈ tốc độ xe × tuổi lô. Ví dụ tính: 0,3 m/s × 0,1 s = 3 cm; tuổi lô đo khi phát lại ở mục 8.2 có trung vị 75 ms,
   p95 97 ms. **CHƯA ĐO** trên xe.
 

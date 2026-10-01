@@ -1,8 +1,13 @@
 # Firmware ESP32-S3 — nhận lệnh, giới hạn, watchdog, telemetry (giai đoạn 5, "khi chưa đủ phần cứng")
 
-**Trạng thái (24/09/2026): mã nguồn viết trước khi có mạch. CHƯA BIÊN DỊCH, CHƯA NẠP, CHƯA CHẠY trên bo nào.**
-Máy bàn dùng tới 25/09/2026 không có trình biên dịch C/C++ (không gcc/clang/MSVC) và không có PlatformIO, nên kể cả
-bộ test C++ trên máy tính (`test/host`) cũng chưa từng được biên dịch.
+**Trạng thái (30/09/2026):** lõi `src/core` khớp bản tham chiếu Python trên máy tính (test host 703 check, 0 lệch,
+29/09/2026); cả firmware biên dịch cho ESP32-S3 (Arduino-ESP32 2.0.17, 0 lỗi, 0 cảnh báo, 29/09/2026); bản env
+`esp32s3_qemu` chạy trong bo ảo QEMU (30/09/2026, chỉ là giả lập). **CHƯA NẠP, CHƯA CHẠY trên bo thật**; mọi bước
+"Cách kiểm trên bo" chưa làm. Chi tiết ở ba đoạn "Cập nhật" dưới và các mục tương ứng.
+
+*Trạng thái lúc viết mã (24/09/2026), giữ làm lịch sử:* mã nguồn viết trước khi có mạch. CHƯA BIÊN DỊCH, CHƯA NẠP, CHƯA
+CHẠY trên bo nào. Máy bàn dùng tới 25/09/2026 không có trình biên dịch C/C++ (không gcc/clang/MSVC) và không có
+PlatformIO, nên kể cả bộ test C++ trên máy tính (`test/host`) cũng chưa từng được biên dịch.
 Phần đã kiểm là **bản tham chiếu Python**
 (`autopark/transport/firmware_model.py`) — mã C++ này được viết để khớp từng dòng với nó, và bộ test C++ sẽ
 kiểm điều đó bằng vector mẫu chung khi có trình biên dịch.
@@ -92,10 +97,10 @@ nó trên máy tính qua `test/host` từ 29/09/2026; chưa thử trên bo):
 - Lệnh hết hạn → dốc về trung tính (ARMED); không nhận thông điệp hợp lệ nào quá `link_timeout_ms` (500 ms) → DISARMED.
 - Reset, kết nối lại (HELLO mới), mất liên lạc dài hơn `link_timeout_ms`: đều kết thúc ở DISARMED — **reconnect không
   tự chạy tiếp**. DISARM và HELLO trong BOOT/FAULT không đổi trạng thái (không rút ngắn BOOT, không xóa lỗi).
-- Hai cơ chế mất liên lạc KHÁC nhau: watchdog của bo (500 ms không nhận gì → DISARMED) và `TELEMETRY_STALE` của laptop
-  (0,3 s không có telemetry, phải ≥ 3 chu kỳ telemetry). Mất liên lạc ngắn hơn 500 ms, hoặc chỉ mất chiều bo → laptop
-  trong khi laptop vẫn PING, có thể để bo ở ARMED; điều ngăn xe tự chạy lại khi đó là chốt phía laptop: `VehicleIO`
-  gửi DISARM, từ chối mọi `send(enable=True)` và chỉ gỡ chốt bằng `arm()` hoặc `connect()` (xem
+- Hai cơ chế mất liên lạc KHÁC nhau: watchdog của bo (500 ms không nhận thông điệp hợp lệ → DISARMED) và
+  `TELEMETRY_STALE` của laptop (0,3 s không có telemetry, phải ≥ 3 chu kỳ telemetry). Mất liên lạc ngắn hơn 500 ms,
+  hoặc chỉ mất chiều bo → laptop trong khi laptop vẫn PING, có thể để bo ở ARMED; điều ngăn xe tự chạy lại khi đó là
+  chốt phía laptop: `VehicleIO` gửi DISARM, từ chối mọi `send(enable=True)` và chỉ gỡ chốt bằng `arm()` hoặc `connect()` (xem
   `docs/GIAO_THUC_XE.md` mục 5). Firmware không tự biết laptop đã coi là mất liên lạc.
 - E-stop (ngõ vào) → FAULT ngay, effort 0 ngay, chốt tới khi nhả nút VÀ laptop gửi CLEAR_FAULT; sau đó vẫn phải ARM
   (mức logic: `inputs.estop` → FAULT, vector `estop_latch`; đọc chân E-stop ở `main.cpp`, `kPinEstop` còn -1, chưa thử).
@@ -260,7 +265,7 @@ Espressif không nối USB-Serial-JTAG ra máy tính) và flash DIO (QEMU 9.2.2 
 ```
 
 Bo ảo kiểm được giao thức, máy trạng thái, dốc tốc độ, hết hạn lệnh, mất liên lạc và reset chip trên bản build thật,
-với đúng `SerialVehicleIO` của laptop. Nó KHÔNG có LEDC, GPIO vào (E-stop), I2C, watchdog kích hoạt, USB-CDC thật, nên
+với đúng `SerialVehicleIO` của laptop. Nó KHÔNG có LEDC, GPIO vào (E-stop), I2C, task watchdog kích hoạt, USB-CDC thật, nên
 mọi bước "Cách kiểm trên bo" ở trên vẫn phải làm trên bo. Chi tiết, các trình giả lập khác đã thử (esp32sim chạy được bản
 USB-CDC; a159x36/qemu có LEDC và tiêm chân, mới thử với sketch thử; esp-emulator có watchdog kích hoạt) và giới hạn:
 [MO_PHONG_FIRMWARE.md](../../docs/MO_PHONG_FIRMWARE.md).
@@ -281,5 +286,7 @@ USB-CDC; a159x36/qemu có LEDC và tiêm chân, mới thử với sketch thử; 
    "Cách kiểm trên bo" phía trên (bật nguồn, loop im 150 ms, treo 400 ms, `abort()`, interrupt watchdog,
    `esp_restart()`, rút E-stop). Ghi thời gian tới lúc chân xuống thấp hoặc về trung tính, và độ rộng xung ở pha XTAL.
 3. Nối servo rồi ESC theo sơ đồ đã đối chiếu, xe kê cao bánh không chạm đất, E-stop phần cứng sẵn sàng
-   (kế hoạch mục 9 "Khi đủ phần cứng", mục 10), giữ trần effort mặc định 250 ‰. Chỉ nâng `max_effort_permille` sau khi
+   (kế hoạch mục 9 đoạn "Có đồ", mục 10; tên cũ "Khi đủ phần cứng" ở
+   [bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md)), giữ trần
+   effort mặc định 250 ‰. Chỉ nâng `max_effort_permille` sau khi
    đã đo đường cong effort–tốc độ (giai đoạn 4), có encoder, và đã thấy STALL chốt đúng khi giữ bánh.

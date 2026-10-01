@@ -124,7 +124,10 @@ lấy telemetry và sự kiện ĐÃ tới (bo thật: `poll(block=False)`; bo m
 rồi `Session` mới lấy sự kiện dừng, trước nhịp điều khiển.
 
 - mọi sự kiện `STOP` của `VehicleIO`: `TELEMETRY_STALE`, `SESSION_LOST`, `VEHICLE_FAULT`, `FIRMWARE_RESET`,
-  `LINK_ERROR`;
+  `LINK_ERROR`; *(Cập nhật 01/10/2026: `FIRMWARE_RESET` chỉ sinh trong `connect()` của lần chạy sau và chỉ được ghi log
+  trước START, không làm dừng lần chạy nào; chip khởi động lại giữa lần chạy làm phiên dừng vì telemetry cũ
+  (`STALE_TELEMETRY` của lớp nối sau 0,15 s, ở trên, tới trước `TELEMETRY_STALE` sau 0,3 s) hoặc `SESSION_LOST`
+  (`transport/vehicle_io.py` `connect()`, `application/vehicle_link.py` `_open_run`).)*
 - ở `VEHICLE_IO`, thêm `COMMAND_REJECTED` và `VEHICLE_STOPPED` khi laptop chưa ra lệnh dừng;
 - `VEHICLE_NOT_ARMED`: telemetry báo bo đã rời ARMED/RUNNING sau khi nhận lệnh của lần chạy này;
 - `OBSERVE_NOT_DISARMED`: ở chế độ quan sát mà bo ARMED/RUNNING. Lớp nối gửi DISARM ngay.
@@ -483,9 +486,12 @@ hình bo nhanh dùng trong test (`boot_hold_ms` 200), cùng phép thử cho 160 
 ## 8. Chưa kiểm / giới hạn
 
 - **Chưa chạy với ESP32-S3 hay MN300.** `SerialVehicleIO` mới chỉ nối vào phiên qua cổng serial GIẢ (mục 7), chưa
-  từng qua cổng thật. Firmware C++ chưa biên dịch ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12). *(29/09/2026: lõi `src/core` đã biên dịch và qua test host, 703 check, 0 lệch; chiều cùng ngày cả firmware biên dịch cho ESP32-S3; chưa nạp bo.)* Trước bản sửa ngày
-  24/09/2026, nhánh này chạy phiên ở khoảng 0,4 lần thời gian thực (mỗi bước chờ timeout đọc 10 ms), nên mọi log
-  qua `SerialVehicleIO` có trước ngày đó (nếu có) không dùng được để đánh giá nhịp điều khiển.
+  từng qua cổng thật. Firmware C++ đã biên dịch cho ESP32-S3 bằng PlatformIO (29/09/2026; cùng ngày lõi `src/core` qua
+  test host, 703 check, 0 lệch) và chạy trong bo ảo QEMU ở mức `VehicleIO` (30/09/2026, chỉ giả lập: `SerialVehicleIO`
+  nói chuyện với nó qua `socket://` từ Python/pytest; [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)). Chưa nạp bo thật, và
+  bo ảo chưa được thử qua phiên đỗ xe (`Session`/`VehicleLink`) hay giao diện ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục
+  12). Trước bản sửa ngày 24/09/2026, nhánh này chạy phiên ở khoảng 0,4 lần thời gian thực (mỗi bước chờ timeout đọc
+  10 ms), nên mọi log qua `SerialVehicleIO` có trước ngày đó (nếu có) không dùng được để đánh giá nhịp điều khiển.
 - Nếu chạy thêm luồng `Heartbeat` bên cạnh phiên, `poll(block=False)` của vòng điều khiển vẫn có thể phải chờ khóa
   của `VehicleIO` tối đa khoảng một timeout đọc (10 ms) trong lúc luồng nền đang đọc chặn. Phiên hiện không dùng
   `Heartbeat`; chưa đo trường hợp này.
@@ -529,7 +535,8 @@ hình bo nhanh dùng trong test (`boot_hold_ms` 200), cùng phép thử cho 160 
   tĩnh `lidar/localize.py` (commit `b100a5d`, [DINH_VI_LIDAR.md](DINH_VI_LIDAR.md)) và odometry khớp scan thử nghiệm
   `lidar/scan_odometry.py` (commit `a7cec5e`, [SO_SANH_DINH_VI_SLAM.md](SO_SANH_DINH_VI_SLAM.md)). Cả hai chạy offline
   trên bản ghi, chưa có tham chiếu độc lập, chưa là `PoseSource` của `VehicleLink`. Bước `reopen()` trong `begin_run`
-  vẫn CHƯA LÀM, đọc mã ở HEAD `54cb3e2`.)*
+  vẫn CHƯA LÀM, đọc mã ở HEAD `54cb3e2`; đọc lại mã ở `ff4a018` ngày 30/09/2026 vẫn vậy: `_open_run` chỉ gọi `connect()`
+  khi chưa có phiên, nên cổng tạo bằng `SerialVehicleIO.deferred` mà chưa mở sẽ báo "Cổng chưa mở".)*
 - *(Thêm muộn tối 24/09/2026.)* **Giới hạn của kiểm tra giới hạn bo.** Kiểm tra so với `VehicleConfig`, không so với
   đường đã lập. Bo cho góc lái nhỏ hơn `max_steer` là bị từ chối, kể cả khi đường cụ thể không dùng tới góc đó. Không
   so `max_validity_ms` và `link_timeout_ms` (không có trường tương ứng) và không so trần effort (bo không báo trần này

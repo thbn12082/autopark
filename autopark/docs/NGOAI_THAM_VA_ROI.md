@@ -1,10 +1,13 @@
 # Ngoại tham camera và mặt nạ ROI cho camera của dự án: công cụ và cách làm (24/09/2026)
 
-**Kế hoạch đối chiếu:** v3.1 mục 6, "Khi đủ bốn camera", bước 4: *"Hiệu chuẩn riêng từng camera; gắn lên rig rồi xác
-định vị trí/hướng của camera so với rig."* Đầu ra cần có gồm `camera_rig_extrinsics.yaml`; dự án dùng JSON
-(`configs/rig/camera_rig_extrinsics_v1.json`) vì cả hai môi trường Python không có thư viện YAML. Việc này là mục 5.4 của
-[TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) ("Công cụ ngoại tham camera … Công cụ dựng mặt nạ ROI cho camera dự án") và
-mục 8, việc 2–3, của [BEV.md](BEV.md).
+**Kế hoạch đối chiếu:** v3.1 mục 6, "Khi đủ bốn camera", bước 4
+([bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md); bản hiện tại:
+mục 6, đoạn "Có đồ"): *"Hiệu chuẩn riêng từng camera; gắn lên rig rồi xác định vị trí/hướng của camera so với rig."*
+Đầu ra cần có gồm `camera_rig_extrinsics.yaml`; dự án dùng JSON (`configs/rig/camera_rig_extrinsics_v1.json`) vì cả
+hai môi trường Python không có thư viện YAML. Công cụ ở đây là việc mục 5.4 của TONG_HOP_DU_AN.md bản `9d68257` ("Công
+cụ ngoại tham camera … Công cụ dựng mặt nạ ROI cho camera dự án"); việc đo thật nay ở
+[TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 5.2 (việc "Hiệu chuẩn camera, đo ngoại tham, tạo ROI"). Cũng là mục
+8, việc 2–3, của [BEV.md](BEV.md).
 
 **Mức bằng chứng:** công cụ mới chỉ được kiểm trên **ảnh TỔNG HỢP** và trên nguồn camera giả trong test (mục 7). **Chưa
 chạy với camera thật nào.** Chưa làm thật được, vì:
@@ -250,7 +253,11 @@ với mũi tên của bảng.)
 ```
 
 BEV chỉ đánh dấu costmap "dùng được cho lập đường" khi mọi camera được dùng có ngoại tham đo, có ROI, và nội tham đạt tiêu
-chí đề xuất. Việc nối AI vào lập đường vẫn chờ quyết định giấy phép WoodScape ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)).
+chí đề xuất. Việc nối AI vào lập đường không còn chờ quyết định giấy phép WoodScape (lúc viết, 24/09/2026, còn chờ).
+Ngày 25/09/2026 người làm khóa luận quyết định dùng mô hình WoodScape trong vòng điều khiển (Valeo chưa xác nhận cách
+đọc; [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)), và từ `b01dea4` AI camera là một nguồn vật cản của phiên đỗ xe qua
+`fusion/camera_ai.py`. Nguồn đó chỉ tạo vật cản từ BEV dùng được theo điều kiện ở câu trên, nên hiện trên bàn thật AI
+chưa tạo vật cản nào ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3).
 
 ## 6. Mặt nạ ROI
 

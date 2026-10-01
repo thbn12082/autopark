@@ -1,7 +1,10 @@
 # Giai đoạn 4 — chuẩn bị đo đặc tính MN300 khi chưa có xe (24/09/2026)
 
 **Kế hoạch đối chiếu:** [v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 8 (giai đoạn 4, "Khi chưa có xe" và "Khi
-nhận xe"), mục 3 (đợt mua 4), mục 16.1 (khảo sát tốc độ 0,05–0,15 m/s), mục 16.2 (ngưỡng "Điều khiển" cần chốt trên xe).
+nhận xe" theo [bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md);
+bản hiện tại: đoạn "Khi chờ" và "Có xe"; *cập nhật 30/09/2026: các "kế hoạch mục N bước M" trong tệp này cũng theo bản
+`9d68257`*), mục 3 (đợt mua 4), mục 16.1 (khảo sát tốc độ 0,05–0,15 m/s), mục 16.2 (ngưỡng "Điều khiển" cần chốt trên
+xe).
 
 **Mức bằng chứng:** tài liệu và công thức. **Chưa nhận MN300; chưa đo gì trên xe.** Mọi số trong tệp này là giá trị giả
 định đang có trong cấu hình và mã, hoặc là kết quả tính từ các giá trị đó. Không số nào là thông số của MN300. Mọi ô
@@ -481,8 +484,8 @@ lần ở các ca hình học/kín vòng, 0,85–1,15 lần bề rộng và chi�
     **cố định hoàn toàn**. 20/40 lần chạy thuộc hai nhóm này, tức là đặt xe khác cỡ vào hành lang cố định. Ở hành lang
     0,40 m, bề rộng và chiều dài cơ sở bằng 0,854–1,107 lần xe mặc định (rộng 0,120–0,155 m). Ở hành lang 0,44 m, hệ số là
     0,929–1,095 lần (rộng 0,130–0,153 m). Cả 20 lần đều `OK` và `COMPLETED`, không vi phạm nào, theo
-    [cases.jsonl](../runs/robustness_final_2026-09-20/cases.jsonl) (mô phỏng, đọc lại ngày 24/09/2026; thư mục `runs/`
-    không có trong git).
+    `runs/robustness_final_2026-09-20/cases.jsonl` (mô phỏng, đọc lại ngày 24/09/2026; thư mục `runs/` không có trong
+    git, tệp chỉ có trên máy bàn).
 
   Vậy chiến dịch đã có một ít bằng chứng về "xe khác cỡ trong hành lang cố định", nhưng vẫn chưa phải phép thử độ nhạy, vì:
   - hệ số là một lần rút ngẫu nhiên cho mỗi ca;

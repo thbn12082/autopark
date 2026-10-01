@@ -419,6 +419,10 @@ def _cmd_kiem(args) -> int:
         try:
             info = connect_with_retry(io)
             state = io.wait_ready()
+            # Khung nhận trong lúc connect() và chờ bo ra khỏi BOOT: tách khỏi cửa sổ đo. Hai lượt ghi ở
+            # docs/evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao*.txt (30/09/2026 10:13, 13:47) chạy bản đếm gộp,
+            # nên "55 khung trong 2 s" ở đó gồm cả các khung này.
+            before = len(io.take_new())
             frames = []
             end = io.now() + 2.0
             while io.now() < end:
@@ -430,8 +434,9 @@ def _cmd_kiem(args) -> int:
     reason = ResetReason(info.reset_reason).name if info.reset_reason in ResetReason._value2member_map_ else "?"
     print(f"HELLO_ACK: boot_id {info.boot_id:08x}, firmware {info.firmware_version}, lý do reset {reason}, "
           f"trạng thái {state.name}, chu kỳ telemetry {info.telemetry_period_s * 1000:.0f} ms")
-    print(f"Telemetry: {len(frames)} khung trong 2 s; QEMU khởi động {board.starts} lần")
-    return 0 if len(frames) >= 30 else 1
+    print(f"Telemetry: {len(frames)} khung trong 2 s (≈ {len(frames) / 2:.1f} Hz), cộng {before} khung nhận trước đó lúc "
+          f"kết nối và chờ bo ra khỏi BOOT; QEMU khởi động {board.starts} lần")
+    return 0 if len(frames) >= 30 else 1                 # 20 Hz → ≈ 40 khung; ≥ 30 chừa chỗ cho máy bận
 
 
 def main(argv: list[str] | None = None) -> int:

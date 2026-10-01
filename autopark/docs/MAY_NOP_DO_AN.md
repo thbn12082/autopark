@@ -73,8 +73,15 @@ nào, nên dòng khung hỏng ở 720p chỉ so được khi đặt camera lapto
      của người dùng, và `requirements-train.lock` đã có dòng `shapely==2.1.2`. Nhờ vậy phiên đỗ xe, planner và AI camera
      chạy chung một tiến trình (`ui.lidar_app --camera-ai`, [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)); trước đó
      `.venv-train` không có shapely. Tệp khóa mới **chưa commit** lúc viết: laptop chỉ có shapely sau khi commit, push,
-     `git pull` rồi chạy lại `cai_dat_train.cmd` (lệnh cài theo tệp khóa cả khi `.venv-train` đã có). Ngăn AI camera trên
-     laptop: CHƯA CHẠY.
+     `git pull` rồi chạy lại `cai_dat_train.cmd` (lệnh cài theo tệp khóa cả khi `.venv-train` đã có).
+     *(Cập nhật 30/09/2026: tệp khóa có `shapely==2.1.2` đã commit trong `b01dea4` ngày 25/09/2026 và có trên
+     `origin/main`; trên laptop chỉ cần `git pull` rồi chạy lại `cai_dat_train.cmd`.)* Ngăn AI camera trên laptop: CHƯA
+     CHẠY.
+   - *(Cập nhật 30/09/2026:)* laptop không cần g++, cmake, PlatformIO hay QEMU. Test host của firmware tự bỏ qua khi
+     không có cmake hoặc trình biên dịch C++ trên PATH; test bo ảo QEMU tự bỏ qua khi `configs/thiet_bi.json` không có
+     `qemu_xtensa`, `platformio_python` hoặc đường dẫn ghi ở đó không tồn tại. Ba khóa `qemu_xtensa`, `platformio_python`,
+     `platformio_core_dir` (đường dẫn của máy bàn) để nguyên hoặc xóa đều được ([chuyển máy](CHUYEN_MAY_BAN.md) mục 5
+     bước 3).
 4. **Driver LiDAR:** cài driver cầu nối CP210x của Silicon Labs nếu Device Manager chưa thấy "Silicon Labs CP210x USB to
    UART Bridge (COMx)". Máy bàn dùng bản 11.2.0.167 từ 29/09/2026, cài qua Windows Update vì tải từ silabs.com bị chặn
    (máy bàn trước: 11.6.0.420; [chuyển máy](CHUYEN_MAY_BAN.md)).

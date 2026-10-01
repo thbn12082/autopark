@@ -1,11 +1,15 @@
 # So sánh phương án định vị / SLAM LiDAR cho V1 (24/09/2026, sửa đêm 24/09/2026)
 
-**Kế hoạch đối chiếu:** [v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 1.2 (V1: *"LiDAR cung cấp bản đồ/định
-vị"*); mục 5 "Khi đang chờ đồ" (*"Kiểm tra đầu vào bắt buộc của phương án SLAM dự kiến. Chưa có odometry thì không tự coi
-chuỗi scan là đủ cho mọi thư viện hoặc gán odometry bằng 0 để báo đã có định vị."*); mục 5 "Khi nhận LiDAR" bước 4–6;
-mục 12 (giai đoạn 8: hợp nhất vị trí toàn cục với odometry/IMU); bảng 16.2 dòng "Định vị"; điều kiện V1 đầu tiên ở 16.4;
-mục 17.2 ("đầu vào thư viện SLAM"). Việc này đang để ngỏ ở [TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 5.1 (phương án
-định vị cho V1 cần người dùng quyết định) và 5.4 (chọn phương án SLAM/định vị 2D, kiểm đầu vào của nó).
+**Kế hoạch đối chiếu:** [v3.1 bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md)
+*(cập nhật 30/09/2026: tên đoạn, số bước và câu trích dưới đây theo bản trước đợt biên tập 26/09/2026;
+[bản hiện tại](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) giữ số mục, mục 5 có đoạn "Khi chờ đồ" và "Có đồ")* mục 1.2
+(V1: *"LiDAR cung cấp bản đồ/định vị"*); mục 5 "Khi đang chờ đồ" (*"Kiểm tra đầu vào bắt buộc của phương án SLAM dự
+kiến. Chưa có odometry thì không tự coi chuỗi scan là đủ cho mọi thư viện hoặc gán odometry bằng 0 để báo đã có định
+vị."*); mục 5 "Khi nhận LiDAR" bước 4–6; mục 12 (giai đoạn 8: hợp nhất vị trí toàn cục với odometry/IMU); bảng
+16.2 dòng "Định vị"; điều kiện V1 đầu tiên ở 16.4; mục 17.2 ("đầu vào thư viện SLAM"). Việc này đang để ngỏ ở [TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 5.1 (phương án
+định vị cho V1 cần người dùng quyết định) và 4.3 (công cụ định vị chạy offline; phương án cho V1 là đề xuất chờ chốt).
+*(Cập nhật 30/09/2026: ý "chọn phương án SLAM/định vị 2D, kiểm đầu vào của nó" là mục 5.4 của
+[bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/TONG_HOP_DU_AN.md).)*
 
 **Mức bằng chứng.** Mọi thứ trong tài liệu này chạy **offline trên máy bàn i9-14900, tối và đêm 24/09/2026**. Không mở
 LiDAR, camera hay cổng COM nào. Dữ liệu dùng:

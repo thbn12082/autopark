@@ -3,7 +3,7 @@
 
 Phần đọc cấu hình và phần kiểm cơ chế chạy lại (bo giả `LoopbackBoard`) chạy ở mọi máy. Phần bo ảo bỏ qua khi
 configs/thiet_bi.json không có qemu_xtensa/platformio_python hoặc tệp không tồn tại (laptop nộp đồ án). Bo ảo chạy theo
-thời gian thực: ≈ 15 s; lần build đầu của env thêm vài phút. Chạy được ở đây KHÔNG chứng minh gì về bo thật: QEMU không
+thời gian thực: cả tệp ≈ 9–10 s (chay_lap_test_bo_ao*.txt, 30/09/2026); lần build đầu của env thêm vài phút. Chạy được ở đây KHÔNG chứng minh gì về bo thật: QEMU không
 có LEDC, GPIO vào, watchdog kích hoạt, USB-CDC (autopark.transport.qemu_board).
 """
 import json

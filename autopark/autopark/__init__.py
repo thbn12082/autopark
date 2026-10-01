@@ -1,8 +1,8 @@
 """Autopark — mô phỏng và điều khiển xe mô hình tự đỗ.
 
-Cấu trúc gói theo mục 5.1 của tài liệu tổng quan. Ở giai đoạn P0–P2 mới có:
-domain, geometry, simulation, application, storage, evaluation, ui.
-Các gói planning, control, estimation, safety, transport, video là chỗ dành sẵn.
+Gói con (30/09/2026): application, control, domain, evaluation, fusion, geometry, lidar, perception, planning, rig,
+safety, simulation, storage, transport, ui, video; `estimation` còn trống (chưa có nguồn tư thế thật). Sơ đồ kiến trúc:
+docs/SO_DO_HE_THONG.md.
 """
 
 __version__ = "0.1.0"

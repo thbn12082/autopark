@@ -651,7 +651,7 @@ class MainWindow(QMainWindow):
         self.drawer.hide()
         self.footnote = QLabel("MÔ PHỎNG 2D  ·  ESC / SPACE ĐỂ DỪNG", self.stage)
         self.footnote.setObjectName("note")
-        self.footnote.setToolTip("Bộ bám đường dùng vị trí thật của xe mô phỏng; chưa có nhiễu cảm biến.")
+        self.footnote.setToolTip("Mặc định bộ bám đường dùng phản hồi lý tưởng của xe mô phỏng; chọn trễ + nhiễu ở ngăn Mô phỏng.")
         self.setCentralWidget(self.stage)
         self.view.place_slot = self._place_slot
 

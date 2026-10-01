@@ -1,0 +1,14 @@
+$ python -X utf8 -m autopark.transport.qemu_board kiem   (30/09/2026 ≈ 15:00, máy bàn, hai lượt liên tiếp)
+Mã: ff4a018 + sửa _cmd_kiem trong autopark/transport/qemu_board.py (chưa commit lúc chạy): khung telemetry nhận trong
+lúc connect() và chờ bo ra khỏi BOOT được tách khỏi cửa sổ đo 2 s. Các tệp kiem_bo_ao.txt và kiem_bo_ao_ebbec83.txt
+chạy bản cũ đếm gộp, nên "55 khung trong 2 s" ở đó = 16 khung trước cửa sổ + 39 khung trong cửa sổ.
+
+--- lượt 1
+HELLO_ACK: boot_id 09376a90, firmware 1.0, lý do reset POWER_ON, trạng thái DISARMED, chu kỳ telemetry 50 ms
+Telemetry: 40 khung trong 2 s (≈ 20.0 Hz), cộng 16 khung nhận trước đó lúc kết nối và chờ bo ra khỏi BOOT; QEMU khởi động 2 lần
+exit=0
+--- lượt 2
+HELLO_ACK: boot_id 3e571101, firmware 1.0, lý do reset POWER_ON, trạng thái DISARMED, chu kỳ telemetry 50 ms
+Telemetry: 39 khung trong 2 s (≈ 19.5 Hz), cộng 16 khung nhận trước đó lúc kết nối và chờ bo ra khỏi BOOT; QEMU khởi động 1 lần
+exit=0
+(Lượt 1 khởi động QEMU 2 lần: lần đầu QEMU tự thoát lúc khởi động, lỗi espressif/qemu#175 đã biết, QemuBoard thử lại.)

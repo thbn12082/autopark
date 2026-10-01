@@ -10,7 +10,7 @@ và góc chúc của xe.
 
 | Việc | Mã | Kiểm |
 |---|---|---|
-| Dự án gán nhãn trên đĩa: nhập bộ ảnh (chép nguyên byte ảnh gốc, sha256), nhãn nháp từ xác suất, dò khung hỏng và khung cũ, lưu/đọc an toàn (file tạm + `fsync` + `os.replace`; sidecar hỏng thì báo đúng tên file), trạng thái nháp / đã duyệt / loại, thống kê, export ra cache huấn luyện với split đóng băng theo phiên, kiểm tách rời khỏi cache khác (`--disjoint-from`), tự kiểm cache không cần torch | `perception/labels.py` | `tests/test_labels.py`: 35 hàm test (48 trường hợp khi tính tham số hóa; *cập nhật 25/09/2026:* ở `54cb3e2` là 41 hàm, 55 trường hợp, xem mục 10); một test cần torch (`PreparedCache.open`) nên chỉ chạy trong `.venv-train`, một test đọc bộ ảnh thật `runs/rig_snapshots/20260923_145753_910` (bỏ qua nếu không có). Gồm: split giữ nguyên qua các lần export, phiên cũ vẫn giữ split khi mọi ảnh đóng băng của nó đã về nháp/bị loại (15 seed × 3 cách), phiên bị nối chỉ dời về train, chuỗi phiên đi qua bộ ảnh nháp/loại/bị bỏ, khung cũ xếp phiên theo giờ khung, duyệt/export khung hỏng đòi vùng hỏng là IGNORE, tập chấm trùng ảnh/bộ ảnh/phiên với cache huấn luyện bị từ chối, sidecar hỏng, nhập lại sau khi mất sidecar không đè nhãn, ghi có `fsync` và không để file tạm, đồng bộ lại sidecar lệch, export dừng khi dự án bị ghi giữa chừng, dọn thư mục dở, `--overwrite` khi cache cũ đang mở, tham số dòng lệnh sai |
+| Dự án gán nhãn trên đĩa: nhập bộ ảnh (chép nguyên byte ảnh gốc, sha256), nhãn nháp từ xác suất, dò khung hỏng và khung cũ, lưu/đọc an toàn (file tạm + `fsync` + `os.replace`; sidecar hỏng thì báo đúng tên file), trạng thái nháp / đã duyệt / loại, thống kê, export ra cache huấn luyện với split đóng băng theo phiên, kiểm tách rời khỏi cache khác (`--disjoint-from`), tự kiểm cache không cần torch | `perception/labels.py` | `tests/test_labels.py`: 41 hàm test (55 trường hợp khi tính tham số hóa; đếm bằng `pytest --collect-only` ngày 30/09/2026 ở `ff4a018`, như ở `54cb3e2`; lúc viết 24/09/2026 là 35 hàm, 48 trường hợp; xem mục 10); một test cần torch (`PreparedCache.open`) nên chỉ chạy trong `.venv-train`, một test đọc bộ ảnh thật `runs/rig_snapshots/20260923_145753_910` (bỏ qua nếu không có). Gồm: split giữ nguyên qua các lần export, phiên cũ vẫn giữ split khi mọi ảnh đóng băng của nó đã về nháp/bị loại (15 seed × 3 cách), phiên bị nối chỉ dời về train, chuỗi phiên đi qua bộ ảnh nháp/loại/bị bỏ, khung cũ xếp phiên theo giờ khung, duyệt/export khung hỏng đòi vùng hỏng là IGNORE, tập chấm trùng ảnh/bộ ảnh/phiên với cache huấn luyện bị từ chối, sidecar hỏng, nhập lại sau khi mất sidecar không đè nhãn, ghi có `fsync` và không để file tạm, đồng bộ lại sidecar lệch, export dừng khi dự án bị ghi giữa chừng, dọn thư mục dở, `--overwrite` khi cache cũ đang mở, tham số dòng lệnh sai |
 | Sửa nhãn không phụ thuộc Qt: cọ, đa giác, tô theo mặt nạ (vùng hỏng), tô lại theo AI (giữ hoặc bỏ phần đã tô), hoàn tác/làm lại theo từng thao tác | `perception/labels.py::LabelEditor` | như trên |
 | Giao diện gán nhãn | `ui/label_app.py` | `tests/test_label_app_ui.py`: 15 hàm test offscreen (20 trường hợp) — nét cọ bằng sự kiện chuột, đa giác bằng nhấp/nhấp đúp, phím tắt, lăn chuột (Ctrl + lăn theo nấc, không theo số sự kiện), duyệt rồi đọc lại file trên đĩa, tự lưu khi chuyển ảnh, khung hỏng phải xác nhận và tô IGNORE vùng hỏng, khung cũ có cảnh báo riêng, duyệt bị từ chối khi đa giác chưa đóng, nhấp đúp ở chế độ cọ vẫn bắt đầu nét, tọa độ con trỏ không đè thông báo, lưu hỏng thì hỏi trước khi đóng, cửa sổ co vừa màn hình nhỏ, sidecar hỏng báo tên file, đi Trước/Sau khi tự lưu đưa ảnh đã duyệt về nháp, Ctrl+Z/Ctrl+Y/Tô lại giữa lúc kéo cọ, màu chữ trạng thái đã duyệt/loại đọc được trên cả nền danh sách sáng và tối (nháp giữ màu chữ mặc định) |
 
@@ -21,6 +21,39 @@ Chưa có ai dùng giao diện để gán nhãn ảnh thật, nên **tốc độ
 tự động offscreen (không có phông chữ) và một ảnh chụp màn hình offscreen.
 
 ## 2. Quy trình
+
+Sơ đồ dưới tóm tắt bảy bước của mục này (mã ở `ff4a018`, 30/09/2026). Hai luồng tách rời ngay từ lúc chụp: luồng huấn
+luyện dùng nháp AI và `--exclude`; luồng chấm dùng `--no-draft`, tô tay từ đầu và `--disjoint-from`.
+
+```mermaid
+flowchart TD
+    CAP["rig_app bật AI, Chụp bộ ảnh ở độ cao và góc chúc thật của xe"] --> SNP["runs/rig_snapshots: phiên dùng huấn luyện"]
+    CAPC["rig_app --snapshots runs/rig_snapshots_cham: phiên riêng để chấm, cách hơn 60 s"] --> SNC["runs/rig_snapshots_cham"]
+    SNP --> IMP["labels import vào datasets/sa_ban_labels: nháp từ P(BLOCKED) ngưỡng 0,5, --exclude dự án chấm"]
+    SNC --> IMC["labels import --no-draft vào datasets/sa_ban_cham: nháp toàn IGNORE, tô tay từ đầu"]
+    IMP --> DMG["Dò khung hỏng và khung cũ: vào trạng thái loại kèm lý do"]
+    IMC --> DMG
+    DMG --> EDT["label_app: cọ, đa giác, tô IGNORE vùng hỏng, hoàn tác"]
+    EDT --> REV{"Duyệt: đã xem cả ảnh, nhãn không toàn IGNORE, vùng hỏng đã IGNORE?"}
+    REV -->|Chưa| EDT
+    REV -->|Đạt| LCK["Chốt sha256 nhãn lúc duyệt, sửa sau đó thì về nháp"]
+    LCK --> EXP["labels export: chỉ ảnh đã duyệt, split đóng băng theo phiên 60 s, check_cache"]
+    EXP --> CTR["Cache huấn luyện datasets/prepared/sa_ban_v1"]
+    EXP --> CCH["Cache chấm sa_ban_cham_v1: --ratios 0 1 0, --disjoint-from cache huấn luyện"]
+    CTR --> TRN["prepare_extra combine rồi train"]
+    CCH --> EVA["evaluate --manifest: từ chối ảnh trùng train của checkpoint"]
+    NOW["30/09/2026: chưa gán nhãn ảnh thật, chỉ có 2 bộ ảnh 23/09 chụp khi camera nằm trên bàn"] -.-> CAP
+    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
+    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
+    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
+    class IMP,IMC,DMG,EDT,REV,LCK,EXP,EVA daco
+    class CAP,CAPC,SNP,SNC,CTR,CCH,TRN,NOW chuaLam
+```
+
+Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị.
+Ở đây màu theo công cụ: ô xanh là công cụ đã có và có test (dữ liệu giả; riêng nhập và export đã thử với 8 ảnh thật,
+mục 1, và phần so manifest của `evaluate` đã chạy trên dữ liệu công khai thật); ô đỏ là ảnh, cache hay bước chưa có với
+ảnh sa bàn thật (`prepare_extra combine` chưa có test). Mũi tên chỉ thứ tự bước, không có nghĩa bước đó đã chạy.
 
 **Bước 1 — chụp ở độ cao thật.** Gá camera lên xe (hoặc giá cùng độ cao, cùng góc chúc), bật AI trong bàn thử để bộ
 ảnh có xác suất, bấm "Chụp bộ ảnh":
@@ -161,8 +194,14 @@ hỏng không đóng băng gì (file chỉ được ghi sau khi cache đã vào 
   `runs/rig_snapshots`, bước 7 nhập hai bộ ảnh cuối của chính thư mục đó vào dự án chấm), chạy bằng mã trước 24/09 trên
   dữ liệu giả 6 phiên × 2 camera: cả 4 ảnh val của cache chấm trùng sha256 với ảnh **train** của `sa_ban_v1`, export
   không cảnh báo gì. Nay `--disjoint-from` từ chối (`tests/test_labels.py`). Tỉ lệ `0 1 0` đóng băng cùng dự án: lần
-  export sau của dự án này cũng phải `--ratios 0 1 0`. Giới hạn: `evaluate.py` chưa tự kiểm ảnh chấm có nằm trong train
-  của checkpoint không (chế độ chấm chéo miền bỏ qua mọi phép kiểm split) — `--disjoint-from` lúc export là chốt duy nhất.
+  export sau của dự án này cũng phải `--ratios 0 1 0`. Giới hạn lúc viết (24/09/2026, trước `77eb51f`): `evaluate.py`
+  chưa tự kiểm ảnh chấm có nằm trong train của checkpoint không (chế độ chấm chéo miền bỏ qua mọi phép kiểm split) —
+  `--disjoint-from` lúc export là chốt duy nhất khi đó. Từ `77eb51f` (25/09/2026) có ba chốt: `import --exclude` lúc
+  nhập, `export --disjoint-from` lúc xuất, và `evaluate.py` mặc định từ chối chấm ảnh trùng split train của checkpoint
+  (`--train-overlap refuse`; `warn` thì chấm tiếp nhưng ghi `train_overlap` vào `metrics.json`); chi tiết ở ghi chú ngay
+  dưới. Trên cache sa bàn, cả ba mới thử trên dữ liệu giả; riêng phần so manifest của `evaluate.py --train-overlap` đã
+  chạy thêm trên dữ liệu công khai thật tối 24/09/2026 (WoodScape val: 0 ảnh trùng 5.764 ảnh train; AVM-SS val của
+  `ai_ws_avm`: 1.050/1.050 ảnh thuộc split chọn checkpoint; [DAN_Y_KHOA_LUAN.md](DAN_Y_KHOA_LUAN.md) phần 0, dòng DL).
 
   *Ghi chú muộn tối 24/09/2026 (mã chưa commit lúc viết; cập nhật 25/09/2026: đã commit ở `77eb51f`, đã push):* câu giới hạn ngay trên đã lỗi thời, nay có thêm hai chốt nữa.
 
@@ -371,6 +410,9 @@ khung thật sự được chụp. Bộ ảnh cũ không ghi `age_ms` thì khôn
   phẳng) vẫn phải người nhìn ra.
 - `evaluate.py` chưa tự kiểm ảnh chấm (chế độ chấm chéo miền) có nằm trong train của checkpoint không; chốt duy nhất là
   `export --disjoint-from`. Chưa có `import --exclude` để dự án huấn luyện tự bỏ các thư mục đã nhập vào dự án chấm.
+  *(Cập nhật 30/09/2026: ý này đã làm, không còn thuộc "Chưa làm": `evaluate.py --train-overlap` (mặc định `refuse`) và
+  `labels import --exclude` có từ `77eb51f` (25/09/2026), xem ghi chú ngay dưới và bước 7. Phần còn thiếu ghi ở cuối
+  mục.)*
 - Lịch sử hoàn tác không lưu qua lần chuyển ảnh; không có khóa khi hai cửa sổ mở cùng dự án. Export không khóa dự án
   mà kiểm lại từng ảnh ngay trước khi ghi và dừng nếu có gì đổi; hai lượt export chạy cùng lúc trên một dự án thì lượt
   ghi `splits.json` sau thắng (không có phép thử cho trường hợp này).

@@ -9,7 +9,7 @@ giữ nguyên.
 |---|---|---|
 | Máy | i9-14900 + RTX 4000 Ada 20 GB, RAM 64 GB | Dell Precision 3680, i9-14900, RTX 4000 Ada 20 GB, RAM 63,7 GB, Windows 11 Enterprise 26200 |
 | Driver NVIDIA | 596.72 | 596.71 |
-| Thư mục repo | `D:\ap` (mã ở `D:\ap\autopark`) | `D:\gấp\autopark` (mã ở `D:\gấp\autopark\autopark`); **chiều 29/09/2026 người dùng đổi tên thành `D:\xetulai\autopark`** (mục 6) |
+| Thư mục repo | `D:\ap` (mã ở `D:\ap\autopark`) | `D:\gấp\autopark` (mã ở `D:\gấp\autopark\autopark`); **chiều 29/09/2026 người dùng đổi tên `D:\gấp` thành `D:\xetulai`, nên repo nay ở `D:\xetulai\autopark`** (mục 6) |
 | Python gốc | `%LOCALAPPDATA%\Python\pythoncore-3.12-64` (3.12.10) | `%LOCALAPPDATA%\Programs\Python\Python312` (3.12.10, winget, bộ cài python.org, cài cho một người dùng) |
 | LiDAR C1 (bộ chuyển CP2102N) | COM4, driver CP210x 11.6.0.420 | **COM3**, driver CP210x 11.2.0.167 (Windows Update) |
 | Hub UGREEN của bốn camera | cổng gốc 5 của PC | cổng gốc 8 (HS08); số cổng trên hub vẫn 1–4 |
@@ -37,7 +37,8 @@ Người dùng chép nguyên thư mục dự án (kể cả `.venv`, `.venv-trai
 
 Không hỏng: checkpoint `runs/ai_woodscape_rtx4000_v1/best.pt` trùng SHA-256 ghi ở [MAY_NOP_DO_AN.md](MAY_NOP_DO_AN.md) mục 1;
 `datasets/` (≈ 69 GB) và `runs/` đủ. Các tệp trong `runs/ai_*` và `runs/do_nhay_xe/` còn ghi đường dẫn `D:\ap\autopark\...`:
-đó là hồ sơ của máy cũ, không dùng để chạy lại (`D:\ap\autopark` tương ứng `D:\gấp\autopark\autopark`).
+đó là hồ sơ của máy cũ, không dùng để chạy lại (`D:\ap\autopark` tương ứng `D:\gấp\autopark\autopark`). *(Cập nhật
+30/09/2026: nay tương ứng `D:\xetulai\autopark\autopark`, mục 6.)*
 
 ## 2. Kiểm trên máy mới (29/09/2026)
 
@@ -74,6 +75,13 @@ trên, kèm ghi chú máy, mã và giới hạn). Lệnh lấy tệp đứng cu�
 này; cột tham chiếu có đủ quy tắc chờ, làm nóng AI và độ lệch bộ ảnh, không còn cảnh báo hay ô "—" nào khi so hai lượt
 cùng quy tắc. Hai tệp 24/09 của máy bàn cũ giữ để đối chiếu. Test: `tests/test_may_moi.py`
 (`test_reference_20260929_shipped_in_repo_renders_every_cell`).
+
+**Các lệnh cùng dạng lệnh trong README, chạy trên máy này** *(thêm 30/09/2026 từ hồ sơ `runs/kiem_may_20260929/`; hồ sơ
+không ghi ai chạy và vì sao)* (29/09/2026 15:08–15:19, mã `b37e9ee`, tức đã có các sửa đổi ở mục 3):
+mô phỏng giai đoạn 0, ghi LiDAR 10 s ở COM3, kiểm bộ dữ liệu đã chuẩn bị (`verify_cache`), chấm AI trên val, dự đoán,
+train thử 1 epoch, bàn thử bốn camera + LiDAR + AI có ghi phiên rồi phát lại, một lượt `may_moi` nữa và ba lượt lặp
+AI. Lệnh, giờ và số chính của từng lượt: [kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md); tệp
+gốc ở `runs/kiem_may_20260929/` (git-ignore).
 
 ## 3. Sửa đổi để lần sau đổi máy chỉ sửa một chỗ (29/09/2026)
 
@@ -129,7 +137,13 @@ offscreen): `.venv` **1354 đạt, 8 bỏ qua**, 0 hỏng, 336 s; `.venv-train` 
 [pytest_venv_train_38f64bb.xml](evidence/chuyen_may_20260929/pytest_venv_train_38f64bb.xml). Với thiết bị thật, sửa đổi
 mới chỉ thử một lệnh: `lidar.rplidar_c1 info` KHÔNG có `--port` mở đúng COM3 lấy từ tệp cấu hình, đọc được C1 (cùng
 serial, health OK), mã thoát 0; `lidar_port("auto")` cũng ra COM3. `ui.lidar_app`, `fusion.demo`, `rig.bench --lidar`
-và camera CHƯA THỬ với thiết bị thật sau sửa đổi; lượt `do_may_moi.cmd` ở mục 2 là mã `9d68257`.
+và camera CHƯA THỬ với thiết bị thật sau sửa đổi; lượt `do_may_moi.cmd` ở mục 2 là mã `9d68257`. *(Cập nhật 30/09/2026:
+chiều 29/09/2026 (15:08–15:19, mã `b37e9ee`, sau các sửa đổi này) đã chạy với thiết bị thật: `rig.bench --lidar` 30 s
+với bốn camera, LiDAR ở cổng lấy từ tệp cấu hình (COM3) và AI, có ghi phiên rồi phát lại; cùng đợt còn ghi LiDAR 10 s
+ở COM3 (không lưu argv, không biết lấy cổng từ tệp cấu hình hay từ `--port`) và một lượt `may_moi` nữa (lệnh này không
+đọc tệp cấu hình: tự tìm CP210x hoặc dùng `--lidar` được truyền, argv của nó không lưu; lệnh con nhận `--lidar COM3`)
+([kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md), mục 2). `ui.lidar_app` và
+`fusion.demo` vẫn chưa thử với thiết bị thật.)*
 
 Tài liệu: lệnh cần chạy trong các tệp `.md` bỏ `--port COM4` / đổi `--lidar COM4` thành `--lidar`; câu ghi phiên đo cũ ở COM4
 giữ nguyên, có ghi chú ngày khi cần. Tệp `docs/evidence/` không sửa.
@@ -144,9 +158,12 @@ giữ nguyên, có ghi chú ngày khi cần. Tệp `docs/evidence/` không sửa
   và push được: các commit của đợt này push lên `origin/main` ngày 29/09/2026. Sau fetch, `main` tiến nhanh từ `9d68257` lên `2ee2940` của GitHub (hai commit ngày 26/09/2026 chỉ sửa
   tệp `.md`), nên mã nguồn vẫn như lúc đo các số test ở mục 2 và 3.
 - Ổ D còn ≈ 30,6 GB trống (29/09/2026, sau khi tạo lại venv và xóa venv cũ ≈ 6,0 GB; trước khi xóa còn ≈ 24,6 GB).
-  Kịch bản LD-1 có `--record` của [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) đòi ≥ 30 GB.
-- Chưa tải trọng số pretrained của torchvision (`%USERPROFILE%\.cache\torch`): lần train, benchmark hay `--resume` đầu tiên
-  cần mạng. Suy luận (AI, bàn thử, AI camera) không cần.
+  Kịch bản LD-1 có `--record` của [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) đòi ≥ 30 GB. *(Cập nhật 30/09/2026:
+  ≈ 28 GB sau khi cài PlatformIO, rồi ≈ 62,6 GB khi đọc lại chiều 30/09/2026; mục 7.)*
+- Trọng số pretrained của torchvision: lúc chuyển máy chưa có; đã có trong `%USERPROFILE%\.cache\torch\hub\checkpoints`
+  (`lraspp_mobilenet_v3_large-d234d4ea.pth`) từ 29/09/2026 15:09, tải khi chạy train thử 1 epoch (mục 2), SHA-256 bắt
+  đầu bằng `d234d4eae9d5`, trùng tệp mà `run_manifest.json` của các lượt train cũ ghi. Máy nào chưa có tệp này thì lần
+  train, benchmark hay `--resume` đầu tiên cần mạng. Suy luận (AI, bàn thử, AI camera) không cần.
 - Test phụ thuộc thời gian thật (`planner_budget`, ví dụ `uturn_w46`) có thể hỏng khi máy bận; chạy lại riêng lúc máy rảnh
   trước khi kết luận. *(30/09/2026: `uturn_w46` hỏng cả khi máy gần rảnh, với tiến trình pytest không có cửa sổ để
   Windows tự quyết EcoQoS; từ trưa 30/09 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest, mục 8.)*
@@ -159,8 +176,15 @@ giữ nguyên, có ghi chú ngày khi cần. Tệp `docs/evidence/` không sửa
    "Silicon Labs CP210x USB to UART Bridge (COMx)"), hoặc ghi `"auto"`. Cùng tệp (từ 30/09/2026): `qemu_xtensa`,
    `platformio_python`, `platformio_core_dir` cho bo ảo QEMU ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)); máy không có
    QEMU thì xóa ba khóa đó hoặc để nguyên (test bo ảo tự bỏ qua khi đường dẫn không tồn tại).
-4. Traceback còn hiện đường dẫn máy cũ thì xóa các thư mục `__pycache__` ngoài venv.
-5. Chạy toàn bộ bộ test ở cả hai venv, rồi `autopark\do_may_moi.cmd` với LiDAR và bốn camera cắm đúng cổng hub 1–4.
+4. Nếu cần firmware hoặc bo ảo *(thêm 30/09/2026)*: cài g++, cmake và Ninja nếu máy chưa có (máy bàn hiện tại có bản
+   WinLibs MinGW-w64 UCRT: g++ 16.1.0, cmake 4.4.1, Ninja, cài bằng winget cho người dùng nên nằm trong
+   `%LOCALAPPDATA%\Microsoft\WinGet\Packages\` trên ổ C; mục 4, 6); cài PlatformIO trong một venv riêng và đặt
+   `PLATFORMIO_CORE_DIR` sang ổ còn trống trước lần chạy đầu (mục 7); tải QEMU của Espressif 9.2.2
+   ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 2.1, 6); ghi các đường dẫn vào `configs\thiet_bi.json` (bước 3).
+   Rồi chạy `pio run -e esp32s3` trong `firmware\esp32_vehicle` và
+   `.venv\Scripts\python.exe -X utf8 -m autopark.transport.qemu_board kiem` trong thư mục `autopark`.
+5. Traceback còn hiện đường dẫn máy cũ thì xóa các thư mục `__pycache__` ngoài venv.
+6. Chạy toàn bộ bộ test ở cả hai venv, rồi `autopark\do_may_moi.cmd` với LiDAR và bốn camera cắm đúng cổng hub 1–4.
    Máy có cmake và g++ thì bộ test tự build và chạy test host của firmware (mục 6); không có thì hai test đó bỏ qua.
 
 Chỉ đổi tên hay dời thư mục repo trên cùng máy (venv vẫn chạy nên `kiem_venv.cmd` không bắt được): chạy
@@ -217,7 +241,11 @@ mục "Biên dịch cho ESP32-S3"; bằng chứng: [firmware_esp32_20260929.txt]
 Chưa nạp, chưa chạy trên bo nào (chưa có bo).
 
 Ổ D sau đợt này: ≈ 28 GB trống (trước ≈ 31 GB); `D:\xetulai\_platformio` chiếm ≈ 3,0 GB (core 2,9 GB; phần pioarduino
-đã xóa khỏi core sau khi kiểm 3.x). Kịch bản LD-1 có `--record` đòi ≥ 30 GB (mục 4): nay thiếu ≈ 2 GB.
+đã xóa khỏi core sau khi kiểm 3.x). Kịch bản LD-1 có `--record` đòi ≥ 30 GB (mục 4): nay thiếu ≈ 2 GB. *(Cập nhật
+30/09/2026: đọc lại bằng `Get-PSDrive` chiều 30/09/2026 (15:18 và 15:23), ổ D còn ≈ 62,6 GB; không lưu log, hồ sơ không
+ghi vì sao tăng. Số này đổi theo thời gian: đọc lại ngay trước khi chạy LD-1 có `--record`
+([GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 5, [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) kịch bản
+LD-1).)*
 
 Nhắc thêm cho mục 5 (lần sau đổi máy): cài PlatformIO rồi `pio run -e esp32s3` trong `firmware\esp32_vehicle`; ổ hệ thống
 mà chật thì đặt `PLATFORMIO_CORE_DIR` sang ổ khác trước lần chạy đầu.
@@ -293,7 +321,8 @@ Mỗi môi trường có thêm đúng 20 test so với lượt ở mục 6: 13 t
 - Tác tử dừng lượt này lúc 11:19 và xóa tệp JUnit mà một lượt lồng đã ghi.
 - Kiểm lại sau đó:
   - Trong repo chỉ đổi các tệp tác tử sửa có chủ ý.
-  - Ảnh flash của bo ảo không đổi (cùng SHA-256); `qemu_board kiem` đạt (58 khung trong 2 s, QEMU khởi động 1 lần).
+  - Ảnh flash của bo ảo không đổi (cùng SHA-256); `qemu_board kiem` đạt (58 khung tính từ lúc kết nối, gồm cả khung
+    nhận lúc chờ bo ra khỏi BOOT, xem cuối mục này; QEMU khởi động 1 lần; đầu ra console, không lưu log).
 - Script đã sửa: [pytest_noeco.py](evidence/mo_phong_20260930/ecoqos_30092026/pytest_noeco.py).
 
 **Dọn ổ C**:
@@ -348,7 +377,13 @@ làm việc sạch, cùng máy, 30/09/2026 13:47–14:02, offscreen, từ shell 
 - Thời gian ngắn hơn các lượt buổi sáng (451 s; 539–561 s). Tuy vậy, buổi sáng máy còn chạy việc khác, và EcoQoS lúc
   đó do Windows tự quyết, nên không tách được phần nào do yếu tố nào.
 - Bo ảo trên cùng commit:
-  - `kiem` đạt: 55 khung trong 2 s, QEMU khởi động 1 lần
-    ([kiem_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao_ebbec83.txt)).
-  - Chạy lặp `tests/test_firmware_qemu.py` 10 lượt: 10/10 lượt đạt cả 13 test, không có cảnh báo #175 hay LOOP_OVERRUN
+  - `kiem` đạt: 55 khung tính từ lúc kết nối (≈ 16 khung chờ bo ra khỏi BOOT + ≈ 39 khung trong 2 s), QEMU khởi động 1
+    lần ([kiem_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao_ebbec83.txt)). Bản `kiem` lúc đó
+    đếm gộp cả khung nhận trong lúc kết nối và chờ bo ra khỏi BOOT, nên tệp ghi "55 khung trong 2 s". Bản đếm tách
+    riêng (≈ 15:00 cùng ngày, mã `ff4a018` + sửa cách đếm, chưa commit lúc chạy) cho 40 và 39 khung trong 2 s (≈ 20 Hz),
+    cộng 16 khung trước đó
+    ([kiem_bo_ao_dem_rieng.txt](evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao_dem_rieng.txt);
+    [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1).
+  - Chạy lặp `tests/test_firmware_qemu.py` 10 lượt: 10/10 lượt đạt cả 13 test (6 trong đó chạy firmware thật trong
+    QEMU), không có cảnh báo #175 hay LOOP_OVERRUN
     ([chay_lap_test_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/chay_lap_test_bo_ao_ebbec83.txt)).

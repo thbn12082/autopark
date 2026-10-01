@@ -14,7 +14,9 @@ Luật lái (tâm trục sau là điểm tham chiếu, dùng cho cả tiến và
 
 Tốc độ theo hồ sơ của quỹ đạo, giới hạn thêm bởi quãng còn lại tới cuối đoạn; dừng
 hẳn ở điểm đổi chiều rồi mới sang đoạn kế. Bộ này chỉ dùng trạng thái được cấp vào
-`update()`; ở mốc P3 đó là trạng thái thật (chế độ lý tưởng), sau này thay bằng ước lượng.
+`update()`: trong phiên mô phỏng là mẫu của `SimFeedback` (mặc định lý tưởng, có thể thêm trễ, nhiễu, mất mẫu), qua
+VehicleIO là trạng thái đo (telemetry + nguồn tư thế; hiện chỉ có `SimTruthPose`), trong `rollout` là trạng thái thật
+của xe mô phỏng.
 """
 from __future__ import annotations
 

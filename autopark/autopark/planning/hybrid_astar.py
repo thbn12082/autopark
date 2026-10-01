@@ -193,7 +193,8 @@ def plan(start: Pose, goal: Pose, cfg: VehicleConfig, obstacles: list[Obstacle],
     # Lề an toàn không được ăn quá phần khoảng hở tại đích, nếu không xe đã nằm trong ô
     # sẽ không còn một hành động hợp lệ nào, và bài toán thành vô nghiệm vì lề chứ không
     # vì hình học. ĐO ĐƯỢC: ô đỗ hở 2 cm cho ra lề 1 cm, khi đó lập đường ngược từ đích
-    # chết ngay ở nút đầu tiên. Sàn 4 mm đủ bù sai số xấp xỉ vùng quét ở bước 5 cm.
+    # chết ngay ở nút đầu tiên. Sàn 4 mm đủ bù sai số xấp xỉ vùng quét ở bước 5 cm (sàn đặt bằng `margin_floor`;
+    # mặc định của hybrid_astar là 0, `cand_reference` dùng 4 mm).
     margin = min(params.safety_margin,
                  goal_true.min_clearance * params.margin_clearance_share,
                  start_true.min_clearance * params.margin_clearance_share)

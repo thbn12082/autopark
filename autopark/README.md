@@ -1,31 +1,37 @@
 # Cài đặt và chạy AutoPark
 
-[Cần biết tiến độ?](../TONG_HOP_DU_AN.md) · [Tài liệu kỹ thuật](docs/README.md)
+[Cần biết tiến độ?](../TONG_HOP_DU_AN.md) · [Tài liệu kỹ thuật](docs/README.md) · [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md)
 
-Biên tập 26/09/2026 theo mã tại `9d68257`; cập nhật 29/09/2026 theo mã tại `38f64bb`, sau khi chuyển sang máy bàn mới ([biên bản](docs/CHUYEN_MAY_BAN.md)). Lệnh được đối chiếu với mã/script. Ngày 29/09/2026 đã cài lại hai môi trường và chạy toàn bộ test trên máy bàn hiện tại (mục 4); sau khi đổi cách lấy cổng LiDAR, trong các lệnh mở thiết bị ở mục 7 mới chạy lại `lidar.rplidar_c1 info` với thiết bị thật.
+Biên tập 30/09/2026 theo mã tại `ff4a018` (mã giống `ebbec83`); cây làm việc lúc viết có thêm sửa chưa commit: sửa chữ (docstring, chú thích trong mã, một tooltip trong `ui/main_window.py`, mô tả gói trong `pyproject.toml`; không đổi hành vi) và cách đếm khung của `python -m autopark.transport.qemu_board kiem` (mục 9). Lệnh được đối chiếu với mã và script. Bản trước đợt này: [README tại `ff4a018`](https://github.com/thbn12082/autopark/blob/ff4a018/autopark/README.md); bản trước đợt 26/09/2026, còn các lệnh và nhật ký cũ: [README tại `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/autopark/README.md).
+
+Máy phát triển chính từ 29/09/2026 là máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), repo ở `D:\xetulai\autopark` ([biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md)); số đo mới trong tệp này làm trên máy đó. Trên máy này đã cài lại hai môi trường (29/09/2026) và chạy toàn bộ test (lượt mới nhất ở mục 4). Ngày 29/09/2026 lúc 15:08–15:19 (mã `b37e9ee`) đã chạy lại: `phase0` (mục 4); `verify_cache`, chấm val, dự đoán, train 1 epoch (mục 6); một bản ghi LiDAR 10 s; bàn thử bốn camera + LiDAR + AI có ghi rồi phát lại (mục 7); lệnh kiểm máy mới `rig.may_moi` ([tóm tắt](docs/evidence/chuyen_may_20260929/kiem_may_20260929.md)). Laptop trình diễn mới chạy mô phỏng giai đoạn 0 ([MAY_NOP_DO_AN.md](docs/MAY_NOP_DO_AN.md)).
 
 Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. [Hồ sơ giấy phép](docs/GIAY_PHEP_DU_LIEU.md).
 
 ## 1. Chọn môi trường và thư mục
 
-| Nhu cầu | Môi trường | Cần thêm |
-|---|---|---|
-| Mô phỏng tự đỗ | `.venv` | Không cần cảm biến/AI |
-| LiDAR/camera không chạy AI | `.venv` | Thiết bị hoặc bản ghi theo lệnh |
-| AI, huấn luyện, bàn thử có AI | `.venv-train` | Checkpoint, dữ liệu/camera, cấu hình GPU phù hợp |
-| Firmware ESP32 | C++/PlatformIO | [Hướng dẫn firmware](firmware/esp32_vehicle/README.md) |
+| Nhu cầu | Môi trường | Cần thêm | Hiện trạng 30/09/2026 |
+|---|---|---|---|
+| Mô phỏng tự đỗ | `.venv` | Không cần cảm biến/AI | Chạy trên máy tính; giai đoạn 0 đạt sáu điều kiện chuyển bước ở mức mô phỏng (20/09/2026, [báo cáo](../BAO_CAO_GIAI_DOAN_0.md)) |
+| LiDAR/camera không chạy AI | `.venv` | Thiết bị hoặc bản ghi theo lệnh | Đã đo với RPLIDAR C1 và bốn camera thật trên bàn thử, lần gần nhất 29/09/2026 trên máy bàn ([biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2) |
+| AI, huấn luyện, bàn thử có AI | `.venv-train` | Checkpoint, dữ liệu/camera, cấu hình GPU phù hợp | Mô hình tham chiếu đã huấn luyện và chấm trên WoodScape ([HUAN_LUYEN.md](../HUAN_LUYEN.md)); AI chạy trên bàn thử và bản ghi; trong phiên đỗ AI chưa tạo vật cản từ camera thật vì chưa camera nào được hiệu chuẩn ([AI camera](docs/AI_DIEU_KHIEN_XE.md)) |
+| Firmware ESP32-S3 | C++ (g++, cmake), PlatformIO | Mục 9 dưới đây; [hướng dẫn firmware](firmware/esp32_vehicle/README.md) | Lõi C++ khớp bản tham chiếu Python trên máy tính; cả firmware đã biên dịch cho ESP32-S3 (29/09/2026); CHƯA nạp, CHƯA chạy trên bo (chưa có bo) |
+| Bo ảo QEMU (firmware thật trong giả lập) | `.venv` + QEMU của Espressif + PlatformIO, đường dẫn ở `configs/thiet_bi.json` | Mục 9 dưới đây; [mô phỏng firmware](docs/MO_PHONG_FIRMWARE.md) mục 1 | Firmware thật chạy trong QEMU, dùng từ dòng lệnh và pytest (30/09/2026); chỉ là giả lập, giao diện chưa chọn được bo ảo |
+
+Chưa có xe thật: MN300, ESP32-S3, IMU, ToF, encoder/AS5600, phần nguồn và nút dừng đều chưa nhận ([kiểm kê phần cứng](docs/hardware_inventory.md)), nên chưa lệnh nào trong tệp này điều khiển bo hay xe thật.
 
 Python tối thiểu 3.11; môi trường tham chiếu Windows dùng Python 3.12.10. Thư viện cố định trong `requirements-phase0.lock` và `requirements-train.lock`.
 
-**Chạy lệnh tại thư mục chứa README này, `pyproject.toml` và `run_app.py`:**
+**Chạy lệnh tại thư mục chứa README này, `pyproject.toml` và `run_app.py`** (trừ lệnh cmake và PlatformIO của firmware, chạy trong `firmware/esp32_vehicle`):
 
 ```text
-autopark/                    ← gốc repository
+autopark/                        ← gốc repository
 ├── README.md
-└── autopark/                ← chạy lệnh ở đây
+└── autopark/                    ← chạy lệnh ở đây
     ├── pyproject.toml
     ├── run_app.py
-    └── autopark/            ← package Python
+    ├── autopark/                ← package Python
+    └── firmware/esp32_vehicle/  ← lệnh cmake và PlatformIO (mục 9)
 ```
 
 Các lệnh dưới dùng PowerShell, gọi trực tiếp Python của từng môi trường nên không cần activate.
@@ -37,15 +43,24 @@ flowchart TD
     A["Đứng tại thư mục có pyproject.toml"] --> B{"Muốn chạy gì?"}
     B -->|Mô phỏng tự đỗ| C["Cài .venv bằng cai_dat.cmd"]
     C --> D["Mở chay_app.cmd"]
-    B -->|LiDAR / camera không AI| E["Cài .venv; chọn thiết bị hoặc bản ghi"]
-    E --> F["Theo hướng dẫn mục 7"]
+    B -->|LiDAR hoặc camera, không AI| E["Cài .venv, chọn thiết bị hoặc bản ghi"]
+    E --> F["Theo mục 7"]
     B -->|AI hoặc huấn luyện| G["Cài .venv-train bằng cai_dat_train.cmd"]
     G --> H{"Chạy mô hình có sẵn hay train?"}
-    H -->|Có sẵn| I["Chép checkpoint và chuẩn bị ảnh / camera / bản ghi"]
+    H -->|Có sẵn| I["Chép checkpoint, chuẩn bị ảnh, camera hoặc bản ghi"]
     H -->|Train| J["Chuẩn bị dataset và xác minh cache"]
-    I --> K["Chạy mục 6 hoặc 7; kiểm hiệu chuẩn nếu tạo vật cản"]
+    I --> K["Chạy mục 6 hoặc 7, kiểm hiệu chuẩn nếu tạo vật cản"]
     J --> L["Theo HUAN_LUYEN.md"]
+    B -->|Firmware hoặc bo ảo| M["Cài g++, cmake và Ninja trên PATH, cài PlatformIO và QEMU rồi ghi đường dẫn hai công cụ này vào configs/thiet_bi.json"]
+    M --> N["Theo mục 9: kiểm vector, test host, biên dịch, chạy bo ảo"]
+    N -.->|chưa có bo| O["Nạp và chạy trên ESP32-S3 thật"]
+    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
+    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
+    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
+    class O chuaLam
 ```
+
+Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị. Các ô không tô màu là bước chọn đường chạy, không nói về trạng thái.
 
 ## 2. Cài và mở mô phỏng
 
@@ -63,13 +78,17 @@ python -m venv .venv
 
 Nếu `python --version` không chạy được, cài/sửa đường dẫn Python trước. Cài thư viện cần mạng. `requirements-phase0.lock` có cả `pyserial` để đọc LiDAR. Mô phỏng cơ bản không cần checkpoint AI.
 
+Máy mới, hoặc thư mục chép từ máy khác: thứ tự đủ các bước (hai môi trường, cổng LiDAR, công cụ firmware, test, kiểm máy) ở sơ đồ "Chuẩn bị một máy mới" trong mục 5.
+
 ## 3. Thử một lượt đỗ
 
 1. Đặt/xoay đích; đích đè vật cản hoặc làm thân xe vượt sa bàn bị từ chối.
 2. **Tìm đường đỗ** → **Xem trước** → kết thúc xem trước → **Bắt đầu đỗ**.
 3. Thử **Vật cản giả** hoặc **Mất dữ liệu** khi xe đang chạy.
-4. Khi đã dừng, chọn lại vị trí/đích và lập đường mới.
+4. Khi đã dừng, bấm **Chọn lại vị trí**, chọn lại vị trí/đích và lập đường mới.
 5. **Lưu phiên…** trước khi đặt lại phiên.
+
+Mặc định xe chạy ở nhánh mô phỏng giai đoạn 0; các nhánh khác ở mục 9.
 
 Mở kịch bản vùng chưa quan sát:
 
@@ -81,13 +100,33 @@ Vùng chưa quan sát được chặn như vật cản. `configs/vehicle_default
 
 ## 4. Test, bằng chứng và replay
 
+Chạy toàn bộ bộ test (`offscreen`: Qt không mở cửa sổ):
+
 ```powershell
 $env:QT_QPA_PLATFORM = "offscreen"
 ./.venv/Scripts/python.exe -X utf8 -m pytest
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-Test cần torch được bỏ qua trong `.venv`; chạy cùng lệnh bằng `./.venv-train/Scripts/python.exe` để gồm cả chúng. Chạy test có ngân sách tìm đường khi máy rảnh, tách khỏi coverage và các chiến dịch tải CPU. Trên Windows 11, tiến trình pytest không có cửa sổ (ví dụ chạy nền) có thể chạy chậm tới ≈ 3 lần dù máy gần rảnh, đủ làm hỏng các test này (đo 30/09/2026). Vì vậy từ 30/09/2026 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest; đặt `AUTOPARK_KEEP_ECOQOS=1` để giữ mặc định của Windows. pytest xóa thư mục tạm của test đạt (`tmp_path_retention_policy = "failed"` trong `pyproject.toml`; cần giữ thì thêm `-o tmp_path_retention_policy=all`). Chi tiết: [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 8.
+- Test cần torch được bỏ qua trong `.venv`; chạy cùng lệnh bằng `./.venv-train/Scripts/python.exe` để gồm cả chúng.
+- Bộ test gồm cả firmware: 2 test host của lõi C++ (`tests/test_transport_firmware_host.py`, cần cmake và trình biên dịch C++ trên PATH) và `tests/test_firmware_qemu.py` của bo ảo (13 test, 6 trong đó chạy firmware thật trong QEMU, cần công cụ khai trong `configs/thiet_bi.json`). Máy thiếu công cụ thì các test cần nó tự bỏ qua: 2 test host, hoặc 6 test chạy QEMU (mục 9).
+- EcoQoS: trên Windows 11, tiến trình pytest không có cửa sổ (ví dụ chạy nền) có thể chạy chậm tới ≈ 3 lần dù máy gần rảnh, đủ làm hỏng test có hạn giờ (dấu `planner_budget`; đo 30/09/2026). Vì vậy từ 30/09/2026 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest; tiến trình con mà test mở thì không (riêng QEMU của bo ảo: `QemuBoard` tự tắt EcoQoS cho tiến trình QEMU). Đặt `AUTOPARK_KEEP_ECOQOS=1` để giữ mặc định của Windows, ví dụ khi muốn đo đúng điều kiện đó. Trạng thái đọc lại được ghi vào tệp JUnit (thuộc tính `ecoqos` của testsuite: `off`, `system`, `on` hoặc `unknown`) và, khi chạy thêm `-v`, vào dòng đầu báo cáo.
+- Vẫn chạy test có hạn giờ khi máy rảnh, tách khỏi các chiến dịch tải CPU và không kèm coverage (mô tả dấu `planner_budget` trong `pyproject.toml` chỉ ghi phần coverage: `run without coverage tracing`).
+- Thư mục tạm: `pyproject.toml` đặt `tmp_path_retention_policy = "failed"`, nên pytest xóa `tmp_path` của test đạt ngay khi test xong; lượt có test hỏng chỉ còn thư mục của test hỏng và của fixture dùng chung (`tmp_path_factory`). Giữ hết thì mỗi lượt `.venv-train` để lại ≈ 2,1 GB trong `%TEMP%`. Cần giữ để xem lại thì thêm `-o tmp_path_retention_policy=all`.
+- `chay_test.cmd` gọi `.venv\Scripts\python.exe -m pytest` nhưng không đặt `offscreen` và không có `-X utf8`; muốn giống các lượt ghi trong biên bản thì dùng lệnh trên.
+
+Chi tiết và số đo: [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 8; sơ đồ 3.7 (hạn giờ và EcoQoS) trong [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).
+
+**Ghi số test làm bằng chứng.** Commit mã trước; chạy toàn bộ test trên chính commit đó với cây làm việc sạch; lưu JUnit có mã commit vào `docs/evidence/<đợt>/`; cuối cùng ghi số vào tài liệu bằng một commit riêng. Thay `<đợt>` và `<mã commit>` trước khi chạy:
+
+```powershell
+$env:QT_QPA_PLATFORM = "offscreen"
+./.venv/Scripts/python.exe -X utf8 -m pytest -p no:cacheprovider --junitxml docs/evidence/<đợt>/pytest_venv_<mã commit>.xml
+./.venv-train/Scripts/python.exe -X utf8 -m pytest -p no:cacheprovider --junitxml docs/evidence/<đợt>/pytest_venv_train_<mã commit>.xml
+Remove-Item Env:QT_QPA_PLATFORM
+```
+
+Ngày 30/09/2026 bước này chạy bằng script [chay_tren_commit.py](docs/evidence/mo_phong_20260930/chay_tren_commit.py): script chạy thêm `qemu_board kiem` và 10 lượt test bo ảo, rồi ghi thẳng vào `docs/evidence/mo_phong_20260930/`. Sơ đồ 9.2 trong [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).
 
 Lần chạy toàn bộ gần nhất: 30/09/2026, máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), bằng lệnh trên (offscreen), commit `ebbec83` của đợt bo ảo QEMU, cây làm việc sạch: `.venv` 1380 đạt, 8 bỏ qua (cần torch), 0 hỏng, 365 s; `.venv-train` 1442 đạt, 0 hỏng, 400 s. Cả hai tệp JUnit ghi `ecoqos=off`. Số test đổi theo mã; tệp kết quả và các lượt trước ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2, 3, 6, 8.
 
@@ -98,7 +137,7 @@ Tạo phiên mẫu rồi phát lại:
 ./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.replay runs/thu_nghiem_moi/obstacle
 ```
 
-Dùng thư mục đầu ra mới cho từng lượt. Phiên lưu cấu hình, quỹ đạo, sự kiện, telemetry, kết quả, snapshot source, ảnh/video. Replay dùng quỹ đạo đã lưu.
+Dùng thư mục đầu ra mới cho từng lượt. Phiên lưu cấu hình, quỹ đạo, sự kiện, telemetry, kết quả, snapshot source, ảnh/video. Replay dùng quỹ đạo đã lưu. Ngày 29/09/2026 trên máy bàn hiện tại (mã `b37e9ee`), `phase0` cho năm phiên trùng từng giá trị với đợt 20/09/2026, replay khớp cả năm ([tóm tắt](docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.1); kết quả vẫn chỉ là mô phỏng.
 
 Kiểm mở rộng:
 
@@ -112,7 +151,7 @@ Kiểm mở rộng:
 
 Chạy `cai_dat_train.cmd`. Script tạo `.venv-train`, cài lock với torch CUDA 12.8 và kiểm GPU; `.venv-train` chép từ máy khác mà không chạy được thì được đổi tên thành `.venv-train.hong-tu-may-cu` rồi tạo mới, như mục 2. Môi trường này có Shapely để AI chạy cùng phiên đỗ. Môi trường tham chiếu dùng Python 3.12 và GPU NVIDIA.
 
-[Chuyển môi trường/checkpoint sang laptop](docs/MAY_NOP_DO_AN.md). Chép cả dự án sang máy bàn khác: làm theo mục 5 của [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md).
+[Chuyển môi trường/checkpoint sang laptop](docs/MAY_NOP_DO_AN.md). Chép cả dự án sang máy bàn khác: làm theo mục 5 của [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md), tóm trong sơ đồ dưới.
 
 Bản clone không có:
 
@@ -126,6 +165,47 @@ Bản clone không có:
 | `configs/roi/rig_v1/` | Tạo ROI camera thật |
 
 Cài thư viện không tự tạo các tệp này. Ngoại tham `v0` và ROI WoodScape không thay hiệu chuẩn camera dự án.
+
+### Chuẩn bị một máy mới
+
+Thứ tự làm khi chuyển sang một máy bàn khác hoặc cài laptop trình diễn, gom từ [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 5–8 và [MAY_NOP_DO_AN.md](docs/MAY_NOP_DO_AN.md) mục 2:
+
+```mermaid
+flowchart TD
+    S["Máy mới: máy bàn thay thế hoặc laptop trình diễn"]
+    Q{"Chép nguyên thư mục từ máy cũ?"}
+    K1["Giữ runs/, datasets/, checkpoint đã chép"]
+    K2["git clone thbn12082/autopark, chép best.pt qua USB"]
+    H["So SHA-256 của best.pt với MAY_NOP_DO_AN mục 1"]
+    P["Cài Python 3.12.10 và driver CP210x"]
+    V1["cai_dat.cmd: kiem_venv.cmd, venv hỏng thì đổi tên, tạo .venv"]
+    V2["cai_dat_train.cmd: .venv-train, torch cu128, in CUDA True"]
+    C["Sửa lidar_port trong configs/thiet_bi.json"]
+    F{"Cần firmware và bo ảo?"}
+    FW["g++, cmake, Ninja, PlatformIO, QEMU 9.2.2, đường dẫn PlatformIO và QEMU vào thiet_bi.json"]
+    SK["Không cài: test host firmware và test bo ảo tự bỏ qua"]
+    PC["Traceback còn đường dẫn cũ: xóa __pycache__ ngoài venv"]
+    T["Chạy toàn bộ test ở hai venv, offscreen, lưu JUnit"]
+    MM["do_may_moi.cmd: 6 bước, so với tham_chieu_20260929.json"]
+    R["Ghi kết quả vào CHUYEN_MAY_BAN.md hoặc MAY_NOP_DO_AN.md"]
+    LB["Laptop: mang kết quả về máy bàn, may_moi --steps, CHƯA CHẠY"]
+    RN["Chỉ đổi tên thư mục: pip install -e . --no-deps ở hai venv"]
+    S --> Q
+    Q -->|Có| K1 --> P
+    Q -->|Không| K2 --> H --> P
+    P --> V1 --> V2 --> C --> F
+    F -->|Có| FW --> PC
+    F -->|Không| SK --> PC
+    PC --> T --> MM --> R
+    MM -->|trên laptop| LB
+    S -.->|cùng máy, chỉ đổi tên thư mục| RN
+    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
+    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
+    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
+    class LB chuaLam
+```
+
+Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị. Các ô không tô màu là bước làm, không nói về trạng thái. Trên máy bàn hiện tại, nhánh chép nguyên thư mục đã làm ngày 29–30/09/2026 ([biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 1–8). Trên laptop, `do_may_moi.cmd` chưa chạy lần nào. Cùng sơ đồ: 9.3 trong [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).
 
 ## 6. Huấn luyện và suy luận
 
@@ -144,6 +224,8 @@ Với checkpoint tham chiếu đã chép vào đúng chỗ:
 ```
 
 Thay `duong_dan_anh.jpg` bằng ảnh thật. Ngưỡng 0,15 chưa được nghiệm thu trên sa bàn.
+
+Ngày 29/09/2026 trên máy bàn hiện tại (mã `b37e9ee`), cả bốn lệnh đã chạy lại: `verify_cache` đạt; `evaluate --split val` với checkpoint tham chiếu ra mIoU 0,9700, bằng số ở [HUAN_LUYEN.md](../HUAN_LUYEN.md); `predict` chạy trên một ảnh ở ngưỡng 0,15; `train` chạy với thêm `--set epochs=1`, chỉ để kiểm pipeline và GPU ([tóm tắt](docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.3–2.6).
 
 [Huấn luyện/kết quả](../HUAN_LUYEN.md), [tải dữ liệu](datasets/TAI_VA_KIEM_TRA.md), [nhãn sa bàn](docs/GAN_NHAN_SA_BAN.md).
 
@@ -182,7 +264,7 @@ Ghi bốn camera + LiDAR + AI, cần checkpoint. `--lidar` không kèm giá tr�
 ./.venv-train/Scripts/python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name phien_moi --out runs/rig_bench/phien_moi --record runs/rig_recordings/phien_moi
 ```
 
-Lệnh mở thiết bị thật. Mặc định 640×480; chất lượng bốn luồng phải đo chung trên đúng hub/máy. Ngày 29/09/2026 trên máy bàn, cách lấy cổng từ tệp mới được thử với thiết bị thật bằng `lidar.rplidar_c1 info` (mở đúng COM3, đọc được C1); `ui.lidar_app` và `rig.bench --lidar` chưa chạy lại với thiết bị thật sau thay đổi này ([biên bản](docs/CHUYEN_MAY_BAN.md) mục 3).
+Lệnh mở thiết bị thật. Mặc định 640×480; chất lượng bốn luồng phải đo chung trên đúng hub/máy. Sau khi đổi cách lấy cổng (29/09/2026), trên máy bàn đã chạy với thiết bị thật: `lidar.rplidar_c1 info` không `--port` mở đúng COM3 và đọc được C1 ([biên bản](docs/CHUYEN_MAY_BAN.md) mục 3); lúc 15:11–15:12 cùng ngày (mã `b37e9ee`), lệnh `rig.bench` như trên với `--lidar` không kèm cổng và `--seconds 30` chạy với bốn camera, LiDAR ở COM3 lấy từ tệp và AI, ghi phiên rồi phát lại được ([tóm tắt](docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.7–2.8; tệp gốc git-ignore ở `runs/kiem_may_20260929/rig_bench/` (số đo) và `runs/kiem_may_20260929/rig_recordings/r_kiem/` (bản ghi)). `ui.lidar_app` chưa chạy lại với thiết bị thật sau thay đổi này.
 
 ### Phát lại bản ghi
 
@@ -201,7 +283,7 @@ Cần checkpoint và nội tham/ngoại tham/ROI thật đạt kiểm tra; nếu
 ./.venv-train/Scripts/python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --cam-ports 1 2 3 4
 ```
 
-Lệnh mở LiDAR và camera thật. Nhánh kết hợp này chưa được thử với camera live trong hồ sơ tại `9d68257`.
+Lệnh mở LiDAR và camera thật. Nhánh kết hợp này CHƯA THỬ với camera thật đang mở (tính đến 30/09/2026; [AI camera](docs/AI_DIEU_KHIEN_XE.md) mục 8.3).
 
 Phát lại bằng rig tổng hợp để thử luồng phần mềm:
 
@@ -225,45 +307,122 @@ Phát lại bằng rig tổng hợp để thử luồng phần mềm:
 
 Tham số từng công cụ: `python -m <tên_module> --help` bằng đúng môi trường.
 
-## 9. Chế độ điều khiển
+## 9. Chế độ điều khiển, firmware và bo ảo
+
+Nhánh chạy chọn ở ô "Nhánh chạy khi bấm Bắt đầu đỗ" của thẻ **Mô phỏng**; bo nhận lệnh chọn ở thẻ **Bo điều khiển**. Hai thẻ nằm trong ngăn "Thiết lập sa bàn", mở bằng nút **Sa bàn +**. Sơ đồ dưới là đường đi trong mã hôm nay (`ui/main_window.py`, `application/vehicle_link.py`):
 
 ```mermaid
 flowchart TD
-    A["Chọn nhánh chạy"] --> B{"Chế độ?"}
-    B -->|Mô phỏng| S["Controller gửi lệnh vào mô hình xe ảo"]
-    B -->|Quan sát| O["Tính lệnh và ghi log; không gửi COMMAND chạy"]
-    B -->|VehicleIO| V["Chọn bo mô phỏng hoặc cổng serial"]
-    V --> G{"Đủ tư thế, telemetry và điều kiện START?"}
-    G -->|Không| N["Từ chối bắt đầu và báo lý do"]
-    G -->|Có| R["Gửi lệnh qua giao thức tới bo đã chọn"]
+    A["Thẻ Mô phỏng: ô Nhánh chạy khi bấm Bắt đầu đỗ"] --> M{"Nhánh?"}
+    B["Thẻ Bo điều khiển: Bo mô phỏng hoặc một cổng COM"] --> P{"Bo đang chọn?"}
+    M -->|SIM, mặc định| SIM["vehicle_link = None: SimWorld + SimFeedback của giai đoạn 0"]
+    M -->|VEHICLE_IO hoặc OBSERVE| P
+    P -->|Bo mô phỏng| VS["VehicleLink.simulated: mỗi START tạo SimVehicleIO + FirmwareModel mới tại xuất phát"]
+    VS --> POSE["SimTruthPose: tư thế thật của xe mô phỏng, định vị lý tưởng"]
+    VS --> VIO["VEHICLE_IO: COMMAND enable mỗi 20 ms, hạn 0,15 s"]
+    VS --> OBS["OBSERVE: SimHumanDriver lái bằng phím mũi tên, phần mềm chỉ ghi commands.csv"]
+    P -->|COMx| SER["VehicleLink.serial_port: SerialVehicleIO.deferred, cổng chưa mở, NoPoseSource"]
+    SER --> REF["START bị từ chối trước khi mở cổng: chưa có nguồn tư thế thật"]
+    SER -.->|cần PoseSource thật và reopen trong begin_run| REAL["Tự đỗ với ESP32-S3 thật"]
+    B --> PROBE["Kiểm kết nối bo: HELLO, 5 khung telemetry, so giới hạn, đóng cổng, không ARM"]
+    PROBE -.->|CHƯA THỬ| REALP["Kiểm kết nối với ESP32-S3 thật"]
+    QEMU["Chọn bo ảo QEMU socket:// từ giao diện"] -.->|danh sách chỉ có bo mô phỏng và cổng COM| B
+    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
+    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
+    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
+    class A,B,SIM,REF daco
+    class VS,POSE,VIO,OBS,PROBE,SER giaLap
+    class REAL,REALP,QEMU chuaLam
 ```
 
-Cấu hình cổng serial hiện chưa có nguồn tư thế thật, nên đi vào nhánh từ chối START. Nút kiểm kết nối chỉ kiểm liên lạc, không thay các điều kiện chạy.
+Xanh: có mã và đã kiểm trên máy tính (test giao diện và phiên, offscreen) · Vàng: chỉ với bo mô phỏng hoặc cổng serial giả · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị. Xanh và vàng ở đây hẹp hơn chú giải chuẩn: nhánh SIM tô xanh vì là đường mặc định đã kiểm, nhưng vẫn là mô phỏng; chưa lệnh nào đi tới bo hay xe thật.
 
 | Chế độ | Hành vi |
 |---|---|
-| Mô phỏng giai đoạn 0 | Xe ảo chạy trong mô hình động học |
-| VehicleIO | Lệnh qua giao thức tới bo chọn; mặc định bo mô phỏng |
-| Quan sát | Tính lệnh/ghi log, không gửi COMMAND chạy |
+| Mô phỏng giai đoạn 0 (SIM, mặc định) | Xe ảo chạy trong mô hình động học (`SimWorld` + `SimFeedback`), không qua VehicleIO |
+| VehicleIO | Mỗi nhịp 20 ms gửi một COMMAND có hạn 0,15 s qua giao thức tới bo đã chọn; tốc độ và góc lái lấy từ telemetry, tư thế lấy từ mô phỏng (`SimTruthPose`). Chỉ chạy được với bo mô phỏng |
+| Quan sát | Tính lệnh và ghi `commands.csv` (cột `sent` = 0); không gửi COMMAND nào, kể cả enable=0; lúc START gửi DISARM và bo phải ở DISARMED suốt lần quan sát. Trong giao diện, người lái là `SimHumanDriver` (phím mũi tên) trên bo mô phỏng |
 
-**Kiểm kết nối bo** thực hiện HELLO, kiểm giới hạn và đọc telemetry; không ARM/COMMAND. Cấu hình bo thật hiện thiếu nguồn tư thế thật nên START bị chặn.
+Chọn một cổng COM thì **Bắt đầu đỗ** ở VehicleIO hay Quan sát bị từ chối trước khi mở cổng, vì chưa có nguồn tư thế thật (`NoPoseSource`). **Kiểm kết nối bo** gửi HELLO, đọc tới 5 khung telemetry, so giới hạn bo với cấu hình xe rồi đóng cổng; không ARM, không COMMAND. Nút này mới thử với bo mô phỏng và cổng serial giả, CHƯA THỬ với ESP32-S3. Danh sách bo chỉ có bo mô phỏng và cổng COM, nên giao diện chưa dùng được bo ảo QEMU.
 
-[Giao thức](docs/GIAO_THUC_XE.md), [quan sát](docs/CHE_DO_QUAN_SAT.md), [firmware](firmware/esp32_vehicle/README.md), [bo ảo QEMU và các trình giả lập đã thử](docs/MO_PHONG_FIRMWARE.md) (30/09/2026: firmware thật chạy trong QEMU, laptop nói chuyện bằng `SerialVehicleIO` qua `socket://`; giao diện chưa chọn được bo ảo).
+[Giao thức](docs/GIAO_THUC_XE.md), [quan sát](docs/CHE_DO_QUAN_SAT.md), [firmware](firmware/esp32_vehicle/README.md), [bo ảo QEMU và các trình giả lập đã thử](docs/MO_PHONG_FIRMWARE.md). Sơ đồ 2.3 và 2.4 (một lần chạy qua VehicleLink) trong [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).
+
+### Firmware và bo ảo QEMU
+
+Hiện trạng 30/09/2026: lõi C++ `src/core` khớp bản tham chiếu Python trên máy tính (703 check, 0 lệch, 29/09/2026); cả firmware đã biên dịch cho ESP32-S3, 0 lỗi, 0 cảnh báo (29/09/2026); firmware thật chạy trong bo ảo QEMU trên máy bàn, phần mềm phía laptop (`SerialVehicleIO`, cũng chạy trên máy bàn) nói chuyện với nó qua `socket://` (30/09/2026); laptop trình diễn chưa chạy bo ảo. CHƯA nạp, CHƯA chạy trên bo thật nào vì chưa có bo. Kết quả trong bo ảo là giả lập, không phải số đo phần cứng.
+
+Công cụ trên máy bàn, đều ngoài repo ([biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 6–8): PlatformIO và QEMU ở ổ D; g++, cmake và Ninja thuộc gói WinLibs cài bằng winget cho tài khoản người dùng, ở `%LOCALAPPDATA%\Microsoft\WinGet\Packages\` trên ổ C (đường dẫn gói ở cuối [bằng chứng test host](docs/evidence/chuyen_may_20260929/firmware_host_20260929.txt); cmake và Ninja cùng thư mục `mingw64\bin`, kiểm bằng `Get-Command` ngày 30/09/2026, không lưu log):
+
+| Công cụ | Dùng cho | Trên máy bàn |
+|---|---|---|
+| g++ và cmake trên PATH | Test host của lõi C++ | g++ 16.1.0 MinGW-w64 UCRT, cmake 4.4.1, Ninja: cùng gói WinLibs, ổ C |
+| PlatformIO Core | Biên dịch env `esp32s3` (bản nạp vào xe) và `esp32s3_qemu` (chỉ cho bo ảo) | 6.2.0 trong venv riêng `D:\xetulai\_platformio\penv`; nền tảng ở `D:\xetulai\_platformio\core` (biến `PLATFORMIO_CORE_DIR`) |
+| QEMU của Espressif 9.2.2 | Bo ảo | `D:\xetulai\_platformio\qemu` |
+
+Đường dẫn QEMU và PlatformIO khai trong [configs/thiet_bi.json](configs/thiet_bi.json) (khóa `qemu_xtensa`, `platformio_python`, `platformio_core_dir`); đổi máy chỉ sửa tệp này. Máy không có QEMU hay PlatformIO vẫn chạy được mọi phần khác; 6 test chạy firmware thật trong QEMU tự bỏ qua. Máy không có cmake hay trình biên dịch C++ trên PATH thì 2 test host tự bỏ qua.
+
+Kiểm vector mẫu chung Python ↔ C++, trong thư mục có `pyproject.toml`:
+
+```powershell
+./.venv/Scripts/python.exe -X utf8 -m autopark.transport.vectors --check
+```
+
+Lệnh in `... vectors.json is up to date` (mã thoát 0), hoặc báo tệp cũ (mã thoát 1) khi `firmware/esp32_vehicle/test/vectors.json` khác bản sinh lại từ Python. `--write` ghi lại tệp đó; chỉ dùng khi đã quyết định đổi hành vi của bản tham chiếu Python.
+
+Test host của lõi C++, trong `firmware/esp32_vehicle` (`--config` và `-C` dành cho Visual Studio; Ninja bỏ qua):
+
+```powershell
+cmake -S test/host -B build/host -DCMAKE_BUILD_TYPE=Release
+cmake --build build/host --config Release
+ctest --test-dir build/host -C Release --output-on-failure
+```
+
+Kết quả 29/09/2026 trên máy bàn: `703 checks, 0 failures` ([bằng chứng](docs/evidence/chuyen_may_20260929/firmware_host_20260929.txt)). Nếu báo lệch: bản tham chiếu Python là chuẩn, sửa C++ cho khớp ([README firmware](firmware/esp32_vehicle/README.md), mục "Cách kiểm trên máy tính").
+
+Biên dịch cho ESP32-S3 (không nạp), trong `firmware/esp32_vehicle`, bằng python có gói platformio (máy bàn: đường dẫn ở khóa `platformio_python`):
+
+```powershell
+D:\xetulai\_platformio\penv\Scripts\python.exe -m platformio run -e esp32s3
+```
+
+Máy khác: cài PlatformIO (`pip install platformio`) trong một venv riêng, không cài vào `.venv` hay `.venv-train`; ổ hệ thống chật thì đặt `PLATFORMIO_CORE_DIR` sang ổ khác trước lần chạy đầu ([biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 5, 7); rồi chạy lệnh trên bằng python của venv đó (hoặc `pio run -e esp32s3`). Lần đầu tải nền tảng `espressif32 @ 7.1.3` (≈ 2,5 GB). Kết quả 29/09/2026: 0 lỗi, 0 cảnh báo ([bằng chứng](docs/evidence/chuyen_may_20260929/firmware_esp32_20260929.txt)). Chưa chạy lệnh nạp (`-t upload`) nào: chưa có bo.
+
+Bo ảo, trong thư mục có `pyproject.toml` (công cụ lấy từ `configs/thiet_bi.json`):
+
+```powershell
+# build env esp32s3_qemu, chạy bo ảo, HELLO + 2 s telemetry, in kết quả rồi tắt
+./.venv/Scripts/python.exe -X utf8 -m autopark.transport.qemu_board kiem
+# chạy bo ảo ở socket://127.0.0.1:5555 (monitor HMP ở cổng 5556) tới khi Ctrl+C
+./.venv/Scripts/python.exe -X utf8 -m autopark.transport.qemu_board chay
+# 13 test, 6 trong đó chạy firmware thật trong QEMU
+./.venv/Scripts/python.exe -X utf8 -m pytest tests/test_firmware_qemu.py
+```
+
+`--no-build` dùng ảnh đã build, không gọi PlatformIO; `chay` nhận thêm `--port`, `--monitor-port`, `--workdir`. `kiem` thoát 0 khi nhận ít nhất 30 khung trong cửa sổ 2 s, 1 khi ít hơn, 2 khi thiếu công cụ, build hỏng hoặc QEMU không khởi động. Lần build đầu của env mất vài phút. Khi `chay` đang chạy, từ Python: `SerialVehicleIO.open("socket://127.0.0.1:5555")`.
+
+Kết quả trên máy bàn, 30/09/2026 (bo ảo, không phải bo thật):
+- `kiem` với cách đếm đã sửa, hai lượt: 40 và 39 khung trong 2 s (≈ 20 Hz), cộng 16 khung nhận trước đó lúc chờ bo ra khỏi BOOT ([kiem_bo_ao_dem_rieng.txt](docs/evidence/mo_phong_20260930/bo_ao_30092026/kiem_bo_ao_dem_rieng.txt)). Hai lượt ghi trước đó (10:13 và 13:47) in "55 khung trong 2 s" vì bản cũ đếm gộp cả các khung nhận trước cửa sổ đo (16 + 39).
+- Chạy lặp `tests/test_firmware_qemu.py` 10 lượt trên `ebbec83`: 10/10 lượt đạt cả 13 test (6 trong đó chạy firmware thật trong QEMU), mỗi lượt 9–10 s ([chay_lap_test_bo_ao_ebbec83.txt](docs/evidence/mo_phong_20260930/bo_ao_30092026/chay_lap_test_bo_ao_ebbec83.txt)).
+
+Giới hạn: bản `esp32s3_qemu` khác bản nạp vào xe ở hai chỗ (Serial qua UART0, flash DIO); không nạp bản này vào xe. Bo ảo không có LEDC (xung ESC/servo), GPIO vào (E-stop), I2C, task watchdog kích hoạt hay USB-CDC thật; chạy được ở đây không chứng minh gì về bo thật ([MO_PHONG_FIRMWARE.md](docs/MO_PHONG_FIRMWARE.md) mục 1). Sơ đồ 6.6 (các tầng kiểm chứng firmware) và 6.7 (build và dựng bo ảo) trong [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).
 
 ## 10. Cấu trúc mã
 
 | Thư mục | Vai trò |
 |---|---|
 | `autopark/domain/` | Dữ liệu, cấu hình, hợp đồng cảm biến |
-| `autopark/application/`, `autopark/ui/` | Phiên và giao diện |
+| `autopark/application/` | Phiên đỗ (`session.py`), nối phiên với VehicleIO (`vehicle_link.py`) |
+| `autopark/ui/` | Cửa sổ đỗ xe (`main_window`), bàn thử LiDAR + AI (`lidar_app`, `lidar_dock`, `camera_dock`), `rig_app`, `calib_app`, `roi_app`, `label_app` |
 | `autopark/planning/`, `autopark/control/` | Tìm đường, bám đường |
 | `autopark/geometry/`, `autopark/simulation/` | Va chạm, động học, phản hồi giả |
 | `autopark/perception/` | AI, hiệu chuẩn, ROI, BEV |
 | `autopark/lidar/`, `autopark/video/` | Nguồn scan/ảnh và công cụ đo |
 | `autopark/fusion/`, `autopark/rig/` | Hợp nhất, bàn thử |
-| `autopark/transport/`, `firmware/` | Giao thức, bo mô phỏng, firmware |
+| `autopark/transport/`, `firmware/` | Giao thức, VehicleIO (bo mô phỏng, cổng serial), bo ảo QEMU qua `socket://` (`qemu_board.py`, `socket_port.py`), firmware C++ |
 | `autopark/safety/` | Thời hạn dữ liệu |
 | `autopark/storage/`, `autopark/evaluation/` | Lưu, replay, kiểm chứng |
+| `autopark/estimation/` | Chỗ dành cho định vị và bản đồ quan sát của phiên đỗ (nguồn tư thế thật); chưa có mã. Định vị lại và odometry LiDAR thử ngoại tuyến trên bản ghi ở `lidar/localize.py`, `lidar/scan_odometry.py`, chưa nối vào phiên |
+| `autopark/image_io.py`, `autopark/power_throttling.py` | Đọc/ghi ảnh khi đường dẫn có dấu; tắt EcoQoS cho tiến trình (pytest, QEMU) |
 | `configs/`, `scenarios/`, `tests/` | Tham số, sa bàn, kiểm thử |
 
 Đơn vị: mét, giây, radian. Pose tại tâm trục sau; x hướng trước, y trái, yaw dương ngược chiều kim đồng hồ.
@@ -279,9 +438,13 @@ Cấu hình cổng serial hiện chưa có nguồn tư thế thật, nên đi v�
 | AI bị chặn hiệu chuẩn | Làm nội tham → ngoại tham → ROI, đọc lý do trên UI |
 | LiDAR không kết nối | Xem số COM trong Device Manager (không thấy cổng thì cài driver CP210x), sửa `lidar_port` trong `configs/thiet_bi.json` (mục 7); tránh nhầm cổng bo xe |
 | Venv báo `No Python at ...` sau khi chép từ máy khác | Chạy lại `cai_dat.cmd` / `cai_dat_train.cmd` (mục 2, 5) |
+| `import autopark` hỏng khi chạy ngoài thư mục repo, sau khi đổi tên hay dời thư mục | `pip install -e . --no-deps` ở `.venv` và `.venv-train` (mục 5) |
 | Traceback hiện đường dẫn của máy cũ sau khi chép repo | Xóa các thư mục `__pycache__` ngoài venv |
-| Ảnh không đọc/ghi được khi đường dẫn có dấu | Mã dự án đã xử lý qua `autopark/image_io.py` hoặc hàm tương đương; mã mới dùng `image_io` thay vì gọi thẳng `cv2.imread/imwrite`, vốn hỏng lặng lẽ với đường dẫn như `D:\gấp\...` ([biên bản](docs/CHUYEN_MAY_BAN.md) mục 3) |
+| Ảnh không đọc/ghi được khi đường dẫn có dấu | Mã dự án đã xử lý qua `autopark/image_io.py` hoặc hàm tương đương; mã mới dùng `image_io` thay vì gọi thẳng `cv2.imread/imwrite`, vốn hỏng lặng lẽ với đường dẫn có dấu (ví dụ thư mục repo cũ `D:\gấp\...`, dùng tới chiều 29/09/2026; repo nay ở `D:\xetulai`, nhưng thư mục dữ liệu vẫn có thể có dấu) ([biên bản](docs/CHUYEN_MAY_BAN.md) mục 3) |
 | AI không đủ bốn luồng | Kiểm khung hỏng, nhịp camera và USB |
-| Test planner đôi lúc TIMEOUT | Chạy khi máy rảnh, tách khỏi coverage |
+| Test có hạn giờ (`planner_budget`) hỏng TIMEOUT hoặc TRACKING_FAILED | Kiểm tệp JUnit (khi chạy với `--junitxml`) có `ecoqos=off`, hoặc chạy thêm `-v` để thấy dòng `EcoQoS của tiến trình pytest: off`; không đặt `AUTOPARK_KEEP_ECOQOS=1`; chạy khi máy rảnh, tách khỏi coverage và chiến dịch tải CPU (mục 4) |
+| `qemu_board` thoát mã 2, báo không thấy QEMU hoặc thiếu `platformio_python` | Sửa đường dẫn trong `configs/thiet_bi.json` (mục 9); máy không dùng bo ảo thì bỏ qua, 6 test chạy QEMU tự bỏ qua |
+| QEMU tự thoát lúc khởi động (espressif/qemu#175) | `QemuBoard` tự khởi động QEMU tối đa 5 lần (thử lại tới 4 lần); vẫn hỏng thì đọc `qemu.err` trong thư mục mà thông báo lỗi chỉ ra |
+| Test bo ảo hỏng vì firmware chốt LOOP_OVERRUN | Máy bận làm QEMU trễ nhịp; chạy lại khi máy rảnh ([MO_PHONG_FIRMWARE.md](docs/MO_PHONG_FIRMWARE.md) mục 1) |
 
-[Mục lục kỹ thuật](docs/README.md). [README trước biên tập](https://github.com/thbn12082/autopark/blob/9d68257/autopark/README.md) giữ các lệnh và nhật ký cũ.
+[Mục lục kỹ thuật](docs/README.md) · [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).

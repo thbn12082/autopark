@@ -1,4 +1,4 @@
-# Giấy phép dữ liệu — bảng kiểm, ngày kiểm 22/09/2026 (cập nhật 24/09 và 25/09/2026)
+# Giấy phép dữ liệu — bảng kiểm, ngày kiểm 22/09/2026 (cập nhật 24/09, 25/09 và 30/09/2026)
 
 Mỗi dòng ghi giấy phép, câu trích nguyên văn và ngày tự kiểm. Bộ nào chưa đọc được văn bản gốc thì ghi
 "chưa xác minh", không suy đoán.
@@ -20,13 +20,19 @@ bằng chứng 24/09 cố ý giữ nguyên; thêm bảng các chỗ còn ghi "ch
 `woodscape.valeo.com/dataset` khỏi địa chỉ ghi trong README (địa chỉ đó là website ở khung About của repo GitHub); ghi
 rõ quyết định chưa nói gì về nhãn nháp khi gán nhãn sa bàn.
 
+*Cập nhật 30/09/2026 (rà ở `ff4a018`, không kiểm thêm điều khoản nào):* thêm sơ đồ rút gọn ở mục "Quyết định" (bản đủ
+hơn: sơ đồ 5.2 trong [Sơ đồ hệ thống](SO_DO_HE_THONG.md)); thêm ghi chú có ngày ở dòng trọng số torchvision của bảng,
+bảng "Chỗ ghi quyết định giấy phép WoodScape là việc còn chờ", bảng tệp cần đổi dòng ghi công (mục "Ghi công: link tới
+trang bộ dữ liệu"), mục "Vấn đề cần xử lý trước khi nộp" (AI đã nối vào phiên đỗ từ `b01dea4`) và mục "Trọng số
+pretrained của torchvision" (nay 15 `run_manifest.json`).
+
 | Bộ | Giấy phép | Câu trích / nguồn | Kiểm ngày |
 |---|---|---|---|
 | **WoodScape** (đã huấn luyện) | Điều khoản riêng của Valeo, dữ liệu proprietary. MIT của mã KHÔNG áp dụng cho ảnh. | [LICENSE.pdf](https://drive.google.com/file/d/12IrLnGfng6s-NogJLIvUZsCxF1NDA-FA/view): *"You shall use the Dataset only (i) for research purposes ... (ii) teaching, (iii) to perform benchmarking for purposes of academic or applied research publication or (iv) for personal experimentation."* và *"You shall not use the Dataset for commercial purposes ... and notably not use or deploy the Dataset, any models trained on or refined using the Dataset including pre-training or augmentation, in operation of a vehicle or to assist in the operation of vehicle."* *Thêm tối 24/09/2026:* toàn văn (2 trang) có trong repo: [datasets/woodscape_metadata/LICENSE.pdf](../datasets/woodscape_metadata/LICENSE.pdf) (đã commit, không bị git-ignore). Hai câu trích ở trên khớp văn bản đọc từ tệp này. Tệp ghi bộ dữ liệu có tại `woodscape.valeo.ai`, xem mục cuối. *Thêm 25/09/2026:* câu thứ hai (ở ô này có lược "...") được trích đủ, kèm hai cách đọc và quyết định dùng mô hình trong vòng điều khiển: mục "WoodScape trong vòng điều khiển" ngay dưới bảng. | 22/09/2026; toàn văn trong repo đọc lại tối 24/09/2026 và 25/09/2026 |
 | **ACDC** | Nghiên cứu phi thương mại, ETH Zürich | `datasets/training/acdc/gt/License.pdf` mục 1.1: *"made freely available to academic and non-academic entities for non-commercial purposes only (such as academic research, teaching, scientific publications, or personal experimentation)"*; mục 2.5 cấm mục đích quân sự. **Không có điều khoản nào về vận hành phương tiện.** | 22/09/2026 |
 | **AVM-SS** | KHÔNG có tuyên bố giấy phép | [repo Engro39/avm_dataset](https://github.com/Engro39/avm_dataset) không có file LICENSE; API GitHub trả `license: null`. Không có giấy phép nghĩa là tác giả giữ toàn quyền. | 22/09/2026 |
 | **DROW v2** | MIT, riêng phần `reha` giữ CC BY-NC-SA 3.0 | [repo](https://github.com/VisualComputingInstitute/DROW). *Thêm tối 24/09/2026:* README của tác giả (bản sao `datasets/drow/README_source.md`, git-ignore) yêu cầu trích **cả hai** bài DROW khi dùng bất cứ thứ gì trong repo, và giải thích MIT là dùng được nếu ghi công tác giả. Hình nào dựng từ DROW mà đưa vào khóa luận thì phải trích hai bài đó, xem mục cuối. | 20/09/2026; ghi công kiểm tối 24/09/2026 |
-| **Trọng số khởi tạo torchvision** `LRASPP_MobileNet_V3_Large_Weights.COCO_WITH_VOC_LABELS_V1` (điểm bắt đầu của mọi lượt huấn luyện đã chạy: 12 lượt chính `runs/ai_*/run_manifest.json` và 2 lượt kiểm tra thử `runs/ai_woodscape_rtx4000_v1_checks/smoke`, `overfit32`, tổng 14 `run_manifest.json` trong `runs/`; thêm tối 24/09/2026) | Mã torchvision: BSD. **Điều khoản riêng của tệp trọng số: cần tra** | Mô tả trong torchvision 0.26.0: huấn luyện trên một phần COCO, chỉ dùng 20 lớp có trong Pascal VOC. Tức là ảnh COCO với bộ nhãn VOC, không phải ảnh VOC. *Thêm tối 24/09/2026:* mô tả đó không nói backbone khởi tạo từ đâu. Hàm dựng `lraspp_mobilenet_v3_large` trong cùng tệp mặc định `weights_backbone=MobileNet_V3_Large_Weights.IMAGENET1K_V1`, và meta của trọng số trỏ tới một công thức huấn luyện (`references/segmentation`, chưa đọc: không có trong gói đã cài). Vì vậy backbone nhiều khả năng đã được huấn luyện trước trên ImageNet rồi mới huấn luyện trên COCO: **cần tra**. Mục "Pre-trained Model License" trong METADATA của gói nói trọng số có thể mang điều khoản riêng theo dữ liệu huấn luyện, người dùng tự kiểm. Với tệp này gói không nêu điều khoản cụ thể nào. Điều khoản COCO (ảnh và nhãn) và điều khoản ImageNet: **cần tra**, chưa đọc văn bản gốc | 24/09/2026 |
+| **Trọng số khởi tạo torchvision** `LRASPP_MobileNet_V3_Large_Weights.COCO_WITH_VOC_LABELS_V1` (điểm bắt đầu của mọi lượt huấn luyện đã chạy: 12 lượt chính `runs/ai_*/run_manifest.json` và 2 lượt kiểm tra thử `runs/ai_woodscape_rtx4000_v1_checks/smoke`, `overfit32`, tổng 14 `run_manifest.json` trong `runs/`; thêm tối 24/09/2026; *cập nhật 30/09/2026: 15 tệp, thêm lượt train thử 1 epoch ngày 29/09/2026, mục "Kiểm tối 24/09/2026"*) | Mã torchvision: BSD. **Điều khoản riêng của tệp trọng số: cần tra** | Mô tả trong torchvision 0.26.0: huấn luyện trên một phần COCO, chỉ dùng 20 lớp có trong Pascal VOC. Tức là ảnh COCO với bộ nhãn VOC, không phải ảnh VOC. *Thêm tối 24/09/2026:* mô tả đó không nói backbone khởi tạo từ đâu. Hàm dựng `lraspp_mobilenet_v3_large` trong cùng tệp mặc định `weights_backbone=MobileNet_V3_Large_Weights.IMAGENET1K_V1`, và meta của trọng số trỏ tới một công thức huấn luyện (`references/segmentation`, chưa đọc: không có trong gói đã cài). Vì vậy backbone nhiều khả năng đã được huấn luyện trước trên ImageNet rồi mới huấn luyện trên COCO: **cần tra**. Mục "Pre-trained Model License" trong METADATA của gói nói trọng số có thể mang điều khoản riêng theo dữ liệu huấn luyện, người dùng tự kiểm. Với tệp này gói không nêu điều khoản cụ thể nào. Điều khoản COCO (ảnh và nhãn) và điều khoản ImageNet: **cần tra**, chưa đọc văn bản gốc | 24/09/2026 |
 | **RoadObstacle21** (đang dùng để chấm ngoài miền: [HUAN_LUYEN.md](../../HUAN_LUYEN.md) mục 8, 10, 16) | chưa xác minh | Gói tải `datasets/training/road_obstacle/dataset_ObstacleTrack` chỉ có `image-sources.txt` ghi nguồn theo cảnh (BUW, EPFL), không kèm văn bản giấy phép. Điều khoản trên trang SegmentMeIfYouCan chưa đọc. | 24/09/2026 |
 | **RoadAnomaly21** (chưa dùng trong kết quả nào lúc kiểm; *cập nhật 25/09/2026:* từ muộn tối 24/09 đã chấm 10 ảnh `validation*` có nhãn, kết quả ở [HUAN_LUYEN.md](../../HUAN_LUYEN.md) mục 8, mã ở commit `77eb51f`) | Giấy phép theo từng ảnh | `datasets/training/road_anomaly/dataset_AnomalyTrack/LICENSE.txt` ghi tác giả, giấy phép và nguồn từng ảnh: CC BY 2.0–4.0, CC BY-SA 1.0–4.0, CC0, public domain, giấy phép Pixabay/Pexels/Unsplash; riêng `toy_car0000.jpg` ghi "subject to copyright". Tệp không nói gì về nhãn/mask. | 24/09/2026 |
 
@@ -36,6 +42,35 @@ Tài liệu này ghi lại quyết định và cơ sở của nó, không phải
 chấp thuộc tòa án Paris (hai đoạn cuối LICENSE.pdf); dự án không đánh giá được cách đọc nào đứng vững theo luật đó.
 
 ### Quyết định
+
+Sơ đồ rút gọn dưới tóm tắt quyết định, phạm vi của nó và hai phương án dự phòng (vẽ ngày 30/09/2026 theo mã ở
+`ff4a018`); chi tiết ở các gạch ngay dưới và ở mục "Khóa luận nên viết gì".
+
+```mermaid
+flowchart TD
+    WS["WoodScape: điều khoản Valeo, chỉ phi thương mại, có vế về vận hành phương tiện"] --> D22["22/09/2026: xe 1/12 trên sa bàn coi là nghiên cứu, thử nghiệm cá nhân"]
+    D22 --> D25{"25/09/2026: dùng mô hình trong vòng điều khiển theo cách đọc A?"}
+    D25 -->|Có| USE["Checkpoint chỉ học WoodScape, mặc định ai_woodscape_rtx4000_v1, làm nguồn vật cản"]
+    D25 -.->|chưa quyết| DRF["Nhãn nháp AI khi gán nhãn sa bàn có chịu điều khoản Valeo không"]
+    USE --> ATT["Ghi công: link github.com/valeoai/WoodScape, hằng WOODSCAPE_ATTRIBUTION trong bev.py"]
+    USE --> VLO["Valeo xác nhận cách đọc"]
+    VLO -.->|nếu bị bác| FB1["Dự phòng 1: chỉ LiDAR, lidar_app không có --camera-ai"]
+    VLO -.->|nếu bị bác| FB2["Dự phòng 2: huấn luyện lại bằng ảnh sa bàn --no-draft và ACDC"]
+    AVM["AVM-SS: không có giấy phép"] --> NOAVM["Quyết định không phủ 8 trong 12 lượt huấn luyện chính có AVM-SS"]
+    NOAVM --> GRD["Đề xuất: ngăn AI camera từ chối checkpoint có AVM-SS, chưa có trong mã"]
+    TV["Trọng số khởi tạo torchvision COCO_WITH_VOC_LABELS_V1: điều khoản cần tra"] --> USE
+    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
+    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
+    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
+    class WS,D22,D25,ATT,AVM,NOAVM,FB1 daco
+    class USE giaLap
+    class VLO,GRD,TV,DRF,FB2 chuaLam
+```
+
+Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị.
+Ở đây ô xanh là quyết định đã ghi hoặc mã đã có (kiểm bằng test); ô vàng là nguồn vật cản AI: quyết định đã có, nhưng
+nguồn đó mới chạy với nguồn giả, rig tổng hợp và bản ghi phát lại, trên bàn thật mọi lô bị chặn vì chưa hiệu chuẩn
+([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)); ô đỏ là việc chưa có, chưa quyết hay còn phải tra.
 
 - **Ngày 25/09/2026 người làm khóa luận quyết định dùng mô hình phân đoạn huấn luyện trên WoodScape trong vòng điều
   khiển của xe mô hình 1/12.** Luồng dự kiến: xác suất AI của bốn camera fisheye → BEV (`perception/bev.py`) → lớp
@@ -149,6 +184,8 @@ thương mại và có câu không cho dùng mô hình trong vận hành phươn
 phép nay đã có quyết định 25/09/2026: dùng theo cách đọc A, Valeo chưa xác nhận. Các điều kiện khác của nhóm AI vẫn
 còn: hiệu chuẩn nội tham, ngoại tham, ROI thật ([BEV.md](BEV.md) mục 8) và tập chấm sa bàn có nhãn. ĐỀ XUẤT: hướng 1
 (chạy chỉ bằng LiDAR) giữ làm phương án dự phòng, nên nghiệm thu cũng nên có kết quả khi tắt lớp AI.
+*(Cập nhật 30/09/2026: kiểm lại ở `ff4a018` bằng `git grep`: mọi chỗ trong bảng dưới đã được sửa hoặc có ghi chú, trừ
+`autopark/docs/NGOAI_THAM_VA_ROI.md` dòng 253, sửa ngày 30/09/2026. Tệp bằng chứng JSON ngày 24/09 vẫn cố ý giữ nguyên.)*
 
 | Tệp (đường dẫn từ gốc repo) | Dòng ở `89cd58f` | Loại | Cách sửa đề xuất (ĐỀ XUẤT – CHỜ CHỐT) |
 |---|---|---|---|
@@ -256,6 +293,10 @@ valeoai trên GitHub, nơi README tự giới thiệu là repo chứa công cụ
 
 Tệp cần đổi dòng ghi công (tệp này không sửa; bước đồng bộ tổng hợp và nhóm việc AI camera sẽ sửa). Hiện tất cả dùng
 `https://woodscape.valeo.com`:
+*(Cập nhật 30/09/2026: kiểm ở `ff4a018`, mọi tệp trong bảng dưới đã dùng link <https://github.com/valeoai/WoodScape> cho
+khối ghi công; `woodscape.valeo.com` chỉ còn ở dạng chữ (địa chỉ cũ, ghi chú lịch sử). `perception/bev.py` ghi hai hằng
+`WOODSCAPE_ATTRIBUTION`, `WOODSCAPE_LICENCE_NOTE` vào tệp ra. Chọn link GitHub làm link chính vẫn là ĐỀ XUẤT – CHỜ
+CHỐT.)*
 
 | Tệp (đường dẫn từ gốc repo) | Chỗ | Ghi chú |
 |---|---|---|
@@ -322,6 +363,10 @@ nối vào hợp nhất hay planner, và chưa chạy với hiệu chuẩn thậ
 mạnh hơn văn bản: văn bản không nói rõ vế phương tiện có độc lập với vế thương mại không (mục "WoodScape trong vòng điều
 khiển" ở trên). Kế hoạch hiện tại là nối mô hình WoodScape vào vòng điều khiển (quyết định 25/09/2026); câu "tới nay chưa
 nối" vẫn đúng ở `89cd58f`.
+*(Cập nhật 30/09/2026: câu "tới nay chưa nối" không còn đúng từ `b01dea4` (25/09/2026): AI camera đã được nối vào phiên
+đỗ xe làm nguồn vật cản thứ hai qua `fusion/camera_ai.py` (`CameraObstacleMapper` khởi tạo `CameraSemanticLayer`), chỉ
+tạo vật cản khi BEV dùng được cho lập đường; trên bàn thật mọi lô vẫn bị chặn vì chưa có hiệu chuẩn thật
+([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)).)*
 Ba hướng xử lý, chọn một và ghi rõ trong khóa luận:
 
 1. **Tách vai trò.** Giữ phần WoodScape thuần nghiên cứu nhận thức (đo offline, báo cáo số liệu, đúng mục
@@ -399,6 +444,9 @@ Chỉ đọc tệp có sẵn trên máy bàn, không tải gì, không mở tran
   `runs/ai_woodscape_rtx4000_v1_checks/smoke`, `overfit32` (21/09), ghi đúng một tệp trọng số
   `lraspp_mobilenet_v3_large-d234d4ea.pth`, SHA-256 bắt đầu `d234d4eae9d5`; torch 2.11.0+cu128, torchvision 0.26.0+cu128.
   *(Sửa tối 24/09/2026: bản trước đếm "cả 12" vì chỉ tìm ở `runs/ai_*/`; kết luận cùng một điểm bắt đầu không đổi.)*
+  *(Cập nhật 30/09/2026: `runs/` nay có 15 tệp `run_manifest.json`: thêm lượt train thử 1 epoch ngày 29/09/2026 trên
+  máy bàn mới, `runs/kiem_may_20260929/train_1_epoch`, cùng tệp trọng số `d234d4ea…`, torch 2.11.0+cu128,
+  torchvision 0.26.0+cu128.)*
 - Dữ liệu huấn luyện của trọng số này, theo mô tả trong mã torchvision đã cài: ảnh **COCO**, chỉ giữ 20 lớp có trong
   **Pascal VOC**. Tên "COCO_WITH_VOC_LABELS" vì thế nghĩa là ảnh COCO với bộ nhãn VOC. Không có ảnh VOC trong đó theo mô tả
   này. Số đo torchvision công bố cho trọng số: mIoU 57,9 trên COCO val2017 với nhãn VOC.

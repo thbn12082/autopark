@@ -29,7 +29,7 @@ class SimWorld:
         self.cfg = cfg
         self.dt = dt
         self.seed = scenario.seed if seed is None else seed
-        self.rng = random.Random(self.seed)  # dành cho nhiễu/mất gói ở P4, lưu seed để lặp lại
+        self.rng = random.Random(self.seed)  # chưa dùng: nhiễu/mất mẫu nằm ở simulation/feedback.py (SimFeedback)
         self.vehicle = SimVehicle(cfg, VehicleState(scenario.start, 0.0, 0.0, 0.0))
         self.last_collision = check_pose(cfg, scenario.start, scenario.obstacles, scenario.bounds)
         self.collided = not self.last_collision.ok

@@ -411,6 +411,10 @@ camera 640×480 mất ≈ 80–110 ms. Trong đó ≈ 61–67 ms là bước chi
 (`pixel_to_ground` của `calibration.py`, mô-đun đó không bị sửa). Khi nối vào bàn thử, bảng phải được dựng lúc khởi
 động, trước khung đầu, bằng cách gọi `build_bev` hay `view_geometry` một lần. **Việc này chưa làm**, vì BEV chưa nối
 vào bàn thử. Bảng phải dựng lại khi đổi hiệu chuẩn, lưới, supersample, tầm hay cỡ ảnh.
+*(Cập nhật 30/09/2026: từ `b01dea4` (25/09/2026), nguồn vật cản AI camera dựng trước bảng bằng
+`CameraObstacleMapper.warm_up()` (gọi `build_bev` một lần) khi ngăn AI camera bật và nguồn vật cản không bị chặn. Khi
+phát lại o03 với rig TỔNG HỢP trên máy bàn trước ngày 25/09/2026, bước này mất 297 ms
+([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2). `rig.bench` và `ui.rig_app` không chạy BEV.)*
 
 **Bộ nhớ** (tính từ `ViewGeometry.nbytes()`):
 
@@ -466,7 +470,9 @@ giữ nguyên, không nới, cộng 6 test mới. Lần chạy cuối lúc 21:58
   *(Cập nhật 25/09/2026: ở mã đã commit `54cb3e2`, ba tệp `test_bev`, `test_extrinsics_calib`, `test_roi_tool`
   chạy bằng `.venv` được 86 đạt (38 + 29 + 19), 0 lỗi. Lần chạy đủ bộ test ngày 25/09 trên máy bàn: `.venv` 1 242
   đạt, 7 bỏ qua; `.venv-train` 386 đạt (các tệp cần torch, cùng test nhãn, bàn thử, kiểm máy, hiệu chuẩn, ngoại
-  tham, ROI); 0 lỗi.)*
+  tham, ROI); 0 lỗi.)* *(Cập nhật 01/10/2026: 386 là nhóm chọn của `.venv-train`, không phải toàn bộ bộ test
+  ([TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 7); lượt toàn bộ mới nhất trên `ebbec83`:
+  [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8.)*
 
 Sáu test mới:
 
@@ -604,8 +610,9 @@ Mười hai đột biến mới:
    commit trong `65b7127`: `perception/extrinsics_calib.py` và giao diện `ui/roi_app.py`, cách làm ở
    [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md). Mới kiểm trên ảnh TỔNG HỢP; đo thật còn chờ nội tham (việc 1) và
    gá camera. Tệp ra dự kiến `configs/rig/camera_rig_extrinsics_v1.json`, chưa có.)* Một hướng là
-   `cv2.fisheye.solvePnP` với bảng đặt trên sàn ở vị trí đo được ([TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md)
-   mục 5.4). Ghi kết quả vào một tệp rig mới với `"measured": true` và `quaternion_xyzw`; giữ v0 làm hồ sơ.
+   `cv2.fisheye.solvePnP` với bảng đặt trên sàn ở vị trí đo được, nay đã cài trong `perception/extrinsics_calib.py`
+   ([NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md); ý gốc ở TONG_HOP_DU_AN.md mục 5.4 bản `9d68257`). Ghi kết quả vào một
+   tệp rig mới với `"measured": true` và `quaternion_xyzw`; giữ v0 làm hồ sơ.
 3. **Mặt nạ ROI cho camera dự án** (`roi_p<cổng>.png`): loại thân xe, dây, viền ống kính. *(Cập nhật 25/09/2026:
    công cụ dựng ROI đã có, `perception/roi_tool.py` và thẻ "ROI" của `ui/roi_app.py` (`65b7127`,
    NGOAI_THAM_VA_ROI.md mục 6); chưa có mặt nạ nào cho camera dự án, thư mục `configs/roi/rig_v1` chưa có.)*
@@ -619,8 +626,14 @@ Mười hai đột biến mới:
    - **Laptop RTX 3050 Ti: CHƯA ĐO.** Chạy lệnh `bench` (mục 5, lệnh 4) trên laptop, rồi chép `bench.json` vào hồ sơ.
      *(Cập nhật 25/09/2026: lệnh `bench` đã commit và push trong `65b7127`; laptop có nó sau `git pull`.)*
    - **Khung đầu** vẫn mất ≈ 0,3–0,5 s để dựng bảng. Phải dựng bảng lúc khởi động khi nối vào bàn thử: CHƯA LÀM.
+     *(Cập nhật 30/09/2026: đã làm ở nguồn vật cản AI camera: `CameraObstacleMapper.warm_up()` dựng bảng khi bật, từ
+     `b01dea4`; xem mục 6b.)*
    - Chưa đo trên khung camera thật có ROI. Chưa đo khi BEV chạy cùng bàn thử (bốn luồng camera, AI, giao diện) trong
      một tiến trình.
+     *(Cập nhật 30/09/2026: đã đo một phần khi phát lại o03 qua ngăn AI camera với rig TỔNG HỢP (Rig, AI và ngăn chạy
+     offscreen trong một tiến trình, script gọi `tick()` thay timer; máy bàn trước, 25/09/2026): BEV 4 camera trung vị
+     5,6 ms, p95 8,0–8,1 ms; mỗi `tick()` trung vị 10,9–11,0 ms ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2).
+     Chưa đo với camera thật đang chạy, ROI thật hay trên laptop.)*
    - BEV chưa chạy song song giữa các camera. Chưa cần, vì mỗi camera ≈ 1,2–2,7 ms.
 7. **Nối vào bàn thử / hợp nhất** (`CameraSemanticLayer`, kế hoạch giai đoạn 3): chưa làm. Chờ các mục trên, và chờ
    quyết định giấy phép WoodScape cho việc nối AI vào lập đường. *(Cập nhật 25/09/2026: phần mềm đã làm, `b01dea4`,
@@ -629,5 +642,8 @@ Mười hai đột biến mới:
    phát lại.)*
 8. Lọc theo thời gian, bù chuyển động xe giữa các camera: chưa có. Mọi stamp là lúc khung tới máy, không phải lúc phơi
    sáng.
+   *(Cập nhật 30/09/2026: lọc theo thời gian đã có ở nguồn vật cản AI camera, ≥ 2 trong 3 lô, trong hệ bản đồ
+   (`fusion/camera_ai.py`, từ `b01dea4`); `bev.py` tự nó không lọc. Bù chuyển động xe giữa các camera và nội suy tư thế
+   về lúc chụp: chưa có.)*
 9. AI **chưa từng được chấm trên ảnh sa bàn**. Hai ngưỡng 0,15 / 0,50 chưa kiểm trên sa bàn. Mọi lỗi của mô hình đi
    thẳng vào BEV.

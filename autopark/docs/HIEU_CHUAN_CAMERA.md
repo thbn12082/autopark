@@ -1,7 +1,9 @@
 # Hiệu chuẩn nội tham từng camera (giai đoạn 2, bước 4): công cụ và cách làm (24/09/2026)
 
-**Kế hoạch đối chiếu:** v3.1 mục 6, "Khi đủ bốn camera", bước 4: *"Hiệu chuẩn riêng từng camera; gắn lên rig rồi xác
-định vị trí/hướng của camera so với rig."* Đầu ra cần có: *"bốn tệp calibration, `camera_rig_extrinsics.yaml`"*.
+**Kế hoạch đối chiếu:** v3.1 mục 6, "Khi đủ bốn camera", bước 4
+([bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md); bản hiện tại:
+mục 6, đoạn "Có đồ"): *"Hiệu chuẩn riêng từng camera; gắn lên rig rồi xác định vị trí/hướng của camera so với rig."*
+Đầu ra cần có: *"bốn tệp calibration, `camera_rig_extrinsics.yaml`"*.
 
 **Mức bằng chứng:** công cụ mới chỉ được kiểm trên ảnh tổng hợp và trên nguồn camera giả trong test. Riêng giao diện đã
 mở camera thật cổng 2 một lần, khoảng 6 s, ngày 24/09 (xem cuối mục 5), nhưng không chụp ảnh nào. Chưa có ảnh bảng nào

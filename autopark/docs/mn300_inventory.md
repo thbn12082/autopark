@@ -1,8 +1,10 @@
 # Phiếu kiểm kê MN300 Tank300 1/12 RTR — mẫu để điền (soạn 24/09/2026)
 
-**Kế hoạch đối chiếu:** [v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 8 (giai đoạn 4: "Khi chưa có xe" → viết
+**Kế hoạch đối chiếu:** [v3.1 bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 8 (giai đoạn 4: "Khi chưa có xe" → viết
 phiếu kiểm kê; "Khi nhận xe" bước 1, 4, 5), mục 3 (đợt mua 4: "đúng gói pin/sạc/phụ kiện xác nhận với shop"), mục 17.2
-("Bộ điện MN300 và giao tiếp servo/ESC — giai đoạn 4") và mục 18 (link mua).
+("Bộ điện MN300 và giao tiếp servo/ESC — giai đoạn 4") và mục 18 (link mua). *(Cập nhật 30/09/2026: mọi "kế hoạch mục N
+bước M" và câu trích kế hoạch trong tệp này theo bản trước đợt biên tập 26/09/2026; [bản hiện tại](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md)
+giữ số mục, mục 8 có đoạn "Khi chờ" và "Có xe".)*
 
 **Trạng thái (24/09/2026): CHƯA NHẬN XE.** Mọi ô giá trị dưới đây để trống, hoặc ghi "CHƯA ĐO" / "CHƯA XÁC NHẬN". Phiếu
 này chưa chứa thông tin nào về chiếc xe thật. Các bảng đo tốc độ, góc lái, bán kính quay và quãng dừng nằm ở

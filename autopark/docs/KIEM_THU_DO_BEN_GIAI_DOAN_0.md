@@ -1,6 +1,6 @@
 # Kiểm thử mở rộng giai đoạn 0
 
-Ngày 20/09/2026. Phạm vi: **phần mềm mô phỏng**. Kết luận sau sửa: bộ pytest **220/220 đạt**; chiến dịch **2.880 trường hợp không ghi nhận vi phạm các bất biến đã kiểm tra**. Đây không phải chứng minh mọi tình huống đều an toàn hoặc mọi bài đỗ đều giải được. *(Ghi chú 25/09/2026: 220 là số của ngày 20/09; số của bộ test hiện nay ở mục 2.)*
+Ngày 20/09/2026. Phạm vi: **phần mềm mô phỏng**. Kết luận sau sửa: bộ pytest **220/220 đạt**; chiến dịch **2.880 trường hợp không ghi nhận vi phạm các bất biến đã kiểm tra**. Đây không phải chứng minh mọi tình huống đều an toàn hoặc mọi bài đỗ đều giải được. *(Ghi chú 25/09/2026: 220 là số của ngày 20/09; số của bộ test hiện nay ở mục 2.)* *(Cập nhật 30/09/2026: mục 2 chỉ có số ngày 25/09; lượt toàn bộ mới nhất chạy trên commit `ebbec83` ngày 30/09/2026, máy bàn: `.venv` 1.380 đạt, 8 bỏ qua; `.venv-train` 1.442 đạt; 0 hỏng ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8).)*
 
 ## 1. Lỗi đã tái hiện và sửa
 
@@ -32,7 +32,7 @@ Test bổ sung có trường hợp vật cản ở hai phía khoảng phanh, c�
 
 ### Chiến dịch theo seed
 
-[Tóm tắt bằng máy](../runs/robustness_final_2026-09-20/summary.json), [từng trường hợp](../runs/robustness_final_2026-09-20/cases.jsonl), [danh sách vi phạm](../runs/robustness_final_2026-09-20/failures.json). *(Ghi chú 25/09/2026: `runs/` bị `.gitignore` bỏ qua, nên ba liên kết này chỉ mở được trên máy làm việc, không có trên GitHub hay trên laptop sau `git pull`.)*
+Tóm tắt bằng máy: `runs/robustness_final_2026-09-20/summary.json`; từng trường hợp: `cases.jsonl`; danh sách vi phạm: `failures.json` (cả ba cùng thư mục). *(Ghi chú 25/09/2026: `runs/` bị `.gitignore` bỏ qua, nên ba liên kết này chỉ mở được trên máy làm việc, không có trên GitHub hay trên laptop sau `git pull`.)* *(Cập nhật 30/09/2026: đổi ba liên kết thành đường dẫn dạng mã, vì `runs/` bị git-ignore nên liên kết hỏng trên GitHub.)*
 
 | Loại | Số trường hợp | Điều được kiểm tra |
 |---|---:|---|
@@ -75,7 +75,7 @@ Các bài đỗ có planner dùng bốn nhóm `parallel_160`, `perp_aisle_170`, 
 
 ## 4. Độ bao phủ và giới hạn của phép đo
 
-[Báo cáo HTML đầy đủ](evidence/coverage_html/index.html) (chỉ có trên máy làm việc, không có trên GitHub: coverage.py tự tạo `.gitignore` bỏ qua cả thư mục này; ghi chú 24/09/2026), [JSON toàn bộ](evidence/coverage_robustness.json), [phạm vi cốt lõi](evidence/coverage_core.json).
+Báo cáo HTML đầy đủ: `docs/evidence/coverage_html/index.html` (chỉ có trên máy làm việc, không có trên GitHub: coverage.py tự tạo `.gitignore` bỏ qua cả thư mục này; ghi chú 24/09/2026), [JSON toàn bộ](evidence/coverage_robustness.json), [phạm vi cốt lõi](evidence/coverage_core.json).
 
 | Phạm vi | Dòng lệnh đã chạy | Nhánh đã chạy |
 |---|---:|---:|
@@ -84,7 +84,7 @@ Các bài đỗ có planner dùng bốn nhóm `parallel_160`, `perp_aisle_170`, 
 
 Không dùng phần trăm của nhóm cốt lõi để đại diện cho toàn repository. Coverage này đo trên pytest, không cộng lượt campaign không gắn tracer. Baseline từng đạt 100% dòng/nhánh trong tracker vẫn bỏ sót lỗi giới hạn tốc độ và đổi chiều; coverage không đo đầy đủ không gian giá trị.
 
-Một lần chạy pytest đồng thời với campaign khiến ca `uturn_w46` hết ngân sách 8 s; chạy riêng ca này tìm được đường đã kiểm chứng trong khoảng 3,98 s, và lượt đầy đủ chạy tách đạt 220/220. Lượt baseline có coverage tracer cũng gặp lỗi ngân sách. Các bằng chứng thất bại được giữ tại `robustness_concurrent_load_pytest.xml` và `robustness_baseline_pytest.xml`. Điều này cho thấy **khả năng tìm đường trong thời hạn phụ thuộc tải CPU**; TIMEOUT không được coi là vô nghiệm hình học.
+Một lần chạy pytest đồng thời với campaign khiến ca `uturn_w46` hết ngân sách 8 s; chạy riêng ca này tìm được đường đã kiểm chứng trong khoảng 3,98 s, và lượt đầy đủ chạy tách đạt 220/220. Lượt baseline có coverage tracer cũng gặp lỗi ngân sách. Các bằng chứng thất bại được giữ tại `robustness_concurrent_load_pytest.xml` và `robustness_baseline_pytest.xml`. Điều này cho thấy **khả năng tìm đường trong thời hạn phụ thuộc tải CPU**; TIMEOUT không được coi là vô nghiệm hình học. *(Cập nhật 30/09/2026: trên máy bàn mới, `uturn_w46` còn hỏng cả khi máy gần rảnh (tải CPU 0–12 %): tiến trình không có cửa sổ, để Windows tự quyết, đạt ở lần gọi đầu nhưng hỏng TRACKING_FAILED ở 8,00 s ở các lần gọi sau; tiến trình tự tắt EcoQoS thì đạt 8/8, 3,61–3,64 s. Vậy thời hạn còn phụ thuộc cách Windows xếp lịch tiến trình. Từ 30/09/2026 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8).)*
 
 Oracle dùng biến đổi số phức và SAT tổng quát, không gọi Shapely, FastCollisionChecker, body_corners hoặc bộ tích phân của xe để quyết định va chạm tham chiếu. Tuy vậy, kiểm tra chuyển động vẫn là **lấy mẫu**, không phải chứng minh liên tục cho mọi chuyển động. Biến đổi hình học 2D không bao phủ biến dạng lốp, trượt, vật 3D hoặc ngoại lai cảm biến thật.
 

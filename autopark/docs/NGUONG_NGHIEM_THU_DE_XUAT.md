@@ -24,6 +24,12 @@ Ngày 25/09/2026 người làm khóa luận quyết định dùng mô hình Wood
 điều khoản ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). Phần mềm đưa AI camera vào phiên đỗ xe làm nguồn vật cản đã có
 ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)), chỉ kiểm bằng nguồn giả, rig tổng hợp và phát lại; chưa camera nào được hiệu
 chuẩn nên trên bàn thật AI chưa tạo vật cản nào.)*
+*(Cập nhật 30/09/2026: từ 29/09/2026 máy bàn là máy mới, Dell Precision 3680 cùng cấu hình; số đo 22–24/09 ở trên là của
+máy bàn trước. Trên máy mới có lượt `may_moi` ngày 29/09/2026 (LiDAR, bốn camera, AI), nay là tham chiếu `may_moi`
+([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2); cùng ngày 15:08–15:19 còn ghi LiDAR 10 s ở COM3 và chạy
+`rig.bench --lidar` 30 s bốn camera + LiDAR + AI có ghi phiên rồi phát lại
+([kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md)). Firmware đã biên dịch cho ESP32-S3
+(29/09/2026) và chạy trong bo ảo QEMU (30/09/2026, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)): đó là giả lập, không phải số đo phần cứng; vẫn chưa nạp bo.)*
 
 ## 0. Cách đọc
 
@@ -176,9 +182,11 @@ cho tiếp tục mù".
 
 **Định nghĩa `UNKNOWN` đề xuất** (kế hoạch 16.2 yêu cầu định nghĩa): một ô là UNKNOWN khi (1) chưa cảm biến nào quan sát
 được nó; (2) số đo của nó không hợp lệ hoặc đã cũ quá giới hạn ở mục 4; (3) nó bị che khuất sau một vật; (4) dự đoán AI
-thiếu tin cậy (0,15 < p(BLOCKED) < 0,50, hai ngưỡng hiện có của [BEV.md](BEV.md) mục 2); (5) LiDAR mới chạm nó ở 1 trong 3
-vòng gần nhất (GIAI_DOAN_3_CHUAN_BI.md mục 2 quy tắc 1). UNKNOWN chặn lập đường như vật cản. Đây không phải một lớp của mô
-hình AI (kế hoạch 16.2: thêm tên lớp không bảo đảm nhận ra mọi vật lạ).
+thiếu tin cậy (0,15 < p(BLOCKED) < 0,50, hai ngưỡng hiện có của [BEV.md](BEV.md) mục 2)
+*(cập nhật 30/09/2026: 0,15–0,50 là mặc định của lệnh `bev`; nguồn vật cản AI camera trong phiên đỗ (từ `b01dea4`) dùng
+`t_free` 0,05 và `t_blocked` 0,15, nên ở đó vùng không chắc là 0,05 < p < 0,15 và p ≥ 0,15 đã là OCCUPIED; xem N-A4)*;
+(5) LiDAR mới chạm nó ở 1 trong 3 vòng gần nhất (GIAI_DOAN_3_CHUAN_BI.md mục 2 quy tắc 1). UNKNOWN chặn lập đường như
+vật cản. Đây không phải một lớp của mô hình AI (kế hoạch 16.2: thêm tên lớp không bảo đảm nhận ra mọi vật lạ).
 
 ## 8. AI (dòng "AI")
 
@@ -196,8 +204,8 @@ vật cản ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3). Câu "nếu kh
 |---|---|---|---|---|---|
 | N-A1 | Tỉ lệ pixel vật cản bị gọi FREE, ngưỡng 0,15, trong ROI, trên tập chấm sa bàn tô tay từ đầu (`--no-draft`, [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md)) | ≤ 2 % | Ở ngưỡng 0,15: WoodScape test 0,69 %, ACDC (thời tiết xấu) 2,28 %, RoadObstacle21 (vật lạ nhỏ) 18,2 % ([HUAN_LUYEN.md](../../HUAN_LUYEN.md) mục 10). Trên sa bàn: CHƯA ĐO | DL | Tập chấm sa bàn |
 | N-A2 | Theo từng vật thử đã khai báo trong vùng làm việc: vật có ≥ 50 % pixel BLOCKED | Ở ≥ 95 % số khung có vật trong vùng làm việc | RoadObstacle21 ở ngưỡng 0,15: 19 / 30 ảnh thấy ≥ ½ vật (HUAN_LUYEN.md mục 10), tức vật lạ nhỏ là điểm yếu. Vì vậy phải khai báo loại và cỡ vật thử (kế hoạch 16.3 cuối mục) | DL | NT-1 … NT-4 |
-| N-A3 | Báo động giả (FREE → BLOCKED) trên sàn trống | ≤ 5 % pixel | Ở ngưỡng 0,15: WoodScape test 3,97 %, ACDC 7,70 % (HUAN_LUYEN.md mục 10). Ảnh camera thật đầu tiên (23/09, chưa có nhãn, ngưỡng 0,50): 11 / 31 / 39 / 60 % pixel BLOCKED ở cổng 1–4; ở cổng 2–4, nhìn bằng mắt, phần lớn vùng đó là thảm hoa văn, tức báo động giả ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md) mục 4). Vì vậy vật liệu mặt sàn sa bàn có thể quyết định nhiều (chưa kiểm) | DL, quan sát | Tập chấm sa bàn |
-| N-A4 | Vùng không chắc (0,15 < p < 0,50) | Tuyệt đối: là UNKNOWN, không bao giờ FREE | [BEV.md](BEV.md) mục 2 | TK | Test + NT-5 |
+| N-A3 | Báo động giả (FREE → BLOCKED) trên sàn trống | ≤ 5 % pixel | Ở ngưỡng 0,15: WoodScape test 3,09 %, ACDC 7,70 % (HUAN_LUYEN.md mục 10; *sửa 30/09/2026: trước ghi nhầm 3,97 %, là 1 − precision của lớp BLOCKED*). Ảnh camera thật đầu tiên (23/09, chưa có nhãn, ngưỡng 0,50): 11 / 31 / 39 / 60 % pixel BLOCKED ở cổng 1–4; ở cổng 2–4, nhìn bằng mắt, phần lớn vùng đó là thảm hoa văn, tức báo động giả ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md) mục 4). Vì vậy vật liệu mặt sàn sa bàn có thể quyết định nhiều (chưa kiểm) | DL, quan sát | Tập chấm sa bàn |
+| N-A4 | Vùng không chắc, giữa `t_free` và `t_blocked`; mặc định 0,15 < p < 0,50 ở lệnh `bev`, 0,05 < p < 0,15 ở nguồn vật cản AI camera trong phiên đỗ (từ `b01dea4`, 25/09/2026) | Tuyệt đối: là UNKNOWN, không bao giờ FREE | [BEV.md](BEV.md) mục 2; `AI_T_FREE` = 0,05, `AI_T_BLOCKED` = 0,15 trong [fusion/camera_ai.py](../autopark/fusion/camera_ai.py) ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 4). *(Sửa 30/09/2026: bản trước chỉ ghi 0,15 < p < 0,50, là mặc định của lệnh `bev`.)* | TK | Test + NT-5 |
 
 ## 9. Điều khiển (dòng "Điều khiển") — chưa đề xuất số
 

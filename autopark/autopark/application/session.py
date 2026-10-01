@@ -1,6 +1,7 @@
 """Phiên làm việc: chỉnh sa bàn, lập đường, xem trước, chạy kín vòng, lái tay.
 
-Máy trạng thái theo tài liệu mục 5.4, thêm COMPLETED (đỗ xong) và MANUAL (lái tay P2):
+Máy trạng thái theo tài liệu mục 5.4, thêm COMPLETED (đỗ xong) và MANUAL (lái tay P2). Sơ đồ dưới là nhánh chính;
+đủ các nhánh (RUN_TIMEOUT, dừng ngoài dung sai, va chạm khi phanh, VehicleIO...) ở docs/SO_DO_HE_THONG.md:
 
     EDITING --plan--> PLANNING --ok--> READY --start--> RUNNING --xong--> COMPLETED
                                --lỗi--> EDITING          |      --va chạm--> FAULT

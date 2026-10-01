@@ -2,7 +2,16 @@
 
 **Kết luận:** giai đoạn 0 đạt sáu điều kiện chuyển bước trong phạm vi mô phỏng đã kiểm ngày **20/09/2026**. Đây là báo cáo của đợt đó; tiến độ sau này nằm ở [tổng quan hiện tại](TONG_HOP_DU_AN.md).
 
-Biên tập lại 26/09/2026 từ hồ sơ tại `9d68257`, không chạy lại phép thử và không thay số liệu.
+Biên tập 30/09/2026 theo mã tại `ff4a018` (mã giống `ebbec83`); lần biên tập 26/09/2026 dựng từ hồ sơ tại `9d68257`. Cả hai lần biên tập không thay số liệu của đợt 20/09; lượt chạy lại ngày 29/09/2026 ghi riêng ở khối dưới.
+
+## Trạng thái 30/09/2026
+
+Các mục 1–12 là kết quả đợt 20/09/2026 trên laptop. Sau đợt đó:
+
+- **Mã lập đường và mô phỏng không đổi.** `planning`, `control`, `simulation`, `geometry` và `domain/computation.py` giữ nguyên từ commit đầu `bef5695` (21/09/2026) tới `ff4a018`, chỉ khác chú thích (docstring). Phần thêm sau đợt: nhánh VehicleIO trong `application/session.py` (24/09/2026); tùy chọn `--vehicle-config`, nhãn ca khó và phép đo độ nhạy kích thước xe trong `evaluation` (25/09/2026).
+- **Năm phiên mẫu chạy lại trên máy mới.** Từ 29/09/2026 máy phát triển chính là máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada) ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md)). Ngày 29/09/2026 trên máy này, `phase0` với mã `b37e9ee` cho năm phiên trùng từng giá trị với đợt 20/09 (`runs/phase0_after_robustness/summary.json`, số ở mục 7): trạng thái, replay khớp, sai số vị trí và hướng, thời gian, số khung video, sự kiện an toàn ([tóm tắt kiểm lại](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.1). Trong `runs/` của máy bàn không có lượt chạy lại chiến dịch 2.880 ca (mục 6.2).
+- **Bộ test hiện tại.** Lượt đầy đủ gần nhất: commit `ebbec83`, cây làm việc sạch, máy bàn, 30/09/2026, offscreen. `.venv`: 1380 đạt, 8 bỏ qua (cần torch), 0 hỏng, 365 s. `.venv-train`: 1442 đạt, 0 hỏng, 400 s. Bộ này gồm test của mọi phần thêm sau 20/09, nên không so số lượng với 220 test ở mục 6.1 ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 8).
+- **EcoQoS.** Test có hạn giờ đo cả cách Windows xếp lịch tiến trình. Từ 30/09/2026 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest (mục 6.1).
 
 ## 1. Kết quả tổng quan
 
@@ -37,6 +46,8 @@ Thông số xe trong [vehicle_default.json](autopark/configs/vehicle_default.jso
 | Vật mới vô hiệu đường; dừng trước khi lập đường mới | Đạt trong mô phỏng |
 | Xem trước không phát lệnh phần cứng | Đạt |
 | Cấu hình/log đủ để tái hiện | Đạt với các phiên đã ghi |
+
+Sơ đồ ở mục 7 nối từng điều kiện với nguồn bằng chứng: pytest, chiến dịch theo seed (mục 6) và năm phiên mẫu. Bằng chứng từng điều kiện: [biên bản giai đoạn 0](autopark/docs/GIAI_DOAN_0.md).
 
 Nhánh VehicleIO được thêm sau đợt này; kết quả 220 test không bao gồm nghiệm thu nhánh đó. Xem [chế độ quan sát](autopark/docs/CHE_DO_QUAN_SAT.md).
 
@@ -85,7 +96,9 @@ Lượt hồi quy ban đầu có 25 trường hợp thất bại; nhiều trư�
 
 Lượt đầy đủ: **220 đạt**, khoảng 60,23 giây tại lần đo đã lưu. Lượt coverage: 210 đạt, 10 không chọn vì có ngân sách thời gian; mười test này đã chạy trong lượt đầy đủ không gắn tracer.
 
-Một bài quay đầu chật từng TIMEOUT khi máy chịu tải. Kết quả tìm đường theo thời hạn vẫn phụ thuộc tải CPU.
+Ca quay đầu chật `uturn_w46` từng TIMEOUT ở hạn 8 s khi pytest chạy đồng thời với chiến dịch robustness, lúc máy chịu tải CPU (đợt 20/09, laptop; [JUnit lượt có tải](autopark/docs/evidence/robustness_concurrent_load_pytest.xml)). Kết quả tìm đường theo thời hạn phụ thuộc tải CPU và cách Windows xếp lịch tiến trình. Đo ngày 30/09/2026 trên máy bàn, tải CPU 0–12%, tiến trình không có cửa sổ ([do_uturn_w46.txt](autopark/docs/evidence/mo_phong_20260930/ecoqos_30092026/do_uturn_w46.txt)): khi để Windows tự quyết, lần gọi đầu trong mỗi tiến trình đạt (3/3, 4,55–4,57 s), còn 5/5 lần gọi sau hỏng TRACKING_FAILED ở 8,00 s; khi tiến trình tự tắt EcoQoS thì đạt 8/8, 3,61–3,64 s. Cơ chế cụ thể của Windows (dồn sang lõi E hay hạ xung) CHƯA rõ.
+
+Từ 30/09/2026 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest; tệp JUnit ghi `ecoqos=off`, đặt `AUTOPARK_KEEP_ECOQOS=1` để giữ mặc định của Windows. Ứng dụng giao diện và các lệnh đánh giá (`phase0`, `robustness`...) không tự tắt EcoQoS; ảnh hưởng lên chúng CHƯA ĐO. Chi tiết: [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 8, sơ đồ 3.7 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
 ### 6.2. Chiến dịch theo seed
 
@@ -114,21 +127,47 @@ Không dùng số của lõi để đại diện toàn repo. Coverage cao không
 
 ## 7. Năm phiên mẫu và replay
 
-**Cách giữ bằng chứng để kiểm lại:**
+**Sáu điều kiện, nguồn bằng chứng và vòng replay.** Sơ đồ nối từng điều kiện ở mục 3 với nguồn bằng chứng của đợt 20/09; nhánh `phase0` là năm phiên của mục này. Mỗi phiên được xuất gói (`export_run`), phát lại ngay (`replay_run`) và chỉ được vẽ video khi phát lại khớp.
 
 ```mermaid
 flowchart TD
-    A["Kịch bản, cấu hình và seed"] --> B["Chạy mô phỏng"]
-    B --> C["Lưu quỹ đạo, sự kiện, trạng thái và kết quả"]
-    B --> D["Lưu môi trường và snapshot mã nguồn"]
-    C --> R["Replay bằng quỹ đạo đã lưu"]
-    D --> R
-    R --> Q{"Khớp bản ghi tham chiếu?"}
-    Q -->|Có| Y["Xác nhận tái hiện phiên đó"]
-    Q -->|Không| N["Tìm sai khác ở mã, môi trường hoặc dữ liệu"]
+    G["Sáu điều kiện chuyển bước giai đoạn 0, kế hoạch mục 4"]
+    G --> C1["1. Kéo, xoay đích, từ chối đích đè vật cản"]
+    G --> C2["2. Tiến, lùi, giữ giới hạn lái và đổi chiều"]
+    G --> C3["3. Kiểm va chạm toàn thân và vùng quét"]
+    G --> C4["4. Vật mới hủy đường, dừng trước khi lập lại"]
+    G --> C5["5. Xem trước không phát lệnh phần cứng"]
+    G --> C6["6. Cấu hình và log đủ để chạy lại"]
+    C1 --> PT["pytest 220 trên 220 đạt"]
+    C2 --> PT
+    C3 --> PT
+    C4 --> PT
+    C5 --> PT
+    C6 --> PT
+    C3 --> ROB["robustness 2.880 ca theo seed, 0 vi phạm bất biến"]
+    C4 --> ROB
+    C2 --> P0["phase0: 5 phiên parking, reverse, noisy, obstacle, data_loss"]
+    C4 --> P0
+    C6 --> P0
+    P0 --> EX["export_run: cấu hình và quỹ đạo, telemetry, sự kiện, kết quả, môi trường, source.zip"]
+    EX --> RP["replay_run: chạy lại quỹ đạo đã lưu, bơm lại sự kiện đúng bước vật lý, không gọi planner"]
+    RP --> EQ{"Trạng thái phiên, tư thế và vận tốc cuối, va chạm, quãng đường, telemetry khớp?"}
+    EQ -->|Có| VID["Video mp4 có dòng SIMULATION ONLY và ảnh khung cuối"]
+    EQ -->|Không| ERR["Báo lỗi, kiểm lại phiên bản mã và môi trường, không nhận làm bằng chứng"]
+    PT --> KQ["ĐẠT ở mức mô phỏng, laptop i7-12700H, 20/09/2026"]
+    ROB --> KQ
+    VID --> KQ
+    KQ -.-> NO["Chưa chứng minh: số đo MN300, phản hồi thật, quãng phanh, E-stop, tự đỗ thật"]
+    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
+    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
+    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
+    class PT,ROB,P0,KQ,VID giaLap
+    class NO chuaLam
 ```
 
-Replay không gọi planner tìm một đường mới. Luồng này dành cho phiên mô phỏng giai đoạn 0; không áp dụng cho phiên VehicleIO.
+Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị.
+
+Replay không gọi planner tìm một đường mới. Luồng này dành cho phiên mô phỏng giai đoạn 0; không áp dụng cho phiên VehicleIO (`replay_run` từ chối phát lại lần chạy qua VehicleIO). Mã: [phase0.py](autopark/autopark/evaluation/phase0.py), [run_store.py](autopark/autopark/storage/run_store.py). Xem thêm sơ đồ 3.6 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
 | Phiên | Kết quả | Thời gian mô phỏng | Sai số vị trí cuối | Replay |
 |---|---|---:|---:|---|
@@ -140,7 +179,7 @@ Replay không gọi planner tìm một đường mới. Luồng này dành cho p
 
 Phiên noisy: trễ 40 ms, nhiễu vị trí 2 mm và yaw 0,2°, mất mẫu 2%, seed 42.
 
-Dữ liệu đầy đủ ở `autopark/runs/phase0_after_robustness/` trên máy tạo bằng chứng, không nằm trong Git. Replay dùng quỹ đạo lưu sẵn để tránh phụ thuộc ngân sách tìm đường mới.
+Dữ liệu đầy đủ ở `autopark/runs/phase0_after_robustness/`, không nằm trong Git; ngày 30/09/2026 thư mục này có trên máy bàn. Replay dùng quỹ đạo lưu sẵn để tránh phụ thuộc ngân sách tìm đường mới.
 
 [Ảnh đang chạy](autopark/docs/evidence/ui_running.png), [ảnh đã dừng](autopark/docs/evidence/ui_stopped.png).
 
@@ -158,7 +197,7 @@ Nghiên cứu AI sử dụng **[Valeo WoodScape Dataset](https://github.com/vale
 
 ## 10. Môi trường và mã nguồn
 
-Máy đợt mô phỏng: Windows 11, Python 3.12.10, i7-12700H, RTX 3050 Ti Laptop 4 GB. [Môi trường ghi lúc đo](autopark/docs/evidence/environment.json).
+Máy đợt mô phỏng: Windows 11, Python 3.12.10, i7-12700H, RTX 3050 Ti Laptop 4 GB. [Môi trường ghi lúc đo](autopark/docs/evidence/environment.json). Laptop này nay là máy trình diễn, nộp đồ án ([MAY_NOP_DO_AN.md](autopark/docs/MAY_NOP_DO_AN.md)); máy phát triển từ 29/09/2026 là máy bàn (khối "Trạng thái 30/09/2026").
 
 Mã chính: [session](autopark/autopark/application/session.py), [simulation](autopark/autopark/simulation/), [planning](autopark/autopark/planning/), [tracker](autopark/autopark/control/tracker.py), [oracle va chạm](autopark/autopark/evaluation/collision_oracle.py).
 
@@ -166,7 +205,7 @@ Mã chính: [session](autopark/autopark/application/session.py), [simulation](au
 
 ## 11. Cách tự kiểm chứng
 
-Cài môi trường theo [hướng dẫn chạy](autopark/README.md). Từ thư mục có `pyproject.toml`:
+Cài môi trường theo [hướng dẫn chạy](autopark/README.md). Chạy từ thư mục `autopark` của repo, thư mục có `pyproject.toml` (trên máy bàn: `D:\xetulai\autopark\autopark`):
 
 ```powershell
 ./.venv/Scripts/python.exe -X utf8 -m pytest
@@ -175,12 +214,12 @@ Cài môi trường theo [hướng dẫn chạy](autopark/README.md). Từ thư 
 ./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.robustness --out runs/robustness_kiem_lai
 ```
 
-Chạy tuần tự, chọn thư mục mới. Bộ test hiện tại đã lớn hơn 220; chạy lại trên mã hiện tại là một lượt kiểm mới, không tái tạo nguyên số lượng test ngày 20/09.
+Chạy tuần tự, chọn thư mục mới. Bộ test hiện tại đã lớn hơn 220 (lượt gần nhất: khối "Trạng thái 30/09/2026"); chạy lại trên mã hiện tại là một lượt kiểm mới, không tái tạo nguyên số lượng test ngày 20/09. Lệnh `phase0` đã chạy lại ngày 29/09/2026 trên máy bàn và cho đúng năm kết quả của mục 7.
 
 ## 12. Giới hạn và bước tiếp theo
 
 Chưa chứng minh: thông số MN300, phản hồi/định vị thật, quãng phanh, E-stop, tự đỗ thật, AI sa bàn. Vật xuất hiện quá gần có thể gây FAULT. Preview dùng rollout lý tưởng, chưa thể hiện đủ lỗi phần cứng.
 
-Giữ các test làm hồi quy; khi đo được MN300 thì thay cấu hình và chạy lại. Tiếp tục kiểm cảm biến theo [kế hoạch](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md).
+Giữ các test làm hồi quy; khi đo được MN300 thì thay cấu hình và chạy lại (`phase0` và `robustness` nhận `--vehicle-config` từ 25/09/2026). Tiếp tục kiểm cảm biến theo [kế hoạch](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md).
 
-[Báo cáo trước biên tập](https://github.com/thbn12082/autopark/blob/9d68257/BAO_CAO_GIAI_DOAN_0.md) lưu đầy đủ hồ sơ lịch sử. Số mục 1–12 giữ như bản đó; chi tiết mà tài liệu khác dẫn theo số mục nhưng đã lược khi biên tập (ví dụ giới hạn của mô hình xe ở mục 12) tra ở bản đó.
+[Báo cáo trước đợt biên tập 26/09](https://github.com/thbn12082/autopark/blob/9d68257/BAO_CAO_GIAI_DOAN_0.md) lưu đầy đủ hồ sơ lịch sử. Số mục 1–12 giữ như bản đó; chi tiết mà tài liệu khác dẫn theo số mục nhưng đã lược khi biên tập (ví dụ giới hạn của mô hình xe ở mục 12) tra ở bản đó. Bản ngay trước đợt biên tập 30/09: [ff4a018](https://github.com/thbn12082/autopark/blob/ff4a018/BAO_CAO_GIAI_DOAN_0.md).

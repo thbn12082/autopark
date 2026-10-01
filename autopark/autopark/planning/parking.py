@@ -3,8 +3,9 @@
 Ứng dụng gọi qua đây, nên đây là chỗ duy nhất cần đổi khi thay bộ lập đường.
 
 Mặc định dùng `portfolio.plan`: một thang nhiều nấc, thử từ bộ nhanh nhất tới bộ
-đầy đủ nhất, và cho xe mô phỏng chạy thử từng đường trước khi nhận. Đo trên bộ 16
-ca khó (`autopark/evaluation/`):
+đầy đủ nhất, và cho xe mô phỏng chạy thử từng đường trước khi nhận. Đo ngày 08/09/2026
+trên bộ 16 ca khó (`autopark/evaluation/`), chưa đo lại; thời gian phụ thuộc tải máy và EcoQoS
+của Windows (docs/CHUYEN_MAY_BAN.md mục 8):
 
 | Bộ lập đường | Giải được | Trung vị | Chậm nhất |
 |---|---|---|---|

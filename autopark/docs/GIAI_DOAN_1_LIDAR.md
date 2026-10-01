@@ -1,7 +1,7 @@
 # Giai đoạn 1 — nhánh LiDAR: nhận RPLIDAR C1, driver, ghi phiên, bản đồ tĩnh (22/09/2026)
 
-**Kế hoạch đối chiếu:** [v3.1, mục 5 "Khi nhận LiDAR"](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), bước 1–3 và 5. *Thêm 24/09/2026:* bước 6 (nạp lại bản đồ, định vị) có công cụ và kết quả trên bản ghi sẵn, chưa có tham chiếu độc lập — mục 8 và [DINH_VI_LIDAR.md](DINH_VI_LIDAR.md).
-**Mức bằng chứng:** thiết bị thật trên bàn làm việc, máy bàn i9-14900 (không phải laptop RTX 3050 Ti mang đi nộp đồ án), chưa làm nóng theo sổ tay, chưa đặt vật ở khoảng cách đo bằng thước. Mọi con số dưới đây là của một phiên cụ thể, không phải cam kết.
+**Kế hoạch đối chiếu:** [v3.1 bản `9d68257`, mục 5 "Khi nhận LiDAR"](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), bước 1–3 và 5. *(Cập nhật 30/09/2026: tên đoạn và số bước theo bản trước đợt biên tập 26/09/2026; [bản hiện tại](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) giữ mục 5, đoạn tương ứng là "Có đồ".)* *Thêm 24/09/2026:* bước 6 (nạp lại bản đồ, định vị) có công cụ và kết quả trên bản ghi sẵn, chưa có tham chiếu độc lập — mục 8 và [DINH_VI_LIDAR.md](DINH_VI_LIDAR.md).
+**Mức bằng chứng:** thiết bị thật trên bàn làm việc, máy bàn trước (i9-14900, dùng tới 25/09/2026, LiDAR ở COM4; không phải laptop RTX 3050 Ti mang đi nộp đồ án); mọi số đo trong tệp này là của máy đó. Máy bàn hiện tại (Dell Precision 3680, LiDAR ở COM3) mới có các lượt kiểm ngày 29/09/2026 ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2; [kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md)). Chưa làm nóng theo sổ tay, chưa đặt vật ở khoảng cách đo bằng thước. Mọi con số dưới đây là của một phiên cụ thể, không phải cam kết.
 **Phần chuẩn bị khi chưa có đồ** (nguồn phát lại, ROI, costmap camera, giám sát dữ liệu cũ) nằm ở [GIAI_DOAN_1_CHUAN_BI.md](GIAI_DOAN_1_CHUAN_BI.md).
 
 ## 1. Tiếp nhận thiết bị
@@ -82,7 +82,7 @@ Mỗi bản ghi cho `<tên>.repeatability.json` và `<tên>.repeatability.png`; 
 | live_headless, 22/09 (28) | 0,75 / 4,25 mm (1.892) | 1,00 / 5,50 mm (3.174) | 0,89 / 6,41 mm (282) |
 | k01, 24/09 (121) | 1,25 / 5,50 mm (9.295) | 1,50 / 7,75 mm (19.173) | 1,39 / 3,43 mm (429) |
 
-Đối chiếu với số đã ghi ở mục 3b và TONG_HOP_DU_AN.md mục 4.3:
+Đối chiếu với số đã ghi ở mục 3b và TONG_HOP_DU_AN.md mục 4.3 ([bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/TONG_HOP_DU_AN.md), ghi trung vị "1,0–1,5 mm", p90 "4–8 mm"; *cập nhật 30/09/2026: bản 26/09/2026 của mục 4.3 bỏ số này; bản 30/09/2026 ghi lại theo bảng trên: trung vị 0,75–1,5 mm, p90 4,25–7,75 mm*):
 - p07 cho 1,0–1,25 mm và k01 cho 1,25–1,5 mm tùy dung sai góc: **trùng** số đã ghi. p90 là 4,25–7,75 mm, nằm trong khoảng "4–8 mm" đã ghi.
 - live_headless không có trong số đã ghi. Sau khi bỏ 3 s, bản ghi này chỉ còn 28 vòng. Trung vị của nó là 0,75–1,0 mm, thấp hơn khoảng "1,0–1,5 mm" ở TONG_HOP. Tính cả live_headless thì khoảng trung vị là 0,75–1,5 mm. Chưa rõ vì sao thấp hơn; bản ghi ngắn, ghi 2,5 phút sau p07 ở cùng chỗ đặt.
 - Trung vị luôn là bội của 0,25 mm, vì C1 gửi khoảng cách theo bước 1/4 mm (JSON ghi `range_step_mm: 0.25`, nghĩa là mọi khoảng cách hữu hạn của bản ghi là bội của 0,25 mm; đã kiểm trên cả ba bản ghi). "1,0 so với 1,25 mm" chỉ cách nhau một bậc lượng tử.
