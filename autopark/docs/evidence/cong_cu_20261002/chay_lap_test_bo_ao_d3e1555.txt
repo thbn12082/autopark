@@ -1,0 +1,12 @@
+# Chạy lặp tests/test_firmware_qemu.py, commit d3e1555, máy bàn, bắt đầu 02/10/2026 13:46:16
+lượt  1: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 13s
+lượt  2: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 10s
+lượt  3: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 12s
+lượt  4: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 12s
+lượt  5: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 10s
+lượt  6: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 2; cảnh báo LOOP_OVERRUN: 0; 14s
+lượt  7: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 12s
+lượt  8: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 10s
+lượt  9: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 10s
+lượt 10: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 10s
+# kết thúc 13:48:07

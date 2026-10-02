@@ -59,7 +59,7 @@ cổng trong tệp đó ([chuyển máy](CHUYEN_MAY_BAN.md)).
   `54cb3e2`). Giao diện nay chọn được cổng serial tới bo (thẻ "Bo điều khiển", `6db5087`), nhưng START với bo thật luôn bị
   từ chối vì chưa có nguồn tư thế thật (T2). Các dòng còn lại của gạch này vẫn đúng ở HEAD `54cb3e2`; chi tiết mục 7.)*
   *(Kiểm lại 30/09/2026 ở `ff4a018`: vẫn như vậy; mục 7.)*
-  *(Cập nhật 02/10/2026, đọc mã cây làm việc gốc `3148014`: T13 (sự kiện dừng của phiên trong log `VehicleIO`), T14 (dấu
+  *(Cập nhật 02/10/2026, đọc mã cây làm việc gốc `3148014`, nay ở commit `d3e1555`: T13 (sự kiện dừng của phiên trong log `VehicleIO`), T14 (dấu
   đồng bộ video–log) và T15 (nút "Xóa lỗi bo (CLEAR_FAULT)") nay có, cùng T5 (chấm một lần chạy), T6 (tiêm lỗi, mức MP),
   T9 (phát lại log `VehicleIO`), T11, T12 và phần còn thiếu của T10. Các công cụ đó chỉ kiểm trên máy tính (bo mô phỏng,
   cổng serial giả, camera giả, bản ghi phát lại), CHƯA THỬ trên thiết bị thật. Vẫn thiếu: nguồn tư thế thật cho phiên
@@ -1112,7 +1112,7 @@ vẫn đúng như bảng; T10 phần lớn đã có từ trước khi viết b�
 *(Kiểm lại 30/09/2026 ở `ff4a018`, đọc mã: T2–T7, T9, T11–T15 vẫn chưa có; T1 như ghi chú 25/09 ở dòng T1, thêm bo ảo
 QEMU (xem dòng T1); T8: cầu nối có từ `6db5087`, mã đọc cảm biến trong firmware vẫn CHƯA CÓ; T10 như ghi chú ở dòng T10.)*
 
-*(Kiểm lại 02/10/2026, đọc mã và `--help` trên cây làm việc gốc `3148014` của đợt công cụ nghiệm thu: T5, T9, T11–T15
+*(Kiểm lại 02/10/2026, đọc mã và `--help` trên cây làm việc gốc `3148014` của đợt công cụ nghiệm thu, nay ở commit `d3e1555`: T5, T9, T11–T15
 và phần còn thiếu của T10 nay có; T6 có ở mức MP; T4 có định dạng tệp đầu ra; xem từng dòng. Mọi công cụ mới chỉ được
 kiểm bằng test trên máy tính: bo mô phỏng, cổng serial giả, camera giả, bản ghi phát lại, giao diện offscreen. CHƯA THỬ
 với LiDAR, camera, màn hình thật, bo ảo QEMU qua giao diện hay ESP32-S3. Vẫn chưa có: T2, T3, T4 (trừ định dạng tệp), T7,

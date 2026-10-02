@@ -85,6 +85,11 @@ Kết quả (mã sau review, chạy 10:11–10:13 ngày 30/09/2026, máy bàn; t
     hay LOOP_OVERRUN ([chay_lap_test_bo_ao_c03ff94.txt](evidence/bien_tap_20261001/chay_lap_test_bo_ao_c03ff94.txt));
     toàn bộ bộ test:
     [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 9.
+- Chạy lại trên commit `d3e1555` (02/10/2026, cây làm việc sạch, 13:46–13:48): `kiem` đạt, 39 khung trong 2 s,
+  cộng 18 khung nhận trước đó, QEMU khởi động 1 lần ([kiem_bo_ao_d3e1555.txt](evidence/cong_cu_20261002/kiem_bo_ao_d3e1555.txt));
+  chạy lặp 10 lượt: 10/10 lượt đạt cả 13 test, lượt 6 có 2 cảnh báo QEMU tự thoát lúc khởi động (#175), `QemuBoard` khởi động lại và lượt vẫn đạt; không có LOOP_OVERRUN
+  ([chay_lap_test_bo_ao_d3e1555.txt](evidence/cong_cu_20261002/chay_lap_test_bo_ao_d3e1555.txt)); toàn bộ bộ test:
+  [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 11.
 
 **Độ tin cậy khi máy bận** (30/09/2026; máy bàn đang chạy việc khác của người dùng):
 - Lúc sáng, khi máy đang rất bận (đo nhanh bằng `Get-Process`: Edge chạy ẩn dựng hình bằng CPU ≈ 13 lõi, một job mô
@@ -335,6 +340,8 @@ Thư mục [evidence/mo_phong_20260930/](evidence/mo_phong_20260930/):
   `chay_tren_commit_ebbec83.txt`, script `chay_tren_commit.py`): chạy lại trên commit, cây làm việc sạch.
 - [bien_tap_20261001/](evidence/bien_tap_20261001/): chạy lại trên commit `c03ff94` (01/10/2026, cây làm việc sạch) bằng bản sửa của
   `chay_tren_commit.py` ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 9).
+- [cong_cu_20261002/](evidence/cong_cu_20261002/): chạy lại trên commit `d3e1555` (02/10/2026, cây làm việc sạch) bằng cùng script
+  ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 11).
 - `pytest_venv*_30092026*.xml`: toàn bộ bộ test ngày 30/09. [ecoqos_30092026/](evidence/mo_phong_20260930/ecoqos_30092026/):
   vì sao test ngân sách thời gian `uturn_w46` hỏng khi chạy từ tiến trình không cửa sổ. Cả hai được giải thích ở
   [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8.

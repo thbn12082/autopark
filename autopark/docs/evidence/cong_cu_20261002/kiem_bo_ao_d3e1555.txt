@@ -1,0 +1,5 @@
+$ python -X utf8 -m autopark.transport.qemu_board kiem   (02/10/2026 13:46, máy bàn, commit d3e1555)
+build env esp32s3_qemu ...
+HELLO_ACK: boot_id 111405bf, firmware 1.0, lý do reset POWER_ON, trạng thái DISARMED, chu kỳ telemetry 50 ms
+Telemetry: 39 khung trong 2 s (≈ 19.5 Hz), cộng 18 khung nhận trước đó lúc kết nối và chờ bo ra khỏi BOOT; QEMU khởi động 1 lần
+exit=0

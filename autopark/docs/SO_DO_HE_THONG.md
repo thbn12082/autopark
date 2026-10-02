@@ -7,7 +7,7 @@ chưa commit: sửa chữ (docstring, chú thích trong mã, một tooltip trong
 dưới không phụ thuộc các sửa đổi đó. Tài liệu trước đợt biên tập: <https://github.com/thbn12082/autopark/tree/ff4a018>;
 trước đợt 26/09: <https://github.com/thbn12082/autopark/tree/9d68257>.
 
-*(Cập nhật 02/10/2026 theo mã của đợt công cụ nghiệm thu, cây làm việc dựng trên `3148014`: sơ đồ 1.2, 2.3–2.6, 3.4,
+*(Cập nhật 02/10/2026 theo mã của đợt công cụ nghiệm thu, commit `d3e1555`: sơ đồ 1.2, 2.3–2.6, 3.4,
 4.4, 5.5, 6.3, 8.3, 8.4 và phần chữ của 2.2, 3.2, 3.7, 4.3, 4.6. Các công cụ nghiệm thu mới (T5, T6, T9–T15 của
 [kịch bản nghiệm thu](KICH_BAN_NGHIEM_THU.md) mục 7) mới kiểm bằng test: bo mô phỏng, cổng serial giả, camera giả, giao
 diện offscreen, bản ghi phát lại. Chưa công cụ nào chạy với LiDAR, camera thật, bo ảo QEMU qua giao diện hay ESP32-S3
@@ -2701,19 +2701,19 @@ sequenceDiagram
     N->>J: dẫn số vào tài liệu bằng commit riêng
 ```
 
-Đọc thế nào: lượt mới nhất (commit `c03ff94`, cây làm việc sạch, máy bàn, 01/10/2026, offscreen, JUnit ghi
-`ecoqos=off`): `.venv` 1380 đạt, 8 bỏ qua (cần torch), 0 hỏng, 349 s; `.venv-train` 1442 đạt, 0 hỏng, 370 s; bo ảo 10/10
-lượt đạt, mỗi lượt 13 test, 6 trong đó chạy firmware thật trong QEMU. Lượt trên `ebbec83` (30/09/2026) cho cùng
-số test. Script không tự checkout commit: người chạy phải ở
+Đọc thế nào: lượt mới nhất (commit `d3e1555`, cây làm việc sạch, máy bàn, 02/10/2026, offscreen, JUnit ghi
+`ecoqos=off`): `.venv` 1645 đạt, 8 bỏ qua (cần torch), 0 hỏng, 469 s; `.venv-train` 1707 đạt, 0 hỏng, 483 s; bo ảo 10/10
+lượt đạt, mỗi lượt 13 test, 6 trong đó chạy firmware thật trong QEMU. Thêm 265 test so với lượt trên `c03ff94`
+(01/10/2026), là test của các công cụ nghiệm thu mới. Script không tự checkout commit: người chạy phải ở
 đúng commit với cây làm việc sạch. Mục `[tool.pytest.ini_options]` của `pyproject.toml` đặt
 `tmp_path_retention_policy = "failed"`: chỉ giữ thư mục tạm của test hỏng.
 
 Chi tiết: [chay_tren_commit.py](evidence/mo_phong_20260930/chay_tren_commit.py) (bản sửa 01/10/2026:
 [evidence/bien_tap_20261001/chay_tren_commit.py](evidence/bien_tap_20261001/chay_tren_commit.py)) ·
-[chay_tren_commit_c03ff94.txt](evidence/bien_tap_20261001/chay_tren_commit_c03ff94.txt) ·
-[pytest_venv_c03ff94.xml](evidence/bien_tap_20261001/pytest_venv_c03ff94.xml) ·
-[pytest_venv_train_c03ff94.xml](evidence/bien_tap_20261001/pytest_venv_train_c03ff94.xml) ·
-[CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8, 9 · [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) · mã:
+[chay_tren_commit_d3e1555.txt](evidence/cong_cu_20261002/chay_tren_commit_d3e1555.txt) ·
+[pytest_venv_d3e1555.xml](evidence/cong_cu_20261002/pytest_venv_d3e1555.xml) ·
+[pytest_venv_train_d3e1555.xml](evidence/cong_cu_20261002/pytest_venv_train_d3e1555.xml) ·
+[CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8, 9, 11 · [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) · mã:
 [conftest.py](../tests/conftest.py), [power_throttling.py](../autopark/power_throttling.py),
 [pyproject.toml](../pyproject.toml).
 
@@ -2835,7 +2835,7 @@ Nguồn của từng sơ đồ ghi ở dòng "Chi tiết" ngay dưới nó. Các
 bằng chứng ngày 30/09/2026 (mã tại `ff4a018`), rồi đối chiếu lại từng tên hàm, hằng số và con số với mã hoặc tệp nguồn
 trước khi đưa vào đây. Mọi sơ đồ đã qua kiểm cú pháp bằng thư viện mermaid bản 11. Sơ đồ nào khác với mã thì mã là đúng:
 sửa sơ đồ trong cùng đợt việc, theo quy ước ở [mục lục kỹ thuật](README.md). Các sơ đồ sửa ngày 02/10/2026 (danh sách ở
-đầu tệp) được đối chiếu với mã, docstring và lệnh `--help` của cây làm việc đợt công cụ nghiệm thu (dựng trên `3148014`)
+đầu tệp) được đối chiếu với mã, docstring và lệnh `--help` của đợt công cụ nghiệm thu (commit `d3e1555`)
 cùng báo cáo của người làm từng công cụ.
 
 | Mục | Mã và tài liệu chính |

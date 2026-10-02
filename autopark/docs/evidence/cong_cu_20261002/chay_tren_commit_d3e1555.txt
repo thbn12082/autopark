@@ -1,0 +1,6 @@
+# Chạy trên commit d3e1555 (cây làm việc sạch), máy bàn, bắt đầu 02/10/2026 13:46:05
+kiem: exit=0
+chạy lặp: 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 13 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua
+.venv: bắt đầu 13:48:08, tải CPU 7 %, exit=0, 1653 test, 0 hỏng, 0 lỗi, 8 bỏ qua, 469 s (JUnit), 470 s (cả lệnh), ecoqos=off, hỏng: []
+.venv-train: bắt đầu 13:55:59, tải CPU 10 %, exit=0, 1707 test, 0 hỏng, 0 lỗi, 0 bỏ qua, 483 s (JUnit), 485 s (cả lệnh), ecoqos=off, hỏng: []
+# kết thúc 14:04:04

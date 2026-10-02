@@ -10,7 +10,7 @@ Biên tập 30/09/2026 theo mã tại `ff4a018` (mã giống `ebbec83`). Lúc vi
 hành vi) và sửa cách đếm khung của `python -m autopark.transport.qemu_board kiem`. Ngày biên tập không phải ngày đo:
 mỗi số đo ghi ngày và máy đo trong hồ sơ gốc. Bản trước đợt này: [ff4a018](https://github.com/thbn12082/autopark/tree/ff4a018);
 bản trước đợt 26/09/2026: [9d68257](https://github.com/thbn12082/autopark/tree/9d68257). Cập nhật 02/10/2026 cho các
-công cụ nghiệm thu của đợt dựng trên `3148014` (gạch đầu dòng cuối của phần hiện trạng, dòng "Điều khiển xe" và dòng "Nghiệm thu" của bảng).
+công cụ nghiệm thu của commit `d3e1555` (gạch đầu dòng cuối của phần hiện trạng, dòng "Điều khiển xe" và dòng "Nghiệm thu" của bảng).
 
 Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**
 ([phạm vi sử dụng](autopark/docs/GIAY_PHEP_DU_LIEU.md), mục "Dữ liệu và ghi công" cuối trang).
@@ -38,8 +38,8 @@ Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://gith
 - **Thêm ngày 02/10/2026, chỉ kiểm bằng test và mô phỏng:** phần lớn công cụ phần mềm cho nghiệm thu: chấm một lần chạy
   theo ngưỡng đề xuất, phát lại log lần chạy qua VehicleIO, ghi sự kiện dừng của phiên vào log, dấu đồng bộ video–log,
   nút "Xóa lỗi bo (CLEAR_FAULT)", giới hạn số lần đổi chiều (mặc định tắt), diễn tập tiêm lỗi trên mô phỏng. Các công cụ
-  này chưa chạy với LiDAR, camera hay bo thật ([tổng quan](TONG_HOP_DU_AN.md) mục 4.15, 5.4); số test toàn bộ trên mã
-  này ghi sau lượt chạy trên commit. Cùng ngày đo EcoQoS của ứng dụng giao diện: cửa sổ
+  này chưa chạy với LiDAR, camera hay bo thật ([tổng quan](TONG_HOP_DU_AN.md) mục 4.15, 5.4); toàn bộ test trên commit
+  `d3e1555`: `.venv` 1.645 đạt, 8 bỏ qua; `.venv-train` 1.707 đạt; 0 hỏng. Cùng ngày đo EcoQoS của ứng dụng giao diện: cửa sổ
   thu nhỏ thì lập đường hết hạn 8 s ở 4/4 lượt, tiến trình tự tắt EcoQoS thì hết ([biên bản chuyển
   máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 10; ứng dụng chưa tự tắt EcoQoS, chờ quyết định).
 
@@ -203,8 +203,8 @@ chưa làm. GĐ 10 có dàn ý khóa luận, kịch bản và ngưỡng nháp, c
 từng giai đoạn: [tổng quan](TONG_HOP_DU_AN.md) mục 3; sơ đồ 8.1 và 8.3 trong
 [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
-Số test là kiểm trên máy tính, không thay số đo thiết bị. Lượt mới nhất (commit `c03ff94`, cây làm việc sạch, máy bàn,
-offscreen, 01/10/2026): [tóm tắt](autopark/docs/evidence/bien_tap_20261001/chay_tren_commit_c03ff94.txt); các lượt trước
+Số test là kiểm trên máy tính, không thay số đo thiết bị. Lượt mới nhất (commit `d3e1555`, cây làm việc sạch, máy bàn,
+offscreen, 02/10/2026): [tóm tắt](autopark/docs/evidence/cong_cu_20261002/chay_tren_commit_d3e1555.txt); các lượt trước
 và giới hạn: [tổng quan](TONG_HOP_DU_AN.md) mục 7.
 
 ## Chạy mô phỏng trên Windows

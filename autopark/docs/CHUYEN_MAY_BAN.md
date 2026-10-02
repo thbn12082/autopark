@@ -427,7 +427,8 @@ phần CPU bận thêm rơi vào lõi E (chỉ báo, bộ đếm toàn máy) và
 
 Điều kiện: máy bàn hiện tại (i9-14900, 32 bộ xử lý logic, lõi E là LP 16–31), Windows 11 26200, kế hoạch nguồn High
 performance, cắm điện; ở cả hai lần đo, 42/42 lượt có phiên Windows không khóa và màn hình bật, không ai dùng máy. Mã:
-commit `3148014` cộng các sửa đổi chưa commit của đợt công cụ nghiệm thu. Chạy từ shell của tác tử.
+commit `3148014` cộng các sửa đổi chưa commit của đợt công cụ nghiệm thu (các sửa đổi đó nay ở commit `d3e1555`,
+mục 11). Chạy từ shell của tác tử.
 
 | Lần đo | Kết quả | Bằng chứng |
 |---|---|---|
@@ -456,3 +457,28 @@ Giới hạn:
 CHƯA LÀM, chờ quyết định: ứng dụng tự tắt EcoQoS cho mình (gọi `disable_power_throttling()` của
 `autopark/power_throttling.py` lúc khởi động `ui.app` và `ui.lidar_app`, như `tests/conftest.py`), hay giữ mặc định của
 Windows và cảnh báo không thu nhỏ cửa sổ khi đang lập đường hay đang chạy.
+
+## 11. Đợt công cụ nghiệm thu, chạy lại trên commit `d3e1555` (02/10/2026)
+
+Commit `d3e1555` (02/10/2026, đã push lên `origin/main`) gồm các công cụ nghiệm thu T5, T6, T9–T15
+([kịch bản nghiệm thu](KICH_BAN_NGHIEM_THU.md) mục 7), công cụ và kết quả đo EcoQoS của giao diện (mục 10) cùng tài
+liệu. Bộ test có thêm 265 test so với lượt trên `c03ff94` (mục 9): đó là test của các công cụ mới.
+
+Chạy trên commit đó, cây làm việc sạch, cùng máy, 02/10/2026 13:46–14:04, offscreen, từ shell của tác tử, bằng bản sửa của
+script ở mục 9: [chay_tren_commit.py](evidence/cong_cu_20261002/chay_tren_commit.py); tóm tắt:
+[chay_tren_commit_d3e1555.txt](evidence/cong_cu_20261002/chay_tren_commit_d3e1555.txt).
+
+| Lượt (giờ bắt đầu, tải CPU) | Kết quả | Thời gian | Tệp |
+|---|---|---|---|
+| `.venv` (13:48, 7 %) | **1645 đạt, 8 bỏ qua** (cần torch), 0 hỏng | 469 s | [pytest_venv_d3e1555.xml](evidence/cong_cu_20261002/pytest_venv_d3e1555.xml) |
+| `.venv-train` (13:55, 10 %) | **1707 đạt**, 0 bỏ qua, 0 hỏng | 483 s | [pytest_venv_train_d3e1555.xml](evidence/cong_cu_20261002/pytest_venv_train_d3e1555.xml) |
+
+- Cả hai tệp JUnit ghi `ecoqos=off`. Thời gian dài hơn lượt trên `c03ff94` (349 s, 370 s): bộ test lớn hơn, và trong
+  lúc chạy máy còn có các tác tử thiết kế đợt sau đọc mã (tải CPU lúc bắt đầu ghi trong bảng).
+- Bo ảo trên cùng commit: `kiem` đạt, 39 khung trong 2 s (≈ 19,5 Hz), cộng 18 khung nhận trước đó
+  lúc kết nối và chờ bo ra khỏi BOOT, QEMU khởi động 1 lần
+  ([kiem_bo_ao_d3e1555.txt](evidence/cong_cu_20261002/kiem_bo_ao_d3e1555.txt)). Chạy lặp `tests/test_firmware_qemu.py` 10 lượt
+  (13:46–13:48): 10/10 lượt đạt cả 13 test (6 trong đó chạy firmware thật trong QEMU), lượt 6 có 2 cảnh báo QEMU tự thoát lúc khởi động (#175), `QemuBoard` khởi động lại và lượt vẫn đạt; không có LOOP_OVERRUN
+  ([chay_lap_test_bo_ao_d3e1555.txt](evidence/cong_cu_20261002/chay_lap_test_bo_ao_d3e1555.txt)).
+- Các công cụ mới chưa chạy với thiết bị thật; chạy được trong bo ảo không chứng minh gì về bo thật
+  ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1).
