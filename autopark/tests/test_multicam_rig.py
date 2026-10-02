@@ -14,7 +14,7 @@ from autopark.rig import bench  # noqa: E402
 from autopark.rig.core import AIWorker, Rig, RigConfig  # noqa: E402
 from autopark.video.multicam import (RIG_CLOCK, CameraSpec, MultiCameraManager, build_set,  # noqa: E402
                                      clock_info, fit_width, pacing_ports)
-from autopark.video.sources import _frame  # noqa: E402
+from autopark.video.sources import FrameReadError, _frame  # noqa: E402
 from tests.rig_fakes import FakeCamera, FakeLidar, FakeSegmenter, fake_manager  # noqa: E402
 
 
@@ -1387,3 +1387,102 @@ def test_build_rig_passes_one_clock_to_cameras_lidar_and_rig(monkeypatch):
     rig = bench.build_rig(args)
     rig.lidar.open_source()
     assert rig.clock is RIG_CLOCK and rig.cams.clock is RIG_CLOCK and seen["clock"] is RIG_CLOCK
+
+
+# ------------------------------------------------------------- khoảng hở cuối phiên của từng camera (T10, 02/10/2026)
+
+def feed(cams, port, t):
+    """Một khung tốt ở stamp t, qua đúng logic của luồng camera (`CameraWorker._accept`, trong khóa của camera)."""
+    w = cams.workers[port]
+    with w.lock:
+        w._accept(_frame(f"cam_p{port}", t, "x", np.zeros((4, 4, 3), np.uint8)))
+
+
+def gaps(rows):
+    return {c["port"]: (c["gap_max_ms"], c["gap_closed_max_ms"], c["gap_end_ms"]) for c in rows}
+
+
+def test_gap_max_counts_a_gap_still_open_when_a_camera_stops_before_the_session_ends():
+    """Camera ngừng hẳn trước khi hết phiên (cổng 2, sau 2,00 s) hay chưa có khung tốt nào (cổng 3) báo cả khoảng hở còn
+    mở tới cuối phiên; trước T10 `gap_max_ms` chỉ có khoảng đã đóng (40 ms) hay 0. Đồng hồ giả, khung mỗi 40 ms."""
+    now = [1.0]
+    cams = manual_manager((1, 2, 3), now)
+    for k in range(63):                                                # 1,00 … 3,48 s
+        t = 1.0 + 0.04 * k
+        if now[0] < 1.5 <= t:
+            now[0] = 1.5
+            cams.reset_stats()                                         # đầu cửa sổ đo (bench: sau phần làm nóng)
+        now[0] = t
+        feed(cams, 1, t)
+        if t <= 2.0 + 1e-9:
+            feed(cams, 2, t)
+    now[0] = 3.5
+    # (max / đã đóng / hở cuối): cổng 3 tính từ lúc đặt lại số đếm (1,5 s), không từ lúc tạo manager
+    assert gaps(cams.camera_stats()) == {1: (40.0, 40.0, 20.0), 2: (1500.0, 40.0, 1500.0), 3: (2000.0, 0.0, 2000.0)}
+    at_3s = gaps(cams.camera_stats(t_end=3.0))
+    assert at_3s[2] == (1000.0, 40.0, 1000.0) and at_3s[3] == (1500.0, 0.0, 1500.0)
+    assert gaps(cams.camera_stats(t_end=9.0)) == gaps(cams.camera_stats())       # muộn hơn bây giờ: lấy bây giờ
+    assert gaps(cams.stats(window=None, t_end=3.0)["cameras"]) == at_3s           # stats() chuyển t_end xuống
+    row = {c["port"]: c for c in cams.camera_stats()}
+    assert row[2]["age_ms"] == 1500.0 and row[2]["stale"] and row[3]["age_ms"] is None   # số cũ không đổi
+    now[0] = 3.6
+    feed(cams, 2, 3.6)                                                 # cổng 2 có lại khung: khoảng hở thành khoảng đã đóng
+    assert gaps(cams.camera_stats())[2] == (1600.0, 1600.0, 0.0)
+
+
+def test_gaps_that_span_the_counter_reset_count_in_full_and_can_exceed_the_window():
+    """Review 02/10/2026 (T10): `reset_stats` giữ `last_stamp`, nên khoảng đi qua lần đặt lại số đếm tính ĐỦ cả phần
+    trước đó, như `gap_max_ms` trước T10, và có thể dài hơn cửa sổ đo. Camera ngừng trong phần làm nóng của bench (khung
+    tốt cuối 0,96 s, đặt lại 5,0 s, chốt số 6,0 s) báo 0 khung và 5040 ms cho cửa sổ 1 s. Docstring của `camera_stats`
+    từng ghi "tính từ lần đặt lại số đếm gần nhất", ngược với mã. Đồng hồ giả, khung mỗi 40 ms."""
+    now = [0.0]
+    cams = manual_manager((1, 2, 3), now)
+    for k in range(25):                                                # 0,00 … 0,96 s, rồi cả ba im
+        now[0] = 0.04 * k
+        for port in (1, 2):
+            feed(cams, port, now[0])
+    now[0] = 5.0
+    cams.reset_stats()                                                 # hết phần làm nóng
+    now[0] = 5.5
+    feed(cams, 2, 5.5)                                                 # cổng 2 có lại khung: khoảng đã đóng đi qua lúc đặt lại
+    now[0] = 6.0
+    rows = {c["port"]: c for c in cams.camera_stats()}
+    # (max / đã đóng / hở cuối): chỉ camera chưa có khung tốt nào (cổng 3) mới tính từ lúc đặt lại
+    assert gaps(rows.values()) == {1: (5040.0, 0.0, 5040.0), 2: (4540.0, 4540.0, 500.0), 3: (1000.0, 0.0, 1000.0)}
+    assert rows[1]["frames"] == 0 and rows[2]["frames"] == 1           # số khung thì tính từ lúc đặt lại
+    doc = MultiCameraManager.camera_stats.__doc__
+    assert "tính từ lần đặt lại số đếm gần nhất)" not in doc and "tính ĐỦ" in doc and "LỚN HƠN cả cửa sổ đo" in doc
+
+
+class StopsAfter(FakeCamera):
+    """Camera ngừng hẳn giữa phiên: sau `stop_after_s` kể từ lúc mở, mỗi lần đọc chờ một chu kỳ rồi báo đọc hỏng (không
+    còn khung tốt nào), như camera treo hay rút dây mà luồng đọc vẫn chạy. Ngừng theo đồng hồ, không theo số khung, để
+    mốc ngừng không trôi khi máy bận."""
+
+    def __init__(self, spec, stop_after_s=0.5, **kw):
+        super().__init__(spec, **kw)
+        self.t_stop = self.clock() + stop_after_s
+
+    def read(self):
+        if self.clock() >= self.t_stop:
+            time.sleep(self.period)
+            raise FrameReadError(f"{self.spec.source_id}: read failed")
+        return super().read()
+
+
+def test_bench_rig_json_counts_a_camera_that_stopped_before_the_end(tmp_path, monkeypatch, capsys):
+    """Cổng 2 ngừng ≤ 0,3 s sau đầu phần đo 1 s: `.rig.json` báo khoảng hở cuối ≥ 0,4 s và gap_max_ms bằng nó."""
+    def fake_build(args):
+        specs = [CameraSpec(port=p, index=k) for k, p in enumerate((1, 2))]
+        open_source = lambda spec: StopsAfter(spec, stop_after_s=0.5) if spec.port == 2 else FakeCamera(spec)  # noqa: E731
+        return Rig(MultiCameraManager(specs, open_source=open_source, ring=3), RigConfig(ai=False))
+    monkeypatch.setattr(bench, "build_rig", fake_build)
+    code = bench.main(["--name", "t10", "--seconds", "1.0", "--warmup", "0.2", "--out", str(tmp_path)])
+    data = json.loads((tmp_path / "t10.rig.json").read_text(encoding="utf-8"))
+    cams = {c["port"]: c for c in data["cameras"]}
+    assert code == 0 and data["stop_alive"] == []
+    p1, p2 = cams[1], cams[2]
+    assert p2["read_failures"] > 10 and p2["open_error"] is None
+    assert p2["gap_end_ms"] >= 400 and p2["gap_max_ms"] == p2["gap_end_ms"] > p2["gap_closed_max_ms"], p2
+    assert p1["gap_max_ms"] < 300 and p1["gap_end_ms"] < 150, p1
+    assert f"khoảng cách max {p2['gap_max_ms']} ms (hở cuối phiên {p2['gap_end_ms']} ms)" in capsys.readouterr().out

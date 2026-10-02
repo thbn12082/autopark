@@ -1158,6 +1158,9 @@ class SimVehicleIO(VehicleIO):
         self.estop = False
         self.firmware_resets = 0
         self.frames_dropped = 0
+        # Laptop treo hẳn (`pause_host`, thêm 02/10/2026 cho T6): byte bo gửi nằm trong bộ đệm cổng, chưa ai đọc.
+        self.host_paused = False
+        self._unread: list[bytes] = []
 
     @classmethod
     def from_files(cls, sim_config_path, **kwargs) -> "SimVehicleIO":
@@ -1219,6 +1222,31 @@ class SimVehicleIO(VehicleIO):
             else:
                 self.applied_effort_permille = 0
             self.firmware_resets += 1
+
+    def pause_host(self) -> None:
+        """MÔ PHỎNG laptop treo hẳn (thêm 02/10/2026, T6: `safety/fault_injection.hang_control_loop`). Bo vẫn chạy và
+        gửi; byte của bo nằm trong bộ đệm cổng, không ai đọc; không kiểm TELEMETRY_STALE (không ai chạy `check()`).
+        Chạy bo bằng `service()` (hay `advance()`). Không gọi connect/arm/disarm hay lệnh nào chờ ACK khi đang treo:
+        ACK cũng nằm trong bộ đệm nên lệnh đó hết giờ."""
+        with self._lock:
+            self.host_paused = True
+
+    def resume_host(self) -> None:
+        """Hết treo: đọc dồn mọi byte bo gửi trong lúc treo, đóng dấu `now()` — lúc đọc, như `SerialVehicleIO`. Không
+        treo thì không làm gì."""
+        with self._lock:
+            if not self.host_paused:
+                return
+            self.host_paused = False
+            data, self._unread = b"".join(self._unread), []
+            if data:
+                self._on_bytes(data, self.now())
+
+    def check(self, now: float | None = None) -> None:
+        """Như `VehicleIO.check`; bỏ qua khi laptop đang treo (`pause_host`)."""
+        if self.host_paused:
+            return
+        super().check(now)
 
     # ---- mô hình ---------------------------------------------------------------------------------------------------
     def _write(self, data: bytes) -> None:
@@ -1294,4 +1322,8 @@ class SimVehicleIO(VehicleIO):
             else:
                 self._d2h.append((t + cfg.link.device_to_host_latency_ms, tx))
         while self._d2h and self._d2h[0][0] <= t:
-            self._on_bytes(self._d2h.popleft()[1], t / 1000.0)
+            data = self._d2h.popleft()[1]
+            if self.host_paused:
+                self._unread.append(data)          # laptop treo: byte nằm trong bộ đệm cổng (pause_host)
+            else:
+                self._on_bytes(data, t / 1000.0)

@@ -20,6 +20,11 @@ Nhánh chạy (24/09/2026, `application/vehicle_link.py`, docs/CHE_DO_QUAN_SAT.m
 của VehicleIO → dừng an toàn) hoặc OBSERVE (tính đường/lệnh và ghi log, không gửi lệnh nào; người lái cầm lái).
 Khi đó `world` là thế giới gương: trạng thái lấy từ telemetry + nguồn tư thế, không tích phân lệnh. Xem trước và
 lái tay luôn là mô phỏng giai đoạn 0.
+
+Sự kiện dừng trong log (02/10/2026, T13; chỉ kiểm với bo mô phỏng và cổng serial GIẢ): qua VehicleIO, mọi quyết định
+dừng của phiên (mỗi phần tử của `safety_events`, yêu cầu dừng khi đang chạy kèm mã và nguồn, đặt lại khi đang chạy, va
+chạm hình học) còn thành một dòng ``session_stop`` trong events.csv của `run_link` (`VehicleLink.log_session_event`),
+ghi trước `end_run`. Không gửi gì thêm tới bo. Nhánh SIM không có log VehicleIO và không đổi.
 """
 from __future__ import annotations
 
@@ -30,6 +35,7 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 
 from autopark.control.tracker import TrackerOutput, TrackerParams, TrajectoryTracker
+from autopark.application.cusp_policy import CuspCheck, CuspPolicy, check_cusps
 from autopark.application.layouts import scatter_parked_cars
 from autopark.application.vehicle_link import DriveMode, VehicleLink, VehicleLinkError
 from autopark.domain.computation import ComputationCancelled, ComputationControl, ComputationTimedOut
@@ -106,7 +112,8 @@ class Session:
     def __init__(self, scenario: Scenario, cfg: VehicleConfig,
                  planner_params: PlannerParams | None = None,
                  tracker_params: TrackerParams | None = None,
-                 feedback_config: FeedbackConfig | None = None):
+                 feedback_config: FeedbackConfig | None = None, *,
+                 cusp_policy: CuspPolicy | None = None):
         self.scenario = scenario
         self.cfg = cfg
         self.scenario.sync_goal(cfg)
@@ -142,6 +149,8 @@ class Session:
         self.report: RunReport | None = None
         self.stop_reason = ""
         self.feedback_config = feedback_config or FeedbackConfig()
+        # số lần đổi chiều: giới hạn và mức cảnh báo (T12, application/cusp_policy.py; mặc định không chặn)
+        self.cusp_policy = cusp_policy or CuspPolicy()
         self.feedback: SimFeedback | None = None
         self.safety_events: list[SafetyEvent] = []
         self.run_events: list[dict] = []
@@ -455,6 +464,10 @@ class Session:
                 link.close()              # VEHICLE_IO còn phiên: gửi enable=0 + DISARM trước khi đóng
 
     # ------------------------------------------------------------------ chạy kín vòng
+    def cusp_check(self) -> CuspCheck | None:
+        """Số lần đổi chiều của đường đang có so với `cusp_policy` (T12); None khi chưa có đường."""
+        return None if self.trajectory is None else check_cusps(self.trajectory, self.cusp_policy)
+
     def start_run(self) -> None:
         if self._closed:
             raise SessionError("Phiên đã đóng")
@@ -464,6 +477,12 @@ class Session:
         if not chk.ok:
             raise SessionError("Không bắt đầu được: " + chk.describe())
         link = self.vehicle_link
+        cusps = self.cusp_check()
+        if cusps.refused:
+            # T12: đường đổi chiều quá giới hạn — từ chối TRƯỚC mọi I/O với bo; giữ READY và đường (xem trước vẫn được)
+            if link is not None:
+                link.record_refused_start("START_TOO_MANY_CUSPS", cusps.describe())
+            raise SessionError("Không bắt đầu được: " + cusps.describe())
         if link is not None:
             # "Trước START kiểm tra lại trạng thái thực" (kế hoạch mục 9): lỗi → không đổi gì, bo không bị ARM.
             try:
@@ -496,14 +515,31 @@ class Session:
             "feedback": asdict(self.feedback_config), "trajectory": asdict(self.trajectory),
             "physics_dt": self.PHYSICS_DT, "control_every": self.CONTROL_EVERY,
             "max_run_time": self.MAX_RUN_TIME,
+            "cusps": cusps.to_dict(),            # T12: số lần đổi chiều đã lập và chính sách lúc bắt đầu
         })
         if link is not None:
-            self.run_snapshot["vehicle_link"] = copy.deepcopy(link.describe())   # replay_run chưa hỗ trợ nhánh này
+            # Khóa này đánh dấu lần chạy qua VehicleIO: gói của nó phát lại bằng log (T9, replay_vehicle_run), không tái
+            # mô phỏng như nhánh SIM.
+            self.run_snapshot["vehicle_link"] = copy.deepcopy(link.describe())
         self.state = SessionState.RUNNING
 
-    def _safety_stop(self, code: str, message: str, source: str = "sim_safety") -> None:
+    def _log_session_event(self, t: float, source: str, code: str, message: str, action: str = "STOP") -> None:
+        """T13: ghi một quyết định dừng của phiên thành dòng session_stop trong events.csv của lần chạy qua VehicleIO.
+        Nhánh SIM (run_link None) không có log VehicleIO: không làm gì. Không gửi gì tới bo, không ném lỗi."""
+        if self.run_link is not None:
+            self.run_link.log_session_event(t, source, code, message, action=action)
+
+    def _add_safety_event(self, event: SafetyEvent, detail: str = "") -> None:
+        """Thêm vào `safety_events` và ghi đúng sự kiện đó thành dòng session_stop (cùng mã, nguồn, t, action).
+        `detail` chỉ nối vào message của dòng log; SafetyEvent giữ nguyên, nên gói replay SIM không đổi."""
+        self.safety_events.append(event)
+        self._log_session_event(event.stamp.t, event.stamp.source_id, event.code, event.message + detail, event.action)
+
+    def _safety_stop(self, code: str, message: str, source: str = "sim_safety", *, detail: str = "") -> None:
+        # "sim_safety": tên cũ (giai đoạn 0) của lớp an toàn trong Session, dùng cả khi chạy qua VehicleIO; không có
+        # nghĩa là sự kiện mô phỏng.
         assert self.world is not None
-        self.safety_events.append(SafetyEvent(SourceStamp(source, self.world.time), code, message))
+        self._add_safety_event(SafetyEvent(SourceStamp(source, self.world.time), code, message), detail)
         self.path_invalidated = True
         if self.trajectory is not None:
             self.trajectory.valid = False
@@ -519,8 +555,10 @@ class Session:
         obstacle = Obstacle.from_dict(obstacle.to_dict())
         if self.scenario.obstacle_by_id(obstacle.id) is not None:
             raise SessionError("ID vật cản đã tồn tại")
-        # STOP trước, cập nhật map sau; không gọi planner trong lúc phanh.
-        self._safety_stop("MAP_CHANGED", "Vật cản mới: dừng, cập nhật và chờ lập lại đường")
+        # STOP trước, cập nhật map sau; không gọi planner trong lúc phanh. Mô tả vật chỉ vào dòng log VehicleIO.
+        self._safety_stop("MAP_CHANGED", "Vật cản mới: dừng, cập nhật và chờ lập lại đường",
+                          detail=f" (vật {obstacle.id} tại ({obstacle.cx:.2f}, {obstacle.cy:.2f}) m, "
+                                 f"{obstacle.width * 100:.0f}×{obstacle.height * 100:.0f} cm)")
         self.scenario.obstacles.append(obstacle)
         self.world.scenario.obstacles.append(obstacle)
         self.run_events.append({"t": self.world.time, "kind": "obstacle", "obstacle": obstacle.to_dict()})
@@ -533,10 +571,23 @@ class Session:
         self.feedback.lost = True
         self.run_events.append({"t": self.world.time, "kind": "data_loss"})
 
-    def request_stop(self, reason: str = "Người dùng yêu cầu dừng", *, record: bool = True) -> None:
+    def request_stop(self, reason: str = "Người dùng yêu cầu dừng", *, record: bool = True, code: str = "USER_STOP",
+                     source: str = "user") -> None:
+        """Đang chạy: sang STOPPING với lý do `reason`; lái tay: phanh. `record=False` khi gọi từ `_safety_stop` (sự
+        kiện đã vào `safety_events` và đã ghi log).
+
+        T13 (02/10/2026): `code`/`source` là mã và nguồn của dòng session_stop ghi vào events.csv của lần chạy qua
+        VehicleIO; mặc định USER_STOP/user (nút Dừng, phím Esc). Yêu cầu dừng không vào `safety_events`. Đang STOPPING
+        thì không ghi gì, nên yêu cầu lặp lại không làm dội dòng. Qua VehicleIO, mục "stop" của `run_events` mang thêm
+        code/source khi khác mặc định, để phát lại log (T9) dựng lại đúng dòng; dừng của người dùng và mọi lần chạy SIM
+        giữ nguyên {t, kind, reason}."""
         if self.state == SessionState.RUNNING:
             if record and self.world is not None:
-                self.run_events.append({"t": self.world.time, "kind": "stop", "reason": reason})
+                entry = {"t": self.world.time, "kind": "stop", "reason": reason}
+                if self.run_link is not None and (code, source) != ("USER_STOP", "user"):
+                    entry.update(code=code, source=source)
+                self.run_events.append(entry)
+                self._log_session_event(self.world.time, source, code, reason)
             self.stop_reason = reason
             self.state = SessionState.STOPPING
         elif self.state == SessionState.MANUAL:
@@ -554,6 +605,7 @@ class Session:
                                                   and abs(self.world.state.speed) > 1e-9):
             raise SessionError("Phải dừng hẳn trước khi đặt lại")
         if self.state == SessionState.RUNNING and self.run_link is not None and self.world is not None:
+            self._log_session_event(self.world.time, "user", "USER_RESET", "Đặt lại khi đang chạy")   # trước end_run
             self.run_link.end_run(self.world.time, "RESET", "Đặt lại khi đang chạy")   # VEHICLE_IO: DISARM
         if self.path_invalidated and self.world is not None:
             self.scenario.start = self.world.state.pose
@@ -573,8 +625,8 @@ class Session:
         self.stop_reason = reason
         self.state = state
         if self.path_invalidated:
-            self.safety_events.append(SafetyEvent(SourceStamp("sim_safety", self.world.time),
-                                                  "WAIT_REPLAN", reason, "WAIT"))
+            self._add_safety_event(SafetyEvent(SourceStamp("sim_safety", self.world.time), "WAIT_REPLAN", reason,
+                                               "WAIT"))
         if self.run_link is not None:
             self.run_link.end_run(self.world.time, state.value, reason)   # VEHICLE_IO: enable=0 + DISARM
 
@@ -607,7 +659,7 @@ class Session:
                 if self.state == SessionState.RUNNING:
                     self._safety_stop(event.code, event.message, event.stamp.source_id)
                 else:
-                    self.safety_events.append(event)
+                    self._add_safety_event(event)
         if self.state == SessionState.RUNNING and self.world.time >= self.MAX_RUN_TIME:
             self._stop_outcome = SessionState.FAULT
             self._safety_stop("RUN_TIMEOUT", f"Quá {self.MAX_RUN_TIME:.0f} s mô phỏng mà chưa tới đích")
@@ -636,7 +688,10 @@ class Session:
         # Qua VehicleIO, "đã dừng" phải là số đo MỚI (telemetry không cũ), không phải giá trị giữ lại.
         standstill = result.state.speed == 0.0 and (link is None or link.telemetry_fresh())
         if result.stopped_by_collision:
-            self._finish_run(SessionState.FAULT, "Va chạm: " + result.collision.describe(), False, result.collision)
+            reason = "Va chạm: " + result.collision.describe()
+            # Va chạm không vào safety_events (như trước); qua VehicleIO vẫn thành một dòng session_stop.
+            self._log_session_event(self.world.time, "sim_safety", "COLLISION", reason)
+            self._finish_run(SessionState.FAULT, reason, False, result.collision)
         elif self.state == SessionState.STOPPING and link is not None and link.observe_only:
             # Quan sát: phần mềm không điều khiển xe nên không chờ xe dừng; kết thúc quan sát ngay.
             self._finish_run(self._stop_outcome, self.stop_reason, False)
@@ -645,8 +700,8 @@ class Session:
         elif self.state == SessionState.STOPPING and link is not None and link.stop_timed_out(self.world.time):
             reason = (f"Không xác nhận được xe đã dừng sau {link.params.stop_confirm_timeout_s:.1f} s kể từ lệnh "
                       f"dừng (telemetry mất/cũ hoặc xe vẫn chạy); lý do dừng: {self.stop_reason}")
-            self.safety_events.append(SafetyEvent(SourceStamp("vehicle_link", self.world.time),
-                                                  "STOP_NOT_CONFIRMED", reason))
+            self._add_safety_event(SafetyEvent(SourceStamp("vehicle_link", self.world.time), "STOP_NOT_CONFIRMED",
+                                               reason))
             self._finish_run(SessionState.FAULT, reason, False)
         elif self.state == SessionState.RUNNING and self.last_output is not None and self.last_output.done \
                 and standstill:

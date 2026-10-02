@@ -2,7 +2,7 @@
 
 **Kết luận:** giai đoạn 0 đạt sáu điều kiện chuyển bước trong phạm vi mô phỏng đã kiểm ngày **20/09/2026**. Đây là báo cáo của đợt đó; tiến độ sau này nằm ở [tổng quan hiện tại](TONG_HOP_DU_AN.md).
 
-Biên tập 30/09/2026 theo mã tại `ff4a018` (mã giống `ebbec83`); lần biên tập 26/09/2026 dựng từ hồ sơ tại `9d68257`. Cả hai lần biên tập không thay số liệu của đợt 20/09; lượt chạy lại ngày 29/09/2026 ghi riêng ở khối dưới.
+Biên tập 30/09/2026 theo mã tại `ff4a018` (mã giống `ebbec83`); lần biên tập 26/09/2026 dựng từ hồ sơ tại `9d68257`. Cả hai lần biên tập không thay số liệu của đợt 20/09; lượt chạy lại ngày 29/09/2026 ghi riêng ở khối dưới. Ngày 02/10/2026 chỉ sửa một câu ở mục 7 về phát lại lần chạy qua VehicleIO.
 
 ## Trạng thái 30/09/2026
 
@@ -98,7 +98,7 @@ Lượt đầy đủ: **220 đạt**, khoảng 60,23 giây tại lần đo đã 
 
 Ca quay đầu chật `uturn_w46` từng TIMEOUT ở hạn 8 s khi pytest chạy đồng thời với chiến dịch robustness, lúc máy chịu tải CPU (đợt 20/09, laptop; [JUnit lượt có tải](autopark/docs/evidence/robustness_concurrent_load_pytest.xml)). Kết quả tìm đường theo thời hạn phụ thuộc tải CPU và cách Windows xếp lịch tiến trình. Đo ngày 30/09/2026 trên máy bàn, tải CPU 0–12%, tiến trình không có cửa sổ ([do_uturn_w46.txt](autopark/docs/evidence/mo_phong_20260930/ecoqos_30092026/do_uturn_w46.txt)): khi để Windows tự quyết, lần gọi đầu trong mỗi tiến trình đạt (3/3, 4,55–4,57 s), còn 5/5 lần gọi sau hỏng TRACKING_FAILED ở 8,00 s; khi tiến trình tự tắt EcoQoS thì đạt 8/8, 3,61–3,64 s. Cơ chế cụ thể của Windows (dồn sang lõi E hay hạ xung) CHƯA rõ.
 
-Từ 30/09/2026 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest; tệp JUnit ghi `ecoqos=off`, đặt `AUTOPARK_KEEP_ECOQOS=1` để giữ mặc định của Windows. Ứng dụng giao diện và các lệnh đánh giá (`phase0`, `robustness`...) không tự tắt EcoQoS; ảnh hưởng lên chúng CHƯA ĐO. Chi tiết: [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 8, sơ đồ 3.7 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
+Từ 30/09/2026 `tests/conftest.py` tắt EcoQoS cho tiến trình pytest; tệp JUnit ghi `ecoqos=off`, đặt `AUTOPARK_KEEP_ECOQOS=1` để giữ mặc định của Windows. Ứng dụng giao diện và các lệnh đánh giá (`phase0`, `robustness`...) không tự tắt EcoQoS. Ngày 02/10/2026 đo với giao diện: cửa sổ thu nhỏ thì lập đường `uturn_w46` hết hạn 8 s ở 4/4 lượt, bị che thì không chậm ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 10); ảnh hưởng lên các lệnh đánh giá CHƯA ĐO. Chi tiết: [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 8, sơ đồ 3.7 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
 ### 6.2. Chiến dịch theo seed
 
@@ -167,7 +167,7 @@ flowchart TD
 
 Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị.
 
-Replay không gọi planner tìm một đường mới. Luồng này dành cho phiên mô phỏng giai đoạn 0; không áp dụng cho phiên VehicleIO (`replay_run` từ chối phát lại lần chạy qua VehicleIO). Mã: [phase0.py](autopark/autopark/evaluation/phase0.py), [run_store.py](autopark/autopark/storage/run_store.py). Xem thêm sơ đồ 3.6 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
+Replay không gọi planner tìm một đường mới. Luồng này dành cho phiên mô phỏng giai đoạn 0 và không đổi. Lần chạy qua VehicleIO (thêm sau đợt này) không tái mô phỏng được; từ 02/10/2026 gói của nó được phát lại theo cách khác, bằng log: chạy lại cùng phần mềm trên đầu vào đã ghi và so quyết định, chỉ kiểm với bo mô phỏng (T9, [chế độ quan sát](autopark/docs/CHE_DO_QUAN_SAT.md) mục 5.1). Mã: [phase0.py](autopark/autopark/evaluation/phase0.py), [run_store.py](autopark/autopark/storage/run_store.py). Xem thêm sơ đồ 3.6 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
 | Phiên | Kết quả | Thời gian mô phỏng | Sai số vị trí cuối | Replay |
 |---|---|---:|---:|---|

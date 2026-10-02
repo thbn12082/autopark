@@ -17,11 +17,12 @@ import time
 import pytest
 
 from autopark.application.session import Session, SessionError, SessionState
-from autopark.application.vehicle_link import (COMMAND_FIELDS, EVENT_FIELDS, TELEMETRY_FIELDS, DriveMode, LinkParams,
-                                               MirroredWorld, PoseSample, SimHumanDriver, SimTruthPose, VehicleLink,
-                                               VehicleLinkError)
+from autopark.application.vehicle_link import (BOARD_ACTION_FIELDS, COMMAND_FIELDS, EVENT_FIELDS, TELEMETRY_FIELDS,
+                                               DriveMode, LinkParams, MirroredWorld, PoseSample, SimHumanDriver,
+                                               SimTruthPose, VehicleLink, VehicleLinkError)
 from autopark.domain.types import Obstacle, ParkingGoal, Pose, VehicleState
 from autopark.simulation.world import SimWorld
+from autopark.storage import run_store
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config
 from autopark.transport.firmware_model import FirmwareInputs, FirmwareModel
 from autopark.transport.loopback import FirmwareSerialLoopback, ManualClock
@@ -418,6 +419,52 @@ def test_start_fault_refused_by_link_check(scenario, cfg):
     assert io.firmware.state == State.FAULT
     session.set_vehicle_link(link_for(DriveMode.VEHICLE_IO, io))
     assert_refused(session, io, "CLEAR_FAULT", board_before=State.FAULT)
+
+
+def test_fault_refused_start_then_link_clear_fault_then_start(scenario, cfg, tmp_path):
+    """AT-2 / DI-4 (d) ở mức mô phỏng (T15, thêm 02/10/2026): E-stop giữa lúc chạy → STOPPED; nhả nút, START vẫn bị từ
+    chối vì bo FAULT; `VehicleLink.clear_fault()` (nút "Xóa lỗi bo") đưa bo về DISARMED mà không ARM, không COMMAND;
+    chỉ START sau đó mới ARM và gửi lệnh mới. Tên khớp cả `-k fault` lẫn `-k refused`."""
+    session = straight_session(scenario, cfg)
+    io = sim_io(cfg, scenario.start)
+    received = record_commands(io)
+    link = link_for(DriveMode.VEHICLE_IO, io)
+    session.set_vehicle_link(link)
+    session.start_run()
+    advance_until(session, lambda: io.truth.speed > 0.1)
+    io.set_estop(True)
+    run_until_done(session, step=0.1)
+    assert session.state == SessionState.STOPPED and io.firmware.state == State.FAULT
+    io.set_estop(False)
+    io.advance(0.5)
+    session.reset()
+    assert session.plan_sync().ok
+    with pytest.raises(SessionError, match="Xóa lỗi bo"):
+        session.start_run()
+    assert session.state == SessionState.READY and io.firmware.state == State.FAULT
+    refusal = next(r for r in link.start_refusals if r["code"] == "START_CHECK")
+    requests = record_requests(io)
+    enabled = sum(1 for c in received if c[1])
+    report = link.clear_fault()
+    assert report.outcome == "CLEARED" and report.hello is None and report.session_reused
+    # Dùng lại phiên của lần chạy: PING chờ ACK làm rào "khung mới" trước khi đọc trạng thái (sau review 02/10/2026).
+    assert requests == [Action.PING, Action.CLEAR_FAULT] and report.commands_sent == 0 and report.requests_sent == 2
+    io.advance(1.0)
+    assert io.truth.speed == 0.0 and io.firmware.state == State.DISARMED
+    assert sum(1 for c in received if c[1]) == enabled          # không lệnh enable nào sau CLEAR_FAULT
+    session.start_run()
+    assert session.state == SessionState.RUNNING and requests == [Action.PING, Action.CLEAR_FAULT, Action.ARM]
+    advance_until(session, lambda: io.truth.speed > 0.05)
+    assert sum(1 for c in received if c[1]) > enabled            # chỉ sau ARM của START mới có lệnh chạy mới
+    check = next(r for r in link.event_rows if r["code"] == "START_CHECK")
+    assert check["message"].startswith("Đạt")
+    row = link.board_actions[0]
+    assert refusal["t_io"] < row["t_io"] < check["t_io"]         # cùng đồng hồ io của liên kết
+    written = link.write_logs(tmp_path / "at2")
+    rows = read_csv(written["board_actions.csv"])
+    assert len(rows) == 1 and list(rows[0]) == BOARD_ACTION_FIELDS
+    assert (rows[0]["outcome"], rows[0]["state_before"], rows[0]["state_after"]) == ("CLEARED", "FAULT", "DISARMED")
+    session.close()
 
 
 # ---- sau ARM/DISARM: lỗi phải đóng an toàn -------------------------------------------------------------------------
@@ -853,6 +900,8 @@ def test_window_drive_mode_selector(qapp, tmp_path, monkeypatch):
     assert "không gửi" in window.lbl_step.text()
     out_csv = tmp_path / "log.csv"
     monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *a, **k: (str(out_csv), "CSV (*.csv)"))
+    # T9: _export_log xuất cả gói phát lại của lần chạy qua VehicleIO; không gọi PowerShell trong test.
+    monkeypatch.setattr(run_store, "environment", lambda: {"test": True})
     window._handle_key(QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier))
     window.advance_by(0.05)
     assert window.session.state == SessionState.STOPPED

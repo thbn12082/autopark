@@ -9,7 +9,8 @@ Biên tập 30/09/2026 theo mã tại `ff4a018` (mã giống `ebbec83`). Lúc vi
 (docstring, chú thích trong mã, một tooltip trong `ui/main_window.py`, mô tả gói trong `pyproject.toml`; không đổi
 hành vi) và sửa cách đếm khung của `python -m autopark.transport.qemu_board kiem`. Ngày biên tập không phải ngày đo:
 mỗi số đo ghi ngày và máy đo trong hồ sơ gốc. Bản trước đợt này: [ff4a018](https://github.com/thbn12082/autopark/tree/ff4a018);
-bản trước đợt 26/09/2026: [9d68257](https://github.com/thbn12082/autopark/tree/9d68257).
+bản trước đợt 26/09/2026: [9d68257](https://github.com/thbn12082/autopark/tree/9d68257). Cập nhật 02/10/2026 cho các
+công cụ nghiệm thu của đợt dựng trên `3148014` (gạch đầu dòng cuối của phần hiện trạng, dòng "Điều khiển xe" và dòng "Nghiệm thu" của bảng).
 
 Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**
 ([phạm vi sử dụng](autopark/docs/GIAY_PHEP_DU_LIEU.md), mục "Dữ liệu và ghi công" cuối trang).
@@ -34,6 +35,13 @@ Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://gith
 - **Chưa làm:** chưa nhận MN300, ESP32-S3, IMU, ToF, AS5600, encoder, phần nguồn và nút dừng; firmware CHƯA nạp bo;
   chưa hiệu chuẩn camera; chưa đo sai số LiDAR so với thước; laptop trình diễn mới chạy mô phỏng giai đoạn 0.
   V1 đạt 0/10 điều kiện hoàn thành.
+- **Thêm ngày 02/10/2026, chỉ kiểm bằng test và mô phỏng:** phần lớn công cụ phần mềm cho nghiệm thu: chấm một lần chạy
+  theo ngưỡng đề xuất, phát lại log lần chạy qua VehicleIO, ghi sự kiện dừng của phiên vào log, dấu đồng bộ video–log,
+  nút "Xóa lỗi bo (CLEAR_FAULT)", giới hạn số lần đổi chiều (mặc định tắt), diễn tập tiêm lỗi trên mô phỏng. Các công cụ
+  này chưa chạy với LiDAR, camera hay bo thật ([tổng quan](TONG_HOP_DU_AN.md) mục 4.15, 5.4); số test toàn bộ trên mã
+  này ghi sau lượt chạy trên commit. Cùng ngày đo EcoQoS của ứng dụng giao diện: cửa sổ
+  thu nhỏ thì lập đường hết hạn 8 s ở 4/4 lượt, tiến trình tự tắt EcoQoS thì hết ([biên bản chuyển
+  máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 10; ứng dụng chưa tự tắt EcoQoS, chờ quyết định).
 
 ## Bắt đầu từ đâu?
 
@@ -185,9 +193,9 @@ sơ đồ khác (kiến trúc mô-đun, phiên đỗ, lập đường, cảm bi�
 | LiDAR | Đọc, ghi, phát lại scan; bản đồ tĩnh; định vị và khớp scan chạy offline trên bản ghi C1 đứng yên | Sai số khoảng cách so với thước; bản ghi khi di chuyển; tham chiếu độc lập |
 | Camera | Bốn luồng 640×480 qua hub cùng LiDAR và AI trên bàn thử; ghi và phát lại | Hiệu chuẩn nội tham, ngoại tham, ROI; gá thật; 720p còn khung MJPEG bị cắt tùy cảnh; ảnh sa bàn có nhãn |
 | AI tạo vật cản | Nối vào phiên đỗ ở mức phần mềm (ngăn AI camera của `ui.lidar_app --camera-ai`, từ 25/09/2026); phát lại bản ghi thật o03: 1.163 lô bị chặn, 0 vật cản, vì chưa có hiệu chuẩn thật ([AI camera](autopark/docs/AI_DIEU_KHIEN_XE.md) mục 3, 8.2) | Bộ hiệu chuẩn thật; chấm AI trên ảnh sa bàn có nhãn; thử với camera live |
-| Điều khiển xe | Giao thức v1, VehicleIO, bo mô phỏng; lõi C++ qua test host (703 check, 0 lệch) và cả firmware biên dịch cho ESP32-S3 (29/09/2026); firmware chạy trong bo ảo QEMU (30/09/2026; 13 test, 6 trong đó chạy firmware thật trong QEMU) | ESP32-S3 thật, nạp và đo trên bo; nguồn tư thế thật (chọn cổng COM thì **Bắt đầu đỗ** bị từ chối); cảm biến phản hồi; chọn bo ảo từ giao diện |
+| Điều khiển xe | Giao thức v1, VehicleIO, bo mô phỏng; lõi C++ qua test host (703 check, 0 lệch) và cả firmware biên dịch cho ESP32-S3 (29/09/2026); firmware chạy trong bo ảo QEMU (30/09/2026; 13 test, 6 trong đó chạy firmware thật trong QEMU); nút "Xóa lỗi bo (CLEAR_FAULT)" (02/10/2026, chỉ thử với bo mô phỏng và cổng serial giả) | ESP32-S3 thật, nạp và đo trên bo; nguồn tư thế thật (chọn cổng COM thì **Bắt đầu đỗ** bị từ chối); cảm biến phản hồi; chọn bo ảo từ giao diện |
 | Nguồn và dừng | Bản nháp bảng tải, sơ đồ nguồn và dừng, 16 kịch bản lỗi L1–L16 ([nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md) mục 5) | Lắp và đo trên phần cứng; cả 16 kịch bản CHƯA THỬ |
-| Nghiệm thu | Bản nháp 37 kịch bản trong 9 nhóm ([kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 0) và bảng ngưỡng đề xuất ([ngưỡng](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md)) | Chốt ngưỡng; thử các kịch bản (tất cả CHƯA THỬ ở mức nghiệm thu) |
+| Nghiệm thu | Bản nháp 37 kịch bản trong 9 nhóm ([kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 0) và bảng ngưỡng đề xuất ([ngưỡng](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md)); từ 02/10/2026 công cụ chấm một lần chạy, phát lại log, ghi sự kiện dừng, dấu đồng bộ video–log, diễn tập tiêm lỗi (công cụ T5, T6, T9–T15 của kịch bản mục 7), mới kiểm bằng test và mô phỏng ([hướng dẫn chạy](autopark/README.md) mục 4) | Chốt ngưỡng; thử các kịch bản (tất cả CHƯA THỬ ở mức nghiệm thu); nguồn tư thế thật (T2), ghi cảm biến trong phiên đỗ (T3), tham chiếu trên cao và công cụ trích tư thế từ video (T4), LED trên bo cho đồng bộ video (T7) |
 
 **Tiến độ 11 giai đoạn:** GĐ 0 đạt ở mức mô phỏng; chưa cổng nào từ GĐ 1 đến GĐ 10 đạt. GĐ 1–2 đang làm, có số đo
 LiDAR và bốn camera trên bàn thử. GĐ 3, 5, 8 mới có phần mềm hoặc giả lập, chờ thiết bị. GĐ 4, 6 là bản nháp. GĐ 7, 9

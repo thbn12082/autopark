@@ -10,14 +10,17 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 np = pytest.importorskip("numpy")
 pytest.importorskip("PySide6")
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtWidgets import QApplication, QFileDialog  # noqa: E402
 
 from autopark.application.session import SessionState  # noqa: E402
+from autopark.application.vehicle_link import EVENT_FIELDS, SESSION_STOP, DriveMode  # noqa: E402
 from autopark.domain.types import Bounds  # noqa: E402
+from autopark.storage import run_store  # noqa: E402
 from autopark.ui.items import ObstacleItem  # noqa: E402
 from autopark.ui.lidar_app import build_window  # noqa: E402
 from autopark.ui.scan_view import ScanView  # noqa: E402
 from tests.test_fusion import scan_with_object  # noqa: E402
+from tests.test_session_vehicle import read_csv  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -155,6 +158,78 @@ def test_losing_the_lidar_while_driving_stops_the_car(qapp):
     assert window.session.state == SessionState.STOPPING and dock.stale_stops == 1
     assert "mất LiDAR" in window.session.stop_reason
     window.close()
+
+
+def start_vehicle_io_run(window, dock, source) -> None:
+    """Plan and start a run through VehicleIO on the window's simulated board (no port is opened) until the car
+    moves."""
+    feed(dock, source, 0.0, 1.2, angle_deg=60.0)
+    combo = window.combo_drive
+    combo.setCurrentIndex(combo.findData(DriveMode.VEHICLE_IO.value))
+    assert window.session.drive_mode == DriveMode.VEHICLE_IO and window.board_port() is None
+    assert window.plan(sync=True).ok
+    window.run()
+    assert window.session.state == SessionState.RUNNING
+    for _ in range(30):
+        window.advance_by(0.1)
+        if abs(window.session.world.state.speed) > 0.05:
+            break
+
+
+def test_lidar_disconnect_in_vehicle_io_is_logged(qapp, tmp_path, monkeypatch):
+    """T13 (2026-10-02): through VehicleIO (the simulated board, no port opened) unplugging the LiDAR mid-run becomes
+    the first session_stop row of events.csv, with the dock's code and source, and the exported log keeps it."""
+    window, dock = build_window(None, port="COM9", recording=None)
+    dock.timer.stop()
+    window._timer.stop()
+    source = FakeSource()
+    dock.attach_source(source, start_thread=False)
+    try:
+        start_vehicle_io_run(window, dock, source)
+        dock.disconnect_source()
+        assert window.session.state == SessionState.STOPPING and source.closed
+        for _ in range(50):
+            window.advance_by(0.1)
+            if not window.session.simulating:
+                break
+        assert window.session.state == SessionState.STOPPED
+        out = tmp_path / "lan.csv"
+        monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *a, **k: (str(out), "CSV (*.csv)"))
+        # T9: _export_log xuất cả gói phát lại của lần chạy qua VehicleIO; không gọi PowerShell trong test.
+        monkeypatch.setattr(run_store, "environment", lambda: {"test": True})
+        window._export_log()
+        rows = read_csv(tmp_path / "lan_vehicle_io" / "events.csv")
+        assert list(rows[0]) == EVENT_FIELDS
+        first = next(r for r in rows if r["handling"] == SESSION_STOP)
+        assert (first["code"], first["source"], first["action"]) == ("LIDAR_DISCONNECTED", "lidar_dock", "STOP")
+        assert "mất LiDAR" in first["message"] and first["t_perf"] != ""
+    finally:
+        dock.shutdown()
+        window.close()
+
+
+@pytest.mark.parametrize("change, code", [("mirror", "LIDAR_MIRROR_CHANGED"), ("mask", "LIDAR_CONFIG_CHANGED")])
+def test_lidar_setting_change_in_vehicle_io_is_logged_with_its_code(qapp, change, code):
+    """T13 (2026-10-02): the backstop stops (the widgets are locked while driving) carry their own code."""
+    window, dock = build_window(None, port="COM9", recording=None)
+    dock.timer.stop()
+    window._timer.stop()
+    source = FakeSource()
+    dock.attach_source(source, start_thread=False)
+    try:
+        start_vehicle_io_run(window, dock, source)
+        if change == "mirror":
+            dock._set_mirror(True)
+        else:
+            dock.spin_mask.setValue(3)
+            dock.tick()
+        session = window.session
+        assert session.state == SessionState.STOPPING and dock.stale_stops == 1
+        first = next(r for r in session.run_link.event_rows if r["handling"] == SESSION_STOP)
+        assert (first["code"], first["source"], first["message"]) == (code, "lidar_dock", session.stop_reason)
+    finally:
+        dock.shutdown()
+        window.close()
 
 
 def test_settings_mirror_and_snapped_bounds(qapp):

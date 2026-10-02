@@ -253,6 +253,17 @@ class ReplaySession:
     def due(self, t_rec: float) -> float:
         return self.origin + self.rel(t_rec)
 
+    def end_t(self) -> float | None:
+        """Cuối bản ghi trên đồng hồ phát lại (cùng đồng hồ với stamp khung phát lại): mốc cuối phiên của khoảng hở cuối
+        từng camera (T10, 02/10/2026; `MultiCameraManager.camera_stats`). Hết bản ghi không phải camera ngừng: đo tới
+        "bây giờ" thì mọi camera có một khoảng hở giả bằng lúc chờ sau mục cuối (bench chờ thêm REPLAY_END_GRACE_S, đo
+        thử ≈ 0,3–0,6 s). Mốc = max(mục cuối của bản ghi, `t_stop_s` của meta.json = lúc ngừng ghi). None khi chưa
+        `begin()`."""
+        if self.origin is None:
+            return None
+        t_stop = self.meta.get("t_stop_s")
+        return self.due(self.t_last if t_stop is None else max(self.t_last, float(t_stop)))
+
     def should_stop(self, source) -> bool:
         if self._stopped.is_set() or source.closed:
             return True

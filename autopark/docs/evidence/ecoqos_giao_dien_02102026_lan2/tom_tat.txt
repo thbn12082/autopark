@@ -1,0 +1,29 @@
+Đo EcoQoS của ứng dụng giao diện (python -m autopark.evaluation.ecoqos_gui)
+Ca: uturn_w46; hạn lập đường 8,0 s; kịch bản ca_uturn_w46.json (lệch sau khi lưu và nạp lại: 0)
+Thời gian: 02/10/2026 03:40:01 → 02/10/2026 03:46:30
+Mã: commit 3148014 (+ 71 tệp chưa commit)
+CPU: 32 bộ xử lý logic; lớp 1: LP 0–15; lớp 0: LP 16–31 (lớp thấp nhất là lõi E)
+Nguồn: kế hoạch High performance (8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c); lớp phủ không có (Balanced); điện lưới có; tiết kiệm pin không; tắt màn hình sau: AC không bao giờ, DC 240 s
+Windows: Windows-11-10.0.26200-SP0 (UBR 9550); phiên 1, phiên console 1; nâng quyền có; tiến trình cha: python.exe ← python.exe ← bash.exe ← bash.exe ← bash.exe ← claude.exe ← Code.exe ← Code.exe; khóa cửa sổ ở trước (ForegroundLockTimeout) 2147483647 ms
+Số lượt theo phiên lúc bấm: mo 42 (sau: mo 42); theo màn hình lúc bấm: bat 42 (sau: bat 42); tải nền 0,5–5,3 %
+Lệnh: python -X utf8 -m autopark.evaluation.ecoqos_gui do --ra docs/evidence/ecoqos_giao_dien_02102026_lan2
+
+Bảng (chỉ lượt hợp lệ; tg tính = từ lúc bấm tới khi bộ lập kế hoạch trả về, giây; lõi E là chỉ báo):
+biến thể     trạng thái      hợp lệ      OK  tg tính: trung vị (min–max)    trễ poll   lõi E  CPU/tg  focus
+gui_system   thuong             4/6     4/4  3,60 (3,58–3,64)                  0,013     0 %    1,00  4/4
+gui_system   thu_nho            4/4     0/4  8,00 (8,00–8,00)                  0,000   100 %    0,98  0/4
+gui_system   bi_che             4/4     4/4  3,62 (3,60–3,63)                  0,004     1 %    0,95  0/4
+gui_off      thuong             4/6     4/4  3,61 (3,60–3,63)                  0,007     0 %    0,96  4/4
+gui_off      thu_nho            4/4     4/4  3,59 (3,58–3,61)                  0,011     2 %    0,97  0/4
+gui_off      bi_che             4/4     4/4  3,62 (3,61–3,68)                  0,008     0 %    0,99  0/4
+khong_cua_so khong_cua_so     12/14   12/12  3,60 (3,58–3,64)                  0,007     0 %    0,96  
+
+Lượt bị loại khỏi phép so sánh: khoi_dong 6
+Đưa cửa sổ ra trước lúc đổi trạng thái (mọi lượt có cửa sổ, kể cả lượt bị loại; đọc lại cửa sổ ở trước ngay sau): giao_dien 12/12; trung_tinh 8/8; man_che 8/8. Cấp quyền trước đó (AllowSetForegroundWindow): giao_dien:ok 8, man_che:ok 6.
+
+Kết luận (chỉ lượt hợp lệ; ngưỡng mô tả, không phải ngưỡng nghiệm thu: hệ số = trung vị tg tính / trung vị của gui_system/thuong; ≥ 1,30 hoặc có lượt không OK trong khi mọi lượt 'thường' đều OK là chậm rõ; ≥ 1,15 là có thể chậm nhẹ; mỗi phép so cần ≥ 2 lượt hợp lệ mỗi bên; dòng bối cảnh chỉ xét hệ số):
+- thu_nho: chậm rõ (hệ số 2,22; OK 0/4 lượt hợp lệ; mốc OK 4/4). Nguyên nhân: Windows hạ tốc tiến trình (tắt EcoQoS cho tiến trình thì hết: gui_off hệ số 0,99, OK 4/4 lượt hợp lệ)
+- bi_che: không thấy chậm (hệ số 1,00; OK 4/4 lượt hợp lệ; mốc OK 4/4)
+- Bối cảnh: lúc đo Windows KHÔNG hạ tốc cả tiến trình không cửa sổ (khác 30/09/2026; khong_cua_so / gui_off/thuong = 1,00; khong_cua_so OK 12/12 lượt hợp lệ); 'không thấy chậm' chỉ đúng với điều kiện lúc đo (kế hoạch nguồn High performance), không chứng minh giao diện an toàn khi Windows có hạ tốc.
+- Chỉ báo (không phải phép đo trực tiếp; bộ đếm toàn máy): phần CPU bận thêm rơi vào lõi E, gui_system: thuong 0 %, thu_nho 100 %, bi_che 1 %.
+- Cửa sổ ở trước (focus) lúc bấm, lượt gui_system/thuong hợp lệ: 4/4.

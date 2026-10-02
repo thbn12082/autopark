@@ -1,0 +1,54 @@
+02/10/2026 02:54:41 Đo EcoQoS của giao diện: ca uturn_w46, 2 khối × 3 biến thể, 42 lần lập đường, ước tính ≤ 12 phút. Kết quả: docs\evidence\ecoqos_giao_dien_02102026
+Đừng dùng máy trong lúc đo. Màn che: Esc hoặc bấm chuột để đóng (các lượt 'bị che' còn lại bị bỏ).
+02/10/2026 02:54:41 che: pid 14760 (Popen 17120), {"loai": "san_sang", "pid": 14760, "hwnd": 8521902, "nen_tang": "windows"}
+02/10/2026 02:54:42 gui_system: pid 24832 (Popen 26444), {"loai": "san_sang", "pid": 24832, "hwnd": 4328042, "nen_tang": "windows", "ecoqos": "system"}
+02:54:42 khối 0 gui_system lần 0 thuong: OK 3,64 s (giao diện 3,65 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 5 % [loại: khoi_dong]
+02:54:51 khối 0 gui_system lần 1 thuong: OK 3,60 s (giao diện 3,61 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 19 %
+02:55:00 khối 0 gui_system lần 2 thu_nho: TRACKING_FAILED 8,00 s (giao diện 8,00 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 79 %
+02:55:13 khối 0 gui_system lần 3 bi_che: OK 3,62 s (giao diện 3,63 s) ecoqos=system phiên=mo màn hình=bat tải nền 3 % lõi E 0 % [loại: gui_van_o_truoc]
+02:55:22 khối 0 gui_system lần 4 thu_nho: OK 3,63 s (giao diện 3,63 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 0 % [loại: gui_van_o_truoc]
+02:55:30 khối 0 gui_system lần 5 bi_che: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 0 % [loại: gui_van_o_truoc]
+02:55:39 khối 0 gui_system lần 6 thuong: OK 3,65 s (giao diện 3,66 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 2 %
+02/10/2026 02:55:48 gui_off: pid 26312 (Popen 28696), {"loai": "san_sang", "pid": 26312, "hwnd": 4983522, "nen_tang": "windows", "ecoqos": "system"}
+02/10/2026 02:55:48 gui_off: disable_power_throttling(26312) = True, EcoQoS đọc lại: off
+02:55:48 khối 0 gui_off lần 0 thuong: OK 3,60 s (giao diện 3,60 s) ecoqos=off phiên=mo màn hình=bat tải nền 4 % lõi E 0 % [loại: khoi_dong]
+02:55:57 khối 0 gui_off lần 1 thuong: OK 3,59 s (giao diện 3,60 s) ecoqos=off phiên=mo màn hình=bat tải nền 2 % lõi E 0 %
+02:56:06 khối 0 gui_off lần 2 thu_nho: OK 3,59 s (giao diện 3,60 s) ecoqos=off phiên=mo màn hình=bat tải nền 2 % lõi E 3 % [loại: gui_van_o_truoc]
+02:56:14 khối 0 gui_off lần 3 bi_che: OK 3,59 s (giao diện 3,59 s) ecoqos=off phiên=mo màn hình=bat tải nền 2 % lõi E 0 % [loại: gui_van_o_truoc]
+02:56:23 khối 0 gui_off lần 4 thu_nho: OK 3,61 s (giao diện 3,62 s) ecoqos=off phiên=mo màn hình=bat tải nền 1 % lõi E 0 % [loại: gui_van_o_truoc]
+02:56:32 khối 0 gui_off lần 5 bi_che: OK 3,61 s (giao diện 3,62 s) ecoqos=off phiên=mo màn hình=bat tải nền 1 % lõi E 0 % [loại: gui_van_o_truoc]
+02:56:41 khối 0 gui_off lần 6 thuong: OK 3,64 s (giao diện 3,65 s) ecoqos=off phiên=mo màn hình=bat tải nền 2 % lõi E 0 %
+02/10/2026 02:56:50 khong_cua_so: pid 2100 (Popen 30724), {"loai": "san_sang", "pid": 2100, "hwnd": null, "nen_tang": "khong_cua_so", "ecoqos": "system"}
+02:56:50 khối 0 khong_cua_so lần 0 khong_cua_so: OK 3,59 s (giao diện 3,61 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 2 % [loại: khoi_dong]
+02:56:58 khối 0 khong_cua_so lần 1 khong_cua_so: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 7 %
+02:57:07 khối 0 khong_cua_so lần 2 khong_cua_so: OK 3,59 s (giao diện 3,59 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 1 %
+02:57:16 khối 0 khong_cua_so lần 3 khong_cua_so: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 4 %
+02:57:24 khối 0 khong_cua_so lần 4 khong_cua_so: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 2 %
+02:57:33 khối 0 khong_cua_so lần 5 khong_cua_so: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 3 %
+02:57:41 khối 0 khong_cua_so lần 6 khong_cua_so: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 8 %
+02/10/2026 02:57:51 gui_off: pid 12760 (Popen 19460), {"loai": "san_sang", "pid": 12760, "hwnd": 9831860, "nen_tang": "windows", "ecoqos": "system"}
+02/10/2026 02:57:51 gui_off: disable_power_throttling(12760) = True, EcoQoS đọc lại: off
+02:57:51 khối 1 gui_off lần 0 thuong: OK 3,60 s (giao diện 3,61 s) ecoqos=off phiên=mo màn hình=bat tải nền 1 % lõi E 0 % [loại: khoi_dong]
+02:57:59 khối 1 gui_off lần 1 thu_nho: OK 3,58 s (giao diện 3,60 s) ecoqos=off phiên=mo màn hình=bat tải nền 1 % lõi E 1 % [loại: gui_van_o_truoc]
+02:58:08 khối 1 gui_off lần 2 bi_che: OK 3,60 s (giao diện 3,60 s) ecoqos=off phiên=mo màn hình=bat tải nền 2 % lõi E 0 % [loại: gui_van_o_truoc]
+02:58:17 khối 1 gui_off lần 3 thuong: OK 3,62 s (giao diện 3,62 s) ecoqos=off phiên=mo màn hình=bat tải nền 1 % lõi E 0 %
+02:58:25 khối 1 gui_off lần 4 bi_che: OK 3,61 s (giao diện 3,62 s) ecoqos=off phiên=mo màn hình=bat tải nền 3 % lõi E 0 % [loại: gui_van_o_truoc]
+02:58:34 khối 1 gui_off lần 5 thuong: OK 3,64 s (giao diện 3,65 s) ecoqos=off phiên=mo màn hình=bat tải nền 2 % lõi E 0 %
+02:58:43 khối 1 gui_off lần 6 thu_nho: OK 3,64 s (giao diện 3,65 s) ecoqos=off phiên=mo màn hình=bat tải nền 1 % lõi E 4 % [loại: gui_van_o_truoc]
+02/10/2026 02:58:52 khong_cua_so: pid 15748 (Popen 20552), {"loai": "san_sang", "pid": 15748, "hwnd": null, "nen_tang": "khong_cua_so", "ecoqos": "system"}
+02:58:52 khối 1 khong_cua_so lần 0 khong_cua_so: OK 3,64 s (giao diện 3,65 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 0 % [loại: khoi_dong]
+02:59:01 khối 1 khong_cua_so lần 1 khong_cua_so: OK 3,63 s (giao diện 3,64 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 1 %
+02:59:09 khối 1 khong_cua_so lần 2 khong_cua_so: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 0 %
+02:59:18 khối 1 khong_cua_so lần 3 khong_cua_so: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 6 %
+02:59:27 khối 1 khong_cua_so lần 4 khong_cua_so: OK 3,62 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 6 %
+02:59:35 khối 1 khong_cua_so lần 5 khong_cua_so: OK 3,60 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 0 %
+02:59:44 khối 1 khong_cua_so lần 6 khong_cua_so: OK 3,60 s (giao diện 3,61 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 5 %
+02/10/2026 02:59:53 gui_system: pid 29772 (Popen 30748), {"loai": "san_sang", "pid": 29772, "hwnd": 10422876, "nen_tang": "windows", "ecoqos": "system"}
+02:59:53 khối 1 gui_system lần 0 thuong: OK 3,60 s (giao diện 3,60 s) ecoqos=system phiên=mo màn hình=bat tải nền 1 % lõi E 5 % [loại: khoi_dong]
+03:00:02 khối 1 gui_system lần 1 thu_nho: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 2 % lõi E 16 % [loại: gui_van_o_truoc]
+03:00:10 khối 1 gui_system lần 2 bi_che: OK 3,60 s (giao diện 3,61 s) ecoqos=system phiên=mo màn hình=bat tải nền 6 % lõi E 7 % [loại: gui_van_o_truoc]
+03:00:19 khối 1 gui_system lần 3 thuong: OK 3,63 s (giao diện 3,64 s) ecoqos=system phiên=mo màn hình=bat tải nền 14 % lõi E 0 %
+03:00:28 khối 1 gui_system lần 4 bi_che: OK 3,61 s (giao diện 3,62 s) ecoqos=system phiên=mo màn hình=bat tải nền 7 % lõi E 0 % [loại: gui_van_o_truoc]
+03:00:37 khối 1 gui_system lần 5 thuong: OK 3,70 s (giao diện 3,70 s) ecoqos=system phiên=mo màn hình=bat tải nền 6 % lõi E 3 %
+03:00:45 khối 1 gui_system lần 6 thu_nho: OK 3,59 s (giao diện 3,60 s) ecoqos=system phiên=mo màn hình=bat tải nền 6 % lõi E 21 % [loại: gui_van_o_truoc]
+02/10/2026 03:00:54 Xong: 42/42 lần đo; tóm tắt: docs\evidence\ecoqos_giao_dien_02102026\tom_tat.txt

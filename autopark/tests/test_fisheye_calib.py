@@ -494,6 +494,63 @@ def test_cli_calibrate_and_check_on_a_unicode_folder(tmp_path, capsys):
     assert fc.main(["check", str(bogus)]) == 2
 
 
+def test_camera_outside_the_hub_is_keyed_by_a_safe_name():
+    """T11: camera không qua hub 1..4 (camera trên cao) khóa theo tên; tên không được trùng dạng tệp của camera xe
+    (cam_p<cổng>, hậu tố _<rộng>x<cao>), và mọi thứ của camera xe giữ nguyên từng chữ."""
+    assert fc.default_output_path(None, (640, 480), name="tren_cao").as_posix() == "calibration/cam_tren_cao.json"
+    assert fc.default_output_path(None, (1280, 720), name="tren_cao").as_posix() == "calibration/cam_tren_cao_1280x720.json"
+    assert fc.default_output_path(2, (640, 480)).as_posix() == "calibration/cam_p2.json"
+    assert fc.default_output_path(2, (1280, 720)).as_posix() == "calibration/cam_p2_1280x720.json"
+    assert fc.default_output_path(0, (640, 480)).name == "cam_p0.json"            # camera_ai lấy tên mẫu từ cổng 0
+    for bad in ("", "P2", "tren cao", "trên_cao", "p1", "p12_x", "x_1280x720", "a" * 33, "2cam", "_x", None):
+        assert fc.camera_name_error(bad), bad
+    assert "trùng tệp camera xe" in fc.camera_name_error("p1")
+    assert "hậu tố kích thước" in fc.camera_name_error("x_1280x720")
+    assert all(fc.camera_name_error(ok) is None for ok in ("tren_cao", "overhead2", "p", "a" * 32))
+    for args, kwargs in (((1, "x"), {}), ((), {}), ((None,), {"name": "p3"})):
+        with pytest.raises(ValueError):
+            fc.camera_key(*args, **kwargs)
+    with pytest.raises(ValueError, match="trùng tệp camera xe"):
+        fc.default_output_path(None, (640, 480), name="p3")
+    _, calib = _calibrated()
+    record = fc.calibration_record(calib, SPEC, camera_name="tren_cao", camera_index=3)
+    assert record["camera"] == {"hub_port": None, "name": "tren_cao", "opencv_index": 3, "source_id": "cam_tren_cao",
+                                "device": None}
+    hub = fc.calibration_record(calib, SPEC, port=3)
+    assert list(hub["camera"]) == ["hub_port", "source_id", "device"] and hub["camera"]["source_id"] == "cam_p3"
+    assert fc.summary_text(record).startswith("camera ngoài hub 'tren_cao' (index 3 lúc chụp) · ảnh 640×480")
+    assert fc.summary_text(hub).startswith("camera cổng hub 3 · ảnh 640×480")
+    with pytest.raises(ValueError):
+        fc.calibration_record(calib, SPEC)                                         # thiếu cả cổng lẫn tên
+
+
+def test_cli_calibrate_a_camera_outside_the_hub_by_name(tmp_path, capsys):
+    _, views = synthetic_set()
+    folder = tmp_path / "ảnh camera trên cao"
+    folder.mkdir()
+    for k, (image, _, _) in enumerate(views[:12]):
+        assert fc.write_image(folder / f"cap_{k:03d}.png", image)
+    out = tmp_path / "kết quả" / "cam_tren_cao.json"
+    base = ["calibrate", "--images", str(folder), "--square-mm", "25.0"]
+    code = fc.main(base + ["--camera-name", "tren_cao", "--out", str(out)])
+    assert code == 0, capsys.readouterr()
+    record = fc.load_calibration(out)
+    assert record["camera"]["hub_port"] is None and record["camera"]["name"] == "tren_cao"
+    assert record["camera"]["opencv_index"] is None and record["camera"]["source_id"] == "cam_tren_cao"
+    capsys.readouterr()
+    assert fc.main(["check", str(out)]) == 0
+    assert "camera ngoài hub 'tren_cao' · ảnh 640×480" in capsys.readouterr().out
+    for argv in (base + ["--port", "2", "--camera-name", "x"], base):                # cả hai, hoặc không cái nào
+        with pytest.raises(SystemExit) as exc:
+            fc.main(argv + ["--out", str(tmp_path / "không ghi.json")])
+        assert exc.value.code == 2
+    capsys.readouterr()
+    assert fc.main(base + ["--camera-name", "p3", "--out", str(tmp_path / "không ghi.json")]) == 2
+    err = capsys.readouterr().err
+    assert "LỖI: --camera-name:" in err and "trùng tệp camera xe" in err
+    assert not (tmp_path / "không ghi.json").exists()
+
+
 def test_record_marks_unconfirmed_square_size_and_failed_conversion(tmp_path):
     _, calib = _calibrated()
     record = fc.calibration_record(calib, SPEC, port=1)

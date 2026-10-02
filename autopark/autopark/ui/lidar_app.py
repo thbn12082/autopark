@@ -4,6 +4,10 @@
     python -m autopark.ui.lidar_app --recording runs/lidar_bench/20260922/p07_nen_phong.npz
     python -m autopark.ui.lidar_app --scenario scenarios/sa_ban_3x2_hai_hop.json
     python -m autopark.ui.lidar_app --vehicle-config configs/vehicle_measured.json
+    python -m autopark.ui.lidar_app --max-cusps 2
+
+Số lần đổi chiều (T12, 02/10/2026): `--max-cusps N` từ chối Bắt đầu đỗ khi đường có hơn N lần đổi chiều (mặc định không
+chặn, giới hạn CHƯA CHỐT), `--warn-cusps N` cảnh báo khi hơn N (mặc định 7), như `run_app.py`; giữ cả khi "Mở kịch bản".
 
 Cổng LiDAR: không có `--port` thì lấy `lidar_port` trong configs/thiet_bi.json (đổi máy chỉ sửa tệp đó, 29/09/2026;
 autopark/lidar/port.py); `--port COMx` ghi đè cho một lần chạy.
@@ -16,7 +20,9 @@ COM, 24/09/2026); CHƯA THỬ với LiDAR thật.
 
 Mặc định mở sa bàn 3 × 2 m trống, xe ở (0,5; 1,0) hướng +x, đích ở (2,0; 1,0). Trình tự trên màn hình:
 Kết nối → vật cản LiDAR hiện ngay và bám theo cảm biến → Tìm đường đỗ (chốt bản đồ) → Bắt đầu đỗ → đưa tay vào trước LiDAR
-để thấy xe ảo dừng (MAP_CHANGED). Ngăn LiDAR ở bên phải, kéo ra được.
+để thấy xe ảo dừng (MAP_CHANGED). Ngăn LiDAR ở bên phải, kéo ra được. Dấu đồng bộ video–log cho video R3 (T14,
+02/10/2026): nút "Dấu đồng bộ · F8" hay phím F8 như ở `ui.app`, trước Bắt đầu đỗ và sau khi xe dừng; tệp
+runs/sync_marks/<giờ>_ui_lidar_app.csv (chỉ kiểm offscreen).
 
 AI camera làm nguồn vật cản thứ hai (thêm 25/09/2026, docs/AI_DIEU_KHIEN_XE.md; cần .venv-train vì AI dùng torch):
 
@@ -42,6 +48,7 @@ import sys
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
+from autopark.application.cusp_policy import CuspPolicy, add_cusp_args, cusp_policy_from_args
 from autopark.application.session import Session
 from autopark.domain.types import Bounds, ParkingGoal, Pose, Scenario
 from autopark.evaluation.sensitivity import VehicleConfigFile, load_vehicle_config_file, vehicle_config_arg
@@ -66,6 +73,8 @@ class BenchWindow(MainWindow):
 
     `camera_ai` (dict tham số của `CameraAIDock`, hay None): thêm ngăn AI camera, xếp thành thẻ cạnh ngăn LiDAR. None thì
     không nhập mô-đun ngăn camera, cửa sổ đúng như trước 25/09/2026."""
+
+    SYNC_SOURCE = "ui.lidar_app"     # dấu đồng bộ video–log (T14): nút và phím F8 kế thừa từ MainWindow
 
     def __init__(self, session: Session, scenario_path: Path | None, *, port: str | None, recording: Path | None,
                  vehicle_override: VehicleConfigFile | None = None, camera_ai: dict | None = None):
@@ -120,10 +129,11 @@ class BenchWindow(MainWindow):
 
 
 def build_window(scenario_path: Path | None, *, port: str | None, recording: Path | None,
-                 vehicle_config: Path | None = None, camera_ai: dict | None = None) -> tuple[BenchWindow, LidarDock]:
+                 vehicle_config: Path | None = None, camera_ai: dict | None = None,
+                 cusp_policy: CuspPolicy | None = None) -> tuple[BenchWindow, LidarDock]:
     """`vehicle_config` (nếu có) thay cấu hình xe của sa bàn mặc định hoặc của kịch bản, kể cả kịch bản mở sau đó
     bằng "Mở kịch bản" trong cửa sổ. `camera_ai`: tham số của ngăn AI camera (xem `camera_ai_options`), None = không có
-    ngăn đó; ngăn ở `window.camera_dock`."""
+    ngăn đó; ngăn ở `window.camera_dock`. `cusp_policy` (T12): giới hạn số lần đổi chiều, giữ cả khi "Mở kịch bản"."""
     if scenario_path is not None:
         scenario = load_scenario(scenario_path)
     else:
@@ -137,7 +147,7 @@ def build_window(scenario_path: Path | None, *, port: str | None, recording: Pat
         cfg = load_vehicle_config(scenario.vehicle_config_path)
     else:
         cfg = load_vehicle_config(DEFAULT_VEHICLE)
-    window = BenchWindow(Session(scenario, cfg), scenario_path, port=port, recording=recording,
+    window = BenchWindow(Session(scenario, cfg, cusp_policy=cusp_policy), scenario_path, port=port, recording=recording,
                          vehicle_override=chosen, camera_ai=camera_ai)
     return window, window.dock
 
@@ -188,12 +198,14 @@ def main(argv=None) -> int:
     parser.add_argument("--vehicle-config", type=vehicle_config_arg, default=None,
                         help="tệp cấu hình xe JSON; mặc định configs/vehicle_default.json (hoặc tệp xe của --scenario)")
     add_camera_ai_args(parser)
+    add_cusp_args(parser)
     args = parser.parse_args(argv)
     camera_ai = camera_ai_options(parser, args)
+    cusp_policy = cusp_policy_from_args(parser, args)
     app = QApplication.instance() or QApplication(sys.argv)
     vehicle = args.vehicle_config.path if args.vehicle_config is not None else None
     window, dock = build_window(args.scenario, port=args.port, recording=args.recording, vehicle_config=vehicle,
-                                camera_ai=camera_ai)
+                                camera_ai=camera_ai, cusp_policy=cusp_policy)
     window.resize(1750, 960)
     window.show()
     if not args.no_connect:

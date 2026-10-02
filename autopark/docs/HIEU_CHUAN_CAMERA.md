@@ -8,7 +8,8 @@ mục 6, đoạn "Có đồ"): *"Hiệu chuẩn riêng từng camera; gắn lên
 **Mức bằng chứng:** công cụ mới chỉ được kiểm trên ảnh tổng hợp và trên nguồn camera giả trong test. Riêng giao diện đã
 mở camera thật cổng 2 một lần, khoảng 6 s, ngày 24/09 (xem cuối mục 5), nhưng không chụp ảnh nào. Chưa có ảnh bảng nào
 chụp từ camera thật, và bảng chưa được in. Con số 130° là số người bán quảng cáo, chưa ai đo. Mọi ngưỡng chấp nhận dưới
-đây là **đề xuất**, chưa được kiểm trên camera thật.
+đây là **đề xuất**, chưa được kiểm trên camera thật. *(Cập nhật 02/10/2026, T11: thêm cách hiệu chuẩn camera không qua
+hub 1–4, như camera trên cao, cuối mục 3; chỉ kiểm offscreen với camera giả và ảnh tổng hợp.)*
 
 **Phần này làm ra gì:** bốn tệp `calibration/cam_p1.json` … `cam_p4.json`, mỗi tệp là **nội tham** của một camera, gọi
 theo cổng hub. Chưa có **ngoại tham**, tức vị trí và hướng của camera so với xe (xem mục 6).
@@ -18,8 +19,8 @@ theo cổng hub. Chưa có **ngoại tham**, tức vị trí và hướng của 
 | Việc | Mã | Kiểm (không cần thiết bị) |
 |---|---|---|
 | Bảng ô vuông để in: PDF vector đúng khổ A4/A3, PNG ở một DPI cho trước (có khối pHYs), JSON mô tả bảng | `perception/calib_board.py`; tệp in sẵn trong `calibration/bang_in/` | Đọc MediaBox và các hình chữ nhật trong PDF; vẽ lại PDF bằng pdfium (QtPdf) rồi dò bảng: ô 78,7 px ở 100 DPI, sai lệch dưới 1 %; đếm điểm ảnh của ô trong PNG |
-| Dò góc bảng, kiểm từng ảnh, bản đồ phủ, hiệu chuẩn `cv2.fisheye`, loại ảnh ngoại lai, trường nhìn, chuyển sang mô hình đa thức của dự án, nắn ảnh, đọc/ghi tệp, dòng lệnh | `perception/fisheye_calib.py` | `tests/test_fisheye_calib.py`: ảnh dựng qua một camera Kannala–Brandt đã biết (mục 5) |
-| Giao diện: chọn camera theo cổng hub, xem trực tiếp có vẽ góc bảng và lưới phủ, chụp tay hoặc tự chụp, hiệu chuẩn chạy nền, xem ảnh nắn cạnh ảnh sống, lưu | `ui/calib_app.py` | `tests/test_calib_app_ui.py`: chạy offscreen với camera giả phát ảnh tổng hợp. Kiểm: chụp tay, tự chụp (không chụp lại tư thế cũ, giữ khoảng cách thời gian giữa hai lần chụp), khung hỏng bị đếm và không được chụp, khung khác cỡ không được chụp; lưới phủ và ảnh nắn so từng điểm ảnh với `draw_coverage` / `undistort_image`; không lưu khi danh sách ảnh hoặc cỡ ô đổi sau hiệu chuẩn; ô "Đã đo cỡ ô" quyết định `square_mm_measured`; đổi cổng/mode bỏ ảnh và kết quả, kể cả kết quả của lần hiệu chuẩn đang chạy; phím cách chụp cả khi ô nhập số giữ focus; lưu vào thư mục tên tiếng Việt |
+| Dò góc bảng, kiểm từng ảnh, bản đồ phủ, hiệu chuẩn `cv2.fisheye`, loại ảnh ngoại lai, trường nhìn, chuyển sang mô hình đa thức của dự án, nắn ảnh, đọc/ghi tệp, dòng lệnh | `perception/fisheye_calib.py` | `tests/test_fisheye_calib.py`: ảnh dựng qua một camera Kannala–Brandt đã biết (mục 5); *(02/10/2026, T11)* camera ngoài hub khóa theo tên an toàn, dòng lệnh `calibrate --camera-name` (`test_camera_outside_the_hub_is_keyed_by_a_safe_name`, `test_cli_calibrate_a_camera_outside_the_hub_by_name`) |
+| Giao diện: chọn camera theo cổng hub, xem trực tiếp có vẽ góc bảng và lưới phủ, chụp tay hoặc tự chụp, hiệu chuẩn chạy nền, xem ảnh nắn cạnh ảnh sống, lưu | `ui/calib_app.py` | `tests/test_calib_app_ui.py`: chạy offscreen với camera giả phát ảnh tổng hợp. Kiểm: chụp tay, tự chụp (không chụp lại tư thế cũ, giữ khoảng cách thời gian giữa hai lần chụp), khung hỏng bị đếm và không được chụp, khung khác cỡ không được chụp; lưới phủ và ảnh nắn so từng điểm ảnh với `draw_coverage` / `undistort_image`; không lưu khi danh sách ảnh hoặc cỡ ô đổi sau hiệu chuẩn; ô "Đã đo cỡ ô" quyết định `square_mm_measured`; đổi cổng/mode bỏ ảnh và kết quả, kể cả kết quả của lần hiệu chuẩn đang chạy; phím cách chụp cả khi ô nhập số giữ focus; lưu vào thư mục tên tiếng Việt; *(02/10/2026, T11)* camera ngoài hub 1–4 (`--index N --camera-name TÊN`): mở theo index, lưu theo tên, ô cổng khóa, không bao giờ ghi `cam_p*.json` (`test_camera_outside_the_hub_opens_by_index_and_saves_under_its_name`, `test_build_window_parses_port_or_index_without_opening_a_camera`); `--port N` bị từ chối chứ không đoán khi hai hub cùng có camera ở cổng số N (`test_hub_port_shared_with_a_camera_outside_the_hub_is_refused_not_guessed`) |
 
 Mô hình ống kính là Kannala–Brandt của `cv2.fisheye` với 4 hệ số, skew cố định bằng 0. Mô hình này chỉ biểu diễn được
 tia lệch trục quang dưới 90°. Như vậy là đủ nếu ống kính đúng như quảng cáo là 130° (tức 65° mỗi bên), nhưng chưa ai đo.
@@ -64,7 +65,8 @@ từng ô thì có ảnh hưởng tới K, D.
 - **Mỗi lần một camera.** Chọn camera theo cổng hub; khi mở, công cụ hỏi Windows cổng đó đang ứng với index OpenCV nào
   (`resolve_ports`, cần pygrabber). Mode mặc định là **640×480 MJPG**, là mode chạy chung bốn camera. Cũng chọn được
   1280×720, nhưng đó là một hiệu chuẩn **riêng** cho mode ấy, lưu vào `cam_pN_1280x720.json`. Mode 16:9 có thể lấy một
-  phần khác của cảm biến, nên không đem K của mode này dùng cho mode kia. Việc này chưa kiểm.
+  phần khác của cảm biến, nên không đem K của mode này dùng cho mode kia. Việc này chưa kiểm. *(02/10/2026: camera không
+  qua hub 1–4, như camera trên cao, mở theo index; xem cuối mục này.)*
 - **Số ảnh:** 20–30 ảnh, để sau khi loại ngoại lai còn ít nhất 15.
 - **Phủ kín ảnh, nhất là mép và bốn góc.** Mép và góc là nơi méo nhiều nhất và quyết định hệ số D. Lưới phủ trên ảnh
   sống tô **đỏ** những ô chưa có góc bảng nào của các ảnh đã chụp, và tô **xanh** đậm dần theo số góc. Chụp tới khi gần
@@ -87,6 +89,32 @@ từng ô thì có ảnh hưởng tới K, D.
 - "Chụp" (hoặc phím cách) chỉ nhận khung đạt. Phím cách vẫn là "Chụp" khi ô cỡ ô hoặc ô ngưỡng mờ đang giữ focus, kể cả
   khi vừa gõ cỡ ô mà chưa Enter (giá trị đang gõ đã được nhận). Ảnh chụp giữ nguyên ảnh gốc, chưa vẽ gì lên, và được ghi
   dưới dạng PNG không mất thông tin khi bấm "Lưu".
+
+**Camera không qua hub 1–4** (camera trên cao của [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 3.4; thêm
+02/10/2026, T11; chỉ kiểm offscreen với camera giả, camera trên cao thật CHƯA THỬ):
+
+```
+.\.venv\Scripts\python.exe -X utf8 -m autopark.video.camera_bench list
+.\.venv\Scripts\python.exe -X utf8 -m autopark.ui.calib_app --index 4 --camera-name tren_cao --size 1280x720
+```
+
+- Mở theo index OpenCV (cột `[index]` ở phần DirectShow của `camera_bench list`), không tra cổng hub. Index đổi sau khi
+  khởi động lại hay cắm lại nên phải tra lại mỗi lần; tệp khóa theo TÊN nên index đổi không làm lẫn tệp.
+- Tên (`--camera-name`, mặc định `tren_cao`): chữ thường không dấu, số, gạch dưới, bắt đầu bằng chữ, tối đa 32 ký tự;
+  không bắt đầu bằng `p<số>` (trùng tệp camera xe), không kết thúc bằng `_<rộng>x<cao>`.
+- Lưu ra `calibration/cam_<tên>[_<W>x<H>].json` và `runs/calib/<ngày giờ>_<tên>/`; bản ghi có `camera.hub_port` null,
+  `camera.name`, `camera.opencv_index` (index lúc chụp, chỉ để tra). Ô cổng bị khóa; đổi mode vẫn được. BEV, AI camera,
+  công cụ ngoại tham và ROI không dùng tệp này: chúng chỉ dành cho camera xe theo cổng hub.
+- Từ cùng ngày, nếu camera trên cao cắm vào cổng gốc của máy có SỐ trùng cổng hub của camera xe cần hiệu chuẩn (ví dụ
+  cổng gốc 2 và cổng hub 2), thì `calib_app --port 2` báo lỗi chứ không đoán, kể cả khi ba camera xe kia đang cắm. Muốn
+  hiệu chuẩn camera xe cổng 2 thì cắm camera trên cao vào cổng gốc có số khác 2, hay rút nó ra; camera trên cao thì mở
+  bằng `--index`. Laptop có webcam gắn sẵn mang số cổng gốc 1–4 cũng chặn `--port` số đó (CHƯA gặp: sơ đồ USB của
+  laptop chưa đo, hai máy bàn đã đo chỉ có bốn camera xe): tắt webcam trong Device Manager lúc hiệu chuẩn, hay hiệu
+  chuẩn ở máy bàn. Lời gọi nhiều cổng (`rig.bench --ports 1 2 3 4`) vẫn chọn được: cổng trùng số lấy camera trên hub
+  chung của các cổng không trùng số.
+- Bộ dò khung hỏng của `UsbCameraSource` và mô hình mắt cá được chọn cho camera Sunplus của xe; camera trên cao khác loại
+  có thể bị loại khung (xem bộ đếm trên dòng trạng thái) hay cần mô hình ống kính khác (việc của công cụ T4,
+  [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7).
 
 ## 4. Hiệu chuẩn, đọc kết quả, lưu
 
@@ -139,15 +167,21 @@ số khớp vượt 0,5 px; đa thức không tăng đơn điệu tới `theta_m
 không nghịch đảo được bằng đa thức. `reason` liệt kê mọi điều vi phạm.
 
 **Lưu:** bấm "Lưu" sẽ ghi `calibration/cam_p<cổng>.json`. Ảnh đã chụp, `captures.json` (vị trí góc và chất lượng từng
-ảnh) và một bản sao tệp hiệu chuẩn được ghi vào `runs/calib/<ngày giờ>_p<cổng>/`. Công cụ không cho lưu nếu danh sách
-ảnh hoặc cỡ ô đã thay đổi sau lần hiệu chuẩn. Có thể hiệu chuẩn lại từ thư mục ảnh đó mà không cần camera:
+ảnh) và một bản sao tệp hiệu chuẩn được ghi vào `runs/calib/<ngày giờ>_p<cổng>/`. *(02/10/2026, T11: camera ngoài hub
+ghi `calibration/cam_<tên>.json`, ảnh ở `runs/calib/<ngày giờ>_<tên>/`.)* Công cụ không cho lưu nếu danh sách ảnh hoặc
+cỡ ô đã thay đổi sau lần hiệu chuẩn. Có thể hiệu chuẩn lại từ thư mục ảnh đó mà không cần camera:
 
 ```
 .\.venv\Scripts\python.exe -X utf8 -m autopark.perception.fisheye_calib calibrate --images runs/calib/<thư mục> --cols 9 --rows 6 --square-mm 19.95 --port 1
 .\.venv\Scripts\python.exe -X utf8 -m autopark.perception.fisheye_calib check calibration/cam_p1.json --image runs/calib/<thư mục>/cap_000.png
+.\.venv\Scripts\python.exe -X utf8 -m autopark.perception.fisheye_calib calibrate --images runs/calib/<thư mục> --square-mm 19.95 --camera-name tren_cao
 ```
 
-Lệnh `check` in bản tóm tắt. Nếu có `--image`, lệnh ghi thêm ảnh gốc và ảnh nắn đặt cạnh nhau.
+Lệnh `check` in bản tóm tắt. Nếu có `--image`, lệnh ghi thêm ảnh gốc và ảnh nắn đặt cạnh nhau. *(Thêm 02/10/2026, T11:)*
+dòng cuối hiệu chuẩn lại camera ngoài hub; `--port` và `--camera-name` loại trừ nhau, bắt buộc một trong hai; ra
+`calibration/cam_tren_cao.json` khi ảnh 640×480, `calibration/cam_tren_cao_<W>x<H>.json` ở mode khác (ảnh chụp bằng
+lệnh `--size 1280x720` ở mục 3 cho `cam_tren_cao_1280x720.json`); `camera.opencv_index` là null vì không chụp từ
+camera.
 
 ## 5. Đã kiểm gì trên ảnh tổng hợp, và các phép kiểm đó chưa chứng minh gì
 
@@ -234,6 +268,7 @@ Sau khi có `calibration/cam_p<N>.json`, bước tiếp theo là gá camera lên
 với xe) và vẽ **mặt nạ ROI** (loại thân xe, dây, viền ống kính). Cách làm từng bước ở
 [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md). Công cụ ngoại tham đặt bảng in của mục 2 nằm trên sàn ở vị trí đo bằng thước
 và dùng chính nội tham ở đây. Nó từ chối chạy khi thiếu tệp nội tham của camera đó, hoặc khi tệp là của cổng khác.
+*(02/10/2026, T11: cũng từ chối tệp `cam_<tên>.json` của camera ngoài hub, mục 3.)*
 
 Công cụ:
 

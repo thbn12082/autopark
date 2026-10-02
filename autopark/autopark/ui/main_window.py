@@ -13,6 +13,7 @@ import math
 from dataclasses import replace
 from html import escape
 from pathlib import Path
+import sys
 from typing import Callable
 
 from PySide6.QtCore import QElapsedTimer, QPointF, QRectF, QSignalBlocker, Qt, QTimer
@@ -43,8 +44,10 @@ from PySide6.QtWidgets import (
 )
 
 from autopark.application.session import EDITABLE_STATES, Session, SessionError, SessionState
-from autopark.application.vehicle_link import BoardProbe, DriveMode, SimHumanDriver, VehicleLink, probe_board
+from autopark.application.vehicle_link import (BoardFaultClear, BoardProbe, DriveMode, SimHumanDriver, VehicleLink,
+                                               VehicleLinkError, probe_board)
 from autopark.domain.types import Bounds, Obstacle, ParkingMode, ParkingSlot, Pose, wrap_angle
+from autopark.evaluation.sync_marks import DEFAULT_SYNC_DIR, SyncMarkLog, sync_file_path
 from autopark.planning.hybrid_astar import PlanResult
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config, save_scenario
 from autopark.ui import theme
@@ -65,6 +68,7 @@ from autopark.ui.items import (
 )
 from autopark.ui.theme import Card, StatusPill, WrapLabel
 from autopark.ui.cockpit import CockpitStage, DrivingReadout, StepRail
+from autopark.ui.sync_flash import SyncFlash, SyncMarker
 
 SCENE_MARGIN = 0.12
 COLOR_BG = QColor("#0c131b")
@@ -102,6 +106,20 @@ DRIVE_MODE_CHOICES = (
 )
 SIM_BOARD_LABEL = "Bo mô phỏng (mặc định)"
 ESPRESSIF_VID = 0x303A        # VID USB của Espressif (USB CDC/JTAG gắn liền ESP32-S3); chỉ để gợi ý, không để lọc
+# Nút "Xóa lỗi bo (CLEAR_FAULT)" (thêm 02/10/2026, T15): `VehicleLink.clear_fault` trên liên kết đang chọn.
+CLEAR_FAULT_TIP = ("Đọc trạng thái bo của nhánh chạy (VehicleIO hoặc Quan sát). Chỉ khi bo đang FAULT và telemetry báo "
+                   "nút dừng khẩn đã nhả mới gửi CLEAR_FAULT; bo về DISARMED. Không ARM, không gửi lệnh chuyển động. "
+                   "Chỉ dùng khi chưa chạy.")
+
+# Lần chạy đang mở (xe đang chạy hoặc đang dừng; 02/10/2026). Luồng giao diện cũng là luồng của vòng điều khiển 50 Hz,
+# nên khi đó giao diện không ghi đĩa lâu: "Xuất log CSV…"/"Lưu phiên…" bị khóa và gói phát lại (export_run: PowerShell,
+# nén mã nguồn, ≈ 1,4 s) chỉ xuất sau khi xe dừng. Ô "tốc độ chạy" cũng khóa: một lần chạy chỉ một hệ số (cột time_scale).
+RUN_OPEN_STATES = (SessionState.RUNNING, SessionState.STOPPING)
+# Dấu đồng bộ video–log (T14, thêm 02/10/2026): khóa khi xe đang chạy (ô nháy che cockpit 0,5 s, ghi đĩa trên luồng giao
+# diện); dòng CLOCK tự ghi khi phiên vào một trạng thái của lần chạy.
+SYNC_BLOCKED_STATES = RUN_OPEN_STATES
+RUN_STATES = (SessionState.RUNNING, SessionState.STOPPING, SessionState.STOPPED, SessionState.COMPLETED,
+              SessionState.FAULT)
 
 
 def list_serial_ports() -> list[tuple[str, str]]:
@@ -262,6 +280,7 @@ class PoseEditor(QWidget):
 
 class MainWindow(QMainWindow):
     PREVIEW_DT = 0.02   # s mô phỏng giữa hai mẫu xem trước (nhịp điều khiển 50 Hz)
+    SYNC_SOURCE = "ui.app"   # cột source của dấu đồng bộ (T14); BenchWindow của ui.lidar_app đặt "ui.lidar_app"
 
     def __init__(self, session: Session, scenario_path: Path | None = None):
         super().__init__()
@@ -283,6 +302,7 @@ class MainWindow(QMainWindow):
         self._build_controls()
         self._build_inspector()
         self._build_cockpit()
+        self._build_sync_marks()
         self._rebuild_scene()
         self.scene.selectionChanged.connect(self._on_scene_selection_changed)
 
@@ -428,13 +448,18 @@ class MainWindow(QMainWindow):
         self.spin_rt = _spin(0.1, 8.0, 0.1, " ×", 1)
         self.spin_rt.setValue(1.0)
         self.spin_rt.valueChanged.connect(lambda val: setattr(self.session, "realtime_factor", val))
+        # 02/10/2026: khóa khi xe đang chạy (RUN_OPEN_STATES) để một lần chạy chỉ có một hệ số, ghi ở cột time_scale của
+        # dấu đồng bộ (đổi giờ video ↔ thời gian phiên); lái tay và xem trước vẫn đổi được.
+        self.spin_rt.setToolTip("Giây mô phỏng trên một giây thật (nhánh SIM, bo mô phỏng, lái tay, xem trước). Bo chạy "
+                                "thời gian thực bỏ qua hệ số này. Khóa khi xe đang chạy: một lần chạy chỉ có một hệ số, "
+                                "ghi ở cột time_scale của dấu đồng bộ.")
         form.addRow("tốc độ chạy", self.spin_rt)
         self.btn_manual = QPushButton("Lái tay")
         self.btn_export = QPushButton("Xuất log CSV…")
         self.btn_manual.clicked.connect(self._start_manual)
         self.btn_export.clicked.connect(self._export_log)
         keys = WrapLabel("Lái tay: ↑/↓ tốc độ, ←/→ lái, Space phanh, 0 trả lái, R đặt lại, Esc thoát. "
-                         "Khi đang đỗ: Space hoặc Esc để dừng.")
+                         "Khi đang đỗ: Space hoặc Esc để dừng. F8: dấu đồng bộ video–log.")
         keys.setObjectName("hint")
         self.box_sim.add_layout(form)
         self.combo_feedback = QComboBox()
@@ -467,6 +492,10 @@ class MainWindow(QMainWindow):
         self.btn_probe.setToolTip("Mở cổng, gửi HELLO, đọc vài khung telemetry, so giới hạn với cấu hình xe rồi đóng. "
                                   "Không ARM, không gửi lệnh chuyển động.")
         self.btn_probe.clicked.connect(self._probe_board)
+        # T15 (02/10/2026): xóa lỗi bo trên VehicleIO của liên kết đang chọn; hàng riêng vì ngăn chỉ rộng 346 px.
+        self.btn_clear_fault = QPushButton("Xóa lỗi bo (CLEAR_FAULT)")
+        self.btn_clear_fault.setToolTip(CLEAR_FAULT_TIP)
+        self.btn_clear_fault.clicked.connect(self._clear_board_fault)
         self.lbl_board_hint = WrapLabel("")
         self.lbl_board_hint.setObjectName("hint")
         self.lbl_board_report = WrapLabel("")
@@ -474,10 +503,12 @@ class MainWindow(QMainWindow):
         self.lbl_board_report.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.box_board.add(self.combo_port)
         self.box_board.add_layout(theme.row(self.btn_ports, self.btn_probe))
+        self.box_board.add(self.btn_clear_fault)
         self.box_board.add(self.lbl_board_hint, self.lbl_board_report)
         layout.addWidget(self.box_board)
         self.serial_io_factory: Callable[[str], object] = _open_serial_io
         self.last_board_probe: BoardProbe | None = None
+        self.last_board_clear: BoardFaultClear | None = None
         self._link_port: str | None = None     # cổng của liên kết đang chọn (None: bo mô phỏng)
         self._refresh_board_hint()
 
@@ -506,6 +537,16 @@ class MainWindow(QMainWindow):
         self.pill = StatusPill()
         self.lbl_state = self.pill
         row.addWidget(self.pill)
+        self.sync_action = QPushButton("Dấu đồng bộ · F8")
+        self.sync_action.setObjectName("hudButton")
+        self.sync_action.setAccessibleName("Tạo dấu đồng bộ video và log")
+        self.sync_action.setToolTip(
+            "Dấu đồng bộ video–log (T14): nháy ô trắng lớn trên cửa sổ này 0,5 s để camera quay (R3) thấy, ghi dòng "
+            "SYNC_MARK kèm perf_counter vào runs/sync_marks/. Xuất log CSV ghi thêm tệp …_sync_marks.csv cạnh tệp log. "
+            "Dùng trước Bắt đầu đỗ và sau khi xe dừng; khóa khi xe đang chạy.")
+        self.sync_action.setFocusPolicy(Qt.FocusPolicy.NoFocus)   # bấm nút không lấy phím của sa bàn (lái tay)
+        self.sync_action.clicked.connect(lambda: self.make_sync_mark("button"))
+        row.addWidget(self.sync_action)
         self.manual_action = QPushButton("Lái tay")
         self.manual_action.setObjectName("hudButton")
         self.manual_action.clicked.connect(lambda: self.stop() if self.session.state == SessionState.MANUAL
@@ -962,6 +1003,7 @@ class MainWindow(QMainWindow):
         self.scatter_action.setEnabled(editable and any(o.kind == "car" for o in self.session.scenario.obstacles))
         self.manual_action.setEnabled(editable or st == SessionState.MANUAL)
         self.manual_action.setText("Thoát lái tay" if st == SessionState.MANUAL else "Lái tay")
+        self.sync_action.setEnabled(st not in SYNC_BLOCKED_STATES)
         titles = {
             SessionState.EDITING: "Tìm đường đỗ   →", SessionState.PLANNING: "Hủy tính đường",
             SessionState.READY: "Bắt đầu đỗ   →", SessionState.PREPARING_PREVIEW: "Hủy xem trước",
@@ -977,18 +1019,19 @@ class MainWindow(QMainWindow):
         self.preview_action.setEnabled(st == SessionState.READY)
         self.reset_action.setVisible(st in (SessionState.READY, SessionState.COMPLETED))
         self.btn_manual.setEnabled(editable)
+        self.spin_rt.setEnabled(st not in RUN_OPEN_STATES)
         # Hồ sơ phản hồi giả chỉ có tác dụng ở nhánh SIM; nhánh chạy chỉ đổi được khi chưa chạy.
         self.combo_feedback.setEnabled(editable and self.session.vehicle_link is None)
         self.combo_drive.setEnabled(editable)
         # Cổng và "Kiểm kết nối bo" chỉ dùng khi chưa chạy (không mở cổng song song với một lần chạy).
         for widget in (self.combo_port, self.btn_ports, self.btn_probe):
             widget.setEnabled(editable)
+        self._refresh_clear_fault_button()
         self.btn_inject.setVisible(st == SessionState.RUNNING)
         self.btn_loss.setVisible(st == SessionState.RUNNING)
         self.btn_loss.setEnabled(st == SessionState.RUNNING and self.session.feedback is not None
                                  and not self.session.feedback.lost)
-        self.btn_export.setEnabled(len(self.session.log) > 0)
-        self.btn_save_run.setVisible(len(self.session.log) > 0)
+        self._refresh_export_buttons()
         for item in self._obstacle_items.values():
             item.set_editable(editable)
         self.start_item.set_editable(editable)
@@ -1061,8 +1104,18 @@ class MainWindow(QMainWindow):
         elif pr is None:
             self.lbl_plan.setText("Đặt ô đỗ, sau đó tìm đường.")
         elif pr.ok and s.trajectory is not None:
-            self.lbl_plan.setText(f"{s.trajectory.length:.2f} m  ·  {s.trajectory.n_cusps} lần đổi chiều")
-            self.lbl_plan.setToolTip(pr.message)
+            text, tip = f"{s.trajectory.length:.2f} m  ·  {s.trajectory.n_cusps} lần đổi chiều", pr.message
+            cusps = s.cusp_check()                # T12: chỉ báo; chặn ở Session.start_run khi có --max-cusps
+            if cusps.refused:
+                text += (f"  ·  <span style='color:{theme.DANGER}'>"
+                         f"{escape(f'vượt giới hạn {cusps.max_cusps}: không chạy')}</span>")
+            elif cusps.warned:
+                text += (f"  ·  <span style='color:{theme.WARN}'>"
+                         f"{escape(f'nhiều đổi chiều (> {cusps.warn_cusps})')}</span>")
+            if cusps.refused or cusps.warned:
+                tip += "\n" + cusps.describe()
+            self.lbl_plan.setText(text)
+            self.lbl_plan.setToolTip(tip)
         else:
             self.lbl_plan.setText("Chưa có đường phù hợp. Hãy điều chỉnh vị trí.")
             self.lbl_plan.setToolTip(pr.message)
@@ -1356,6 +1409,29 @@ class MainWindow(QMainWindow):
         self._save_scenario()
         self._refresh_all()
 
+    def _refusal_link(self) -> VehicleLink | None:
+        """Liên kết đang chọn khi chỉ nó giữ bằng chứng chưa xuất được (thêm 02/10/2026): log hiện tại không phải của
+        lần chạy qua VehicleIO nào, liên kết chưa mở lần chạy nào, nhưng đã có START bị từ chối (`start_refusals.csv`,
+        ví dụ START_TOO_MANY_CUSPS của T12 — bằng chứng GD2) hay lần bấm "Xóa lỗi bo" (`board_actions.csv`, T15). Xuất log
+        khi đó ghi log của liên kết này: nó chưa chạy lần nào nên không lẫn log của lần chạy cũ. None khi không có."""
+        s = self.session
+        if s.run_snapshot is not None and "vehicle_link" in s.run_snapshot:
+            return None                          # log là của một lần chạy qua VehicleIO: xuất log của chính lần đó
+        link = s.vehicle_link
+        if link is None or link.runs > 0 or not (link.start_refusals or link.board_actions):
+            return None
+        return link
+
+    def _refresh_export_buttons(self) -> None:
+        """"Xuất log CSV…" và "Lưu phiên…": dùng được khi có log của phiên hoặc log từ chối START của liên kết đang chọn
+        (`_refusal_link`); khóa khi lần chạy đang mở (RUN_OPEN_STATES): ghi đĩa trên luồng của vòng điều khiển."""
+        exportable = len(self.session.log) > 0 or self._refusal_link() is not None
+        run_open = self.session.state in RUN_OPEN_STATES
+        for button in (self.btn_export, self.btn_save_run):
+            button.setEnabled(exportable and not run_open)
+            button.setToolTip("Khóa khi xe đang chạy: lưu sau khi xe dừng." if run_open else "")
+        self.btn_save_run.setVisible(exportable)
+
     def _export_log(self) -> None:
         default = str(self._scenario_dir().parent / "logs" / "lan_chay.csv")
         path, _ = QFileDialog.getSaveFileName(self, "Xuất log", default, "CSV (*.csv)")
@@ -1365,22 +1441,45 @@ class MainWindow(QMainWindow):
         # log lái tay (run_snapshot None) không kèm log VehicleIO của lần chạy trước.
         snap = self.session.run_snapshot
         link = self.session.run_link if snap is not None and "vehicle_link" in snap else None
+        refusal_link = None if link is not None else self._refusal_link()
+        bundle, refused = None, ""
+        sync_file = None
         try:
             self.session.log.to_csv(path)
-            if link is not None:
-                # Lần chạy qua VehicleIO / quan sát: ghi commands.csv, telemetry.csv, events.csv, link.json.
-                # Không xuất gói replay: replay_run chỉ phát lại được nhánh SIM.
-                link.write_logs(Path(path).with_suffix("").with_name(Path(path).stem + "_vehicle_io"))
-            elif self.session.run_snapshot is not None and self.session.world is not None:
-                from datetime import datetime
-                from autopark.storage.run_store import export_run
-                bundle = Path(path).with_suffix("").with_name(
-                    Path(path).stem + "_" + datetime.now().strftime("%Y%m%d_%H%M%S_%f"))
-                export_run(self.session, bundle)
+            if link is not None or refusal_link is not None:
+                # Lần chạy qua VehicleIO / quan sát: thư mục <tên>_vehicle_io (log VehicleLink, như trước T9). Chưa có
+                # lần chạy như thế: log START bị từ chối / "Xóa lỗi bo" của liên kết đang chọn (02/10/2026).
+                (link or refusal_link).write_logs(Path(path).with_suffix("").with_name(Path(path).stem + "_vehicle_io"))
+            if self.session.run_snapshot is not None and self.session.world is not None:
+                # Gói <tên>_<thời điểm>: SIM tái mô phỏng; qua VehicleIO (T9, 02/10/2026) có thêm vehicle_io/ và
+                # phát lại bằng log. Gói bị từ chối thì CSV và thư mục _vehicle_io vẫn ghi; chỉ báo ở thanh trạng thái
+                # (không mở hộp thoại).
+                if self.session.state in RUN_OPEN_STATES:
+                    # Lần chạy còn mở (nút đã khóa; đây là lớp phòng thủ cho lời gọi thẳng): export_run chạy PowerShell
+                    # và nén mã nguồn ≈ 1,4 s trên luồng của vòng điều khiển, gói lại tả một lần chạy chưa xong.
+                    refused = "lần chạy chưa kết thúc, chỉ xuất sau khi xe dừng"
+                else:
+                    from datetime import datetime
+                    from autopark.storage.run_store import ReplayNotSupported, export_run
+                    target = Path(path).with_suffix("").with_name(
+                        Path(path).stem + "_" + datetime.now().strftime("%Y%m%d_%H%M%S_%f"))
+                    try:
+                        bundle = export_run(self.session, target)
+                    except ReplayNotSupported as exc:
+                        refused = str(exc)
+            sync_file = self._export_sync_marks(Path(path))
         except OSError as exc:
             QMessageBox.critical(self, "Không ghi được", str(exc))
             return
-        extra = " (+ thư mục _vehicle_io)" if link is not None else ""
+        extra = ""
+        if refused:
+            extra = (" (+ thư mục _vehicle_io; " if link is not None else " (") + f"KHÔNG xuất gói phát lại: {refused})"
+        elif link is not None:
+            extra = " (+ thư mục _vehicle_io" + (f", gói phát lại {bundle.name})" if bundle is not None else ")")
+        if refusal_link is not None:
+            extra += (f" (+ thư mục _vehicle_io của liên kết đang chọn, chưa chạy lần nào: {refusal_link.refused_starts} "
+                      f"lần START bị từ chối, {len(refusal_link.board_actions)} lần Xóa lỗi bo)")
+        extra += " (+ dấu đồng bộ)" if sync_file is not None else ""
         self.statusBar().showMessage(f"Đã ghi {len(self.session.log)} dòng vào {path}{extra}", 5000)
 
     def _set_drive_mode(self, index: int) -> None:
@@ -1443,12 +1542,15 @@ class MainWindow(QMainWindow):
         port = self.board_port()
         if port is None:
             text = ("Bo mô phỏng: VehicleIO và Quan sát đi qua SimVehicleIO + FirmwareModel, tư thế lấy từ mô phỏng. "
-                    "Kiểm kết nối bo ở đây dùng bo mô phỏng.")
+                    "Kiểm kết nối bo ở đây dùng bo mô phỏng. Xóa lỗi bo (CLEAR_FAULT) không dùng với bo mô phỏng: mỗi "
+                    "lần Bắt đầu đỗ tạo bo mới ở DISARMED.")
         else:
             text = (f"Bo THẬT qua {port}. Chọn cổng không mở cổng. Bắt đầu đỗ ở VehicleIO hay Quan sát sẽ bị TỪ CHỐI: "
                     f"chưa có nguồn tư thế thật (định vị LiDAR chưa nối vào phiên); tư thế mô phỏng không dùng với bo "
                     f"thật. Kiểm kết nối bo chỉ gửi HELLO (bo về DISARMED), đọc telemetry rồi đóng cổng; không ARM, "
-                    f"không gửi lệnh chuyển động.")
+                    f"không gửi lệnh chuyển động. Xóa lỗi bo (CLEAR_FAULT, ở nhánh VehicleIO hoặc Quan sát) dùng chính "
+                    f"cổng này: mở, HELLO, đọc trạng thái, chỉ gửi CLEAR_FAULT khi bo đang FAULT và nút dừng khẩn đã "
+                    f"nhả, rồi đóng cổng.")
         self.lbl_board_hint.setText(escape(text))
 
     def _probe_board(self) -> BoardProbe | None:
@@ -1487,6 +1589,60 @@ class MainWindow(QMainWindow):
         body = "<br>".join(escape(line) for line in report.lines())
         self.lbl_board_report.setText(f"<span style='color:{color}'>{body}</span>")
         self.statusBar().showMessage(f"Kiểm kết nối {report.target}: " + ("đạt" if report.ok else "có lỗi"), 6000)
+        return report
+
+    def _clear_fault_blocker(self) -> str | None:
+        """Lý do nút "Xóa lỗi bo" bị khóa; None = dùng được (T15, thêm 02/10/2026)."""
+        st = self.session.state
+        if st not in EDITABLE_STATES:
+            return f"chỉ dùng khi đang chỉnh hoặc sẵn sàng (đang {st.label})"
+        link = self.session.vehicle_link
+        if link is None:
+            return "nhánh Mô phỏng giai đoạn 0 không dùng bo: chọn nhánh VehicleIO hoặc Quan sát"
+        return link.clear_fault_blocker
+
+    def _refresh_clear_fault_button(self) -> None:
+        blocker = self._clear_fault_blocker()
+        self.btn_clear_fault.setEnabled(blocker is None)
+        self.btn_clear_fault.setToolTip(CLEAR_FAULT_TIP + (f"\n\nĐang khóa: {blocker}." if blocker else ""))
+
+    def _clear_board_fault(self) -> BoardFaultClear | None:
+        """"Xóa lỗi bo (CLEAR_FAULT)" trên VehicleIO của nhánh chạy đang chọn (`VehicleLink.clear_fault`).
+
+        Chỉ khi chưa chạy, ở nhánh VehicleIO hoặc Quan sát với bo chọn ở cổng COM; kiểm lại cả khi gọi thẳng (nút đã
+        khóa ở trạng thái khác). Bo thật: hỏi xác nhận trước khi mở cổng. Không ARM, không COMMAND."""
+        blocker = self._clear_fault_blocker()
+        if blocker is not None:
+            self.statusBar().showMessage(f"Không xóa lỗi bo: {blocker}", 6000)
+            return None
+        link = self.session.vehicle_link
+        if link.realtime:
+            port = getattr(link.io, "port", None) or "cổng serial"
+            answer = QMessageBox.question(
+                self, "Xóa lỗi bo (CLEAR_FAULT)",
+                f"Mở {port} nếu chưa mở, gửi HELLO nếu chưa có phiên, rồi đọc trạng thái bo. Chỉ khi bo đang FAULT và "
+                f"telemetry báo nút dừng khẩn đã NHẢ mới gửi CLEAR_FAULT.\n\nCLEAR_FAULT chỉ đưa bo từ FAULT về "
+                f"DISARMED: không ARM, không gửi lệnh chuyển động; bánh xe phải đứng yên. Mở cổng có thể làm ESP32-S3 "
+                f"khởi động lại (DTR/RTS, chưa kiểm).\n\nChỉ tiếp tục nếu {port} là bo ESP32-S3 của xe (không phải "
+                f"LiDAR hay thiết bị khác).",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if answer != QMessageBox.StandardButton.Yes:
+                return None
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            report = link.clear_fault()
+        except VehicleLinkError as exc:
+            self.lbl_board_report.setText(escape(str(exc)))
+            self.statusBar().showMessage(str(exc), 6000)
+            return None
+        finally:
+            QApplication.restoreOverrideCursor()
+            self._refresh_export_buttons()        # dòng board_actions.csv mới: xuất được cả khi chưa chạy lần nào
+        self.last_board_clear = report
+        color = theme.OK if report.ok else theme.WARN
+        body = "<br>".join(escape(line) for line in report.lines())
+        self.lbl_board_report.setText(f"<span style='color:{color}'>{body}</span>")
+        self.statusBar().showMessage(f"CLEAR_FAULT {report.target}: {report.summary()}", 8000)
         return report
 
     @staticmethod
@@ -1556,6 +1712,10 @@ class MainWindow(QMainWindow):
         self._refresh_status()
         if result is not None and not result.ok:
             self.statusBar().showMessage(result.message, 6000)
+        elif result is not None:
+            cusps = self.session.cusp_check()          # T12: đường đổi chiều nhiều / quá giới hạn
+            if cusps is not None and (cusps.refused or cusps.warned):
+                self.statusBar().showMessage(cusps.describe(), 10000)
 
     def preview(self) -> None:
         try:
@@ -1578,11 +1738,17 @@ class MainWindow(QMainWindow):
         self._refresh_status()
 
     def run(self) -> None:
+        if self.sync_flash.lit():
+            # Ô dấu đồng bộ (T14) còn phủ cả cửa sổ và không nhận chuột: cú bấm xuyên qua nó tới nút Bắt đầu đỗ. Chờ ô tắt
+            # (≤ 0,5 s) để xe không chạy khi cockpit còn bị che; không tắt ô sớm (cạnh bật phải đủ dài trong video).
+            self.statusBar().showMessage("Ô dấu đồng bộ còn sáng: chờ ô tắt (0,5 s) rồi mới Bắt đầu đỗ", 4000)
+            return
         try:
             if self.session.state == SessionState.COMPLETED:
                 self.session.reset()
             self.session.start_run()
         except SessionError as exc:
+            self._refresh_export_buttons()         # START bị từ chối qua VehicleIO: có dòng start_refusals để xuất
             QMessageBox.warning(self, "Không bắt đầu được", str(exc))
             return
         self.trail_item.clear()
@@ -1640,6 +1806,122 @@ class MainWindow(QMainWindow):
         self._refresh_status()
         self.view.setFocus()
 
+    # ------------------------------------------------------------------ dấu đồng bộ video–log (T14, 02/10/2026)
+    def _build_sync_marks(self) -> None:
+        """Nhật ký dấu đồng bộ trong bộ nhớ và ô nháy phủ cửa sổ. Tệp sống `sync_dir/<giờ>_<nguồn>.csv` chỉ được tạo ở
+        dấu đầu tiên (dòng CLOCK trước đó nằm trong bộ nhớ và được ghi lúc tạo tệp): không bấm dấu nào thì không ghi gì
+        xuống đĩa. Test đổi `sync_dir` trước dấu đầu tiên."""
+        # Thanh trạng thái có từ đầu: QMainWindow chỉ tạo nó ở lần gọi statusBar() đầu tiên. Tạo sau khi ô nháy đã được
+        # nâng lên trên cùng (lời báo của dấu đầu tiên) thì nó nằm đè lên ô: một dải 22 px màu giao diện trong video.
+        self.statusBar()
+        self.sync_dir = DEFAULT_SYNC_DIR
+        self.sync_marks = SyncMarkLog(self.SYNC_SOURCE)
+        self.sync_flash = SyncFlash(self)
+        self.sync_marker = SyncMarker(self.sync_marks, self.sync_flash,
+                                      open_file=lambda: sync_file_path(self.sync_dir, self.SYNC_SOURCE))
+
+    def make_sync_mark(self, trigger: str = "button") -> dict | None:
+        """Nút "Dấu đồng bộ · F8": nháy ô trắng có số lên cả cửa sổ trong 0,5 s và ghi dòng SYNC_MARK (perf_counter, trạng
+        thái phiên, đồng hồ VehicleIO nếu có). Từ chối khi xe đang chạy (RUNNING/STOPPING), khi ô trước còn sáng hoặc
+        chưa đủ khoảng cách giữa hai dấu; kết quả báo ở thanh trạng thái. Trả dòng đã ghi hoặc None."""
+        if self.session.state in SYNC_BLOCKED_STATES:
+            self.statusBar().showMessage("Dấu đồng bộ chỉ dùng trước Bắt đầu đỗ hoặc sau khi xe đã dừng", 6000)
+            return None
+        row = self.sync_marker.mark(trigger, self._sync_context)
+        if row is None:
+            self.statusBar().showMessage(f"Dấu trước còn đang nháy hoặc chưa đủ {self.sync_marker.min_gap_s:g} s: "
+                                         "bấm lại sau", 4000)
+            return None
+        log = self.sync_marks
+        text = (f"Dấu đồng bộ #{row['n']} lúc {row['t_wall'][11:]}, perf_counter {row['t_perf']:.6f} s → "
+                f"{log.path.name if log.path is not None else '(chưa có tệp)'}")
+        if log.path is None:
+            text += f" — CHƯA GHI ĐƯỢC ra đĩa ({log.error}); dấu vẫn giữ trong bộ nhớ, Xuất log CSV sẽ ghi"
+        elif log.unwritten:                      # cả dòng CLOCK hỏng trước đó, không chỉ dấu này (02/10/2026)
+            text += " — " + self._sync_unwritten_text()
+        self.statusBar().showMessage(text, 10000)
+        return row
+
+    def _sync_unwritten_text(self) -> str:
+        log = self.sync_marks
+        return (f"{log.unwritten} dòng CHƯA GHI ĐƯỢC vào {log.path.name} ({log.error}); vẫn giữ trong bộ nhớ, lần ghi sau "
+                f"ghi lại cả tệp, Xuất log CSV có bản đủ")
+
+    def _warn_sync_unwritten(self) -> None:
+        """Dòng CLOCK không ghi được vào tệp sống (ví dụ tệp đang mở trong Excel, 02/10/2026): báo ở thanh trạng thái, nối
+        sau lời báo đang hiện (nhánh chạy, LIMITS_MISMATCH…) thay vì che nó."""
+        warning = "Dấu đồng bộ: " + self._sync_unwritten_text()
+        current = self.statusBar().currentMessage().split("  ·  Dấu đồng bộ: ")[0]
+        if current.startswith("Dấu đồng bộ"):
+            current = ""
+        self.statusBar().showMessage(f"{current}  ·  {warning}" if current else warning, 10000)
+
+    def _sync_link(self) -> VehicleLink | None:
+        """Liên kết VehicleIO mà dấu đồng bộ đọc đồng hồ: trong và sau một lần chạy là liên kết của chính lần đó
+        (`run_link`); trước Bắt đầu đỗ là liên kết lần chạy tới sẽ dùng (`vehicle_link`)."""
+        s = self.session
+        return s.run_link if s.state in RUN_STATES else s.vehicle_link
+
+    def _time_scale(self) -> float:
+        """Cột `time_scale` (02/10/2026): giây phiên trên một giây thật. Lần chạy (hay lần Bắt đầu đỗ tới) qua VehicleIO
+        thời gian thực: 1, vì thời gian phiên bám `io.now()` và bỏ qua "tốc độ chạy" (`Session.advance`); còn lại (SIM,
+        bo mô phỏng, lái tay): `realtime_factor`."""
+        s = self.session
+        link = self._sync_link()
+        if s.state != SessionState.MANUAL and link is not None and link.realtime:
+            return 1.0
+        return round(s.realtime_factor, 6)
+
+    def _sync_context(self, t_perf: float) -> dict:
+        """Các cột của dòng dấu đồng bộ ngoài perf_counter. `t_session` chỉ khi phiên đang mô phỏng (lái tay): sau một
+        lần chạy đồng hồ phiên đứng yên. `t_io` đọc `io.now()` của liên kết (cổng serial chưa mở vẫn đọc được: đồng hồ
+        perf_counter − hằng số, không chạm cổng). `time_scale`: `_time_scale()`."""
+        s = self.session
+        ctx: dict = {"state": s.state.value, "note": "SIM", "time_scale": self._time_scale()}
+        if s.simulating and s.world is not None:
+            ctx["t_session"] = round(s.world.time, 4)
+        link = self._sync_link()
+        if link is not None:
+            port = getattr(link.io, "port", None)
+            ctx["note"] = f"{link.mode.value}, " + (f"cổng {port}" if port else "bo mô phỏng")
+            if link.io is not None:
+                ctx["t_io"] = round(link.io.now(), 6)
+                ctx["io_clock"] = "realtime" if link.realtime else "sim"
+        return ctx
+
+    def _clock_context(self, t_perf: float, old: SessionState, new: SessionState) -> dict:
+        """Cột của dòng CLOCK lúc phiên đổi trạng thái: `t_session` mỗi khi có `world`, ghi chú là bước chuyển (kèm lý do
+        dừng khi có)."""
+        ctx = self._sync_context(t_perf)
+        if self.session.world is not None:
+            ctx["t_session"] = round(self.session.world.time, 4)
+        note = f"{old.value}→{new.value}"
+        if new != SessionState.RUNNING and self.session.stop_reason:
+            note += f": {self.session.stop_reason}"
+        ctx["note"] = note
+        return ctx
+
+    def _poll_state_change(self) -> None:
+        """Gọi mỗi nhịp, ngay sau khi mô phỏng tiến: phiên đổi trạng thái thì cập nhật giao diện (như trước 02/10/2026);
+        trạng thái mới thuộc một lần chạy (RUN_STATES) thì thêm một dòng CLOCK ghép perf_counter với thời gian phiên
+        trong cùng nhịp (≈ 16 ms; tới 100 ms khi giao diện khựng, vì real_dt bị chặn)."""
+        st = self.session.state
+        if st == self._last_state:
+            return
+        old, self._last_state = self._last_state, st
+        if st in RUN_STATES:
+            self.sync_marker.clock_row("state_change", lambda t: self._clock_context(t, old, st))
+            if self.sync_marks.path is not None and self.sync_marks.unwritten:
+                self._warn_sync_unwritten()
+        self._refresh_mode_widgets()
+        self._refresh_status()
+
+    def _export_sync_marks(self, csv_path: Path) -> Path | None:
+        """Bản đầy đủ của dấu đồng bộ (cả dòng CLOCK) cạnh tệp log: `<tên>_sync_marks.csv`. Chưa có dấu nào: không ghi."""
+        if self.sync_marks.marks == 0:
+            return None
+        return self.sync_marks.write_csv(csv_path.with_name(csv_path.stem + "_sync_marks.csv"))
+
     # ------------------------------------------------------------------ nhịp
     def _on_tick(self) -> None:
         real_dt = min(self._clock.restart() / 1000.0, 0.1)
@@ -1656,10 +1938,7 @@ class MainWindow(QMainWindow):
             self._advance_preview(real_dt)
         elif self.session.simulating:
             self.advance_by(real_dt)
-        if self.session.state != self._last_state:
-            self._last_state = self.session.state
-            self._refresh_mode_widgets()
-            self._refresh_status()
+        self._poll_state_change()
 
     def _advance_preview(self, real_dt: float) -> None:
         pv = self.session.preview
@@ -1687,12 +1966,16 @@ class MainWindow(QMainWindow):
             if out is not None and out.lookahead is not None:
                 self.lookahead_item.setPos(out.lookahead.x, out.lookahead.y)
         self._refresh_status()
-        self.btn_export.setEnabled(len(self.session.log) > 0)
+        self._refresh_export_buttons()
 
     def _handle_key(self, event) -> bool:
         key = event.key()
         K = Qt.Key
         st = self.session.state
+        if key == K.Key_F8:                       # dấu đồng bộ (T14): trước mọi phím khác, kể cả khi lái tay
+            if not event.isAutoRepeat():
+                self.make_sync_mark("key_f8")
+            return True
         if key == K.Key_Escape:
             if self.mode_menu.isVisible():
                 self.mode_selector.setChecked(False)
@@ -1762,5 +2045,13 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         self._timer.stop()
+        log = self.sync_marks                    # thử lần cuối ghi đủ tệp dấu đồng bộ (02/10/2026)
+        if log.path is not None:
+            lost = 0 if log.flush() else log.unwritten
+        else:
+            lost = len(log.rows) if log.marks else 0      # có dấu mà chưa tạo được tệp sống (lỗi ở log.error)
+        if lost:
+            print(f"CẢNH BÁO: {lost} dòng dấu đồng bộ chưa ghi được ra đĩa ({log.error}); mất khi đóng cửa sổ nếu chưa "
+                  f"Xuất log CSV", file=sys.stderr)
         self.session.close()
         super().closeEvent(event)

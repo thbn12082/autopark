@@ -26,6 +26,7 @@ from PySide6.QtWidgets import QApplication, QDockWidget  # noqa: E402
 from shapely.geometry import Polygon  # noqa: E402
 
 from autopark.application.session import SessionState  # noqa: E402
+from autopark.application.vehicle_link import SESSION_STOP, DriveMode  # noqa: E402
 from autopark.domain.types import Obstacle  # noqa: E402
 from autopark.fusion import camera_ai  # noqa: E402
 from autopark.geometry.footprint import obstacle_polygon  # noqa: E402
@@ -228,6 +229,120 @@ def test_stale_ai_while_driving_warns_by_default_and_stops_only_when_required(qa
         assert session.state == SessionState.STOPPING and dock.stale_stops == 1
         assert "AI camera" in session.stop_reason and "AI bắt buộc" in session.stop_reason
     finally:
+        dock.shutdown()
+        window.close()
+
+
+def running_in_vehicle_io(front_calibration):
+    """Như `running_with_known_box` nhưng chạy qua nhánh 'VehicleIO: gửi lệnh tới bo' với bo mô phỏng của cửa sổ (không
+    mở cổng nào); trả về khi xe đang chạy và AI đang mới."""
+    window, dock = open_window(test_rig=True)
+    seg = SceneSegmenter("gia.pt", front_calibration, SyntheticScene(boxes=(OFF_PATH,)))
+    rig = fake_rig(seg)
+    dock.attach_rig(rig, camera_ai.SOURCE_FAKE)
+    assert pump(dock, lambda: bool(dock.bridge.owned())), dock.lbl_gate.text()
+    combo = window.combo_drive
+    combo.setCurrentIndex(combo.findData(DriveMode.VEHICLE_IO.value))
+    assert window.session.drive_mode == DriveMode.VEHICLE_IO and window.board_port() is None
+    assert window.plan(sync=True).ok
+    window.run()
+    window.advance_by(0.5)
+    # Test bật 'AI bắt buộc' sau bước này: nhịp đầu sau lúc luồng giao diện bận chạy mô phỏng có thể thấy AI cũ (AI
+    # không bắt buộc thì chỉ cảnh báo), nên chờ tới khi AI mới để mã dừng đúng là mã test gây ra.
+    assert pump(dock, lambda: not dock.stale, timeout=3.0) and window.session.state == SessionState.RUNNING
+    return window, dock, rig
+
+
+def broken_update(*a, **k):
+    raise RuntimeError("hỏng giả")
+
+
+@pytest.mark.parametrize("case, code", [("stale", "CAMERA_AI_STALE"), ("disabled", "CAMERA_AI_DISABLED"),
+                                        ("error", "CAMERA_AI_ERROR"), ("config", "CAMERA_AI_CONFIG_CHANGED"),
+                                        ("unknown_kind", "CAMERA_AI_UNUSABLE")])
+def test_ai_stop_in_vehicle_io_is_logged_with_its_code(qapp, front_calibration, case, code):
+    """T13 (02/10/2026): qua VehicleIO, yêu cầu dừng của ngăn AI camera thành dòng session_stop đầu tiên của events.csv
+    với mã của nó và nguồn camera_dock: AI quá cũ, tắt AI, lỗi bất ngờ khi xử lý lô (ba trường hợp có 'AI bắt buộc'), và
+    đổi cấu hình trong lúc chạy (chốt chặn cuối, ô bị khóa). Sau review 02/10/2026: loại "không dùng được" chưa có trong
+    bảng mã vẫn dừng xe, với mã chung CAMERA_AI_UNUSABLE (trước đó KeyError trong timer và xe không dừng)."""
+    window, dock, rig = running_in_vehicle_io(front_calibration)
+    session = window.session
+    try:
+        dock.chk_required.setChecked(True)
+        if case == "stale":
+            dock._now = lambda: rig.clock() + 5.0                             # 5 s không có lô mới
+            dock.tick()
+        elif case == "disabled":
+            dock.stop_ai()
+        elif case == "error":
+            dock.mapper.update = broken_update
+            dock.tick()
+        elif case == "unknown_kind":
+            dock._unusable_while_driving("dong_bang", "camera đứng hình")       # loại mới quên thêm vào bảng mã
+        else:
+            dock.spin_threshold.setValue(0.20)
+            dock.tick()
+        assert session.state == SessionState.STOPPING and dock.stale_stops == 1
+        first = next(r for r in session.run_link.event_rows if r["handling"] == SESSION_STOP)
+        assert (first["code"], first["source"], first["action"]) == (code, "camera_dock", "STOP")
+        assert first["message"] == session.stop_reason
+        if case == "stale":
+            assert "quá cũ" in first["message"]
+    finally:
+        dock.shutdown()
+        window.close()
+
+
+def test_every_unusable_kind_used_by_the_dock_has_its_own_stop_code():
+    """Sau review 02/10/2026: mọi loại `kind` mà ngăn truyền cho `_unusable_while_driving` có mã dừng riêng trong
+    `_UNUSABLE_CODES` (mã chung CAMERA_AI_UNUSABLE chỉ là lưới an toàn khi quên)."""
+    import inspect
+    import re
+
+    from autopark.ui import camera_dock
+
+    kinds = set(re.findall(r'_unusable_while_driving\(\s*"(\w+)"', inspect.getsource(camera_dock)))
+    assert {"error", "blocked", "none", "stale"} <= kinds <= set(camera_dock._UNUSABLE_CODES)
+    assert camera_dock._UNUSABLE_DEFAULT_CODE not in camera_dock._UNUSABLE_CODES.values()
+
+
+def test_frozen_camera_makes_the_ai_stale_then_required_ai_stops_the_run(qapp, front_calibration):
+    """T6 (CB-2, phần MP; thêm 02/10/2026): camera giả duy nhất THẬT SỰ ngừng trả khung (STALL của `FreezeSwitch`, cài
+    trước khi dựng Rig) giữa lúc xe ảo chạy — không dời đồng hồ như test trên. AI cũ sau ≈ 0,5 s: cảnh báo một lần, xe
+    vẫn chạy, giữ hộp AI; bật 'AI bắt buộc' thì dừng."""
+    from autopark.safety.fault_injection import FaultLog, FreezeMode, FreezeSwitch, freezable_open_source
+
+    window, dock = open_window(test_rig=True)
+    session = window.session
+    seg = SceneSegmenter("gia.pt", front_calibration, SyntheticScene(boxes=(OFF_PATH,)))
+    log = FaultLog()
+    switch = FreezeSwitch("cam_p1", log=log)
+    cams = fake_manager(ports=(1,), period=0.03, size=SIZE)
+    worker = cams.workers[1]
+    worker.open_source = freezable_open_source(worker.open_source, {1: switch})
+    rig = Rig(cams, RigConfig(checkpoint="gia.pt"), make_segmenter=lambda path: seg)
+    dock.attach_rig(rig, camera_ai.SOURCE_FAKE)
+    try:
+        assert pump(dock, lambda: bool(dock.bridge.owned()))
+        known = ai_ids(window)
+        assert window.plan(sync=True).ok
+        window.run()
+        window.advance_by(0.5)
+        dock.tick()
+        assert not dock.stale and session.state == SessionState.RUNNING
+        t_freeze = switch.freeze(FreezeMode.STALL).t_rig
+        assert pump(dock, lambda: dock.stale, timeout=1.5), dock.lbl_rate.text()
+        assert rig.clock() - t_freeze >= 0.45                               # tuổi lô AI phải quá 0,5 s mới "cũ"
+        assert "CŨ" in dock.lbl_rate.text()
+        assert session.state == SessionState.RUNNING and dock.stale_warnings == 1   # cảnh báo MỘT lần, xe vẫn chạy
+        assert ai_ids(window) == known                                       # giữ vật cản đã có
+        dock.chk_required.setChecked(True)
+        dock.tick()
+        assert session.state == SessionState.STOPPING and dock.stale_stops == 1
+        assert "AI camera" in session.stop_reason and "quá cũ" in session.stop_reason
+        assert [r.code for r in log.records] == ["FAULT_CAMERA_STALL"]
+    finally:
+        switch.release()                                                     # TRƯỚC khi dừng luồng camera
         dock.shutdown()
         window.close()
 

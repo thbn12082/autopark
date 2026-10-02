@@ -335,6 +335,18 @@ def test_bad_inputs_are_refused_with_reasons(intr, tmp_path, monkeypatch):
     assert not ec.solve_extrinsics([], SPEC, intr).ok
 
 
+def test_intrinsics_of_a_camera_outside_the_hub_are_refused_for_extrinsics(tmp_path):
+    """T11: tệp cam_<tên>.json của camera ngoài hub (hub_port null) bị từ chối rõ ràng, không thành TypeError."""
+    record = ec.synthetic_intrinsics_record(1)
+    record["camera"] = {"hub_port": None, "name": "tren_cao", "opencv_index": 4, "source_id": "cam_tren_cao",
+                        "device": None}
+    path = fc.save_calibration(tmp_path / "cam_tren_cao.json", record)
+    assert fc.load_calibration(path)["camera"]["hub_port"] is None              # tệp vẫn hợp lệ với fisheye_calib
+    for port in (1, None):
+        with pytest.raises(ec.ExtrinsicsError, match="ngoài hub \\('tren_cao'\\)"):
+            ec.load_camera_intrinsics(path, port)
+
+
 # ---- tệp rig ------------------------------------------------------------------------------------------------------------
 @pytest.fixture
 def good_result(intr):

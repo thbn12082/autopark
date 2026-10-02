@@ -1,8 +1,9 @@
 # calibration/: tệp hiệu chuẩn camera
 
-Thư mục này chứa hiệu chuẩn **nội tham** của từng camera, gọi theo **cổng hub**. Index OpenCV của camera đổi sau khi
-khởi động lại máy, còn cổng hub thì không (docs/usb_topology.md). Hướng dẫn in bảng, chụp ảnh, tiêu chí chấp nhận và
-những gì chưa làm nằm ở [docs/HIEU_CHUAN_CAMERA.md](../docs/HIEU_CHUAN_CAMERA.md).
+Thư mục này chứa hiệu chuẩn **nội tham** của từng camera, gọi theo **cổng hub** *(camera không qua hub, thêm
+02/10/2026: gọi theo tên, xem bảng dưới)*. Index OpenCV của camera đổi sau khi khởi động lại máy, còn cổng hub thì không
+(docs/usb_topology.md). Hướng dẫn in bảng, chụp ảnh, tiêu chí chấp nhận và những gì chưa làm nằm ở
+[docs/HIEU_CHUAN_CAMERA.md](../docs/HIEU_CHUAN_CAMERA.md).
 
 ## Đặt tên
 
@@ -10,6 +11,7 @@ những gì chưa làm nằm ở [docs/HIEU_CHUAN_CAMERA.md](../docs/HIEU_CHUAN_
 |---|---|
 | `cam_p<N>.json` | Nội tham camera ở cổng hub N (1..4), mode **640×480**, là mode chạy chung bốn camera |
 | `cam_p<N>_<W>x<H>.json` | Nội tham cùng camera đó ở mode khác, ví dụ `cam_p2_1280x720.json`. Đây là một hiệu chuẩn riêng: K của mode này không đem dùng cho mode kia |
+| `cam_<tên>.json`, `cam_<tên>_<W>x<H>.json` | *(Thêm 02/10/2026, T11.)* Nội tham camera KHÔNG qua hub 1..4 (camera trên cao), khóa theo tên `--camera-name` (chữ thường không dấu, số, gạch dưới, bắt đầu bằng chữ, tối đa 32 ký tự; không bắt đầu bằng `p<số>`, không kết thúc bằng `_<W>x<H>`). Tạo bằng `calib_app --index N [--camera-name TÊN]` (tên mặc định `tren_cao`; ảnh và bản sao ở `runs/calib/<ngày giờ>_<tên>/`) hay `fisheye_calib calibrate --images <thư mục> --camera-name TÊN` (phải có `--port` hoặc `--camera-name`, không có tên mặc định; không ghi gì vào `runs/calib/`). BEV và AI camera không đọc tệp này; công cụ ngoại tham và ROI từ chối nó với lời báo rõ. Chỉ kiểm offscreen với camera giả |
 | `bang_in/ban_co_9x6_20mm_A4.{pdf,png,json}` | Bảng để in, khổ A4, ô danh định 20 mm (tạo bằng `python -m autopark.perception.calib_board`) |
 | `bang_in/ban_co_9x6_30mm_A3.{pdf,png,json}` | Như trên, khổ A3, ô 30 mm |
 
@@ -26,7 +28,7 @@ Nếu chỉnh cỡ ô danh định, dạng tên tệp bảng in sẽ đổi theo
 
 | Khóa | Ý nghĩa |
 |---|---|
-| `camera.hub_port`, `camera.source_id` | Cổng hub (danh tính của camera) và tên nguồn `cam_pN` |
+| `camera.hub_port`, `camera.source_id` | Cổng hub (danh tính của camera) và tên nguồn `cam_pN`. *(02/10/2026, T11: camera ngoài hub có `hub_port` = `null`, thêm `camera.name` và `camera.opencv_index` (index OpenCV lúc chụp, chỉ để tra; `null` khi hiệu chuẩn từ thư mục ảnh), `source_id` = `cam_<tên>`)* |
 | `image_size` | [rộng, cao] của ảnh đã hiệu chuẩn. Chỉ dùng K, D cho ảnh đúng cỡ này |
 | `model`, `K`, `D` | Mô hình Kannala–Brandt của `cv2.fisheye`: ma trận K 3×3 (skew = 0) và 4 hệ số D. Dùng thẳng với `cv2.fisheye.*` |
 | `rms_px`, `opencv_rms`, `max_view_rms_px` | RMS chiếu lại trên mọi góc của các ảnh được dùng; số do OpenCV trả về; RMS của ảnh tệ nhất còn dùng |

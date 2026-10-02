@@ -21,6 +21,10 @@ Mọi ngưỡng dưới đây là **ĐỀ XUẤT – CHỜ CHỐT**, chưa kiể
 **Thứ tự bắt buộc:**
 
 1. Nội tham từng camera ([HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md)) → `calibration/cam_p<N>.json` (mode 640×480).
+   *(Thêm 02/10/2026, T11: tệp `cam_<tên>.json` của camera không qua hub 1..4, như camera trên cao, không dùng được ở
+   đây: `load_camera_intrinsics` từ chối nó ("… là nội tham của camera ngoài hub …: ngoại tham và ROI chỉ dành cho camera
+   xe theo cổng hub 1..4"), cả ở dòng lệnh lẫn giao diện `roi_app`; test
+   `test_intrinsics_of_a_camera_outside_the_hub_are_refused_for_extrinsics`.)*
 2. Gá camera **cứng** lên xe, chốt cổng nào là hướng nào.
 3. Ngoại tham (mục 2–5 ở đây) → `configs/rig/camera_rig_extrinsics_v1.json`.
 4. ROI (mục 6) → `configs/roi/rig_v1/roi_p<N>.png`.
@@ -32,7 +36,7 @@ Gá lại camera, hay xe bị va, thì phải đo lại ngoại tham và dựng 
 
 | Việc | Mã | Kiểm (không cần thiết bị) |
 |---|---|---|
-| Ngoại tham: tư thế bảng từ số đo thước, dò và đánh số góc bảng, giải tư thế camera, gộp nhiều lần đặt, loại lần đặt lệch, các phép kiểm, ghi/đọc tệp rig, ảnh kiểm (lưới hệ xe và hộp thân xe chiếu lên ảnh), dòng lệnh, bộ thử tổng hợp | `perception/extrinsics_calib.py` | `tests/test_extrinsics_calib.py` (29 test) |
+| Ngoại tham: tư thế bảng từ số đo thước, dò và đánh số góc bảng, giải tư thế camera, gộp nhiều lần đặt, loại lần đặt lệch, các phép kiểm, ghi/đọc tệp rig, ảnh kiểm (lưới hệ xe và hộp thân xe chiếu lên ảnh), dòng lệnh, bộ thử tổng hợp | `perception/extrinsics_calib.py` | `tests/test_extrinsics_calib.py` (29 test; *02/10/2026: 35 mục khi đếm bằng `--collect-only`, gồm test từ chối tệp nội tham của camera ngoài hub, T11*) |
 | ROI: đa giác → mặt nạ PNG, nới vùng loại, ghi/đọc, kiểm một mặt nạ, dòng lệnh | `perception/roi_tool.py` | `tests/test_roi_tool.py` (phần ROI, 9 test) |
 | Giao diện hai thẻ "Ngoại tham" và "ROI": mở ảnh, bộ ảnh bàn thử, hoặc camera sống theo cổng hub | `ui/roi_app.py` | `tests/test_roi_tool.py` (phần giao diện, 10 test, offscreen; camera sống là nguồn giả) |
 

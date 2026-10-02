@@ -642,7 +642,7 @@ class Rig:
         rec, self.recorder = self.recorder, None
         if rec is None:
             return None if self.last_recorder is None else self.last_recorder.status()
-        rec.set_final_meta(cameras_at_stop=self.cams.camera_stats(),
+        rec.set_final_meta(cameras_at_stop=self.cams.camera_stats(t_end=self.stats_end_t()),
                            lidar_at_stop=None if self.lidar is None else self.lidar.stats(self.clock()))
         return rec.stop(wait=wait, timeout=timeout)
 
@@ -769,17 +769,25 @@ class Rig:
     def replay_status(self) -> dict | None:
         return None if self.replay is None else self.replay.status()
 
+    def stats_end_t(self) -> float | None:
+        """Mốc cuối phiên cho khoảng hở cuối của từng camera (`gap_end_ms`, T10): None = lúc lấy số (thiết bị thật); khi
+        phát lại là cuối bản ghi (`ReplaySession.end_t`), vì hết bản ghi không phải camera ngừng. Lấy số tổng kết TRƯỚC
+        `stop()`, như `rig.bench`: sau `stop()` cả thời gian dừng luồng cũng bị tính là khoảng hở."""
+        return None if self.replay is None else self.replay.end_t()
+
     def snapshot(self, window: int | None = LIVE_WINDOW) -> dict:
         now = self.clock()
-        return {"t_s": _r(now - (self.t_start or now), 2), "policy": self.policy(), "cameras": self.cams.stats(window),
+        return {"t_s": _r(now - (self.t_start or now), 2), "policy": self.policy(),
+                "cameras": self.cams.stats(window, t_end=self.stats_end_t()),
                 "lidar": None if self.lidar is None else {**self.lidar.stats(now), "vs_set": self._lidar_offset_stats(window)},
                 "ai": None if self.ai is None else self.ai.stats(now, window), "resources": self.monitor.latest(),
                 "recording": self.recording_status(), "replay": self.replay_status()}
 
     def summary(self) -> dict:
+        """Số cả phiên kể từ `reset_counters`. Gọi TRƯỚC `stop()` (xem `stats_end_t`)."""
         now = self.clock()
         duration = now - (self.t_start or now)
-        cams = self.cams.stats(window=None)
+        cams = self.cams.stats(window=None, t_end=self.stats_end_t())
         per_cam = [{**c, "fps_mean": round(c["frames"] / duration, 2) if duration > 0 else None} for c in cams["cameras"]]
         return {"duration_s": round(duration, 2), "clock": clock_info(),
                 "stamps": "camera: lúc read() trả khung (gồm giải mã); LiDAR: lúc gói chứa điểm cuối của vòng tới máy",

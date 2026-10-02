@@ -157,6 +157,12 @@ Vì thế `camera_ai` không dùng hàm đó (mục 10).
   đủ `min_hits` lô (test `test_filter_window_reset_while_editing_keeps_the_ai_boxes`).
 - Đổi ngưỡng, cửa sổ lọc, lề, cách đặt camera hay nạp lại hiệu chuẩn giữa lần chạy thì dừng xe, vì bản đồ đang dùng
   không còn là bản đồ đã lập đường. Các ô này bị khóa khi xe chạy; dừng xe là chốt chặn cuối.
+- *(Thêm 02/10/2026, T13; chỉ kiểm với bo mô phỏng và camera giả.)* Qua `VehicleIO`, mỗi yêu cầu dừng của ngăn là một
+  dòng `session_stop` trong `events.csv`, nguồn `camera_dock`, với mã: `CAMERA_AI_CONFIG_CHANGED` (đổi cấu hình lúc chạy),
+  `CAMERA_AI_DISABLED` (tắt AI), `CAMERA_AI_STALE`, `CAMERA_AI_NO_RESULT`, `CAMERA_AI_BLOCKED`, `CAMERA_AI_ERROR` (AI
+  không dùng được); loại "không dùng được" chưa có mã riêng dùng `CAMERA_AI_UNUSABLE` (thêm sau review). Mọi mã trừ
+  `CAMERA_AI_CONFIG_CHANGED` chỉ có khi tích "AI bắt buộc". Cách đọc dòng này: [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md)
+  mục 5.
 
 ## 6. Hai cách đặt camera
 
@@ -226,7 +232,8 @@ Lệnh 1 mở LiDAR ở cổng ghi trong `configs/thiet_bi.json`; thêm `--port 
 - đặt BEV vào lưới: 150 tư thế ngẫu nhiên, một ô vật cản không bao giờ mất và phình tối đa một ô; lấy mẫu gần nhất
   làm mất nó ở tư thế 45° đã chọn.
 
-`tests/test_camera_dock_ui.py`, 20 hàm test (23 mục), offscreen:
+`tests/test_camera_dock_ui.py`, 20 hàm test (23 mục), offscreen *(cập nhật 02/10/2026: nay 23 hàm, 30 mục, đếm bằng
+`--collect-only`; ba hàm mới nằm ngay sau ý "AI cũ lúc chạy")*:
 
 - phát lại một phiên ghi từ camera giả (Rig thật, PNG 640×480) với rig tổng hợp: hộp AI hiện trên sa bàn lúc chỉnh, đúng
   chỗ. Hộp LiDAR và hộp người dùng ở chỗ camera thấy sàn trống không bị đụng tới. Hết bản ghi thì ngăn ghi "CŨ", hộp
@@ -235,6 +242,15 @@ Lệnh 1 mở LiDAR ở cổng ghi trong `configs/thiet_bi.json`; thêm `--port 
   STOPPING, có MAP_CHANGED, rồi xe dừng hẳn không va chạm;
 - AI cũ lúc chạy: mặc định một cảnh báo, xe vẫn chạy, giữ hộp. Tích "AI bắt buộc" thì dừng, lý do nêu "AI camera" và
   "AI bắt buộc";
+- *(thêm 02/10/2026, T6)* camera giả duy nhất THẬT SỰ ngừng trả khung (STALL của `FreezeSwitch`, cài trước khi dựng Rig,
+  không dời đồng hồ như test trên): AI cũ sau ≈ 0,5 s, một cảnh báo, xe vẫn chạy, giữ hộp; tích "AI bắt buộc" thì
+  STOPPING, lý do "AI camera … quá cũ" (`test_frozen_camera_makes_the_ai_stale_then_required_ai_stops_the_run`);
+- *(thêm 02/10/2026, T13)* qua `VehicleIO` (bo mô phỏng), yêu cầu dừng của ngăn là dòng `session_stop` đầu tiên của
+  `events.csv` với đúng mã và nguồn `camera_dock`: AI quá cũ, tắt AI, lỗi bất ngờ khi xử lý lô, đổi cấu hình lúc chạy;
+  sau review thêm ca loại "không dùng được" chưa có trong bảng mã, dừng với `CAMERA_AI_UNUSABLE` (trước đó `KeyError`
+  trong timer và xe không dừng) (`test_ai_stop_in_vehicle_io_is_logged_with_its_code`, 5 mục);
+- *(thêm 02/10/2026, sau review)* mọi loại "không dùng được" mà ngăn truyền đi đều có mã dừng riêng
+  (`test_every_unusable_kind_used_by_the_dock_has_its_own_stop_code`);
 - rig tổng hợp: không có bản ghi thì từ chối bật, không gọi `resolve_ports`; nguồn khai "live" thì chặn mọi lô, 0 hộp;
 - rig thật không có tệp hiệu chuẩn: 0 hộp, lý do hiện ở ngăn và log, theo trình tự HIEU_CHUAN_CAMERA → NGOAI_THAM_VA_ROI
   mục 1 → mục 6, không có "Errno";
@@ -327,9 +343,10 @@ tệp ngoại tham đo `configs/rig/camera_rig_extrinsics_v1.json` (bước 2), 
 
 ### 8.3. CHƯA THỬ, CHƯA ĐO
 
-Chưa chạy với camera thật đang mở. Chưa chạy trên xe, chưa qua VehicleIO. Chưa có camera nào được hiệu chuẩn. Chưa đo
-sai số vị trí vật cản AI trên sa bàn. Chưa đo tỉ lệ báo động giả hay bỏ sót của AI trên ảnh sa bàn. Chưa đo độ trễ từ
-lúc vật xuất hiện tới lúc xe dừng.
+Chưa chạy với camera thật đang mở. Chưa chạy trên xe, chưa qua VehicleIO *(cập nhật 02/10/2026: lệnh dừng của ngăn đã
+chạy qua `VehicleIO` với bo mô phỏng và camera giả trong test, mục 8.1; với bo thật CHƯA THỬ)*. Chưa có camera nào được
+hiệu chuẩn. Chưa đo sai số vị trí vật cản AI trên sa bàn. Chưa đo tỉ lệ báo động giả hay bỏ sót của AI trên ảnh sa bàn.
+Chưa đo độ trễ từ lúc vật xuất hiện tới lúc xe dừng.
 
 ## 9. Giới hạn
 

@@ -56,6 +56,12 @@ PowerShell, cmd không hiểu). Dòng `#` là chú thích, đừng dán vào cmd
   - Lỗi ghi (đĩa đầy, mất quyền…): trạng thái chuyển thành `LỖI`, câu lỗi được giữ nguyên văn, và mọi khung sau đó bị bỏ
     và đếm. Giao diện ghi "LỖI GHI: …".
   - `rig.bench` trả mã 1 và in "CẢNH BÁO: bản ghi … không trọn" khi bản ghi có lỗi, có khung bị bỏ, hoặc chưa ghi nốt xong.
+- *(Thêm 02/10/2026, T14; chỉ kiểm offscreen, màn hình thật CHƯA THỬ.)* **Dấu đồng bộ video–log không nằm trong thư mục
+  bản ghi.** `rig.bench --sync-mark` ghi dấu vào `<out>/<name>.sync.csv` cạnh `<name>.rig.json` (và khóa `sync_marks`
+  trong `.rig.json`); nút "Dấu đồng bộ (F8)" của `ui.rig_app` ghi vào `runs/sync_marks/<giờ>_ui_rig_app.csv`, cột `state`
+  = `recording` khi đang ghi phiên. Cột `t_perf` của dấu là `perf_counter`, cùng đồng hồ với mọi `t_s` của bản ghi (mục
+  3), nên đặt được dấu lên trục thời gian của bản ghi khi cùng máy và cùng lần khởi động máy. Không dùng với `--replay`:
+  bench từ chối, nút của `rig_app` khóa khi phát lại.
 
 ## 2. Phát lại
 
@@ -216,11 +222,22 @@ phép đổi mà `LidarWorker` dùng. `created_utc` ứng với `t_start_s`, nê
       (`read_failures`, `errors` của LiDAR) thì bằng lúc ghi;
     - ghi lại một phiên phát lại thì thông báo của các lỗi này có thêm một tiền tố "RuntimeError: ". Khung cũ, bị cắt, xé
       và đọc lỗi (`FrameReadError`) thì không bị, vì chúng được ném lại đúng lớp và đúng nguyên văn.
+12. **Khoảng hở cuối của camera khi phát lại** (T10, thêm 02/10/2026; chỉ kiểm với nguồn giả). Từ T10, `gap_max_ms` của
+    từng camera trong `.rig.json` tính cả khoảng hở còn mở lúc chốt số (`gap_end_ms`; nghĩa cũ ở `gap_closed_max_ms`).
+    Khi phát lại, `gap_end_ms`, và `gap_max_ms` tính từ nó, đo tới cuối bản ghi — max(mục cuối, `t_stop_s` của
+    `meta.json`), đổi sang đồng hồ phát lại (`ReplaySession.end_t`) — không tới lúc bench chốt số, vì hết bản ghi không
+    phải camera ngừng. Đo tới lúc chốt số thì mọi camera có một khoảng hở giả bằng lúc chờ sau mục cuối (bench chờ
+    `REPLAY_END_GRACE_S` = 0,3 s; lượt viết mã T10 ngày 02/10/2026 thử thấy ≈ 0,3–0,6 s, không lưu log).
+    `--seconds` ngắn hơn bản ghi thì mốc là lúc chốt số. Ở mọi phiên,
+    khoảng hở đi qua lúc hết phần làm nóng được tính đủ cả phần trước đó, nên camera ngừng trong lúc làm nóng có
+    `gap_max_ms` lớn hơn `--seconds` (`video/multicam.py`, `camera_stats`). Test:
+    `test_replay_measures_the_open_gap_to_the_end_of_the_recording_not_to_now`.
 
 ## 6. Kiểm thử (24/09/2026)
 
 `tests/test_rig_replay.py`, 27 hàm (14 hàm ban đầu, 12 hàm thêm sau lượt xem xét 24/09, 1 hàm làm nóng AI thêm tối
-24/09 sau phiên thật, mục 7), dùng nguồn giả trong
+24/09 sau phiên thật, mục 7; *02/10/2026: nay 28, thêm test khoảng hở cuối khi phát lại của T10, mục 5 ý 12*), dùng
+nguồn giả trong
 `tests/rig_fakes.py` (camera có vân, giữ mọi khung đã trả; khung cũ mỗi 11 lần đọc, khung cắt mỗi 7 lần; LiDAR giả có chất
 lượng từng tia). Các test kiểm:
 

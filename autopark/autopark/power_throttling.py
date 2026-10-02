@@ -5,8 +5,9 @@ có thể bị dồn sang lõi E hay hạ xung dù máy rảnh. Đo 30/09/2026 t
 từ shell không cửa sổ: để Windows tự quyết thì 2/2 lượt có test hỏng (1 và 3 test, ví dụ `uturn_w46` hết hạn 8 s), tổng
 thời gian 55 s và 103 s; tiến trình tự tắt EcoQoS thì 2/2 lượt đạt 15/15, 36 s và 40 s (docs/CHUYEN_MAY_BAN.md mục 8).
 
-Dùng ở: QEMU của bo ảo (`transport/qemu_board.py`), tiến trình pytest (`tests/conftest.py`). Chỉ có tác dụng trên
-Windows; nơi khác các hàm trả False / None và không làm gì.
+Dùng ở: QEMU của bo ảo (`transport/qemu_board.py`), tiến trình pytest (`tests/conftest.py`), công cụ đo
+`evaluation/ecoqos_gui.py` (đọc trạng thái, tắt theo pid cho biến thể đối chứng). Chỉ có tác dụng trên Windows; nơi khác
+các hàm trả False / None và không làm gì.
 """
 from __future__ import annotations
 

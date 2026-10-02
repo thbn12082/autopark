@@ -7,7 +7,11 @@ ghi đè; không có `--lidar`: chạy không LiDAR.
 
 Chạy trong `.venv-train` (cần torch cho AI; `--no-ai` thì chạy được cả trong `.venv`). Camera được chọn theo CỔNG HUB
 (index OpenCV đổi sau khởi động lại). Kết quả: `<name>.rig.json` gồm cấu hình, số đo từng camera, độ lệch bộ ảnh,
-LiDAR, AI (thời gian từng khâu, tuổi kết quả), tài nguyên (CPU, RAM, GPU, nhiệt độ GPU) và chuỗi theo giây.
+LiDAR, AI (thời gian từng khâu, tuổi kết quả), tài nguyên (CPU, RAM, GPU, nhiệt độ GPU) và chuỗi theo giây. Từ T10
+(02/10/2026) `gap_max_ms` của từng camera tính cả khoảng hở còn mở lúc chốt số (`gap_end_ms`: camera ngừng hẳn trước
+khi hết phần đo, hay không có khung tốt nào); nghĩa cũ ở `gap_closed_max_ms`; khi `--replay` khoảng hở cuối đo tới cuối
+bản ghi. Khoảng đi qua lúc hết phần làm nóng (`reset_counters`) tính đủ cả phần trước đó, nên camera ngừng trong lúc
+làm nóng có `gap_max_ms` lớn hơn `--seconds`.
 
 `--max-wait-ms` (mặc định 60; ≤ 0 = quy tắc cũ, chờ mọi camera) là SÀN của ngưỡng chờ camera lỡ nhịp; từ tối 24/09
 mỗi camera có ngưỡng RIÊNG = max(sàn, 1,5 × chu kỳ khung TRUNG BÌNH đo được của CHÍNH camera đó) — ≈ 63 ms ở 24 fps
@@ -29,6 +33,20 @@ cửa sổ đo (sau phần làm nóng). `--replay <thư mục>` chạy cả bàn
 bản ghi thay cho camera và LiDAR — không mở thiết bị nào. Khi phát lại: đồng hồ phát lại bắt đầu sau khi AI nạp xong mô
 hình, phần làm nóng mặc định 0 s, phiên đo phủ trọn bản ghi và tự dừng khi hết (`replay.finished` trong json); quy tắc ghép
 bộ (`--max-skew-ms`, `--max-wait-ms`) lấy từ dòng lệnh, nên cùng một bản ghi so được các quy tắc với nhau.
+
+Dấu đồng bộ video–log cho video R3 (T14, thêm 02/10/2026; docs/KICH_BAN_NGHIEM_THU.md mục 7):
+
+    python -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name cb1 --out runs/rig_bench/<ngày> --sync-mark
+
+`--sync-mark` nháy một ô trắng lớn có số, phủ cả một màn hình (`--sync-screen N` theo thứ tự Qt, mặc định 0 = màn hình
+chính), 0,5 s ở đầu phần đo, ở cuối (bắt đầu `SYNC_END_LEAD_S` trước khi hết `--seconds`, tắt trước khi hết) và mỗi lần nhấn
+Enter/Space/m trong cửa sổ lệnh này (chỉ khi cửa sổ lệnh đang được chọn); `--sync-every S` (S ≥ 2, tự bật `--sync-mark`)
+thêm một dấu mỗi S giây. Mỗi dấu là một dòng của `<out>/<name>.sync.csv` (`perf_counter`, cùng đồng hồ với mọi stamp của
+bàn thử; tệp đã có thì từ chối ngay, không ghi đè; phiên dừng trước dấu đầu thì tệp chỉ có tiêu đề được xóa) và `.rig.json`
+có khóa `sync_marks` (`t_start_perf_s`: chuỗi `t_s` cộng giá trị này ra perf_counter). Không dùng với `--replay`. Bật dấu
+đồng bộ thì tiến trình đo thêm một cửa sổ Qt và thức mỗi 20 ms: ảnh hưởng lên số đo CHƯA ĐO (so một lượt có và một lượt
+không). Chỉ kiểm offscreen; màn hình thật CHƯA THỬ (hiệu ứng hiện/ẩn của Windows, tiêu điểm của cửa sổ lệnh; tắt khóa màn
+hình khi chạy dài không người trông).
 """
 from __future__ import annotations
 
@@ -40,7 +58,6 @@ from pathlib import Path
 import sys
 import time
 
-from autopark.lidar.port import LidarPortError
 from autopark.rig.core import Rig, RigConfig
 from autopark.video.multicam import RIG_CLOCK, CameraSpec, MultiCameraManager, resolve_ports
 
@@ -48,6 +65,11 @@ LIVE_SECONDS = 60.0            # --seconds mặc định khi đo thiết bị th
 LIVE_WARMUP_S = 5.0            # --warmup mặc định khi đo thiết bị thật (LiDAR cần ≈ 2,2 s tới vòng đầu)
 REPLAY_MARGIN_S = 10.0         # phát lại: hạn cứng = độ dài bản ghi / speed + chừng ấy (phòng nguồn không bao giờ "hết")
 REPLAY_END_GRACE_S = 0.3       # phát lại: sau mục cuối, chờ chừng ấy để AI chấm nốt bộ cuối rồi mới chốt số
+SYNC_POLL_S = 0.02             # dấu đồng bộ: nhịp vòng đo (đọc phím, tắt ô nháy đúng giờ)
+SYNC_END_LEAD_S = 1.0          # dấu đồng bộ: dấu cuối khi phần đo còn chừng ấy giây (ô tắt trước khi hết --seconds)
+SYNC_EVERY_MIN_S = 2.0         # --sync-every nhỏ nhất
+SYNC_KEYS = ("\r", "\n", " ", "m", "M")    # phím trong cửa sổ lệnh tạo một dấu
+SYNC_KEYS_PER_POLL = 32        # đọc tối đa chừng ấy phím mỗi nhịp (giữ phím lặp không làm kẹt vòng đo)
 
 
 def segmenter_factory(args):
@@ -116,6 +138,190 @@ def check_record_args(p: argparse.ArgumentParser, args, folder: Path | None = No
         p.error(f"--jpeg-quality phải trong 1..100 (đang là {args.jpeg_quality})")
     if folder is not None and folder.exists() and (not folder.is_dir() or any(folder.iterdir())):
         p.error(f"--record: {folder} đã có dữ liệu (hoặc không phải thư mục); không ghi đè — chọn thư mục mới")
+
+
+# ---------------------------------------------------------------------------- dấu đồng bộ video–log (T14, 02/10/2026)
+def check_sync_args(p: argparse.ArgumentParser, args, path: Path) -> bool:
+    """Kiểm tham số dấu đồng bộ NGAY khi đọc dòng lệnh, trước khi dựng Rig hay chạm thiết bị nào (sai → mã 2). True khi
+    bật dấu đồng bộ (`--sync-mark`, hoặc `--sync-every` tự bật)."""
+    wanted = args.sync_mark or args.sync_every is not None
+    if args.sync_screen is not None and not wanted:
+        p.error("--sync-screen chỉ dùng cùng --sync-mark hoặc --sync-every")
+    if not wanted:
+        return False
+    if args.replay is not None:
+        p.error("--sync-mark/--sync-every chỉ dùng khi đo thiết bị thật, không dùng với --replay (không có video R3 nào "
+                "để đồng bộ với bản ghi)")
+    if args.sync_every is not None and not (math.isfinite(args.sync_every) and args.sync_every >= SYNC_EVERY_MIN_S):
+        p.error(f"--sync-every phải là số giây hữu hạn ≥ {SYNC_EVERY_MIN_S:g} (đang là {args.sync_every:g})")
+    if args.sync_screen is not None and args.sync_screen < 0:
+        p.error(f"--sync-screen phải ≥ 0 (đang là {args.sync_screen})")
+    if path.exists():
+        p.error(f"{path} đã có: không ghi đè dấu đồng bộ của phiên khác — đổi --name hoặc --out")
+    return True
+
+
+def console_key() -> str | None:
+    """Một phím đã nhấn trong cửa sổ lệnh, không chờ; None khi chưa có phím. Phím mở rộng (mũi tên, F1…: "\\x00" hay
+    "\\xe0" rồi một mã) bị đọc và bỏ. Không có msvcrt (ngoài Windows) hay không có cửa sổ lệnh: None. Hàm cấp mô-đun để
+    test thay được."""
+    try:
+        import msvcrt
+
+        if not msvcrt.kbhit():
+            return None
+        key = msvcrt.getwch()
+        if key in ("\x00", "\xe0"):
+            msvcrt.getwch()                      # mã của phím mở rộng: bỏ
+            return None
+        return key
+    except (ImportError, OSError):
+        return None
+
+
+class BenchSync:
+    """Dấu đồng bộ của một phiên `rig.bench`: dấu đầu (`begin`), dấu theo phím và theo chu kỳ (`poll` mỗi nhịp vòng đo),
+    dấu cuối kịp tắt trước khi hết phần đo, rồi `finish`/`close`. Dòng ghi `t_rig_s` = t_perf − `Rig.t_start`."""
+
+    def __init__(self, app, marker, *, every_s: float | None, note: str, screen_info: dict):
+        self.app, self.marker = app, marker
+        self.every_s, self.note, self.screen_info = every_s, note, screen_info
+        self.rig = None
+        self.next_periodic: float | None = None
+        self.end_done = False
+        self.closed = False
+
+    @property
+    def log(self):
+        return self.marker.log
+
+    @property
+    def flash(self):
+        return self.marker.flash
+
+    def _context(self, t_perf: float) -> dict:
+        t_start = None if self.rig is None else self.rig.t_start
+        return {"t_rig_s": None if t_start is None else round(t_perf - t_start, 4), "note": self.note}
+
+    def _mark(self, trigger: str) -> dict | None:
+        row = self.marker.mark(trigger, self._context)
+        if row is None:
+            print(f"  (chưa tạo dấu đồng bộ {trigger}: ô trước còn sáng hoặc chưa đủ {self.marker.min_gap_s:g} s)",
+                  flush=True)
+        else:
+            print(f"  DẤU ĐỒNG BỘ #{row['n']} ({trigger}) t={row['t_rig_s']} s, perf_counter {row['t_perf']:.6f} s",
+                  flush=True)
+        self.app.processEvents()
+        return row
+
+    def _keys(self) -> list[str]:
+        keys = []
+        for _ in range(SYNC_KEYS_PER_POLL):
+            key = console_key()
+            if key is None:
+                break
+            keys.append(key)
+        return keys
+
+    def begin(self, rig) -> None:
+        """Đầu phần đo (sau `reset_counters`): bỏ các phím đã nhấn trong lúc làm nóng, tạo dấu đầu."""
+        self.rig = rig
+        self._keys()
+        self._mark("auto_start")
+        if self.every_s is not None:
+            self.next_periodic = rig.clock() + self.every_s
+
+    def poll(self, now: float, t_end: float) -> None:
+        """Một nhịp vòng đo: xử lý sự kiện Qt (ô tắt đúng giờ, cửa sổ không "đứng"), dấu theo phím và theo chu kỳ, rồi dấu
+        cuối khi phần đo còn `SYNC_END_LEAD_S`. Phím và chu kỳ không tạo dấu khi đã quá gần dấu cuối (sau
+        t_end − SYNC_END_LEAD_S − khoảng cách tối thiểu), để dấu cuối luôn kịp tắt trước khi hết phần đo."""
+        self.app.processEvents()
+        open_window = now <= t_end - SYNC_END_LEAD_S - self.marker.min_gap_s
+        for key in self._keys():
+            if key not in SYNC_KEYS:
+                continue
+            if open_window:
+                self._mark("console_key")
+            else:
+                print("  (bỏ qua phím: sắp tới dấu đồng bộ cuối)", flush=True)
+        if self.next_periodic is not None and now >= self.next_periodic:
+            if open_window:
+                self._mark("periodic")
+            while self.next_periodic <= now:
+                self.next_periodic += self.every_s
+        if not self.end_done and now >= t_end - SYNC_END_LEAD_S and self.marker.ready():
+            self.end_done = self._mark("auto_end") is not None
+
+    def _pump(self) -> None:
+        self.app.processEvents()
+        time.sleep(SYNC_POLL_S / 4)
+
+    def finish(self, timeout_s: float = 3.0) -> None:
+        """Sau vòng đo, trước khi dừng ghi: phiên quá ngắn chưa có dấu cuối thì chờ được phép rồi tạo; rồi chờ ô tắt hẳn
+        (tất cả tối đa `timeout_s`)."""
+        deadline = time.perf_counter() + timeout_s
+        if not self.end_done:
+            while not self.marker.ready() and time.perf_counter() < deadline:
+                self._pump()
+            if self.marker.ready():
+                self.end_done = self._mark("auto_end") is not None
+        while self.flash.lit() and time.perf_counter() < deadline:
+            self._pump()
+        self.flash.finish()
+
+    def close(self) -> None:
+        """Tắt ô nháy. Phiên dừng trước dấu đầu (Ctrl+C lúc làm nóng, lỗi ở rig.start…) để lại tệp chỉ có dòng tiêu đề:
+        xóa nó (không có dấu nào để giữ), để chạy lại đúng lệnh đó không bị `check_sync_args` từ chối (02/10/2026)."""
+        self.flash.finish()
+        self.flash.close()
+        self.app.processEvents()
+        self.closed = True
+        log = self.log
+        if not log.rows and log.path is not None:
+            try:
+                log.path.unlink(missing_ok=True)
+            except OSError as exc:
+                print(f"  (không xóa được tệp dấu đồng bộ rỗng {log.path}: {exc})", flush=True)
+            else:
+                log.path = None
+
+    def summary(self) -> dict:
+        """Khóa `sync_marks` của `.rig.json`."""
+        log = self.log
+        return {"file": None if log.path is None else str(log.path), "marks": log.marks, "clock": "perf_counter",
+                "flash_ms": self.marker.flash_ms, "min_gap_s": self.marker.min_gap_s, "every_s": self.every_s,
+                "screen": self.screen_info, "t_start_perf_s": None if self.rig is None else self.rig.t_start,
+                "write_error": log.error, "rows": [dict(row) for row in log.rows]}
+
+
+def open_bench_sync(args, path: Path) -> BenchSync:
+    """Bật dấu đồng bộ: ô nháy toàn màn hình `--sync-screen` và tệp `path` (tạo ngay, có tiêu đề). Gọi SAU `build_rig`
+    (khi bật AI, torch đã được nhập trước Qt: thứ tự DLL trên Windows, xem ui/rig_app.py) và TRƯỚC `rig.start()`. Lỗi:
+    ImportError (thiếu PySide6), ValueError (không có màn hình đó), OSError (không tạo được tệp)."""
+    from PySide6.QtWidgets import QApplication
+
+    from autopark.evaluation.sync_marks import SyncMarkLog
+    from autopark.ui.sync_flash import SyncFlash, SyncMarker
+
+    app = QApplication.instance() or QApplication([])
+    screens = app.screens()
+    index = args.sync_screen or 0
+    if not 0 <= index < len(screens):
+        raise ValueError(f"--sync-screen {index}: máy có {len(screens)} màn hình (0…{len(screens) - 1})")
+    screen = screens[index]
+    flash = SyncFlash(None, screen)
+    try:
+        log = SyncMarkLog("rig.bench", path)
+    except OSError:
+        flash.close()
+        raise
+    geo = screen.geometry()
+    info = {"index": index, "name": screen.name(), "geometry": [geo.x(), geo.y(), geo.width(), geo.height()],
+            "transitions_off": flash.transitions_off}
+    note = f"phiên {args.name}" + (f", ghi {args.record}" if args.record is not None else "")
+    print(f"dấu đồng bộ: nháy trên màn hình {screen.name() or index} {geo.width()}×{geo.height()}, ghi {path}; "
+          "Enter/Space/m trong cửa sổ này = một dấu", flush=True)
+    return BenchSync(app, SyncMarker(log, flash), every_s=args.sync_every, note=note, screen_info=info)
 
 
 def print_line(snap: dict) -> None:
@@ -200,19 +406,35 @@ def main(argv=None) -> int:
                         "hoặc rỗng; kiểm ngay khi đọc dòng lệnh, trước khi mở thiết bị)")
     p.add_argument("--switch-interval-ms", type=float, default=None,
                    help="sys.setswitchinterval (mặc định Python 5 ms): thử giả thuyết tranh chấp GIL giữa luồng camera và AI")
+    p.add_argument("--sync-mark", action="store_true",
+                   help="dấu đồng bộ video–log (T14, cho video R3): nháy ô trắng lớn toàn màn hình 0,5 s ở đầu và cuối "
+                        "phần đo và mỗi lần nhấn Enter/Space/m trong cửa sổ lệnh này; ghi <out>/<name>.sync.csv "
+                        "(perf_counter, cùng đồng hồ với stamp bàn thử)")
+    p.add_argument("--sync-every", type=float, default=None, metavar="S",
+                   help=f"thêm một dấu mỗi S giây trong phần đo (S ≥ {SYNC_EVERY_MIN_S:g}; tự bật --sync-mark)")
+    p.add_argument("--sync-screen", type=int, default=None, metavar="N",
+                   help="màn hình để nháy theo thứ tự Qt, 0 = màn hình chính")
     args = p.parse_args(argv)
     if args.replay is not None and args.record is not None and args.replay.resolve() == args.record.resolve():
         p.error("--record không được trùng thư mục --replay")
     if args.record is not None:
         check_record_args(p, args, args.record)
+    sync_file = args.out / f"{args.name}.sync.csv"
+    sync_wanted = check_sync_args(p, args, sync_file)
     default_switch = sys.getswitchinterval()
     if args.switch_interval_ms is not None:
         sys.setswitchinterval(args.switch_interval_ms / 1000.0)
 
     try:
         rig = build_rig(args)
-    except LidarPortError as exc:
-        p.error(str(exc))
+    except ValueError as exc:      # cổng LiDAR (LidarPortError), cổng hub không tra được (resolve_ports), --replay sai…
+        p.error(str(exc))          # mã 2, không traceback (02/10/2026)
+    sync = None
+    if sync_wanted:
+        try:
+            sync = open_bench_sync(args, sync_file)      # sau build_rig (torch trước Qt), trước rig.start()
+        except (ImportError, OSError, ValueError) as exc:
+            p.error(f"không bật được dấu đồng bộ: {exc}")
     replay = rig.replay
     warmup = args.warmup if args.warmup is not None else (0.0 if replay is not None else LIVE_WARMUP_S)
     if args.seconds is not None:
@@ -242,21 +464,32 @@ def main(argv=None) -> int:
             print(f"đang ghi phiên vào {args.record}", flush=True)
         if replay is not None:
             replay.begin()
+        if sync is not None:
+            sync.begin(rig)                             # dấu đầu, trước khi tính t_end
         t_end = rig.clock() + seconds
         next_line = rig.clock() + 5.0
         while (now := rig.clock()) < t_end:
             if replay is not None and replay.finished:
                 time.sleep(REPLAY_END_GRACE_S)          # AI chấm nốt bộ cuối
                 break
-            time.sleep(max(0.0, min(0.1 if replay is not None else 5.0, t_end - now, next_line - now)))
+            step = min(0.1 if replay is not None else 5.0, t_end - now, next_line - now)
+            time.sleep(max(0.0, step if sync is None else min(step, SYNC_POLL_S)))
+            if sync is not None:
+                sync.poll(rig.clock(), t_end)
             if rig.clock() >= next_line:
                 print_line(rig.snapshot())
                 next_line += 5.0
+        if sync is not None:
+            sync.finish()                               # phiên quá ngắn: dấu cuối ở đây, vẫn trước khi dừng ghi
         rig.stop_recording(wait=False)                  # ngừng nhận ngay; bộ ghi ghi nốt trong rig.stop()
         print_line(rig.snapshot())
         summary = rig.summary()
     finally:
-        alive = rig.stop()
+        try:
+            if sync is not None:
+                sync.close()
+        finally:
+            alive = rig.stop()
     if summary is None:
         return 1
     summary["recording"] = rig.recording_status()      # trạng thái cuối (đã ghi nốt hàng đợi, meta.json cuối)
@@ -266,6 +499,8 @@ def main(argv=None) -> int:
     sys.setswitchinterval(default_switch)
     summary.update({"name": args.name, "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "warmup_s": warmup, "argv": sys.argv[1:] if argv is None else list(argv), "series": rig.series})
+    if sync is not None:
+        summary["sync_marks"] = sync.summary()
     args.out.mkdir(parents=True, exist_ok=True)
     path = args.out / f"{args.name}.rig.json"
     path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
@@ -279,15 +514,23 @@ def main(argv=None) -> int:
     # phát lại không --seconds phải chạy tới hết bản ghi; tới hạn cứng mà chưa hết = có nguồn kẹt (--seconds ngắn hơn
     # bản ghi thì dừng sớm là đúng ý, không tính)
     replay_stuck = replay is not None and args.seconds is None and not (summary["replay"] or {}).get("finished")
+    sync_bad = sync is not None and (sync.log.error is not None or sync.log.marks == 0)
     if alive:
         print("CẢNH BÁO: luồng chưa dừng:", alive)
+    if sync_bad:
+        log = sync.log
+        # unwritten: số dòng tệp sống còn thiếu lúc kết thúc (SyncMarkLog ghi lại cả tệp ở lần ghi được sau lỗi)
+        print("CẢNH BÁO: dấu đồng bộ không trọn: " + ("không tạo được dấu nào" if log.marks == 0 else f"{log.marks} dấu")
+              + ("" if log.error is None else f"; LỖI GHI {log.error}: "
+                 + (f"{log.unwritten} dòng chưa có trong {sync_file}" if log.unwritten else
+                    f"{sync_file} đã được ghi lại đủ sau lỗi") + f", đủ mọi dòng ở khóa sync_marks của {path}"))
     if rec_bad:
         print(f"CẢNH BÁO: bản ghi {rec['folder']} không trọn: trạng thái {rec['state']}, bỏ {rec['dropped_total']} khung, "
               f"lỗi {rec['error']}")
     if replay_stuck:
         print(f"CẢNH BÁO: phát lại chạy tới hạn cứng ({seconds:.1f} s) mà chưa hết bản ghi — nguồn phát lại kẹt? "
               f"xem replay.cameras / read_failures trong {path}")
-    return 1 if bad or lidar_bad or ai_bad or alive or rec_bad or replay_stuck else 0
+    return 1 if bad or lidar_bad or ai_bad or alive or rec_bad or replay_stuck or sync_bad else 0
 
 
 def print_summary(s: dict) -> None:
@@ -295,7 +538,8 @@ def print_summary(s: dict) -> None:
     for c in s["cameras"]:
         print(f"  cổng {c['port']} (index {c['index']}): {c['fps_mean']} fps TB (khung tốt), khung cũ {c['duplicates']}, "
               f"khung bị cắt {c['truncated']}, khung xé giữa ảnh {c['torn']}, đọc hỏng {c['read_failures']}, "
-              f"khoảng cách max {c['gap_max_ms']} ms" + (f", LỖI MỞ {c['open_error']}" if c["open_error"] else ""))
+              f"khoảng cách max {c['gap_max_ms']} ms (hở cuối phiên {c.get('gap_end_ms')} ms)"
+              + (f", LỖI MỞ {c['open_error']}" if c["open_error"] else ""))
     st = s["sets"]
     sk = st["skew_ms"]
     pol = s.get("policy") or {}
@@ -341,6 +585,10 @@ def print_summary(s: dict) -> None:
         print(f"  phát lại {rp['folder']} ×{rp['speed']:g}: {'hết bản ghi' if rp['finished'] else 'CHƯA hết bản ghi'} "
               f"({rp['position_s']}/{rp['duration_s']} s); khung ra muộn so với lịch, trung vị theo camera {late} ms; "
               f"khung thiếu trong bản ghi {rp['missing_in_recording']}")
+    sm = s.get("sync_marks")
+    if sm:
+        print(f"  dấu đồng bộ: {sm['marks']} dấu → {sm['file']}"
+              + (f", LỖI GHI: {sm['write_error']}" if sm["write_error"] else ""))
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -10,7 +10,8 @@ Luồng: thread đọc LiDAR → hàng đợi → timer 50 ms lấy ra, cập nh
 - Đã bấm "Tìm đường đỗ" (READY) và lúc chạy: vật cản được GIỮ CỐ ĐỊNH để lập đường và bám đường; lúc xe chạy, vật
   mới bền vững chạm hành lang quỹ đạo làm xe dừng (MAP_CHANGED của giai đoạn 0), LiDAR quá cũ/mất cũng dừng.
 - Đổi cấu hình LiDAR (lề mặt nạ, số vòng, chiều góc) hoặc ngắt kết nối trong lúc xe chạy → yêu cầu dừng, vì bản đồ
-  đang dùng không còn là bản đồ đã lập đường.
+  đang dùng không còn là bản đồ đã lập đường. Yêu cầu mang mã LIDAR_CONFIG_CHANGED / LIDAR_MIRROR_CHANGED /
+  LIDAR_DISCONNECTED, nguồn lidar_dock; qua VehicleIO nó thành dòng session_stop của events.csv (02/10/2026, T13).
 
 Chỉ hiển thị và chèn vật cản; không có liên hệ tới phần cứng chấp hành.
 """
@@ -214,14 +215,16 @@ class LidarDock(QDockWidget):
     def _driving(self) -> bool:
         return self.session.state in DRIVING_STATES
 
-    def _stop_run(self, reason: str) -> None:
-        """The map the car planned on is no longer the map we have: brake and say so."""
+    def _stop_run(self, reason: str, code: str) -> None:
+        """The map the car planned on is no longer the map we have: brake and say so. `code` (LIDAR_CONFIG_CHANGED,
+        LIDAR_MIRROR_CHANGED, LIDAR_DISCONNECTED) and the source "lidar_dock" go into the session_stop row of
+        events.csv when the run goes through VehicleIO (T13, 2026-10-02)."""
         if not self._driving():
             return
         self.stale_stops += 1
         self.say(f"Dừng: {reason}")
         try:
-            self.session.request_stop(reason)
+            self.session.request_stop(reason, code=code, source="lidar_dock")
         except SessionError as exc:
             self.say(f"Không dừng được: {exc}")
         self.window._refresh_mode_widgets()
@@ -248,7 +251,7 @@ class LidarDock(QDockWidget):
         current = None if self.layer is None else (self.grid, self.layer.mask_margin, self.layer.window, self.layer.min_hits)
         if current != (grid, mask, window, min_hits):
             if current is not None and self._driving():
-                self._stop_run("cấu hình LiDAR đổi trong lúc chạy")
+                self._stop_run("cấu hình LiDAR đổi trong lúc chạy", "LIDAR_CONFIG_CHANGED")
             self.grid = grid
             self.layer = LiveLidarLayer(grid, window=window, min_hits=min_hits, max_age_s=MAX_AGE_S,
                                         expected_period_s=EXPECTED_PERIOD_S, self_mask=self.session.cfg,
@@ -287,7 +290,7 @@ class LidarDock(QDockWidget):
         self.layer = None                         # the window still holds scans with the old sign: start afresh
         self.say(("Đảo" if on else "Bỏ đảo") + " chiều góc: có hiệu lực từ vòng quét sau")
         if self._driving():
-            self._stop_run("chiều góc LiDAR đổi trong lúc chạy")
+            self._stop_run("chiều góc LiDAR đổi trong lúc chạy", "LIDAR_MIRROR_CHANGED")
         elif self.session.state in EDITABLE_STATES:
             self.clear_lidar_obstacles()
 
@@ -345,7 +348,7 @@ class LidarDock(QDockWidget):
 
     def disconnect_source(self) -> None:
         if self._driving():
-            self._stop_run("mất LiDAR (ngắt kết nối) trong lúc chạy")
+            self._stop_run("mất LiDAR (ngắt kết nối) trong lúc chạy", "LIDAR_DISCONNECTED")
         if self.reader is not None:
             self.reader.stop_event.set()
         if self.source is not None:

@@ -47,13 +47,59 @@ Thêm 24/09/2026 (chỉ kiểm với bo mô phỏng và cổng serial GIẢ `Fir
   chính bo serial) bị từ chối ngay khi tạo liên kết.
 - `probe_board()`: "Kiểm kết nối bo" của giao diện. HELLO, đọc vài khung telemetry, so giới hạn, đóng cổng. Không
   bao giờ ARM, không gửi COMMAND.
+
+Thêm 02/10/2026 (T13, sự kiện dừng của phiên trong log; chỉ kiểm với bo mô phỏng và cổng serial GIẢ, CHƯA THỬ với bo
+ảo QEMU hay ESP32-S3 qua `Session`):
+
+- events.csv ghi cả quyết định dừng của PHIÊN: mỗi quyết định là một dòng `handling` = ``session_stop``
+  (`log_session_event`, do `Session` gọi). Các dòng session_stop là đúng `Session.safety_events` (cùng thứ tự, mã,
+  nguồn, t_session, action), cộng mọi yêu cầu dừng khi đang chạy (USER_STOP, FUSED_MAP_INVALID, mã của ngăn LiDAR và
+  ngăn AI camera), USER_RESET và COLLISION. Sự kiện của bo hay của lớp nối vì vậy có HAI dòng: `stop` lúc lớp nối
+  nhận, `session_stop` lúc phiên quyết định; người đọc lọc theo `handling`. Lý do dừng đầu tiên của lần chạy là dòng
+  session_stop đầu tiên có action STOP.
+- Mọi dòng events.csv và start_refusals.csv có cột `t_perf` = `time.perf_counter()` THÔ của laptop lúc ghi dòng (QPC
+  trên Windows, cùng gốc với `RIG_CLOCK` của bản ghi rig, so được giữa các tiến trình). Với dòng sự kiện của VehicleIO
+  đó là lúc lớp nối gom sự kiện, không phải lúc bo phát.
+- link.json có khóa ``clock`` = {"t_io_at_start", "t_perf_at_start"}: io.now() và perf_counter() đọc liền nhau lúc mở
+  lần chạy (cả hai null khi chưa mở lần nào). Bo thật với đồng hồ mặc định của `SerialVehicleIO` (perf_counter() − t0
+  của io): t_perf = t_io + (t_perf_at_start − t_io_at_start), áp cho cả commands.csv và telemetry.csv. Bo mô phỏng:
+  t_io là đồng hồ mô phỏng (nhịp 10 ms, chạy trước thời gian phiên tới 5 ms), phép đổi không áp dụng.
+
+Thêm 02/10/2026 (T15, nút "Xóa lỗi bo (CLEAR_FAULT)"; chỉ thử với bo mô phỏng và cổng serial GIẢ, CHƯA THỬ với
+ESP32-S3):
+
+- `clear_fault()`: xóa lỗi bo trên VehicleIO của CHÍNH liên kết, chỉ khi không có lần chạy nào đang mở. Quyết định
+  theo khung telemetry đầu tiên bo gửi sau lúc bấm: bo không FAULT, hoặc cờ ESTOP_INPUT = 1, thì không gửi CLEAR_FAULT;
+  còn lại gửi đúng một REQUEST CLEAR_FAULT (firmware tự kiểm lại). Không bao giờ ARM, không COMMAND nào. Cổng serial
+  chưa mở (`SerialVehicleIO.deferred`) thì mở rồi đóng lại khi xong. *(Sửa sau review 02/10/2026: dùng lại phiên đang
+  có thì trước khi đọc trạng thái gửi một PING và chờ ACK, làm rào "khung mới"; trước đó khung cũ tồn đọng trong cổng
+  có thể thành căn cứ quyết định.)*
+- Mỗi lần bấm là một dòng board_actions.csv (`board_actions`, cộng dồn suốt đời liên kết như `start_refusals`), kể cả
+  lần không gửi gì. Ba mốc của dòng (t_io, t_perf, wall_time) đọc liền nhau lúc quyết định gửi hay không gửi.
+  *(Sau review 02/10/2026: cột message ghi đủ sự kiện VehicleIO gom được (mã, action, t_io, lời); bốn cột hello_* nối
+  cuối giữ HELLO_ACK của lần bấm.)*
+
+Thêm 02/10/2026 (T9, băng để phát lại log; chỉ kiểm với bo mô phỏng và cổng serial GIẢ, CHƯA THỬ với bo thật):
+
+- Lớp nối ghi thêm ĐẦU VÀO của lần chạy, đủ để chạy lại cùng phần mềm trên đúng các đầu vào đó
+  (`application/vehicle_replay.py`, `storage/run_store.py` `replay_vehicle_run`). Mỗi lần đọc io trong lần chạy
+  (`refresh` đầu bước khi đang chạy, `pump` cuối bước) là một dòng clock.csv: số lần đọc `call`, loại, t_session và
+  io.now() SAU lần đọc. Khung telemetry và sự kiện VehicleIO mà lần đọc đó trả mang cùng số ở cột `call`. Mỗi lần đọc
+  nguồn tư thế trong lần chạy (`estimate`, `observe`) là một dòng poses.csv: mẫu (hoặc không có mẫu) và io.now() đọc
+  liền sau mẫu. link.json có thêm `run_start` (t_io0 và trạng thái đầu của thế giới gương), `log_format` (= 2) và, qua
+  `describe()`, `io_source_id`.
+- Chỉ ghi: không quyết định nào của lớp nối đổi, không gửi gì thêm tới bo. Tư thế đọc trong `_open_run` (kiểm START)
+  không ghi, vì phát lại không chạy lại bước START.
 """
 from __future__ import annotations
 
 import csv
+import inspect
 import json
 import math
+import time
 from dataclasses import asdict, dataclass, field, replace
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Protocol
@@ -63,7 +109,7 @@ from autopark.domain.sensors import SafetyEvent, SourceStamp
 from autopark.domain.types import Pose, Scenario, VehicleConfig, VehicleState, clamp, wrap_angle
 from autopark.geometry.footprint import check_motion, check_pose
 from autopark.simulation.world import SimWorld, StepResult
-from autopark.transport.protocol import Fault, State, TelemetryFlag
+from autopark.transport.protocol import Fault, ResetReason, Result, State, TelemetryFlag
 from autopark.transport.vehicle_io import (HelloInfo, LimitsCheck, SerialVehicleIO, SimIOConfig, SimVehicleIO,
                                            VehicleIO, VehicleIOError, VehicleTelemetry)
 
@@ -116,6 +162,28 @@ class SimTruthPose:
 
     def latest(self) -> PoseSample | None:
         return PoseSample(self.io.truth.pose, self.io.now(), self.source_id, True)
+
+
+MAX_POSE_WRAPPERS = 8          # số lớp bọc tiêm lỗi (`fault_inner`) tối đa quanh một nguồn tư thế
+
+
+def unwrap_pose_source(source):
+    """Nguồn tư thế trong cùng, dưới các lớp bọc tiêm lỗi (`fault_inner`, safety/fault_injection.py, 02/10/2026).
+
+    Chỉ đọc thuộc tính THẬT của đối tượng hay của lớp (kể cả property) qua `inspect.getattr_static`, không qua
+    `__getattr__`: Mock hay proxy chuyển tiếp thuộc tính "có" mọi tên và mỗi lần trả một đối tượng mới, nên vòng bóc
+    bằng getattr trước đây chạy mãi trong `VehicleLink.__init__` (sửa sau review 02/10/2026). Quá `MAX_POSE_WRAPPERS`
+    lớp, hay lớp bọc trỏ vòng về chính nó → ValueError (không kiểm được luật SimTruthPose thì không tạo liên kết)."""
+    base = source
+    for _ in range(MAX_POSE_WRAPPERS):
+        if inspect.getattr_static(base, "fault_inner", None) is None:
+            return base
+        inner = getattr(base, "fault_inner", None)     # thuộc tính có thật (giá trị, hay property được gọi)
+        if inner is None:
+            return base
+        base = inner
+    raise ValueError(f"Nguồn tư thế bọc quá {MAX_POSE_WRAPPERS} lớp fault_inner (hoặc lớp bọc trỏ vòng): không kiểm "
+                     f"được luật SimTruthPose")
 
 
 NO_POSE_SOURCE_REASON = ("Chưa có nguồn tư thế thật: định vị LiDAR chưa nối vào phiên và chưa kiểm yêu cầu cùng "
@@ -201,10 +269,38 @@ COMMAND_FIELDS = ["t_session", "t_io", "mode", "kind", "sent", "seq", "target_sp
                   "target_steer_deg", "phase", "segment", "index", "distance_to_end_m", "lateral_error_m",
                   "heading_error_deg", "done", "obs_x", "obs_y", "obs_yaw_deg", "obs_speed_mps", "obs_steer_deg",
                   "telemetry_age_s", "pose_source", "pose_simulated", "note"]
+# call (thêm 02/10/2026, T9): số của lần đọc io (dòng clock.csv) đã trả khung này.
 TELEMETRY_FIELDS = ["t_session", "t_io", "device_time_ms", "sequence", "state", "fault", "stop_reason", "flags",
                     "link_ok", "estop_input", "cmd_active", "speed_mps", "steer_rad", "speed_ref_mps",
-                    "steer_ref_rad", "effort", "last_cmd_seq", "cmd_age_s", "supply_v", "rx_errors", "rejects"]
-EVENT_FIELDS = ["t_session", "t_io", "source", "code", "action", "handling", "message"]
+                    "steer_ref_rad", "effort", "last_cmd_seq", "cmd_age_s", "supply_v", "rx_errors", "rejects", "call"]
+# Cột của events.csv và start_refusals.csv. t_perf (thêm 02/10/2026, T13): time.perf_counter() thô lúc ghi dòng. Dòng
+# nào cũng phải dựng bằng `_event_row` (qua `_log_event`, `log_session_event` hay `record_refused_start`):
+# csv.DictWriter ném ValueError khi gặp khóa lạ, và lặng lẽ để trống cột thiếu.
+# `handling`: before_start (trước START), stop (sự kiện buộc dừng, lúc lớp nối nhận), log (chỉ ghi), after_run (tới
+# sau khi lần chạy đã kết thúc), session_stop (quyết định dừng của PHIÊN, `SESSION_STOP`). call (thêm 02/10/2026, T9):
+# số của lần đọc io đã trả sự kiện VehicleIO này; trống với dòng do lớp nối hay phiên tạo và ở start_refusals.csv.
+EVENT_FIELDS = ["t_session", "t_io", "t_perf", "source", "code", "action", "handling", "message", "call"]
+SESSION_STOP = "session_stop"
+# Băng phát lại log (thêm 02/10/2026, T9; `application/vehicle_replay.py`). poses.csv: một dòng mỗi lần đọc nguồn tư thế
+# trong lần chạy (use = "estimate" hoặc "observe"); t_io = io.now() đọc liền SAU mẫu; available = 0 khi nguồn không có
+# mẫu (các cột của mẫu để trống). clock.csv: một dòng mỗi lần đọc io trong lần chạy (kind = "refresh" hoặc "pump");
+# t_io = io.now() sau lần đọc.
+POSE_FIELDS = ["n", "use", "t_session", "t_io", "available", "sample_t_io", "x", "y", "yaw_rad", "source_id",
+               "simulated"]
+CLOCK_FIELDS = ["call", "kind", "t_session", "t_io"]
+# Định dạng log của `write_logs` (khóa log_format của link.json). 2 = có băng phát lại (T9); log trước đó không có khóa.
+LOG_FORMAT = 2
+# Đầu cột note của commands.csv khi send()/stop() ném lỗi; phần sau là lời lỗi (phát lại log dựng lại lỗi từ đây).
+SEND_FAILED_NOTE = "gửi lỗi: "
+# Cột của board_actions.csv (thêm 02/10/2026, T15): một dòng mỗi lần bấm "Xóa lỗi bo (CLEAR_FAULT)", kể cả lần không gửi
+# gì. t_io (đồng hồ io, so được với t_io của các tệp khác của cùng liên kết), t_perf (perf_counter() thô, như T13) và
+# wall_time (giờ máy ISO 8601 có múi giờ) đọc liền nhau lúc quyết định gửi hay không gửi CLEAR_FAULT; chưa tới bước đó
+# (không mở được cổng, không có HELLO_ACK hay telemetry) thì lúc bấm. Dòng nào cũng đi qua `BoardFaultClear.to_row()`.
+# Bốn cột hello_* (nối cuối sau review 02/10/2026, thứ tự cột cũ giữ nguyên): HELLO_ACK của lần bấm, trống khi dùng lại
+# phiên; boot_id ghi "0x" + 8 chữ số hex để bảng tính không đọc thành số.
+BOARD_ACTION_FIELDS = ["t_io", "t_perf", "wall_time", "target", "request", "outcome", "ack_result", "state_before",
+                       "fault_before", "estop_before", "state_after", "fault_after", "requests_sent", "commands_sent",
+                       "message", "hello_firmware", "hello_boot_id", "hello_reset_reason", "hello_state"]
 
 # Sự kiện VehicleIO mang action "LOG" nhưng trong lúc TỰ ĐỖ qua VehicleIO nghĩa là bo không còn chạy theo lệnh
 # của laptop: coi là dừng. (Ở chế độ quan sát không có lệnh nào nên không nâng mức.)
@@ -213,6 +309,16 @@ _VEHICLE_IO_STOP_CODES = {"COMMAND_REJECTED", "VEHICLE_STOPPED"}
 
 def _blank(value):
     return "" if value is None else value
+
+
+def _event_row(t_io: float | None, t_session: float | None, source: str, code: str, action: str, handling: str,
+               message: str, call: int | None = None) -> dict:
+    """Một dòng events.csv hay start_refusals.csv: khóa đúng bằng EVENT_FIELDS, đúng thứ tự cột; None thành ô trống,
+    t_session làm tròn 0,1 ms, t_perf = perf_counter() thô lúc dựng dòng. Chỗ DUY NHẤT biết khóa của hai tệp đó
+    (sửa sau review 02/10/2026: trước đó `record_refused_start` tự dựng dòng và đã thiếu t_perf, call một lần)."""
+    return {"t_session": _blank(None if t_session is None else round(t_session, 4)), "t_io": _blank(t_io),
+            "t_perf": time.perf_counter(), "source": source, "code": code, "action": action, "handling": handling,
+            "message": message, "call": _blank(call)}
 
 
 class MirroredWorld(SimWorld):
@@ -264,7 +370,9 @@ class VehicleLink:
             raise ValueError("Chế độ SIM không đi qua VehicleLink (Session.set_vehicle_link(None))")
         if not _simulated and (io is None or pose_source is None):
             raise ValueError("Cần VehicleIO và nguồn tư thế (hoặc dùng VehicleLink.simulated)")
-        if isinstance(pose_source, SimTruthPose) and (pose_source.io is not io or not isinstance(io, SimVehicleIO)):
+        # Lớp bọc tiêm lỗi (`fault_inner`, safety/fault_injection.py, 02/10/2026) không được che luật SimTruthPose.
+        base = unwrap_pose_source(pose_source)
+        if isinstance(base, SimTruthPose) and (base.io is not io or not isinstance(io, SimVehicleIO)):
             # Tư thế thật của một xe mô phỏng KHÁC, ghép với bo thật, hoặc SimTruthPose dựng quanh chính bo serial
             # (sửa muộn tối 24/09/2026: trước đó lọt qua rồi START hỏng với AttributeError thay vì từ chối rõ ràng):
             # không phải tư thế của xe mà io điều khiển.
@@ -281,9 +389,17 @@ class VehicleLink:
         self.command_rows: list[dict] = []
         self.telemetry_rows: list[dict] = []
         self.event_rows: list[dict] = []
+        # Băng phát lại (T9) của lần chạy gần nhất đã mở: dòng poses.csv (POSE_FIELDS), dòng clock.csv (CLOCK_FIELDS)
+        # và trạng thái lúc mở lần chạy (khóa run_start của link.json; None khi chưa mở lần nào).
+        self.pose_rows: list[dict] = []
+        self.clock_rows: list[dict] = []
+        self.run_start: dict | None = None
         # Dòng sự kiện (EVENT_FIELDS) của các lần START bị từ chối, cộng dồn suốt đời liên kết; không đè log của lần
         # chạy trước.
         self.start_refusals: list[dict] = []
+        # Dòng board_actions.csv (BOARD_ACTION_FIELDS): mỗi lần `clear_fault()` (T15), cộng dồn suốt đời liên kết như
+        # start_refusals; begin_run không xóa.
+        self.board_actions: list[dict] = []
         self.refused_starts = 0           # số lần START bị từ chối
         self.runs = 0
         self.result: dict | None = None
@@ -307,12 +423,15 @@ class VehicleLink:
 
     def _reset_run_state(self) -> None:
         self._io_t0 = 0.0
+        self._perf_t0: float | None = None    # perf_counter() đọc liền sau _io_t0 lúc mở lần chạy (link.json "clock")
         self._pending: list[SafetyEvent] = []
         self._run_cmd_seqs: set[int] = set()
         self._stop_started: float | None = None
         self._halted = False              # đã có lệnh dừng/sự kiện dừng: lần chạy này không gửi enable nữa
         self._guard_reported = False
         self._running = False
+        self._call = 0                    # số của lần đọc io kế tiếp trong lần chạy (cột call, clock.csv; T9)
+        self._last_t = 0.0                # t của lần pump gần nhất = world.time lúc đầu bước (dòng refresh ghi t này)
 
     # ------------------------------------------------------------------ thuộc tính
     @property
@@ -335,6 +454,8 @@ class VehicleLink:
         return {
             "mode": self.mode.value,
             "io": type(self.io).__name__ if self.io is not None else ("SimVehicleIO" if self._simulated else None),
+            # T9: nguồn đóng dấu khung telemetry; phát lại log dựng lại khung và nguồn trạng thái với đúng tên này
+            "io_source_id": getattr(self.io, "source_id", None),
             "io_simulated": self._simulated or isinstance(self.io, SimVehicleIO),
             "pose_source": source.source_id if source is not None else (
                 SimTruthPose.source_id if self._simulated else None),
@@ -355,10 +476,32 @@ class VehicleLink:
         return SafetyEvent(SourceStamp("vehicle_link", max(0.0, t)), code, message, action)
 
     def _log_event(self, t_io: float | None, t_session: float | None, source: str, code: str, action: str,
-                   handling: str, message: str) -> None:
-        self.event_rows.append({"t_session": _blank(None if t_session is None else round(t_session, 4)),
-                                "t_io": _blank(t_io), "source": source, "code": code, "action": action,
-                                "handling": handling, "message": message})
+                   handling: str, message: str, *, call: int | None = None) -> None:
+        """Cửa ghi duy nhất của `event_rows` (dòng dựng bằng `_event_row`). t_perf: perf_counter() thô lúc ghi. `call`
+        (T9): chỉ `_collect_events` truyền, cho sự kiện VehicleIO mà một lần đọc io trả; dòng khác để trống."""
+        self.event_rows.append(_event_row(t_io, t_session, source, code, action, handling, message, call))
+
+    def log_session_event(self, t_session: float, source: str, code: str, message: str, *, action: str = "STOP",
+                          handling: str = SESSION_STOP) -> None:
+        """T13 (02/10/2026): ghi một sự kiện do PHIÊN phát vào events.csv của lần chạy đang mở (`Session` gọi trước
+        `end_run`). Ba mốc của dòng: t_session = thời gian phiên của sự kiện; t_io = io.now() lúc phiên quyết định
+        (cùng quy ước với commands.csv); t_perf = perf_counter() lúc ghi. Chỉ ghi log: không gửi gì tới bo; chưa có io
+        thì t_io để trống.
+
+        KHÔNG BAO GIỜ ném lỗi (bảo đảm ở đây từ sau review 02/10/2026; trước đó chỉ là lời hứa): `Session` gọi hàm này
+        ngay TRƯỚC bước an toàn (sang STOPPING, vô hiệu đường, `end_run` gửi enable=0 + DISARM), nên lỗi ở đây sẽ bỏ
+        qua chính bước đó. Đọc io.now() hỏng thì t_io để trống và lời lỗi nối vào message; lỗi khác khi ghi thì mất
+        dòng này, phiên vẫn dừng."""
+        try:
+            io, t_io = self.io, None
+            if io is not None:
+                try:
+                    t_io = io.now()
+                except Exception as exc:  # noqa: BLE001 - đồng hồ hỏng không được chặn bước dừng
+                    message = f"{message} (không đọc được io.now(): {exc!r})"
+            self._log_event(t_io, t_session, source, code, action, handling, message)
+        except Exception:  # noqa: BLE001 - như trên: thà mất một dòng log còn hơn bỏ qua bước dừng
+            pass
 
     def _new_telemetry(self, after: float, count: int) -> list[VehicleTelemetry]:
         """Chờ `count` khung telemetry khác nhau NHẬN SAU thời điểm `after` (đồng hồ io). Trạng thái dùng để quyết
@@ -390,7 +533,8 @@ class VehicleLink:
         tel = samples[-1]
         problems = []
         if tel.state == State.FAULT or tel.fault != Fault.NONE:
-            problems.append(f"Bo đang FAULT ({tel.fault.name}): xử lý nguyên nhân rồi CLEAR_FAULT")
+            problems.append(f"Bo đang FAULT ({tel.fault.name}): xử lý nguyên nhân (nhả nút dừng khẩn…) rồi bấm "
+                            f"'Xóa lỗi bo (CLEAR_FAULT)' ở thẻ Bo điều khiển")
         if tel.estop_input:
             problems.append("Nút dừng khẩn đang nhấn")
         if tel.state == State.BOOT:
@@ -440,6 +584,17 @@ class VehicleLink:
             out.append("Tư thế đo được chạm vật cản hoặc ra ngoài sa bàn")
         return out
 
+    def record_refused_start(self, code: str, message: str, source: str = "session") -> None:
+        """START bị PHIÊN từ chối trước khi tới `begin_run` (T12, 02/10/2026: đường đổi chiều quá giới hạn): một dòng
+        vào `start_refusals` (start_refusals.csv, bằng chứng GD2) và đếm vào `refused_starts`. Không I/O nào với bo,
+        nên dùng được cả khi liên kết mô phỏng chưa START lần nào (`io` None); log và kết quả lần chạy trước giữ nguyên.
+        Dòng dựng bằng `_event_row` như mọi dòng events.csv (t_session trống, t_io = io.now() khi đã có io, t_perf lúc
+        ghi, call trống)."""
+        io = self.io
+        self.start_refusals.append(_event_row(io.now() if io is not None else None, None, source, code, "LOG",
+                                              "before_start", message))
+        self.refused_starts += 1
+
     def begin_run(self, scenario: Scenario, cfg: VehicleConfig, dt: float) -> MirroredWorld:
         """Kiểm lại trạng thái thật rồi mở lần chạy. VEHICLE_IO: `arm()` (thao tác cho phép mới — gỡ cả chốt
         TELEMETRY_STALE). OBSERVE: gửi DISARM (không phải lệnh chuyển động) rồi chờ telemetry mới báo DISARMED; không
@@ -475,16 +630,28 @@ class VehicleLink:
         staged = self.event_rows
         if self._simulated and previous[0] is not None:
             previous[0].close()
+        self._commit_run(staged, world)
+        return world
+
+    def _commit_run(self, staged_events: list[dict], world: MirroredWorld) -> None:
+        """Mở lần chạy mới (`begin_run` đã qua mọi kiểm tra, hoặc phát lại log ở `ReplayVehicleLink`): thay log, kết quả
+        và băng phát lại của lần chạy trước; t0 = io.now(). T9: `run_start` = t0 cùng trạng thái đầu của thế giới gương
+        (tư thế, góc lái, nguồn), đủ để phát lại log dựng lại thế giới gương mà không chạy lại bước START."""
         self._reset_run_state()
         self.command_rows.clear()
         self.telemetry_rows.clear()
-        self.event_rows = staged
+        self.event_rows = staged_events
+        self.pose_rows.clear()
+        self.clock_rows.clear()
         self.result = None
         self.suggestion = None
         self._io_t0 = self.io.now()
+        self._perf_t0 = time.perf_counter()    # liền sau _io_t0: cặp đổi t_io → perf của link.json "clock"
         self._running = True
         self.runs += 1
-        return world
+        state = world.state
+        self.run_start = {"t_io0": self._io_t0, "x": state.pose.x, "y": state.pose.y, "yaw_rad": state.pose.yaw,
+                          "steer_rad": state.steer, "state_source": state.source_id}
 
     def _open_run(self, scenario: Scenario, cfg: VehicleConfig, dt: float) -> MirroredWorld:
         io = self.io
@@ -576,7 +743,7 @@ class VehicleLink:
     def pump(self, t: float) -> None:
         """Tiến I/O tới thời gian phiên t. Mô phỏng: chạy bo giả tới io.now() ≥ t0 + t. Bo thật: `poll(block=False)`
         — chỉ đọc byte đã có sẵn, KHÔNG chờ timeout đọc của cổng (chờ ở đây sẽ chặn luồng giao diện và làm thời gian
-        phiên chậm hơn `io.now()`)."""
+        phiên chậm hơn `io.now()`). T9: một lần gọi là một lần đọc io của băng phát lại (dòng clock.csv "pump")."""
         io = self.io
         if io is None:
             return
@@ -588,6 +755,8 @@ class VehicleLink:
         else:
             self._on_telemetry(io.poll(block=False))
         self._collect_events()
+        self._end_call("pump", t)
+        self._last_t = t
 
     def refresh(self) -> None:
         """Lấy telemetry và sự kiện ĐÃ tới, không tiến thời gian: bo thật `poll(block=False)` (chỉ byte có sẵn); bo mô
@@ -598,7 +767,10 @@ class VehicleLink:
         chạy SAU nhịp điều khiển. Vòng điều khiển treo lâu hơn hạn lệnh trong khi Heartbeat vẫn giữ liên lạc thì bo về
         ARMED (COMMAND_TIMEOUT) mà telemetry vẫn mới; bước đầu tiên sau khi hết treo rơi đúng nhịp điều khiển thì gửi MỘT
         COMMAND enable=1 (bo ARMED → RUNNING) trước khi thấy VEHICLE_STOPPED. Mô hình bo với lệnh dừng tới sau 10–40 ms
-        cho effort 107–130 ‰."""
+        cho effort 107–130 ‰.
+
+        T9: một lần gọi là một lần đọc io của băng phát lại (dòng clock.csv "refresh"); t_session của dòng là t của lần
+        pump trước, tức world.time lúc đầu bước (0 ở bước đầu), nên `Session` không phải truyền gì."""
         io = self.io
         if io is None:
             return
@@ -607,6 +779,13 @@ class VehicleLink:
         else:
             self._on_telemetry(io.poll(block=False))
         self._collect_events()
+        self._end_call("refresh", self._last_t)
+
+    def _end_call(self, kind: str, t: float) -> None:
+        """T9: kết thúc một lần đọc io của lần chạy: dòng clock.csv (số lần đọc, loại, t_session, io.now() SAU lần đọc),
+        rồi tăng số lần đọc. Khung telemetry và sự kiện VehicleIO mà lần đọc này trả mang cùng số ở cột call."""
+        self.clock_rows.append({"call": self._call, "kind": kind, "t_session": round(t, 4), "t_io": self.io.now()})
+        self._call += 1
 
     def _on_telemetry(self, frames: list[VehicleTelemetry]) -> None:
         for tel in frames:
@@ -619,7 +798,7 @@ class VehicleLink:
                 "speed_mps": _blank(tel.speed_mps), "steer_rad": _blank(tel.steer_rad),
                 "speed_ref_mps": tel.speed_ref_mps, "steer_ref_rad": tel.steer_ref_rad, "effort": tel.effort,
                 "last_cmd_seq": tel.last_cmd_seq, "cmd_age_s": _blank(tel.cmd_age_s), "supply_v": _blank(tel.supply_v),
-                "rx_errors": tel.rx_errors, "rejects": tel.rejects})
+                "rx_errors": tel.rx_errors, "rejects": tel.rejects, "call": self._call})
             # Khung nhận trước START (còn trong hàng đợi của VehicleIO) chỉ ghi log, không đưa vào kiểm tra.
             if self._running and not self._guard_reported and tel.stamp.t >= self._io_t0:
                 self._guard(tel)
@@ -653,7 +832,8 @@ class VehicleLink:
                 handling = "after_run"
             else:
                 handling = "stop" if stop else "log"
-            self._log_event(ev.stamp.t, t, ev.stamp.source_id, ev.code, ev.action, handling, ev.message)
+            self._log_event(ev.stamp.t, t, ev.stamp.source_id, ev.code, ev.action, handling, ev.message,
+                            call=self._call)
             if stop and self._running:
                 self._pending.append(SafetyEvent(SourceStamp(ev.stamp.source_id, max(0.0, t)), ev.code,
                                                  ev.message, "STOP"))
@@ -669,11 +849,27 @@ class VehicleLink:
     def telemetry_fresh(self) -> bool:
         return self.io is not None and self.io.telemetry_fresh(max_age_s=self.params.max_state_age_s)
 
+    def _pose(self, use: str, t: float) -> tuple[PoseSample | None, float | None]:
+        """Đọc nguồn tư thế rồi đọc io.now() NGAY SAU mẫu (thứ tự `observe` vẫn dùng), và (T9) ghi một dòng poses.csv:
+        mẫu, hoặc available = 0 khi nguồn không có mẫu, cùng đồng hồ io lúc đọc. `use`: "estimate" (thế giới gương)
+        hoặc "observe" (trạng thái đo cho bộ bám). Trả (mẫu, io.now())."""
+        sample = self.pose_source.latest() if self.pose_source is not None else None
+        now = self.io.now() if self.io is not None else None
+        row = {"n": len(self.pose_rows), "use": use, "t_session": round(t, 4), "t_io": _blank(now),
+               "available": int(sample is not None)}
+        if sample is None:
+            row.update(sample_t_io="", x="", y="", yaw_rad="", source_id="", simulated="")
+        else:
+            row.update(sample_t_io=sample.t, x=sample.pose.x, y=sample.pose.y, yaw_rad=sample.pose.yaw,
+                       source_id=sample.source_id, simulated=int(sample.simulated))
+        self.pose_rows.append(row)
+        return sample, now
+
     def estimate(self, t: float, prev: VehicleState) -> VehicleState:
         """Trạng thái cho thế giới gương: tư thế từ nguồn định vị, tốc độ/góc lái đo; thiếu thì giữ giá trị trước."""
         pose = prev.pose
         source = prev.source_id
-        sample = self.pose_source.latest() if self.pose_source is not None else None
+        sample, _ = self._pose("estimate", t)
         if sample is not None:
             pose = sample.pose
             source = self._state_source(sample)
@@ -700,10 +896,10 @@ class VehicleLink:
         speed = self._measured_speed(tel)
         if speed is None or tel.steer_rad is None:
             return None, self._link_event(t, "NO_MEASURED_STATE", "Telemetry không có tốc độ/góc lái đo được: dừng")
-        sample = self.pose_source.latest()
-        # Đọc đồng hồ SAU khi lấy mẫu: với đồng hồ mịn (bo thật), mẫu đóng dấu io.now() bên trong latest() luôn muộn
-        # hơn một `now` đọc trước đó vài µs và sẽ bị coi nhầm là mẫu "ở tương lai" (tuổi âm) → STALE_POSE giả.
-        now = io.now()
+        # Đọc đồng hồ SAU khi lấy mẫu (trong `_pose`): với đồng hồ mịn (bo thật), mẫu đóng dấu io.now() bên trong
+        # latest() luôn muộn hơn một `now` đọc trước đó vài µs và sẽ bị coi nhầm là mẫu "ở tương lai" (tuổi âm) →
+        # STALE_POSE giả.
+        sample, now = self._pose("observe", t)
         if sample is None or not 0 <= now - sample.t <= p.max_state_age_s:
             return None, self._link_event(t, "STALE_POSE", "Tư thế từ nguồn định vị cũ hoặc thiếu: dừng và chờ "
                                                            "đánh giá lại")
@@ -750,7 +946,7 @@ class VehicleLink:
             seq = self.io.send(out.target_speed, out.target_steer, validity_s=self.params.command_validity_s)
         except (VehicleIOError, ValueError) as exc:
             self.command_rows.append(self._command_row(t, "TRACK", False, None, out.target_speed, out.target_steer,
-                                                       out, observed, f"gửi lỗi: {exc}"))
+                                                       out, observed, f"{SEND_FAILED_NOTE}{exc}"))
             self._halted = True
             return self._link_event(t, "SEND_FAILED", f"Không gửi được lệnh: {exc}")
         self._run_cmd_seqs.add(seq)
@@ -772,7 +968,7 @@ class VehicleLink:
         try:
             seq = self.io.stop(validity_s=self.params.command_validity_s)
         except (VehicleIOError, ValueError) as exc:
-            note = f"gửi lỗi: {exc}"
+            note = f"{SEND_FAILED_NOTE}{exc}"
         self.command_rows.append(self._command_row(t, "STOP", seq is not None, seq, 0.0, 0.0, None, None, note))
 
     def stop_timed_out(self, t: float) -> bool:
@@ -800,17 +996,168 @@ class VehicleLink:
                        "commands_sent": io.stats.commands_sent if io is not None else 0,
                        "telemetry_received": io.stats.telemetry_received if io is not None else 0}
 
+    # ------------------------------------------------------------------ xóa lỗi bo (T15, thêm 02/10/2026)
+    @property
+    def clear_fault_blocker(self) -> str | None:
+        """Lý do `clear_fault()` bị chặn; None = được phép. Kiểm theo thứ tự: liên kết đã đóng, đang có lần chạy
+        (`_running` phủ cả RUNNING lẫn STOPPING), bo mô phỏng của giao diện, chưa có io."""
+        if self._closed:
+            return "liên kết VehicleIO đã đóng"
+        if self._running:
+            return "đang có lần chạy: chỉ xóa lỗi khi lần chạy đã kết thúc"
+        if self._simulated:
+            return ("bo mô phỏng của giao diện được tạo mới (DISARMED) mỗi lần Bắt đầu đỗ, không có lỗi để xóa; nút "
+                    "dùng với bo chọn ở cổng COM")
+        if self.io is None:
+            return "liên kết chưa có VehicleIO"
+        return None
+
+    def clear_fault(self, *, request_timeout_s: float | None = None) -> BoardFaultClear:
+        """"Xóa lỗi bo (CLEAR_FAULT)" trên VehicleIO của CHÍNH liên kết này, ngoài lần chạy (T15).
+
+        Dùng io của liên kết chứ không dùng io tạm như "Kiểm kết nối bo": khi cổng được giữ mở giữa các lần chạy (T2),
+        mở cổng lần hai sẽ hỏng trên Windows; t_io của dòng log cùng đồng hồ với log của liên kết. Bị chặn
+        (`clear_fault_blocker`) thì ném `VehicleLinkError` và không ghi gì.
+
+        Cổng serial chưa mở (`SerialVehicleIO.deferred` của giao diện) thì `reopen()` rồi đóng lại khi xong: chọn cổng
+        vẫn không mở cổng, "Kiểm kết nối bo" vẫn mở được cổng. io đã mở sẵn (tiêm vào, hoặc T2 sau này) thì không đóng.
+        Đã có phiên thì dùng lại, không HELLO, nhưng gửi một PING và chờ ACK trước khi đọc trạng thái (rào "khung mới",
+        xem `_clear_fault_on`); chưa có phiên, hoặc laptop đã chốt mất liên lạc (`rearm_required`), thì HELLO mở phiên
+        mới (bo giữ FAULT; khung của phiên cũ bị bỏ). Quyết định theo khung telemetry ĐẦU TIÊN bo gửi sau lúc bấm: bo
+        không FAULT → không gửi CLEAR_FAULT; cờ ESTOP_INPUT = 1 → không gửi CLEAR_FAULT; còn lại gửi đúng một REQUEST
+        CLEAR_FAULT (firmware tự kiểm lại: ESTOP_ACTIVE, FAULT_ACTIVE) rồi đọc khung kế tiếp để xác nhận. KHÔNG BAO GIỜ
+        ARM, không COMMAND nào (kể cả enable=0, kể cả ở OBSERVE); REQUEST khác có thể ra là PING rào ở trên (không đổi
+        trạng thái bo) và DISARM mà VehicleIO tự gửi khi mất liên lạc (TELEMETRY_STALE), như "Kiểm kết nối bo".
+
+        Không ném `VehicleIOError`: lỗi liên lạc nằm trong báo cáo. Mỗi lần gọi không bị chặn thêm đúng một dòng vào
+        `board_actions`. Sự kiện VehicleIO gom được trong lúc này vào báo cáo và cột message của dòng đó, không thành
+        dòng before_start của lần START sau. Chỉ thử với bo mô phỏng và cổng serial GIẢ; CHƯA THỬ với ESP32-S3."""
+        blocker = self.clear_fault_blocker
+        if blocker is not None:
+            raise VehicleLinkError(f"Không xóa lỗi bo: {blocker}")
+        io = self.io
+        opened_here = isinstance(io, SerialVehicleIO) and io.transport is None
+        if opened_here:
+            try:
+                io.reopen()
+            except Exception as exc:          # SerialException (OSError), VehicleIOError, ValueError, ImportError...
+                target = io.port or "cổng serial"
+                report = BoardFaultClear(target, False, error=f"Không mở được {target}: {exc}")
+                report.stamp(io)
+                self.board_actions.append(report.to_row())
+                return report
+        close_error: OSError | None = None
+        try:
+            report = self._clear_fault_on(io, request_timeout_s)
+        finally:
+            if opened_here:
+                try:
+                    io.close()                # cổng trở lại "chưa mở", như lúc mới chọn
+                except OSError as exc:
+                    io.transport = None       # bỏ đối tượng cổng lỗi: lần bấm sau mở lại từ đầu
+                    close_error = exc
+        if close_error is not None:
+            report.error = report.error or f"Lỗi khi đóng cổng: {close_error}"
+        self.board_actions.append(report.to_row())
+        return report
+
+    def _clear_fault_on(self, io: VehicleIO, request_timeout_s: float | None) -> BoardFaultClear:
+        """Một lần xóa lỗi trên io đã mở (xem `clear_fault`). Lỗi liên lạc trước bước quyết định: giữ NO_LINK.
+
+        Rào "khung mới" trước khi đọc khung quyết định (`_await_frame` tự nó không bảo đảm khung là khung mới): phiên
+        mới thì chính HELLO_ACK là rào (khung của phiên cũ bị bỏ); dùng lại phiên thì PING rồi chờ ACK. Bo gửi ACK và
+        telemetry trên CÙNG một luồng byte, đúng thứ tự, nên khi ACK tới thì mọi khung cũ đứng trước nó đã được đọc (cả
+        phần tồn đọng dài hơn một lần đọc `PUMP_MAX_BYTES`, cả phần còn trong bộ đệm của cổng hay của bo), và khung đọc
+        ở các lần đọc SAU là bo gửi sau khi xử lý PING, tức sau lúc bấm. Sửa sau review 02/10/2026: trước đó chỉ có một
+        lần đọc không chờ, nên với cổng giữ mở giữa các lần chạy (T2) khung DISARMED cũ tới muộn có thể thành căn cứ
+        quyết định và báo NOT_NEEDED khi bo đang FAULT. Bo không ACK PING (hết giờ, bo không còn phiên này): NO_LINK,
+        bấm lại."""
+        p = self.params
+        simulated = isinstance(io, SimVehicleIO)
+        report = BoardFaultClear(getattr(io, "port", None) or ("bo mô phỏng" if simulated else type(io).__name__),
+                                 simulated)
+        report.stamp(io)                      # lúc bấm; thay bằng lúc quyết định nếu tới được bước đó
+        commands0, requests0 = io.stats.commands_sent, io.stats.requests_sent
+        try:
+            if io.connected and not io.rearm_required:
+                report.session_reused = True
+                io.ping(wait=True)            # rào "khung mới": xem docstring; PING không đổi trạng thái bo
+            else:
+                # Chưa có phiên, hoặc laptop đã chốt mất liên lạc (TELEMETRY_STALE): mở phiên mới. Bo vừa khởi động lại
+                # chỉ trả NO_SESSION cho REQUEST và không gửi telemetry, nên chờ khung trên phiên cũ là vô ích.
+                frames0, hello_before = io.stats.frames_sent, io.hello
+                try:
+                    report.hello = io.connect(timeout_s=p.connect_timeout_s)   # HELLO giữ FAULT: bo không tự xóa lỗi
+                except VehicleIOError:
+                    if io.hello is not None and io.hello is not hello_before:
+                        report.hello = io.hello   # có HELLO_ACK nhưng phiên bị từ chối: vẫn báo firmware/boot_id
+                    raise
+                finally:
+                    report.hello_sent = io.stats.frames_sent > frames0
+            report.before = before = _await_frame(io, p.fresh_timeout_s)
+            report.stamp(io)
+            if before.state != State.FAULT and before.fault == Fault.NONE:
+                report.outcome = "NOT_NEEDED"
+            elif before.estop_input:
+                report.outcome = "ESTOP_PRESSED"
+            else:
+                self._send_clear_fault(io, report, request_timeout_s)
+        except VehicleIOError as exc:
+            report.error = str(exc)
+        finally:
+            report.events = io.events()       # như probe_board: vào báo cáo, không thành dòng before_start lần sau
+            report.commands_sent = io.stats.commands_sent - commands0
+            report.requests_sent = io.stats.requests_sent - requests0
+        return report
+
+    def _send_clear_fault(self, io: VehicleIO, report: BoardFaultClear, request_timeout_s: float | None) -> None:
+        """Gửi REQUEST CLEAR_FAULT, chờ ACK, rồi đọc khung kế tiếp. Chỉ CLEARED khi ACK OK VÀ khung sau báo hết lỗi."""
+        requests0 = io.stats.requests_sent
+        try:
+            io.clear_fault(timeout_s=request_timeout_s)
+            report.ack_result = "OK"
+        except VehicleIOError as exc:
+            if exc.result is None:            # hết giờ chờ ACK, hoặc lỗi cổng
+                report.outcome, report.error = "NO_ACK", str(exc)
+            else:
+                report.outcome = "REFUSED"
+                report.ack_result = exc.result.name if isinstance(exc.result, Result) else f"RESULT_{exc.result}"
+        report.sent = io.stats.requests_sent > requests0
+        if not report.sent:                   # không ghi được khung ra cổng, hoặc phiên vừa mất
+            report.outcome = "NO_LINK"
+            return
+        try:
+            report.after = _await_frame(io, self.params.fresh_timeout_s)
+        except VehicleIOError as exc:
+            report.error = report.error or str(exc)
+        if report.ack_result == "OK":
+            after = report.after
+            report.outcome = ("CLEARED" if after is not None and after.state != State.FAULT
+                              and after.fault == Fault.NONE else "NOT_CONFIRMED")
+
     # ------------------------------------------------------------------ log
     def write_logs(self, directory: str | Path) -> dict[str, Path]:
-        """Ghi commands.csv, telemetry.csv, events.csv (của lần chạy gần nhất đã mở), start_refusals.csv (mọi lần
-        START bị từ chối của liên kết này; luôn tạo, có thể chỉ có dòng tiêu đề) và link.json vào thư mục."""
+        """Ghi tám tệp vào thư mục: commands.csv, telemetry.csv, events.csv, poses.csv, clock.csv (của lần chạy gần
+        nhất đã mở), start_refusals.csv (mọi lần START bị từ chối của liên kết này), board_actions.csv (mọi lần "Xóa lỗi
+        bo" của liên kết này, T15) và link.json. Hai tệp cộng dồn luôn được tạo, có thể chỉ có dòng tiêu đề.
+
+        T13 (02/10/2026): events.csv có cả dòng `session_stop` (quyết định dừng của phiên) và cột t_perf (cả
+        start_refusals.csv); link.json có thêm khóa "clock" (cặp t_io/perf_counter lúc mở lần chạy, xem docstring của
+        mô-đun). Khóa này không nằm trong `describe()`, nên snapshot của lần chạy không đổi.
+
+        T9 (02/10/2026): băng phát lại log: poses.csv, clock.csv, cột call của telemetry.csv và events.csv; link.json có
+        thêm "run_start" (None khi chưa mở lần chạy nào), "log_format" (`LOG_FORMAT`) và, qua `describe()`,
+        "io_source_id"."""
         path = Path(directory)
         path.mkdir(parents=True, exist_ok=True)
         written = {}
         for name, fields, rows in (("commands.csv", COMMAND_FIELDS, self.command_rows),
                                    ("telemetry.csv", TELEMETRY_FIELDS, self.telemetry_rows),
                                    ("events.csv", EVENT_FIELDS, self.event_rows),
-                                   ("start_refusals.csv", EVENT_FIELDS, self.start_refusals)):
+                                   ("start_refusals.csv", EVENT_FIELDS, self.start_refusals),
+                                   ("board_actions.csv", BOARD_ACTION_FIELDS, self.board_actions),
+                                   ("poses.csv", POSE_FIELDS, self.pose_rows),
+                                   ("clock.csv", CLOCK_FIELDS, self.clock_rows)):
             target = path / name
             with target.open("w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fields)
@@ -818,7 +1165,10 @@ class VehicleLink:
                 writer.writerows(rows)
             written[name] = target
         info = dict(self.describe(), result=self.result, runs=self.runs, refused_starts=self.refused_starts,
-                    stats=asdict(self.io.stats) if self.io is not None else None)
+                    stats=asdict(self.io.stats) if self.io is not None else None,
+                    clock={"t_io_at_start": None if self._perf_t0 is None else self._io_t0,
+                           "t_perf_at_start": self._perf_t0},
+                    run_start=self.run_start, log_format=LOG_FORMAT)
         target = path / "link.json"
         target.write_text(json.dumps(info, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
         written["link.json"] = target
@@ -951,3 +1301,182 @@ def probe_board(io: VehicleIO, cfg: VehicleConfig, *, target: str = "", frames: 
         except OSError as exc:
             report.error = report.error or f"Lỗi khi đóng cổng: {exc}"
     return report
+
+
+# ---------------------------------------------------------------------- "Xóa lỗi bo (CLEAR_FAULT)" (02/10/2026, T15)
+CLEAR_FAULT_OUTCOMES = ("CLEARED", "NOT_NEEDED", "ESTOP_PRESSED", "REFUSED", "NOT_CONFIRMED", "NO_ACK", "NO_LINK")
+# Lỗi nào firmware cũng xóa khi hết nguyên nhân (SUPPLY_LOW: khi điện áp đo lại đủ ngưỡng); báo cáo nêu cần kiểm gì.
+_FAULT_NOTE = {
+    Fault.ESTOP: "nút dừng khẩn",
+    Fault.LOOP_OVERRUN: "vòng điều khiển của bo bị trễ",
+    Fault.SUPPLY_LOW: "điện áp dưới ngưỡng",
+    Fault.FEEDBACK_LOST: "mất phản hồi tốc độ khi đang chạy",
+    Fault.STALL: "effort cao mà xe không đi theo: kiểm kẹt bánh, encoder đảo dấu trước khi chạy lại",
+}
+# Mã ACK khi bo từ chối CLEAR_FAULT → việc người dùng cần làm.
+_REFUSAL_NOTE = {
+    "ESTOP_ACTIVE": "bo thấy nút dừng khẩn đang nhấn: nhả nút rồi bấm lại",
+    "FAULT_ACTIVE": "nguyên nhân lỗi còn; SUPPLY_LOW chỉ xóa được khi điện áp đo lại đủ ngưỡng",
+    "NO_SESSION": "bo không còn phiên này, có thể vừa khởi động lại: bấm lại để mở phiên mới",
+    "WRONG_SESSION": "bo đang ở phiên khác: bấm lại để mở phiên mới",
+}
+
+
+def _wall_time() -> str:
+    """Giờ máy lúc gọi: ISO 8601 có độ lệch múi giờ, tới ms (để đối chiếu với biên bản và video)."""
+    return datetime.now().astimezone().isoformat(timespec="milliseconds")
+
+
+def _reset_reason_text(value: int) -> str:
+    """Lý do reset trong HELLO_ACK: tên `ResetReason` khi biết (POWER_ON, WATCHDOG...), không thì số thô."""
+    return ResetReason(value).name if value in ResetReason._value2member_map_ else str(value)
+
+
+def _frame_text(tel: VehicleTelemetry | None) -> str:
+    """Một khung telemetry trong báo cáo xóa lỗi: số thứ tự, đồng hồ bo, trạng thái, lỗi (kèm ghi chú), E-stop."""
+    if tel is None:
+        return "không có khung telemetry mới"
+    note = _FAULT_NOTE.get(tel.fault)
+    return (f"#{tel.sequence} t_bo {tel.device_time_ms} ms: {tel.state.name}, lỗi {tel.fault.name}"
+            f"{f' ({note})' if note else ''}, E-stop {'NHẤN' if tel.estop_input else 'không nhấn'}")
+
+
+def _await_frame(io: VehicleIO, timeout_s: float) -> VehicleTelemetry:
+    """Khung telemetry đầu tiên ĐỌC ĐƯỢC SAU lúc gọi (dấu thời gian là lúc laptop đọc cổng, đồng hồ io); quá `timeout_s`
+    thì `VehicleIOError`.
+
+    Hàm này KHÔNG tự bảo đảm khung là do bo gửi sau lúc gọi (sửa lời sau review 02/10/2026): lần đọc không chờ đầu hàm
+    chỉ bỏ được phần đọc được trong lần đó (tối đa `PUMP_MAX_BYTES` trong `PUMP_MAX_S`); phần tồn đọng dài hơn, hay byte
+    còn trong bộ đệm của bo, tới ở lần đọc sau và mang dấu thời gian muộn dù bo đã gửi từ trước. Người gọi phải đặt rào
+    trước: một thông điệp bo trả lời trên cùng luồng byte (HELLO_ACK của phiên mới, ACK của PING hay của CLEAR_FAULT),
+    xem `VehicleLink._clear_fault_on`. Dừng sớm khi `io.connected` thành False (lỗi cổng, bo không còn phiên): sau
+    `_link_failed`, `service()` không đọc gì nữa, nên chờ tiếp thì với `ManualClock` là treo mãi, với đồng hồ thật là
+    chờ bận vô ích. Vì vậy không dùng `VehicleLink._new_telemetry` (hàm đó giữ nguyên)."""
+    io.service(block=False)
+    after = io.now()
+    deadline = after + timeout_s
+    while io.connected:
+        tel = io.latest()
+        if tel is not None and tel.stamp.t > after:
+            return tel
+        if io.now() >= deadline:
+            raise VehicleIOError(f"Không nhận được khung telemetry mới trong {timeout_s:.1f} s")
+        io.service()
+    raise VehicleIOError("Mất phiên với bo trong lúc chờ telemetry (lỗi cổng hoặc bo không còn phiên)")
+
+
+@dataclass
+class BoardFaultClear:
+    """Kết quả một lần "Xóa lỗi bo (CLEAR_FAULT)" (`VehicleLink.clear_fault`): khung trước và sau, ACK, sự kiện, số
+    khung đã gửi. `to_row()` là dòng board_actions.csv của lần bấm đó."""
+
+    target: str                                   # "COM7", "bo mô phỏng", hoặc tên lớp io
+    simulated: bool
+    wall_time: str = ""                           # giờ máy (ISO 8601) đọc cùng lúc với t_io
+    t_io: float | None = None                     # io.now() lúc quyết định gửi / không gửi (chưa tới bước đó: lúc bấm)
+    t_perf: float | None = None                   # perf_counter() thô đọc liền sau t_io
+    hello_sent: bool = False                      # đã gửi HELLO (io chưa có phiên, hoặc đã chốt mất liên lạc)
+    session_reused: bool = False                  # dùng phiên đang có, không gửi HELLO
+    hello: HelloInfo | None = None                # HELLO_ACK của lần bấm này (None khi dùng phiên đang có)
+    before: VehicleTelemetry | None = None        # khung đầu tiên nhận sau lúc bấm: căn cứ quyết định
+    sent: bool = False                            # REQUEST CLEAR_FAULT đã thật sự ghi ra (stats.requests_sent tăng)
+    ack_result: str = ""                          # "OK", tên Result, hoặc "" (chưa gửi / không có ACK)
+    after: VehicleTelemetry | None = None         # khung đầu tiên nhận sau ACK, lời từ chối hoặc hết giờ
+    outcome: str = "NO_LINK"                      # một trong CLEAR_FAULT_OUTCOMES
+    events: list[SafetyEvent] = field(default_factory=list)
+    error: str | None = None
+    # CLEAR_FAULT, PING rào khi dùng lại phiên, và DISARM do VehicleIO tự gửi khi mất liên lạc
+    requests_sent: int = 0
+    commands_sent: int = 0                        # phải luôn 0: xóa lỗi không gửi COMMAND nào
+
+    @property
+    def ok(self) -> bool:
+        return self.outcome in ("CLEARED", "NOT_NEEDED")
+
+    def stamp(self, io: VehicleIO) -> None:
+        """Đặt ba mốc thời gian của dòng log, đọc liền nhau: io.now(), perf_counter() thô, giờ máy."""
+        self.t_io = io.now()
+        self.t_perf = time.perf_counter()
+        self.wall_time = _wall_time()
+
+    def summary(self) -> str:
+        """Một câu tiếng Việt theo `outcome` (giao diện, thanh trạng thái và cột message của board_actions.csv)."""
+        before, after, outcome = self.before, self.after, self.outcome
+        if outcome == "CLEARED":
+            boot = ("; bo còn trong thời gian giữ khởi động, sẽ tự sang DISARMED"
+                    if after is not None and after.state == State.BOOT else "")
+            return (f"Đã xóa lỗi: bo {after.state.name if after is not None else '?'}{boot}. Vẫn phải ARM (Bắt đầu đỗ) "
+                    f"và có lệnh mới thì xe mới chạy; bánh xe không được quay sau thao tác này.")
+        if outcome == "NOT_NEEDED":
+            # "không gửi CLEAR_FAULT", không phải "không gửi gì": dùng lại phiên thì đã có PING rào (review 02/10/2026)
+            return (f"Bo không ở FAULT ({before.state.name if before is not None else '?'}): không cần và không gửi "
+                    f"CLEAR_FAULT.")
+        if outcome == "ESTOP_PRESSED":
+            return ("Nút dừng khẩn còn NHẤN (cờ ESTOP_INPUT; dây E-stop hở cũng đọc là nhấn): nhả nút rồi bấm lại. "
+                    "Không gửi CLEAR_FAULT.")
+        if outcome == "REFUSED":
+            note = _REFUSAL_NOTE.get(self.ack_result)
+            return f"Bo từ chối CLEAR_FAULT: {self.ack_result}{f' ({note})' if note else ''}."
+        if outcome == "NOT_CONFIRMED":
+            seen = "không tới" if after is None else f"vẫn báo {after.state.name}, lỗi {after.fault.name}"
+            return f"Bo trả ACK OK nhưng khung telemetry sau đó {seen}: kiểm nút dừng khẩn rồi bấm lại."
+        if outcome == "NO_ACK":
+            seen = "" if after is None else f"; khung sau đó báo {after.state.name}, lỗi {after.fault.name}"
+            return f"Không nhận được ACK của CLEAR_FAULT{seen}: trạng thái bo chưa chắc, bấm lại để kiểm."
+        return "Không có liên lạc với bo: không gửi CLEAR_FAULT."
+
+    def lines(self) -> list[str]:
+        """Báo cáo tiếng Việt, mỗi phần tử một dòng (giao diện hiển thị nguyên văn, chọn và chép được)."""
+        kind = "bo MÔ PHỎNG (SimVehicleIO + FirmwareModel)" if self.simulated else "bo qua cổng serial"
+        out = [f"Xóa lỗi bo (CLEAR_FAULT): {self.target} — {kind}. Chỉ gửi CLEAR_FAULT khi bo đang FAULT và nút dừng "
+               f"khẩn đã nhả; không ARM, không gửi lệnh chuyển động."]
+        h = self.hello
+        if h is not None:
+            out.append(f"HELLO_ACK: firmware {h.firmware_version}, boot_id {h.boot_id:08x}, lý do reset "
+                       f"{h.reset_reason}, trạng thái {h.state.name}.")
+        elif self.session_reused:
+            out.append("Dùng phiên đang có với bo (không gửi HELLO); gửi PING và chờ ACK trước khi đọc trạng thái, để "
+                       "khung cũ còn trong cổng không thành căn cứ quyết định.")
+        elif self.hello_sent:
+            out.append("Đã gửi HELLO, không nhận được HELLO_ACK.")
+        out.append(f"Trước: {_frame_text(self.before)}.")
+        if self.sent:
+            ack = ("không nhận được ACK" if not self.ack_result else
+                   "ACK OK" if self.ack_result == "OK" else f"ACK {self.ack_result}")
+            out.append(f"Đã gửi CLEAR_FAULT lúc t_io {self.t_io:.3f} s: {ack}.")
+            out.append(f"Sau: {_frame_text(self.after)}.")
+        for ev in self.events:
+            out.append(f"Sự kiện {ev.code} ({ev.action}): {ev.message}")
+        out.append(f"Đã gửi: {self.commands_sent} COMMAND, {self.requests_sent} REQUEST (HELLO không tính).")
+        out.append(f"KẾT QUẢ: {self.summary()}")
+        if self.error:
+            out.append(f"LỖI: {self.error}")
+        return out
+
+    def to_row(self) -> dict:
+        """Dòng board_actions.csv (khóa đúng bằng BOARD_ACTION_FIELDS).
+
+        Sửa sau review 02/10/2026: sự kiện VehicleIO gom được trong lần bấm vào message ĐỦ (mã, action, t_io của sự
+        kiện, lời), không chỉ mã: chúng không vào log nào khác, và t_io cho thấy sự kiện nào có từ trước lúc bấm. Bốn
+        cột hello_* (nối cuối) giữ HELLO_ACK của lần bấm (trống khi dùng lại phiên hay không có HELLO_ACK): đổi boot_id
+        giữa các dòng, hay lý do reset, phân biệt "bo khởi động lại khi mở cổng" với "đã xóa bằng CLEAR_FAULT"."""
+        before, after, hello = self.before, self.after, self.hello
+        message = self.summary()
+        if self.error:
+            message += f" | LỖI: {self.error}"
+        if self.events:
+            message += " | sự kiện: " + "; ".join(f"{ev.code} ({ev.action}, t_io {ev.stamp.t:.3f}): {ev.message}"
+                                                  for ev in self.events)
+        return {"t_io": _blank(self.t_io), "t_perf": _blank(self.t_perf), "wall_time": self.wall_time,
+                "target": self.target, "request": "CLEAR_FAULT", "outcome": self.outcome,
+                "ack_result": self.ack_result,
+                "state_before": before.state.name if before is not None else "",
+                "fault_before": before.fault.name if before is not None else "",
+                "estop_before": int(before.estop_input) if before is not None else "",
+                "state_after": after.state.name if after is not None else "",
+                "fault_after": after.fault.name if after is not None else "",
+                "requests_sent": self.requests_sent, "commands_sent": self.commands_sent, "message": message,
+                "hello_firmware": hello.firmware_version if hello is not None else "",
+                "hello_boot_id": f"0x{hello.boot_id:08x}" if hello is not None else "",
+                "hello_reset_reason": _reset_reason_text(hello.reset_reason) if hello is not None else "",
+                "hello_state": hello.state.name if hello is not None else ""}

@@ -296,6 +296,37 @@ def test_end_of_recording_leaves_cameras_stale_and_the_rig_stops_cleanly(recorde
     assert alive == [] and time.perf_counter() - t < 1.5
 
 
+def test_replay_measures_the_open_gap_to_the_end_of_the_recording_not_to_now(recorded):
+    """T10: khi phát lại, khoảng hở cuối của từng camera đo tới cuối bản ghi (`ReplaySession.end_t`), không tới lúc lấy
+    số — hết bản ghi không phải camera ngừng. Đo tới "bây giờ" thì mọi camera có khoảng hở giả bằng lúc chờ sau mục cuối."""
+    folder, _, _ = recorded
+    meta = json.loads((folder / "meta.json").read_text(encoding="utf-8"))
+    assert all(c["gap_end_ms"] is not None and c["gap_max_ms"] >= c["gap_closed_max_ms"] for c in meta["cameras_at_stop"])
+    assert ReplaySession(folder).end_t() is None                       # chưa begin()
+    session = ReplaySession(folder)
+    cams = MultiCameraManager(session.camera_specs(), ring=3, open_source=session.open_camera)
+    rig = Rig(cams, RigConfig(ai=False), replay=session)
+    rig.start()                                                        # không có AI: phát ngay
+    try:
+        deadline = time.perf_counter() + session.duration_s + 3.0
+        while not session.finished and time.perf_counter() < deadline:
+            time.sleep(0.02)
+        assert session.finished
+        time.sleep(0.6)                                                # lâu hơn bench chờ sau mục cuối (0,3 s)
+        summary = rig.summary()
+        snap = rig.snapshot()
+        to_now = {c["port"]: c for c in cams.camera_stats()}           # không t_end: tới bây giờ
+        last = {p: w.stats.last_stamp for p, w in cams.workers.items()}
+    finally:
+        alive = rig.stop()
+    assert alive == []
+    end = session.end_t()
+    assert all(t is not None and t <= end for t in last.values())
+    for c in summary["cameras"] + snap["cameras"]["cameras"]:
+        assert c["frames"] > 15 and c["gap_end_ms"] < 250 and c["gap_max_ms"] < 250, c
+        assert to_now[c["port"]]["gap_end_ms"] >= 600, to_now[c["port"]]
+
+
 def test_stopping_mid_replay_wakes_sources_waiting_on_the_schedule(recorded):
     folder, _, _ = recorded
     session = ReplaySession(folder, speed=0.5)                         # chậm: bản ghi 1 s kéo dài 2 s

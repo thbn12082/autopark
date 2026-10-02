@@ -504,6 +504,9 @@ def load_camera_intrinsics(path, port: int | None = None) -> CameraIntrinsics:
         fc.load_intrinsics(path)            # cùng phép kiểm BEV dùng (khối đa thức phải ok)
     except (ValueError, KeyError, OSError, json.JSONDecodeError) as exc:
         raise ExtrinsicsError(f"không nạp được nội tham {path}: {exc}") from exc
+    if record["camera"]["hub_port"] is None:         # tệp cam_<tên>.json của camera ngoài hub (T11, 02/10/2026)
+        raise ExtrinsicsError(f"{path} là nội tham của camera ngoài hub ({record['camera'].get('name')!r}): ngoại tham "
+                              "và ROI chỉ dành cho camera xe theo cổng hub 1..4")
     hub = int(record["camera"]["hub_port"])
     if port is not None and hub != int(port):
         raise ExtrinsicsError(f"{path} là nội tham của camera cổng {hub}, không phải cổng {port}")

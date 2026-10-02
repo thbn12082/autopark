@@ -382,3 +382,133 @@ def test_space_captures_even_while_a_number_box_has_focus(qapp, tmp_path):
         assert len(window.captures) == 3
     finally:
         window.close()
+
+
+# ---- camera KHÔNG qua hub 1..4 (camera trên cao, T11, 02/10/2026) -------------------------------------------------
+def test_camera_outside_the_hub_opens_by_index_and_saves_under_its_name(qapp, tmp_path):
+    """Factory nhận cổng None; tệp, thư mục ảnh và bản ghi theo tên camera; ô cổng có một mục và luôn khóa; đổi mode vẫn
+    được; không bao giờ ghi cam_p*.json."""
+    _, views = synthetic_set()
+    frames = [v[0] for v in views[:12]]
+    opened = []
+
+    def factory(port, w, h):
+        opened.append((port, w, h, FakeBoardCamera(frames)))
+        return opened[-1][3]
+
+    out_dir, runs_dir = tmp_path / "hiệu chuẩn", tmp_path / "ảnh chụp"
+    window = CalibWindow(factory, camera_name="tren_cao", camera_index=4, spec=SPEC, out_dir=out_dir, runs_dir=runs_dir)
+    try:
+        assert pump(qapp, 5, lambda: len(opened) == 1)                     # luồng camera gọi factory
+        assert opened[0][:3] == (None, 640, 480) and window.port is None and window.camera_key == "tren_cao"
+        assert window.windowTitle() == "Hiệu chuẩn camera — tren_cao (index 4), 640×480"
+        assert window.port_box.count() == 1 and window.port_box.currentData() is None and not window.port_box.isEnabled()
+        capture_poses(qapp, window, opened[0][3], range(12))
+        assert window.start_calibration()
+        assert pump(qapp, 60, lambda: window.calib is not None), window.message
+        assert not window.port_box.isEnabled() and window.size_box.isEnabled()          # khóa cả sau hiệu chuẩn
+        assert window.cam_line.text().startswith("tren_cao (index 4) · ")
+        assert window.results.text().startswith("camera ngoài hub 'tren_cao' (index 4 lúc chụp) · ảnh 640×480")
+        path = window.save()
+        assert path == out_dir / "cam_tren_cao.json" and not list(out_dir.glob("cam_p*.json")), window.message
+        record = fc.load_calibration(path)
+        assert record["camera"] == {"hub_port": None, "name": "tren_cao", "opencv_index": 4,
+                                    "source_id": "cam_tren_cao", "device": None}
+        folder = Path(record["images_dir"])
+        assert folder.parent == runs_dir and folder.name.endswith("_tren_cao") and (folder / "cam_tren_cao.json").exists()
+        caps = json.loads((folder / "captures.json").read_text(encoding="utf-8"))
+        assert caps["port"] is None and caps["camera_name"] == "tren_cao" and caps["opencv_index"] == 4
+        assert len(caps["captures"]) == 12
+        window.size_box.setCurrentIndex(window.size_box.findData("1280x720"))
+        assert pump(qapp, 5, lambda: len(opened) == 2)
+        assert opened[-1][:3] == (None, 1280, 720) and "đã mở tren_cao (index 4) ở 1280×720" in window.message
+        assert window.windowTitle().endswith("tren_cao (index 4), 1280×720") and not window.port_box.isEnabled()
+        with pytest.raises(ValueError):
+            window.reopen(2, (640, 480))                                       # không đổi sang camera xe theo cổng
+    finally:
+        window.close()
+    with pytest.raises(ValueError, match="trùng tệp camera xe"):
+        CalibWindow(factory, camera_name="p2", spec=SPEC, start=False)
+
+
+def test_build_window_parses_port_or_index_without_opening_a_camera(qapp, monkeypatch):
+    """Dòng lệnh: --port (mặc định 1) hay --index N [--camera-name TÊN], loại trừ nhau; sai thì mã 2 trước khi mở cửa sổ.
+    --index mở UsbCameraSource theo index, MJPG, không tra cổng hub."""
+    import autopark.video.multicam as multicam
+    import autopark.video.sources as sources
+    from autopark.ui import calib_app
+
+    def build(argv):
+        return calib_app.build_window(argv, start=False)
+
+    for argv, want in (([], 1), (["--port", "2"], 2)):
+        window = build(argv)
+        try:
+            assert window.port == want and window.camera_name is None and window.port_box.count() == 4
+            assert window.windowTitle() == f"Hiệu chuẩn camera — cổng {want}, 640×480"
+            assert window.open_camera is calib_app.usb_camera_factory and window.live_camera is None
+        finally:
+            window.close()
+    for argv, name in ((["--index", "3", "--camera-name", "may_quay"], "may_quay"), (["--index", "3"], "tren_cao")):
+        window = build(argv)
+        try:
+            assert (window.port, window.camera_name, window.camera_index) == (None, name, 3)
+        finally:
+            window.close()
+    for argv in (["--port", "1", "--index", "2"], ["--camera-name", "x"], ["--index", "2", "--camera-name", "p1"],
+                 ["--index", "-1"], ["--index", "2", "--camera-name", ""]):
+        with pytest.raises(SystemExit) as exc:
+            build(argv)
+        assert exc.value.code == 2, argv
+
+    class FakeSource:
+        made = []
+        mismatch = None
+
+        def __init__(self, index, **kw):
+            self.index, self.kw, self.closed, self.mode_mismatch = index, kw, False, FakeSource.mismatch
+            FakeSource.made.append(self)
+
+        def close(self):
+            self.closed = True
+
+    monkeypatch.setattr(sources, "UsbCameraSource", FakeSource)
+    monkeypatch.setattr(multicam, "resolve_ports", lambda *a, **k: pytest.fail("không được tra cổng hub"))
+    window = build(["--index", "3", "--camera-name", "tren_cao"])
+    try:
+        source = window.open_camera(None, 640, 480)
+        assert source.index == 3 and source.kw["fourcc"] == "MJPG" and source.kw["source_id"] == "cam_tren_cao"
+        assert (source.kw["width"], source.kw["height"]) == (640, 480) and not source.closed
+        FakeSource.mismatch = "camera trả 640×480"
+        with pytest.raises(ValueError, match="index 3 không nhận 1280×720"):
+            window.open_camera(None, 1280, 720)
+        assert FakeSource.made[-1].closed
+    finally:
+        window.close()
+
+
+def test_hub_port_shared_with_a_camera_outside_the_hub_is_refused_not_guessed(monkeypatch):
+    """Review 02/10/2026: camera trên cao ở cổng gốc 2 của máy (KICH_BAN_NGHIEM_THU 3.4 bước 4) khi camera xe ở cổng 2 của
+    hub. `rig.bench --ports 1 2 3 4` chọn được theo hub của các cổng khác, còn `calib_app --port 2` hỏi MỘT cổng nên vẫn
+    từ chối — kể cả khi ba camera xe kia đang cắm — thay vì có thể hiệu chuẩn camera trên cao rồi ghi đè cam_p2.json;
+    không camera nào được mở. Cổng không trùng số mở như cũ. PnP và DirectShow giả."""
+    import autopark.video.sources as sources
+    from autopark.ui import calib_app
+    from tests.test_camera_bench import HUB, ROOT, plug, pnp_cam
+
+    opened = []
+
+    class FakeSource:
+        mode_mismatch = None
+
+        def __init__(self, index, **kw):
+            opened.append((index, kw["source_id"]))
+
+    monkeypatch.setattr(sources, "UsbCameraSource", FakeSource)
+    plug(monkeypatch, [pnp_cam("C1", HUB, 1), pnp_cam("AA", ROOT, 2), pnp_cam("C2", HUB, 2), pnp_cam("C3", HUB, 3),
+                       pnp_cam("C4", HUB, 4)])
+    with pytest.raises(ValueError, match="cổng 2: 2 hub cùng có camera ở cổng số 2") as exc:
+        calib_app.usb_camera_factory(2, 640, 480)
+    assert "cổng của máy có số khác 2" in str(exc.value) and opened == []
+    calib_app.usb_camera_factory(3, 640, 480)
+    assert opened == [(3, "cam_p3")]

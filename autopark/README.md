@@ -4,6 +4,8 @@
 
 Biên tập 30/09/2026 theo mã tại `ff4a018` (mã giống `ebbec83`); cây làm việc lúc viết có thêm sửa chưa commit: sửa chữ (docstring, chú thích trong mã, một tooltip trong `ui/main_window.py`, mô tả gói trong `pyproject.toml`; không đổi hành vi) và cách đếm khung của `python -m autopark.transport.qemu_board kiem` (mục 9). Lệnh được đối chiếu với mã và script. Bản trước đợt này: [README tại `ff4a018`](https://github.com/thbn12082/autopark/blob/ff4a018/autopark/README.md); bản trước đợt 26/09/2026, còn các lệnh và nhật ký cũ: [README tại `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/autopark/README.md).
 
+Cập nhật 02/10/2026 theo mã của đợt công cụ nghiệm thu (cây làm việc dựng trên `3148014`): lệnh của các công cụ mới ở mục 3 (dấu đồng bộ video–log, giới hạn số lần đổi chiều), mục 4 (phát lại log lần chạy qua VehicleIO, chấm một lần chạy, diễn tập tiêm lỗi, đo EcoQoS của giao diện), mục 7, 8 (dấu đồng bộ của bàn thử, camera ngoài hub) và mục 9 (nút Xóa lỗi bo). Các công cụ nghiệm thu này mới kiểm bằng test: bo mô phỏng, cổng serial giả, camera giả, giao diện offscreen, bản ghi phát lại; chưa chạy với LiDAR, camera hay bo thật. Công cụ đo EcoQoS mở giao diện thật trên máy; kết quả đo ghi ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md).
+
 Máy phát triển chính từ 29/09/2026 là máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), repo ở `D:\xetulai\autopark` ([biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md)); số đo mới trong tệp này làm trên máy đó. Trên máy này đã cài lại hai môi trường (29/09/2026) và chạy toàn bộ test (lượt mới nhất ở mục 4). Ngày 29/09/2026 lúc 15:08–15:19 (mã `b37e9ee`) đã chạy lại: `phase0` (mục 4); `verify_cache`, chấm val, dự đoán, train 1 epoch (mục 6); một bản ghi LiDAR 10 s; bàn thử bốn camera + LiDAR + AI có ghi rồi phát lại (mục 7); lệnh kiểm máy mới `rig.may_moi` ([tóm tắt](docs/evidence/chuyen_may_20260929/kiem_may_20260929.md)). Laptop trình diễn mới chạy mô phỏng giai đoạn 0 ([MAY_NOP_DO_AN.md](docs/MAY_NOP_DO_AN.md)).
 
 Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. [Hồ sơ giấy phép](docs/GIAY_PHEP_DU_LIEU.md).
@@ -86,9 +88,13 @@ Máy mới, hoặc thư mục chép từ máy khác: thứ tự đủ các bư�
 2. **Tìm đường đỗ** → **Xem trước** → kết thúc xem trước → **Bắt đầu đỗ**.
 3. Thử **Vật cản giả** hoặc **Mất dữ liệu** khi xe đang chạy.
 4. Khi đã dừng, bấm **Chọn lại vị trí**, chọn lại vị trí/đích và lập đường mới.
-5. **Lưu phiên…** trước khi đặt lại phiên.
+5. **Lưu phiên…** trước khi đặt lại phiên (sau khi xe dừng: từ 02/10/2026 nút khóa khi xe đang chạy).
 
 Mặc định xe chạy ở nhánh mô phỏng giai đoạn 0; các nhánh khác ở mục 9.
+
+Dòng đường của cockpit cảnh báo khi đường có hơn 7 lần đổi chiều. `run_app.py <kịch bản> --max-cusps N` (hay `chay_app.cmd <kịch bản> --max-cusps N`) từ chối **Bắt đầu đỗ** khi đường có hơn N lần đổi chiều, trước mọi lệnh tới bo; `--warn-cusps N` đổi mức cảnh báo. Đây là công cụ T12 của [kịch bản nghiệm thu](docs/KICH_BAN_NGHIEM_THU.md) mục 7; giới hạn CHƯA CHỐT nên mặc định không chặn. Từ 02/10/2026 `run_app.py` báo lỗi (mã thoát 2) với tham số lạ.
+
+Khi quay video để đối chiếu với log (R3, R7 của kịch bản nghiệm thu): bấm **F8** hoặc nút **Dấu đồng bộ · F8** trước **Bắt đầu đỗ** và sau khi xe dừng. Mỗi dấu nháy một ô trắng có số trên cửa sổ trong 0,5 s và ghi một dòng có `perf_counter` vào tệp `runs/sync_marks/<giờ>_ui_app.csv`; **Lưu phiên…** ghi thêm `<tên>_sync_marks.csv` cạnh tệp CSV ([kịch bản nghiệm thu](docs/KICH_BAN_NGHIEM_THU.md) mục 2.5). Nút khóa khi xe đang chạy. Dấu đồng bộ (T14, 02/10/2026) mới kiểm offscreen; với màn hình và camera thật CHƯA THỬ, độ trễ hiển thị CHƯA ĐO.
 
 Mở kịch bản vùng chưa quan sát:
 
@@ -145,7 +151,46 @@ Kiểm mở rộng:
 ./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.robustness --out runs/kiem_thu_moi
 ```
 
-[Giải thích kết quả](../BAO_CAO_GIAI_DOAN_0.md). Replay trên áp dụng cho mô phỏng giai đoạn 0; phiên VehicleIO bị từ chối bằng `ReplayNotSupported`.
+[Giải thích kết quả](../BAO_CAO_GIAI_DOAN_0.md). Replay trên tái mô phỏng các gói giai đoạn 0 (nhánh SIM). Gói của lần chạy qua VehicleIO dùng cùng lệnh nhưng là phát lại log (mục con dưới).
+
+### Công cụ nghiệm thu (thêm 02/10/2026)
+
+Ba công cụ đầu dưới đây làm theo bảng T1–T15 của [kịch bản nghiệm thu](docs/KICH_BAN_NGHIEM_THU.md) mục 7. Chúng mới kiểm bằng test: bo mô phỏng, cổng serial giả, camera giả, giao diện offscreen, bản ghi phát lại; chưa dùng với LiDAR, camera, bo ảo qua giao diện hay ESP32-S3 thật. Công cụ cuối đo EcoQoS của ứng dụng giao diện; ứng dụng vẫn không tự tắt EcoQoS.
+
+**Phát lại log lần chạy qua VehicleIO (T9).** Sau một lần chạy ở nhánh VehicleIO hoặc Quan sát với bo mô phỏng, **Lưu phiên…**/**Xuất log CSV…** ghi tệp CSV, thư mục `<tên>_vehicle_io/` (tám tệp: `commands.csv`, `telemetry.csv`, `events.csv`, `start_refusals.csv`, `board_actions.csv`, `poses.csv`, `clock.csv`, `link.json`) và gói `<tên>_<thời điểm>/` có thêm `vehicle_io/`. Phát lại gói bằng cùng lệnh replay:
+
+```powershell
+./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.replay <thư mục gói>
+```
+
+Lệnh chạy lại cùng phần mềm (`Session`, `VehicleLink`, bộ bám) trên đầu vào đã ghi rồi so lệnh, sự kiện (kể cả dòng `session_stop`) và kết quả với bản ghi; nó in báo cáo tiếng Việt và thoát mã 0 = KHỚP, 1 = KHÁC, 2 = không phát lại được (thiếu `vehicle_io/`, log ghi trước khi có băng phát lại, gói hỏng), 3 = lỗi bất ngờ khi phát lại. Đây là tái hiện quyết định của phần mềm, không tái hiện xe; mới kiểm với bo mô phỏng và cổng serial giả ([chế độ quan sát](docs/CHE_DO_QUAN_SAT.md) mục 5.1).
+
+**Chấm một lần chạy (T5).** `autopark.evaluation.score_run` đọc thư mục `<tên>_vehicle_io` (RunLog `<tên>.csv` bên cạnh) hoặc gói của `export_run` (SIM hay VehicleIO), cùng một tham chiếu độc lập: tệp tư thế R1 (`--reference`, định dạng ở `evaluation/reference_pose.py`), hai điểm thước R2 (`--r2-points`), hay tư thế thật của mô phỏng (`--sim-truth`, chỉ mức MP và xe ảo của BT). Công cụ tính các ngưỡng N-… theo `configs/nguong_nghiem_thu.json` (ĐỀ XUẤT – CHỜ CHỐT), ghi một dòng biên bản vào tệp `--report` (bắt buộc, trừ khi `--dry-run`) và một tệp chi tiết JSON có SHA-256 của mọi tệp đã đọc. Nó chỉ tự đề xuất THÀNH CÔNG hay THẤT BẠI; `--result` của người chấm luôn thắng. Ví dụ chấm mức MP lần DO-1 đầu tiên, chạy ở nhánh VehicleIO với bo mô phỏng (`run_app.py scenarios/bai_do_xe.json`) rồi **Xuất log CSV…** vào `runs/nghiem_thu/mo_phong/do1_l01/lan_chay.csv`:
+
+```powershell
+./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.score_run --scenario DO-1 --attempt 1 --level MP --log runs/nghiem_thu/mo_phong/do1_l01/lan_chay_vehicle_io --sim-truth --layout scenarios/bai_do_xe.json --report runs/nghiem_thu/mo_phong/bien_ban_mo_phong.csv
+```
+
+`--layout` là tệp kịch bản (hay bố trí đo bằng thước) của lần chạy. Công cụ mới chấm dữ liệu tổng hợp và lần chạy mô phỏng; chưa chấm lần chạy thật nào (chưa có tham chiếu R1, công cụ T4). Ở tốc độ mặc định 0,15 m/s của planner, lần DO-1 mô phỏng không đạt N-V1 ([ngưỡng đề xuất](docs/NGUONG_NGHIEM_THU_DE_XUAT.md) N-V1). Tham số khác: `--help`.
+
+**Diễn tập tiêm lỗi (T6), chỉ mức mô phỏng.** `autopark.evaluation.fault_drill` gây lỗi có kiểm soát rồi kiểm phản ứng: `pose` (nguồn tư thế ngừng cập nhật, CB-6) và `hang` (vòng điều khiển của laptop treo, có hoặc không Heartbeat; CB-5 (b), L7) chạy một phiên đỗ qua bo mô phỏng và kiểm phản ứng của phiên và của bo; `camera` (một camera đứng hình, CB-2) không chạy phiên đỗ, chỉ kiểm lớp camera: camera bị báo cũ, bị bỏ khỏi bộ ảnh rồi quay lại. Lệnh chạy trên bo mô phỏng, camera giả hay bản ghi phát lại, không mở cổng COM, LiDAR hay camera:
+
+```powershell
+./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.fault_drill pose --mode hold --repeat 10 --out runs/fault_drill/<ngày> --name cb6
+./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.fault_drill hang --seconds 1 --phases 0 1 2 3 --out runs/fault_drill/<ngày> --name cb5b
+./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.fault_drill camera --mode stall --repeat 10 --out runs/fault_drill/<ngày> --name cb2
+```
+
+Mỗi lần chạy một thư mục `<out>/<name>_<kk>/` (lần chạy `pose`, `hang`: tám tệp log của `VehicleLink`, `faults.csv`, `drill.json`; lần chạy `camera`: chỉ `faults.csv`, `drill.json`), tóm tắt ở `<out>/<name>.drill.json`; mã thoát 0 khi mọi lần ĐẠT, 1 khi có lần KHÔNG ĐẠT, 2 khi sai tham số hay `--name` đã dùng trong `--out`. ĐẠT/KHÔNG ĐẠT là kiểm của công cụ, không phải ngưỡng nghiệm thu. `hang --heartbeat` cho biến thể có Heartbeat; `camera --replay <bản ghi> --ports 1 2 3 4 --port 2` dùng bản ghi phát lại thay camera giả.
+
+**Đo EcoQoS của ứng dụng giao diện.** Công cụ mở giao diện thật, đặt cửa sổ thường, thu nhỏ hay bị một màn che kín bằng Win32 rồi lập đường như nút **Tìm đường đỗ**, kèm hai đối chứng (cùng giao diện tắt EcoQoS, tiến trình không cửa sổ). Lượt đầy đủ (mặc định ca `uturn_w46`, `--khoi 2 --lap 2`) mở cửa sổ thật khoảng 7–9 phút; máy phải rảnh và không ai dùng (bấm phím hay chuột trong lúc đo làm mất quyền đưa cửa sổ ra trước, các lượt sau bị loại); Esc hoặc bấm chuột đóng màn che. Kết quả lượt đo 02/10/2026: [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 10:
+
+```powershell
+./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.ecoqos_gui do --ra docs/evidence/ecoqos_giao_dien_<ngày>
+./.venv/Scripts/python.exe -X utf8 -m autopark.evaluation.ecoqos_gui tom-tat --ra <thư mục đã đo>
+```
+
+`tom-tat` viết lại `tom_tat.txt` từ tệp kết quả. Lệnh thử nhanh `do --ra runs/thu_ecoqos --ca pillar_at_slot_mouth --khoi 1 --lap 1 --cho 2` (khoảng 35 s) chỉ kiểm công cụ chạy được: mỗi trạng thái chỉ có một lượt nên mọi phép so in "không đủ lượt hợp lệ để so"; muốn so cần ít nhất 2 lượt hợp lệ mỗi bên, như mặc định. Kết quả lượt đo thật ghi ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md).
 
 ## 5. Cài môi trường AI và lấy dữ liệu
 
@@ -266,6 +311,16 @@ Ghi bốn camera + LiDAR + AI, cần checkpoint. `--lidar` không kèm giá tr�
 
 Lệnh mở thiết bị thật. Mặc định 640×480; chất lượng bốn luồng phải đo chung trên đúng hub/máy. Sau khi đổi cách lấy cổng (29/09/2026), trên máy bàn đã chạy với thiết bị thật: `lidar.rplidar_c1 info` không `--port` mở đúng COM3 và đọc được C1 ([biên bản](docs/CHUYEN_MAY_BAN.md) mục 3); lúc 15:11–15:12 cùng ngày (mã `b37e9ee`), lệnh `rig.bench` như trên với `--lidar` không kèm cổng và `--seconds 30` chạy với bốn camera, LiDAR ở COM3 lấy từ tệp và AI, ghi phiên rồi phát lại được ([tóm tắt](docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.7–2.8; tệp gốc git-ignore ở `runs/kiem_may_20260929/rig_bench/` (số đo) và `runs/kiem_may_20260929/rig_recordings/r_kiem/` (bản ghi)). `ui.lidar_app` chưa chạy lại với thiết bị thật sau thay đổi này.
 
+Dấu đồng bộ cho video R3 (T14, thêm 02/10/2026): thêm `--sync-mark`, ví dụ:
+
+```powershell
+./.venv-train/Scripts/python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name cb1 --out runs/rig_bench/cb1 --sync-mark
+```
+
+Ô trắng có số nháy 0,5 s phủ cả màn hình chính (`--sync-screen N` chọn màn hình khác) ở đầu và cuối phần đo; nhấn Enter, Space hay m thêm một dấu, nhưng chỉ khi cửa sổ lệnh đang được chọn; phiên dài thêm `--sync-every 30` (một dấu mỗi 30 s). Lệnh ghi `<out>/<name>.sync.csv` (tệp đã có thì từ chối ngay, mã 2) và khóa `sync_marks` của `.rig.json`; không dùng với `--replay`. Tắt khóa màn hình khi chạy dài không người trông. `ui.rig_app` có nút "Dấu đồng bộ (F8)" tương tự. Chỉ kiểm offscreen; trên màn hình và với camera thật CHƯA THỬ; ảnh hưởng của cửa sổ nháy lên số đo CHƯA ĐO.
+
+Từ 02/10/2026 (T10) `gap_max_ms` của từng camera trong `.rig.json` tính cả khoảng hở còn mở lúc chốt số (`gap_end_ms`, ví dụ camera ngừng hẳn trước khi hết phần đo), nghĩa cũ ở `gap_closed_max_ms`; `rig.bench` in "khoảng cách max … ms (hở cuối phiên … ms)". `.rig.json` ghi trước đó không có `gap_end_ms`. Mới kiểm bằng test với camera giả.
+
 ### Phát lại bản ghi
 
 ```powershell
@@ -307,6 +362,15 @@ Phát lại bằng rig tổng hợp để thử luồng phần mềm:
 
 Tham số từng công cụ: `python -m <tên_module> --help` bằng đúng môi trường.
 
+Camera không qua hub 1–4, như camera trên cao của tham chiếu R1 (T11, thêm 02/10/2026): tra index OpenCV mỗi lần cắm hay khởi động lại, rồi hiệu chuẩn theo index và tên; tệp ra `calibration/cam_tren_cao_1280x720.json`, ảnh ở `runs/calib/<ngày giờ>_tren_cao/`:
+
+```powershell
+./.venv/Scripts/python.exe -X utf8 -m autopark.video.camera_bench list
+./.venv/Scripts/python.exe -X utf8 -m autopark.ui.calib_app --index N --camera-name tren_cao --size 1280x720
+```
+
+BEV và AI camera không đọc tệp này; ngoại tham từ chối nó. Khi một số cổng có camera ở hai hub (ví dụ camera trên cao cắm thẳng cổng 2 của máy), `calib_app --port 2` báo lỗi thay vì chọn đại; khi đó cắm camera trên cao vào cổng có số khác hay rút nó ra lúc hiệu chuẩn camera xe. Chỉ kiểm offscreen với camera giả; camera trên cao thật CHƯA THỬ ([hiệu chuẩn camera](docs/HIEU_CHUAN_CAMERA.md)).
+
 ## 9. Chế độ điều khiển, firmware và bo ảo
 
 Nhánh chạy chọn ở ô "Nhánh chạy khi bấm Bắt đầu đỗ" của thẻ **Mô phỏng**; bo nhận lệnh chọn ở thẻ **Bo điều khiển**. Hai thẻ nằm trong ngăn "Thiết lập sa bàn", mở bằng nút **Sa bàn +**. Sơ đồ dưới là đường đi trong mã hôm nay (`ui/main_window.py`, `application/vehicle_link.py`):
@@ -326,13 +390,15 @@ flowchart TD
     SER -.->|cần PoseSource thật và reopen trong begin_run| REAL["Tự đỗ với ESP32-S3 thật"]
     B --> PROBE["Kiểm kết nối bo: HELLO, 5 khung telemetry, so giới hạn, đóng cổng, không ARM"]
     PROBE -.->|CHƯA THỬ| REALP["Kiểm kết nối với ESP32-S3 thật"]
+    SER --> CLR["Nút Xóa lỗi bo, khi chưa chạy: mở cổng, HELLO, gửi CLEAR_FAULT chỉ khi bo FAULT và ESTOP_INPUT = 0, đóng cổng. Không ARM, không COMMAND, một dòng board_actions.csv"]
+    CLR -.->|CHƯA THỬ| REALC["Xóa lỗi với ESP32-S3 thật"]
     QEMU["Chọn bo ảo QEMU socket:// từ giao diện"] -.->|danh sách chỉ có bo mô phỏng và cổng COM| B
     classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
     classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
     classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
     class A,B,SIM,REF daco
-    class VS,POSE,VIO,OBS,PROBE,SER giaLap
-    class REAL,REALP,QEMU chuaLam
+    class VS,POSE,VIO,OBS,PROBE,SER,CLR giaLap
+    class REAL,REALP,REALC,QEMU chuaLam
 ```
 
 Xanh: có mã và đã kiểm trên máy tính (test giao diện và phiên, offscreen) · Vàng: chỉ với bo mô phỏng hoặc cổng serial giả · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị. Xanh và vàng ở đây hẹp hơn chú giải chuẩn: nhánh SIM tô xanh vì là đường mặc định đã kiểm, nhưng vẫn là mô phỏng; chưa lệnh nào đi tới bo hay xe thật.
@@ -344,6 +410,8 @@ Xanh: có mã và đã kiểm trên máy tính (test giao diện và phiên, off
 | Quan sát | Tính lệnh và ghi `commands.csv` (cột `sent` = 0); không gửi COMMAND nào, kể cả enable=0; lúc START gửi DISARM và bo phải ở DISARMED suốt lần quan sát. Trong giao diện, người lái là `SimHumanDriver` (phím mũi tên) trên bo mô phỏng |
 
 Chọn một cổng COM thì **Bắt đầu đỗ** ở VehicleIO hay Quan sát bị từ chối trước khi mở cổng, vì chưa có nguồn tư thế thật (`NoPoseSource`). **Kiểm kết nối bo** gửi HELLO, đọc tới 5 khung telemetry, so giới hạn bo với cấu hình xe rồi đóng cổng; không ARM, không COMMAND. Nút này mới thử với bo mô phỏng và cổng serial giả, CHƯA THỬ với ESP32-S3. Danh sách bo chỉ có bo mô phỏng và cổng COM, nên giao diện chưa dùng được bo ảo QEMU.
+
+**Xóa lỗi bo (CLEAR_FAULT)** (thêm 02/10/2026, T15) dùng chính cổng đã chọn ở nhánh VehicleIO hoặc Quan sát, khi chưa chạy: giao diện hỏi xác nhận, mở cổng nếu chưa mở, gửi HELLO, đọc khung telemetry đầu tiên bo gửi sau lúc bấm; chỉ khi bo đang FAULT và telemetry báo nút dừng khẩn đã nhả (`ESTOP_INPUT` = 0) mới gửi đúng một CLEAR_FAULT, rồi đọc khung kế tiếp và đóng cổng. Không ARM, không COMMAND; bo về DISARMED và vẫn phải ARM qua **Bắt đầu đỗ**. Mỗi lần bấm một dòng `board_actions.csv`, xuất cùng log VehicleIO (mục 4); báo cáo hiện ngay trong thẻ. Nút bị khóa với bo mô phỏng của giao diện (mỗi lần Bắt đầu đỗ tạo bo mới ở DISARMED) và khi đang chạy. Mới thử với bo mô phỏng và cổng serial giả, CHƯA THỬ với ESP32-S3; mở cổng có thể làm bo khởi động lại qua DTR/RTS (CHƯA KIỂM).
 
 [Giao thức](docs/GIAO_THUC_XE.md), [quan sát](docs/CHE_DO_QUAN_SAT.md), [firmware](firmware/esp32_vehicle/README.md), [bo ảo QEMU và các trình giả lập đã thử](docs/MO_PHONG_FIRMWARE.md). Sơ đồ 2.3 và 2.4 (một lần chạy qua VehicleLink) trong [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).
 
@@ -411,19 +479,19 @@ Giới hạn: bản `esp32s3_qemu` khác bản nạp vào xe ở hai chỗ (Seri
 | Thư mục | Vai trò |
 |---|---|
 | `autopark/domain/` | Dữ liệu, cấu hình, hợp đồng cảm biến |
-| `autopark/application/` | Phiên đỗ (`session.py`), nối phiên với VehicleIO (`vehicle_link.py`) |
-| `autopark/ui/` | Cửa sổ đỗ xe (`main_window`), bàn thử LiDAR + AI (`lidar_app`, `lidar_dock`, `camera_dock`), `rig_app`, `calib_app`, `roi_app`, `label_app` |
+| `autopark/application/` | Phiên đỗ (`session.py`), nối phiên với VehicleIO (`vehicle_link.py`), phát lại log lần chạy qua VehicleIO (`vehicle_replay.py`), kiểm số lần đổi chiều trước khi chạy (`cusp_policy.py`) |
+| `autopark/ui/` | Cửa sổ đỗ xe (`main_window`), bàn thử LiDAR + AI (`lidar_app`, `lidar_dock`, `camera_dock`), `rig_app`, `calib_app`, `roi_app`, `label_app`; ô nháy của dấu đồng bộ (`sync_flash`) |
 | `autopark/planning/`, `autopark/control/` | Tìm đường, bám đường |
 | `autopark/geometry/`, `autopark/simulation/` | Va chạm, động học, phản hồi giả |
 | `autopark/perception/` | AI, hiệu chuẩn, ROI, BEV |
 | `autopark/lidar/`, `autopark/video/` | Nguồn scan/ảnh và công cụ đo |
 | `autopark/fusion/`, `autopark/rig/` | Hợp nhất, bàn thử |
 | `autopark/transport/`, `firmware/` | Giao thức, VehicleIO (bo mô phỏng, cổng serial), bo ảo QEMU qua `socket://` (`qemu_board.py`, `socket_port.py`), firmware C++ |
-| `autopark/safety/` | Thời hạn dữ liệu |
-| `autopark/storage/`, `autopark/evaluation/` | Lưu, replay, kiểm chứng |
+| `autopark/safety/` | Thời hạn dữ liệu; tiêm lỗi có kiểm soát (`fault_injection.py`, T6: chỉ test và công cụ diễn tập dùng) |
+| `autopark/storage/`, `autopark/evaluation/` | Lưu, replay, kiểm chứng; chấm một lần chạy (`score_run`, `reference_pose`), dấu đồng bộ video–log (`sync_marks`), diễn tập tiêm lỗi (`fault_drill`), đo EcoQoS của giao diện (`ecoqos_gui`) |
 | `autopark/estimation/` | Chỗ dành cho định vị và bản đồ quan sát của phiên đỗ (nguồn tư thế thật); chưa có mã. Định vị lại và odometry LiDAR thử ngoại tuyến trên bản ghi ở `lidar/localize.py`, `lidar/scan_odometry.py`, chưa nối vào phiên |
 | `autopark/image_io.py`, `autopark/power_throttling.py` | Đọc/ghi ảnh khi đường dẫn có dấu; tắt EcoQoS cho tiến trình (pytest, QEMU) |
-| `configs/`, `scenarios/`, `tests/` | Tham số, sa bàn, kiểm thử |
+| `configs/`, `scenarios/`, `tests/` | Tham số, sa bàn, kiểm thử; `configs/nguong_nghiem_thu.json`: bản sao ngưỡng nghiệm thu ĐỀ XUẤT – CHỜ CHỐT cho công cụ chấm |
 
 Đơn vị: mét, giây, radian. Pose tại tâm trục sau; x hướng trước, y trái, yaw dương ngược chiều kim đồng hồ.
 
@@ -446,5 +514,7 @@ Giới hạn: bản `esp32s3_qemu` khác bản nạp vào xe ở hai chỗ (Seri
 | `qemu_board` thoát mã 2, báo không thấy QEMU hoặc thiếu `platformio_python` | Sửa đường dẫn trong `configs/thiet_bi.json` (mục 9); máy không dùng bo ảo thì bỏ qua, 6 test chạy QEMU tự bỏ qua |
 | QEMU tự thoát lúc khởi động (espressif/qemu#175) | `QemuBoard` tự khởi động QEMU tối đa 5 lần (thử lại tới 4 lần); vẫn hỏng thì đọc `qemu.err` trong thư mục mà thông báo lỗi chỉ ra |
 | Test bo ảo hỏng vì firmware chốt LOOP_OVERRUN | Máy bận làm QEMU trễ nhịp; chạy lại khi máy rảnh ([MO_PHONG_FIRMWARE.md](docs/MO_PHONG_FIRMWARE.md) mục 1) |
+| `run_app.py` thoát mã 2, báo tham số không nhận | Từ 02/10/2026 chỉ nhận đường dẫn kịch bản, `--max-cusps N`, `--warn-cusps N` (mục 3) |
+| **Lưu phiên…**, **Xuất log CSV…**, **Dấu đồng bộ · F8** hay **Xóa lỗi bo** bị mờ | Ba nút đầu khóa khi xe đang chạy hoặc đang dừng (RUNNING, STOPPING): chờ xe dừng hẳn. **Xuất log CSV…** còn mờ (và **Lưu phiên…** bị ẩn) khi chưa có gì để ghi: chưa chạy hay lái tay lần nào, và liên kết đang chọn chưa có START bị từ chối hay lần Xóa lỗi bo. Xóa lỗi bo chỉ dùng ở nhánh VehicleIO hoặc Quan sát với bo chọn ở cổng COM, khi phiên đang chỉnh hoặc sẵn sàng; tooltip nêu lý do khóa (mục 9) |
 
 [Mục lục kỹ thuật](docs/README.md) · [Sơ đồ hệ thống](docs/SO_DO_HE_THONG.md).

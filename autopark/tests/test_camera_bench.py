@@ -220,3 +220,96 @@ def test_usb_source_without_mode_uses_no_params(monkeypatch):
     monkeypatch.setattr(cv2, "VideoCapture", fake_capture)
     source = UsbCameraSource(0, width=None, height=None, fps=None, fourcc=None)
     assert seen["rest"] == () and source.mode()["fourcc"] is None
+
+
+HUB = r"USB\VID_05E3&PID_0610\5&27BF20E7&0&8"           # hub của bốn camera xe (Genesys 05E3:0610)
+ROOT = r"USB\ROOT_HUB30\4&1A2B3C4D&0&0"                  # cổng gốc của máy
+ROOT_B = r"USB\ROOT_HUB30\4&5E6F7A8B&0&0"                # root hub thứ hai
+
+
+def pnp_cam(key, hub_id, port, mi="00"):
+    return {"instance_id": rf"USB\VID_1BCF&PID_0B09&MI_{mi}\7&{key}&0&0000", "hub": hub_id, "hub_port": port}
+
+
+def plug(monkeypatch, cameras):
+    """PnP và DirectShow giả (index DirectShow = thứ tự trong `cameras`): không gọi PowerShell hay pygrabber."""
+    monkeypatch.setattr(cb, "pnp_cameras", lambda: list(cameras))
+    monkeypatch.setattr(cb, "dshow_device_paths", lambda: [
+        {"index": i, "name": "HD Camera", "device_path": "", "instance_key": c["instance_id"].upper()}
+        for i, c in enumerate(cameras)])
+
+
+def resolved(ports):
+    from autopark.video import multicam
+
+    return [(s.port, s.index) for s in multicam.resolve_ports(ports)]
+
+
+def refusal(ports) -> str:
+    from autopark.video import multicam
+
+    with pytest.raises(ValueError) as exc:
+        multicam.resolve_ports(ports)
+    return str(exc.value)
+
+
+def test_resolve_ports_refuses_a_port_number_shared_by_two_cameras(monkeypatch):
+    """T11 (02/10/2026): camera trên cao cắm thẳng vào cổng 2 của máy và camera xe ở cổng 2 của hub có cùng SỐ cổng
+    (`_port_of` chỉ đọc số). Hỏi MỘT cổng (calib_app --port 2, roi_app) thì không có gì để biết hub camera xe: từ chối thay
+    vì chọn một camera theo thứ tự index DirectShow (calib_app có thể ghi đè cam_p2.json bằng camera trên cao). Lời báo
+    nêu lý do và cách gỡ cho MỌI công cụ, không chỉ "--index" của calib_app (review 02/10/2026). Bốn camera trên một hub
+    (bàn thử hiện nay) cho đúng kết quả cũ."""
+    plug(monkeypatch, [pnp_cam("C3", HUB, 3), pnp_cam("AA", ROOT, 2), pnp_cam("C1", HUB, 1), pnp_cam("C4", HUB, 4),
+                       pnp_cam("C2", HUB, 2)])
+    assert resolved([1]) == [(1, 2)] and resolved([4, 1, 3]) == [(4, 3), (1, 2), (3, 0)]
+    text = refusal([2])
+    assert text.startswith("cổng 2: 2 hub cùng có camera ở cổng số 2") and "ROOT_HUB30" in text and "PID_0610" in text
+    assert "không cổng nào khác trong lần mở này" in text
+    assert "cổng của máy có số khác 2" in text and "calib_app --index N" in text and "camera_bench list" in text
+    assert "--ports 1 2 3 4" in text and "rig.bench --index" in text and "Device Manager" in text   # webcam gắn sẵn
+    # mọi cổng hỏi đều trùng số (camera thứ hai ở cổng gốc 3 của root hub khác): không có hub làm mốc
+    plug(monkeypatch, [pnp_cam("C1", HUB, 1), pnp_cam("C2", HUB, 2), pnp_cam("C3", HUB, 3), pnp_cam("AA", ROOT, 2),
+                       pnp_cam("BB", ROOT_B, 3)])
+    assert "không cổng nào khác trong lần mở này" in refusal([2, 3])
+    # cổng không trùng ở hai hub (webcam gắn sẵn ở cổng gốc 7): ports=None từ chối CẢ lời gọi, không bỏ riêng cổng 2
+    plug(monkeypatch, [pnp_cam("C1", HUB, 1), pnp_cam("C2", HUB, 2), pnp_cam("AA", ROOT, 2), pnp_cam("WW", ROOT, 7)])
+    assert "các cổng còn lại ở nhiều hub" in refusal(None) and "các cổng còn lại ở nhiều hub" in refusal([1, 2, 7])
+    assert resolved([1, 2]) == [(1, 0), (2, 1)]                     # gọi rõ cổng camera xe thì được
+    # hub làm mốc không có camera ở cổng trùng (camera xe cổng 2 đã rút, hai camera khác ở cổng gốc 2)
+    plug(monkeypatch, [pnp_cam("C1", HUB, 1), pnp_cam("AA", ROOT, 2), pnp_cam("BB", ROOT_B, 2)])
+    assert f"hub {HUB} của các cổng còn lại không có camera ở cổng 2" in refusal([1, 2])
+    # PnP không đọc được hub của cổng làm mốc: không đoán
+    plug(monkeypatch, [{**pnp_cam("C1", HUB, 1), "hub": ""}, pnp_cam("C2", HUB, 2), pnp_cam("AA", ROOT, 2)])
+    assert "không rõ hub của các cổng còn lại" in refusal([1, 2])
+    plug(monkeypatch, [pnp_cam("C3", HUB, 3), pnp_cam("C1", HUB, 1), pnp_cam("C4", HUB, 4), pnp_cam("C2", HUB, 2)])
+    assert resolved(None) == [(1, 1), (2, 3), (3, 0), (4, 2)]
+    # một camera hai giao diện video ở CÙNG cổng của cùng hub: không mơ hồ, như trước lấy thiết bị DirectShow sau cùng
+    plug(monkeypatch, [pnp_cam("C1", HUB, 1), pnp_cam("C1", HUB, 1, mi="02")])
+    assert resolved([1]) == [(1, 1)]
+
+
+@pytest.mark.parametrize("overhead_first", [True, False])
+def test_resolve_ports_takes_a_shared_port_number_from_the_hub_of_the_other_ports(monkeypatch, overhead_first):
+    """Review 02/10/2026: KICH_BAN_NGHIEM_THU 3.4 bước 4 bảo cắm camera trên cao vào cổng gốc riêng, mà cổng gốc của laptop
+    thường mang số 1–4. Bản đầu của T11 từ chối mọi số cổng trùng, nên `rig.bench --ports 1 2 3 4`, dock camera và
+    `may_moi` (ports=None) đều dừng. Hỏi nhiều cổng mà các cổng không trùng số cùng ở MỘT hub thì cổng trùng lấy camera
+    của nó trên hub đó, bất kể thứ tự index DirectShow (trước T11 thắng là thiết bị DirectShow sau cùng)."""
+    from autopark.video import multicam
+
+    vehicle = [pnp_cam("C3", HUB, 3), pnp_cam("C1", HUB, 1), pnp_cam("C4", HUB, 4), pnp_cam("C2", HUB, 2)]
+    overhead = pnp_cam("AA", ROOT, 2)
+    cameras = [overhead, *vehicle] if overhead_first else [*vehicle, overhead]
+    plug(monkeypatch, cameras)
+    index = {c["instance_id"]: i for i, c in enumerate(cameras)}
+    want = {p: index[pnp_cam(f"C{p}", HUB, p)["instance_id"]] for p in (1, 2, 3, 4)}
+    assert resolved([1, 2, 3, 4]) == [(p, want[p]) for p in (1, 2, 3, 4)]
+    assert resolved(None) == resolved([1, 2, 3, 4])
+    assert resolved([2, 4]) == [(2, want[2]), (4, want[4])]
+    assert [s.instance_id for s in multicam.resolve_ports([1, 2])][1] == pnp_cam("C2", HUB, 2)["instance_id"]
+    assert "không cổng nào khác" in refusal([2])                    # một cổng: vẫn từ chối
+    # cổng trùng mà camera xe ở đó có hai giao diện video: như trước, thiết bị DirectShow sau cùng TRÊN hub đó
+    plug(monkeypatch, [pnp_cam("C1", HUB, 1), pnp_cam("C2", HUB, 2), pnp_cam("C2", HUB, 2, mi="02"), overhead])
+    assert resolved([1, 2]) == [(1, 0), (2, 2)]
+    # hai camera ngoài hub ở cổng gốc 2 và 3 của hai root hub: cổng 1 và 4 làm mốc cho cả hai
+    plug(monkeypatch, [*vehicle, pnp_cam("AA", ROOT, 2), pnp_cam("BB", ROOT_B, 3)])
+    assert resolved([1, 2, 3, 4]) == [(1, 1), (2, 3), (3, 0), (4, 2)]

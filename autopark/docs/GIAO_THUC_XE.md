@@ -26,12 +26,18 @@ mục 12 hay "mục 10 bước 6" ở mục 5, theo bản `9d68257`.)*
   telemetry (không ARM, không COMMAND; chỉ có thể lọt thêm DISARM mà `VehicleIO` tự gửi khi mất liên lạc, mục 10). Giao
   diện chưa chọn được bo ảo và chưa có nút CLEAR_FAULT (mục 10, 12; [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md); bo ảo:
   [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1; nút CLEAR_FAULT: [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md)
-  mục 7, T15).
+  mục 7, T15). *(Cập nhật 02/10/2026: nay có nút "Xóa lỗi bo (CLEAR_FAULT)" (T15, mục 10); log của phiên có thêm sự
+  kiện dừng của phiên (T13), băng phát lại log (T9) và `board_actions.csv` (mục 12;
+  [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5). Chỉ thử với bo mô phỏng và cổng serial GIẢ; giao diện vẫn chưa chọn
+  được bo ảo.)*
 - Số test (đếm bằng `pytest --collect-only` ngày 30/09/2026, tệp test như ở `ff4a018`): `test_transport_protocol.py` 52,
   `test_transport_firmware_model.py` 73, `test_transport_vehicle_io.py` 71, `test_transport_firmware_source.py` 11,
   `test_transport_firmware_host.py` 2, `test_firmware_qemu.py` 13; `test_session_vehicle.py` 60,
   `test_vehicle_board_ui.py` 30, `test_nearfield_tof.py` 54. Toàn bộ bộ test trên `ebbec83` (30/09/2026): `.venv` 1380
-  đạt, 8 bỏ qua, 0 hỏng; `.venv-train` 1442 đạt, 0 hỏng ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8).
+  đạt, 8 bỏ qua, 0 hỏng; `.venv-train` 1442 đạt, 0 hỏng ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8). *(Đếm lại
+  02/10/2026 bằng `--collect-only`, sau đợt công cụ nghiệm thu: `test_session_vehicle.py` 61, `test_vehicle_board_ui.py`
+  45; tệp mới `test_session_stop_log.py` 19, `test_fault_injection.py` 31; `test_run_store_vehicle.py` 33; sáu tệp đầu
+  (giao thức, firmware, `VehicleIO`, bo ảo) và `test_nearfield_tof.py` không đổi.)*
 
 **Mức bằng chứng:** phần mềm + mô phỏng. Chưa có ESP32-S3, MN300, ESC, servo, encoder, AS5600, BNO085, VL53L1X
 hay phần cứng dừng. **Firmware C++ đã biên dịch cho ESP32-S3 (29/09/2026, PlatformIO, Arduino-ESP32 2.0.17 và 3.3.12,
@@ -432,6 +438,17 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
   này không gọi `arm()`, `send()` hay `stop()`: không COMMAND nào, kể cả enable=0. REQUEST duy nhất có thể lọt ra là
   DISARM mà `VehicleIO` tự gửi khi mất liên lạc. HELLO đưa bo đang ARMED/RUNNING về DISARMED (`NEW_SESSION`), đúng hướng
   an toàn. Test trên cổng serial GIẢ: byte laptop ghi ra chỉ gồm đúng một HELLO. Với ESP32-S3: CHƯA THỬ.
+- *(Thêm 02/10/2026, T15.)* "Xóa lỗi bo (CLEAR_FAULT)" (`application/vehicle_link.VehicleLink.clear_fault`, nút trong thẻ
+  "Bo điều khiển"): dùng `VehicleIO` của chính liên kết, ngoài lần chạy (cổng chưa mở thì mở rồi đóng lại). Trên dây:
+  phiên mới (chưa có phiên, hoặc laptop đã chốt `TELEMETRY_STALE`) thì một HELLO; dùng lại phiên đang có thì một REQUEST
+  PING chờ ACK trước khi đọc trạng thái (rào "khung mới": luồng byte của bo đúng thứ tự, nên khung đọc sau ACK là bo gửi
+  sau lúc bấm; sửa sau review 02/10/2026). Rồi nhiều nhất một REQUEST CLEAR_FAULT; 0 COMMAND. REQUEST khác có thể ra:
+  PING này và DISARM mà `VehicleIO` tự gửi khi mất liên lạc. CLEAR_FAULT chỉ được gửi khi khung telemetry đầu tiên bo gửi
+  sau lúc bấm (sau HELLO_ACK của phiên mới, hay sau ACK của PING) báo bo FAULT (hoặc mã lỗi khác NONE) và `ESTOP_INPUT` =
+  0; firmware vẫn tự kiểm lại (`ESTOP_ACTIVE`, `FAULT_ACTIVE`, mục 6). Kết quả: CLEARED (ACK OK và khung sau báo hết
+  lỗi), NOT_NEEDED, ESTOP_PRESSED, REFUSED (mã ACK), NOT_CONFIRMED (ACK OK nhưng khung sau vẫn FAULT hoặc không tới),
+  NO_ACK, NO_LINK. Mỗi lần bấm một dòng `board_actions.csv` ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5, 6). Test
+  trên `SimVehicleIO` và cổng serial GIẢ (`tests/test_vehicle_board_ui.py -k clear_fault`); với ESP32-S3: CHƯA THỬ.
 - `telemetry_timeout_s` phải ≥ 3 × chu kỳ telemetry (mục 8): kiểm ở hàm dựng với chu kỳ xin và ở `connect()` với chu kỳ
   bo trả trong HELLO_ACK; không thỏa thì `connect()` ném lỗi và KHÔNG nhận phiên (`connected` giữ False).
 - `configs/vehicle_io_sim.json`: khóa lạ hoặc gõ sai ở mọi mục (gốc, `link`, `actuator`, `sensors`, `firmware`) bị từ
@@ -443,6 +460,11 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
   firmware CÓ móc panic kéo chân ESC xuống thấp (cơ cấu chấp hành thôi kéo ngay) và giả định ESC coi mất xung là không
   kéo — cả hai CHƯA KIỂM trên bo. `hold_last_output_ms > 0` mô phỏng trường hợp xấu (reset CPU không dừng LEDC, móc không
   chạy): ga cuối cùng giữ nguyên trong khoảng đó dù bo đang BOOT.
+- *(Thêm 02/10/2026, T6.)* `SimVehicleIO.pause_host()` / `resume_host()`: mô phỏng laptop treo hẳn. Bo vẫn chạy và
+  gửi; byte nằm trong bộ đệm cổng (không ai đọc), không kiểm `TELEMETRY_STALE`. `resume_host()` đọc dồn, đóng dấu lúc đọc
+  như `SerialVehicleIO`. Không gọi lệnh chờ ACK (`connect`, `arm`, `disarm`) khi đang treo: ACK cũng nằm trong bộ đệm nên
+  lệnh hết giờ. Dùng bởi `safety/fault_injection.hang_control_loop` ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 7.1);
+  đường mặc định của `SimVehicleIO` không đổi.
 - Telemetry đóng dấu bằng **thời điểm laptop nhận** (`stamp.t`, theo `now()` của nhánh — với `SerialVehicleIO` mặc
   định là `perf_counter` ở trên); tuổi tính từ đó nhỏ hơn tuổi thật một khoảng trễ truyền. `source_policy()` trả
   `SourcePolicy` cho `FreshnessMonitor` với cùng ngưỡng.
@@ -645,7 +667,9 @@ hoạt, USB-CDC nối ra ngoài, nên không thay được bất kỳ phép đo 
   (`SimVehicleIO` + `FirmwareModel`) và cổng serial GIẢ; chưa với ESP32-S3 thật, chưa có nguồn tư thế thật (tư thế lấy
   từ mô phỏng). Chi tiết và giới hạn: [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md). Thời hạn lệnh của phiên lấy
   `LinkParams.command_validity_s` (mặc định `None` = 0,15 s của `VehicleIO`); `DriveCommand.valid_for` vẫn chưa được
-  dùng (mục 5).
+  dùng (mục 5). *(Cập nhật 02/10/2026: `write_logs` nay ghi tám tệp: thêm `board_actions.csv` (T15), `poses.csv` và
+  `clock.csv` (T9); `events.csv` có dòng `session_stop` và cột `t_perf` (T13); vẫn chỉ bo mô phỏng và cổng serial GIẢ;
+  [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5.)*
 - *(Thêm tối 24/09/2026, khoảng trống an toàn, chỉ trên mô phỏng. Cập nhật muộn hơn cùng tối: **ĐÃ SỬA** phía laptop,
   xem đoạn "Bản sửa" cuối gạch đầu dòng này; phần mô tả dưới đây giữ nguyên làm lịch sử, các câu về `xfail`,
   `test_resume_burst_*` và "CHƯA LÀM" là trạng thái lúc tìm thấy.)* Vòng điều khiển treo lâu hơn thời hạn lệnh trong khi
@@ -705,6 +729,9 @@ hoạt, USB-CDC nối ra ngoài, nên không thay được bất kỳ phép đo 
 - *(Thêm tối 24/09/2026.)* Lần chạy qua `VehicleIO` không có gói replay: `storage/run_store.export_run` và `replay_run`
   từ chối (`ReplayNotSupported`, lời báo tiếng Việt) vì trạng thái lấy từ telemetry + nguồn tư thế, không tái tạo được
   bằng mô phỏng; bằng chứng của lần chạy là log `VehicleLink.write_logs` (test `tests/test_run_store_vehicle.py`).
+  *(Cập nhật 02/10/2026, T9: nay có gói và phát lại log cho lần chạy qua `VehicleIO`, mức MP: chạy lại cùng phần mềm
+  trên đầu vào đã ghi và so quyết định với bản ghi, không tái mô phỏng xe ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục
+  5.1). Bo thật CHƯA THỬ.)*
 - *(24/09/2026)* Chưa có mã đổi `VehicleTelemetry.tof_m` sang `NearFieldReading` của `NearFieldLayer`
   ([giai đoạn 3](GIAI_DOAN_3_CHUAN_BI.md)). Trên dây ToF chỉ là `tof_mm[4]` + mặt nạ theo chỉ số, không có `sensor_id`
   hay `max_range_m`; cả bốn số đo dùng chung stamp của khung (thời điểm laptop nhận). Ánh xạ chỉ số →
@@ -769,7 +796,9 @@ hoạt, USB-CDC nối ra ngoài, nên không thay được bất kỳ phép đo 
   chặn trên cổng COM thật thì phải phân biệt cổng thật với cổng giả, CHƯA LÀM.)* Bo trả HELLO_ACK nhưng phiên bị từ
   chối (chu kỳ telemetry quá dài) thì "Kiểm kết nối bo" vẫn báo firmware, `boot_id`, giới hạn và kết quả so giới hạn
   (trước bản sửa báo "Không nhận được HELLO_ACK."). Chi tiết: [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 6, 8. Mới
-  kiểm với cổng serial GIẢ, `comports` giả và `serial.Serial` bị chặn trong test; chưa mở cổng thật nào.
+  kiểm với cổng serial GIẢ, `comports` giả và `serial.Serial` bị chặn trong test; chưa mở cổng thật nào. *(Cập nhật
+  02/10/2026: thẻ có thêm nút "Xóa lỗi bo (CLEAR_FAULT)", mục 10; chỉ thử với bo mô phỏng và cổng serial GIẢ. Với cổng
+  COM, chỉ nút này và "Kiểm kết nối bo" mở cổng; START vẫn bị từ chối trước khi mở cổng.)*
 - *(Thêm muộn tối 24/09/2026.)* Khoảng hở còn lại của mục "Bản sửa" trên: bo vừa về ARMED (`COMMAND_TIMEOUT`) mà khung
   báo điều đó chưa tới laptop. Một cách đóng là chốt phía firmware: sau `COMMAND_TIMEOUT`, bo không nhận enable=1 nữa
   tới khi có ARM mới. Đây là ĐỀ XUẤT – CHỜ CHỐT: đổi hành vi firmware nên cần người dùng duyệt, **CHƯA LÀM**.

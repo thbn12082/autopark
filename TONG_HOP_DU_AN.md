@@ -4,6 +4,8 @@ Tài liệu này giải thích dự án đang ở đâu và cần làm gì tiế
 
 Biên tập 30/09/2026 theo mã tại `ff4a018` (mã giống `ebbec83`); cây làm việc lúc viết có thêm sửa chưa commit: sửa chữ (docstring, chú thích trong mã, một tooltip trong `ui/main_window.py`, mô tả gói trong `pyproject.toml`; không đổi hành vi) và cách đếm khung của `python -m autopark.transport.qemu_board kiem`. Ngày biên tập không phải ngày đo: mô phỏng giai đoạn 0 (20/09/2026) chạy trên laptop; số cảm biến, AI và bàn thử tới 25/09/2026 đo trên máy bàn trước; số từ 29/09/2026 đo trên máy bàn hiện tại ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md)). Bản trước đợt này: [`ff4a018`](https://github.com/thbn12082/autopark/blob/ff4a018/TONG_HOP_DU_AN.md); bản trước đợt 26/09/2026, giữ nhật ký và số liệu chi tiết tới 25/09: [`9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/TONG_HOP_DU_AN.md).
 
+Cập nhật 02/10/2026 theo mã của đợt công cụ nghiệm thu (cây làm việc dựng trên `3148014`): mục 3 (dòng GĐ 10), 4.1, 4.5, 4.6, 4.9, 4.10, 4.15, 5.1, 5.4 và 6 (dòng Sơ đồ hệ thống). Các công cụ nghiệm thu mới chỉ được kiểm bằng test (bo mô phỏng, cổng serial giả, camera giả, giao diện offscreen, bản ghi phát lại); số test toàn bộ của đợt này ghi sau lượt chạy trên commit.
+
 Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. [Phạm vi sử dụng](autopark/docs/GIAY_PHEP_DU_LIEU.md).
 
 ## 1. Mục tiêu V1, phạm vi và mức bằng chứng
@@ -107,7 +109,7 @@ Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập
 | 7 | Gá cảm biến lên xe | Chưa làm |
 | 8 | Hợp nhất khi xe chạy | Có phần mềm chuẩn bị (`VehicleLink`, chế độ quan sát); chưa có nguồn tư thế thật nên START với bo thật bị từ chối; chưa kiểm đồng bộ thời gian |
 | 9 | Tự đỗ thật | Chưa thực hiện |
-| 10 | Nghiệm thu, khóa luận | Có dàn ý khóa luận, 37 kịch bản và ngưỡng nháp; chưa nghiệm thu V1 (0/10 điều kiện) |
+| 10 | Nghiệm thu, khóa luận | Có dàn ý khóa luận, 37 kịch bản và ngưỡng nháp; chưa nghiệm thu V1 (0/10 điều kiện). Từ 02/10/2026 có thêm phần lớn công cụ phần mềm cho nghiệm thu (mục 4.15), mới kiểm bằng test và mô phỏng |
 
 [Bản kiểm toán 275 việc ngày 24/09](autopark/docs/evidence/ke_hoach/kiem_toan_ke_hoach_20260924.json) ghi 56 việc xong, 92 một phần, 27 chưa bắt đầu, 100 chờ thiết bị. Bảng có trước các bổ sung sau đó; không dùng để tính phần trăm hoàn thành hiện tại. Sơ đồ đợt mua và thiết bị đã nhận: sơ đồ 8.2 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
@@ -160,11 +162,11 @@ flowchart TD
 
 Vàng: chỉ trong mô phỏng (xe mô phỏng bám thử đường). Các ô không tô là logic lập đường trong `planning/`, có test trên máy tính; chưa bước nào chạy trên xe thật. TRACKING_FAILED nghĩa là có đường nhưng xe mô phỏng không bám tới đích trong dung sai, khác NO_PATH. Hết thời gian hoặc chưa tìm ra đường không chứng minh bài toán vô nghiệm. Luồng từ nút bấm tới quỹ đạo, nhịp chạy kín vòng và phản ứng an toàn khi chạy: sơ đồ 3.1–3.4 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
-Hạn thời gian là đồng hồ thật (ứng dụng: 8 s cho cả tìm lẫn kiểm chứng), nên kết quả phụ thuộc tải máy và cách Windows xếp lịch tiến trình. Ngày 30/09/2026, khi để Windows tự quyết EcoQoS, cả 2/2 lượt nhóm 15 test ngân sách thời gian có test hỏng (1–3 test); khi tiến trình tự tắt EcoQoS, 2/2 lượt đạt 15/15. Từ đó `tests/conftest.py` tắt EcoQoS cho tiến trình pytest ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 8). Ứng dụng chưa tắt; ảnh hưởng khi cửa sổ bị thu nhỏ hay bị che: CHƯA ĐO.
+Hạn thời gian là đồng hồ thật (ứng dụng: 8 s cho cả tìm lẫn kiểm chứng), nên kết quả phụ thuộc tải máy và cách Windows xếp lịch tiến trình. Ngày 30/09/2026, khi để Windows tự quyết EcoQoS, cả 2/2 lượt nhóm 15 test ngân sách thời gian có test hỏng (1–3 test); khi tiến trình tự tắt EcoQoS, 2/2 lượt đạt 15/15. Từ đó `tests/conftest.py` tắt EcoQoS cho tiến trình pytest ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 8). Ứng dụng chưa tắt. Đo ngày 02/10/2026 bằng `python -m autopark.evaluation.ecoqos_gui` (mở giao diện thật, đổi trạng thái cửa sổ trước mỗi lần lập đường; lệnh ở [hướng dẫn chạy](autopark/README.md) mục 4): cửa sổ thu nhỏ thì Windows hạ tốc tiến trình giao diện và lập đường `uturn_w46` hết hạn 8 s ở 4/4 lượt; tiến trình tự tắt EcoQoS thì đạt 4/4; bị che thì không chậm ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 10; một máy, kế hoạch nguồn High performance, 4 lượt mỗi trạng thái).
 
 Hồ sơ 20/09 (laptop) ghi 220 test đạt và 2.880 trường hợp theo seed không vi phạm các điều kiện đã đặt. Trong 240 phiên có lỗi giả: 25 hoàn thành, 185 dừng đúng logic, 30 FAULT do chèn vật quá gần. Không cộng ba nhóm thành số lần đỗ thành công. Mã lập đường, bám đường, mô phỏng và hình học không đổi từ commit đầu `bef5695` (21/09) tới `ff4a018`, trừ chữ trong docstring và chú thích. Ngày 29/09/2026 trên máy bàn hiện tại (mã `b37e9ee`), chạy lại năm phiên mẫu `evaluation.phase0` cho kết quả trùng từng giá trị với đợt 20/09 ([tóm tắt](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.1); chiến dịch 2.880 ca chưa chạy lại sau 20/09.
 
-Cả 16 ca khó có đường chứng trong mô hình hình học. Điều đó không có nghĩa planner tìm được trong thời hạn hoặc đường đủ thực dụng cho xe; `parallel_115` vẫn chưa được planner giải trong các lượt báo cáo. Mã chưa giới hạn số lần đổi chiều; tiêu chí "đường thực dụng" CHƯA CHỐT.
+Cả 16 ca khó có đường chứng trong mô hình hình học. Điều đó không có nghĩa planner tìm được trong thời hạn hoặc đường đủ thực dụng cho xe; `parallel_115` vẫn chưa được planner giải trong các lượt báo cáo. Từ 02/10/2026 có thể đặt giới hạn số lần đổi chiều khi chạy (`run_app.py <kịch bản> --max-cusps N`, công cụ T12): `Session.start_run` từ chối đường vượt giới hạn trước mọi lệnh tới bo, planner không đổi; mặc định không chặn, giao diện chỉ cảnh báo khi đường có hơn 7 lần đổi chiều. Tiêu chí "đường thực dụng" vẫn CHƯA CHỐT.
 
 [Báo cáo mô phỏng](BAO_CAO_GIAI_DOAN_0.md), [kiểm thử độ bền](autopark/docs/KIEM_THU_DO_BEN_GIAI_DOAN_0.md), [độ nhạy kích thước](autopark/docs/DO_NHAY_KICH_THUOC_XE.md).
 
@@ -204,9 +206,11 @@ Có giao diện xem đồng thời, đo suy luận, độ lệch thời gian và
 
 Số đo trong hướng dẫn bàn thử là của máy bàn trước. Ngày 29/09/2026, lệnh kiểm máy mới (`do_may_moi.cmd`, mã `9d68257`, LiDAR và bốn camera thật) trên máy bàn hiện tại cho: AI lô 4 ảnh 480p trung vị 10,8 ms (máy bàn trước 10,4 ms); bàn thử 480p + LiDAR + AI 120 s được 2.861 bộ ảnh, 0 khung hỏng, 23,85 bộ AI/s, như máy bàn trước; 720p chỉ camera được 715 bộ, 0 khung hỏng. Cảnh camera lúc đo không ghi lại, nên số khung hỏng chưa so được với các phiên cũ. Lượt này là tham chiếu `may_moi` hiện dùng ([`tham_chieu_20260929.json`](autopark/docs/evidence/may_ban/tham_chieu_20260929.json), người dùng chọn ngày 29/09/2026); lệnh đo trên laptop so với nó. Trong lượt chạy lại các lệnh README cùng ngày (15:08–15:19, mã `b37e9ee`), lệnh kiểm máy mới (`rig.may_moi`) chạy lần hai cho bàn thử 23,87 bộ AI/s, bước AI trung vị 12,7 ms (p95 21,8 ms); ba lần lặp riêng bước AI cho 11,0 / 10,8 / 10,8 ms ([tóm tắt](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md)). Số máy bàn chưa thay được phép đo trên laptop trình diễn. [Hướng dẫn bàn thử](autopark/docs/GIAI_DOAN_2_BAN_THU.md), [kết quả kiểm máy mới](autopark/docs/CHUYEN_MAY_BAN.md) mục 2.
 
+Từ 02/10/2026, `gap_max_ms` của từng camera trong `.rig.json` tính cả khoảng hở còn mở lúc chốt số (`gap_end_ms`: camera ngừng hẳn trước khi hết phần đo; công cụ T10), nghĩa cũ ở `gap_closed_max_ms`; `.rig.json` ghi trước đó không có khóa mới. `rig.bench --sync-mark` (T14) nháy dấu đồng bộ video–log trên màn hình và ghi `<name>.sync.csv` theo `perf_counter`, cùng đồng hồ với stamp của bàn thử. Cả hai mới kiểm bằng test với camera giả và giao diện offscreen; chưa chạy lại trên bàn thử thật, độ trễ hiển thị của dấu đồng bộ CHƯA ĐO ([hướng dẫn chạy](autopark/README.md) mục 7).
+
 ### 4.6. Hiệu chuẩn camera
 
-Có bảng in, công cụ chụp/tính nội tham fisheye, đo ngoại tham và vẽ ROI. Công cụ mới được kiểm chủ yếu bằng ảnh tổng hợp; chưa camera dự án nào có hiệu chuẩn thật. Kiểm 30/09/2026: `calibration/` chưa có tệp nội tham `cam_p*.json` nào, `configs/rig/` chỉ có ngoại tham `v0` giả định, chưa có ROI `configs/roi/rig_v1/`.
+Có bảng in, công cụ chụp/tính nội tham fisheye, đo ngoại tham và vẽ ROI. Công cụ mới được kiểm chủ yếu bằng ảnh tổng hợp; chưa camera dự án nào có hiệu chuẩn thật. Kiểm 30/09/2026: `calibration/` chưa có tệp nội tham `cam_p*.json` nào, `configs/rig/` chỉ có ngoại tham `v0` giả định, chưa có ROI `configs/roi/rig_v1/`. Từ 02/10/2026 công cụ nội tham mở được camera không qua hub 1–4 (camera trên cao của tham chiếu R1) theo index và tên (`ui.calib_app --index N --camera-name TÊN`, công cụ T11), lưu `calibration/cam_<tên>.json` (mode khác 640×480 thêm hậu tố kích thước, ví dụ `cam_tren_cao_1280x720.json`) mà BEV và AI camera không đọc; khi một số cổng có camera ở hai hub, chọn camera theo cổng chỉ nhận khi các cổng khác chỉ ra hub của camera xe, không thì báo lỗi thay vì chọn đại. Phần này mới kiểm offscreen với camera giả.
 
 Thứ tự: **nội tham → ngoại tham theo gá → ROI → kiểm sai số bằng vật có vị trí đo được**.
 
@@ -277,7 +281,7 @@ flowchart TD
 
 Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị. Xanh ở đây là đã kiểm trên máy tính (test host và biên dịch ngày 29/09/2026); số test theo lượt trên `ebbec83` (30/09/2026). Bo ảo không có LEDC, GPIO vào (E-stop) hay USB-CDC thật, và task watchdog không bao giờ kích hoạt; chạy được trong bo ảo không chứng minh gì về bo thật ([mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md) mục 1). M0–M3 là các mức thử trên bo ở [chuẩn bị nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md) mục 5.1, dựng theo trình tự thử trên bo của [README firmware](autopark/firmware/esp32_vehicle/README.md). Kiến trúc liên kết laptop–bo, trình tự chạy và lỗi, máy trạng thái firmware: sơ đồ 6.1–6.7 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
-Phía giao diện: thẻ "Bo điều khiển" cho chọn cổng và "Kiểm kết nối bo" (HELLO, đọc vài khung telemetry, không ARM, không gửi lệnh). Danh sách chỉ có bo mô phỏng và cổng COM, nên chưa chọn được bo ảo (`socket://` mới dùng từ Python và trong test); bo ảo cũng chưa nối vào phiên đỗ, mới kiểm ở mức `VehicleIO` (13 test, 6 trong đó chạy firmware thật trong QEMU). Chọn cổng COM thì Bắt đầu đỗ bị từ chối trước khi mở cổng vì chưa có nguồn tư thế thật; kể cả khi có, `begin_run` còn thiếu bước mở cổng (`reopen()`). Giao diện chưa có nút CLEAR_FAULT. Phát lại (`replay_run`) từ chối lần chạy qua `VehicleIO`.
+Phía giao diện: thẻ "Bo điều khiển" cho chọn cổng và "Kiểm kết nối bo" (HELLO, đọc vài khung telemetry, không ARM, không gửi lệnh). Danh sách chỉ có bo mô phỏng và cổng COM, nên chưa chọn được bo ảo (`socket://` mới dùng từ Python và trong test); bo ảo cũng chưa nối vào phiên đỗ, mới kiểm ở mức `VehicleIO` (13 test, 6 trong đó chạy firmware thật trong QEMU). Chọn cổng COM thì Bắt đầu đỗ bị từ chối trước khi mở cổng vì chưa có nguồn tư thế thật; kể cả khi có, `begin_run` còn thiếu bước mở cổng (`reopen()`). Từ 02/10/2026 thẻ có nút "Xóa lỗi bo (CLEAR_FAULT)" (T15) cho bo chọn ở cổng COM: chỉ gửi CLEAR_FAULT khi bo đang FAULT và telemetry báo nút dừng khẩn đã nhả, không ARM, không gửi lệnh chuyển động, mỗi lần bấm một dòng `board_actions.csv`. Cùng ngày, mỗi quyết định dừng của phiên chạy qua `VehicleIO` được ghi vào `events.csv` (dòng `session_stop`, T13), và lần chạy qua `VehicleIO` có gói phát lại bằng log (T9): chạy lại cùng phần mềm trên đầu vào đã ghi và so quyết định, không tái hiện xe. Cả ba mới thử với bo mô phỏng và cổng serial giả; với ESP32-S3: CHƯA THỬ ([chế độ quan sát](autopark/docs/CHE_DO_QUAN_SAT.md)).
 
 Firmware chưa có mã đọc cảm biến (encoder, AS5600, BNO085, VL53L1X, điện áp nguồn): telemetry báo không có số đo. Loại bo (`esp32-s3-devkitc-1`) và các chân ESC, servo, E-stop CHƯA CHỐT. Khoảng hở còn lại (suy ra từ mã, chưa có test; [giao thức](autopark/docs/GIAO_THUC_XE.md) mục 12): nếu bo vừa về ARMED vì hết hạn lệnh (`COMMAND_TIMEOUT`) mà khung telemetry báo điều đó chưa tới laptop, laptop vẫn có thể gửi enable=1 và bo chạy lại (ARMED → RUNNING); khoảng hở và effort khi đó trên bo thật: CHƯA ĐO. Đề xuất chốt phía firmware (sau `COMMAND_TIMEOUT` không nhận enable=1 tới khi có ARM mới): CHƯA LÀM.
 
@@ -287,7 +291,7 @@ Firmware chưa có mã đọc cảm biến (encoder, AS5600, BNO085, VL53L1X, đ
 
 Có bản nháp bảng tải, sơ đồ nguồn/dừng, 16 kịch bản lỗi L1–L16 (đều CHƯA THỬ); chưa có phần cứng nguồn hay dừng nào, chưa đo điện áp hay dòng. Theo thiết kế có ba lớp dừng: nút LA38 cắt động lực bằng phần cứng, firmware, laptop; phần tử ngắt có ba phương án, CHƯA CHỐT. Ngõ E-stop của ESP32 không thay đường ngắt động lực.
 
-Tác dụng của `output_guard`, móc panic, ngõ E-stop thật và watchdog phần cứng của chip chưa được kiểm ở đâu: firmware mới biên dịch và chạy trong bo ảo, mà bo ảo không có LEDC, GPIO vào và watchdog phần cứng không kích hoạt. Watchdog liên lạc 500 ms (`LINK_TIMEOUT`) và logic chốt E-stop (với ngõ vào giả) đã kiểm bằng bản Python và test host; watchdog liên lạc kiểm thêm trong bo ảo. Chuỗi dừng ba lớp và sơ đồ nguồn dự kiến: sơ đồ 7.1, 7.2 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
+Tác dụng của `output_guard`, móc panic, ngõ E-stop thật và watchdog phần cứng của chip chưa được kiểm ở đâu: firmware mới biên dịch và chạy trong bo ảo, mà bo ảo không có LEDC, GPIO vào và watchdog phần cứng không kích hoạt. Watchdog liên lạc 500 ms (`LINK_TIMEOUT`) và logic chốt E-stop (với ngõ vào giả) đã kiểm bằng bản Python và test host; watchdog liên lạc kiểm thêm trong bo ảo. Chuỗi dừng ba lớp và sơ đồ nguồn dự kiến: sơ đồ 7.1, 7.2 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md). Từ 02/10/2026 kịch bản L7 (vòng điều khiển của laptop treo) có script diễn tập ở mức mô phỏng (`python -m autopark.evaluation.fault_drill hang`, công cụ T6, có hoặc không Heartbeat); trên bo vẫn CHƯA THỬ.
 
 [Chuẩn bị nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md).
 
@@ -319,7 +323,11 @@ Có dàn ý và hình/bảng tham khảo; dàn ý không phải bản thảo kh�
 
 ### 4.15. Nghiệm thu V1
 
-Có nháp 37 kịch bản trong chín nhóm, cách đo độc lập và ngưỡng đề xuất. Chưa nghiệm thu các kịch bản; ngưỡng còn chờ chốt. Công cụ nghiệm thu (bảng T1–T15 của kịch bản, đối chiếu mã ngày 30/09/2026): đã có T1 (thẻ "Bo điều khiển"); T8 và T10 có một phần; còn thiếu T2–T7, T9, T11–T15.
+Có nháp 37 kịch bản trong chín nhóm, cách đo độc lập và ngưỡng đề xuất. Chưa nghiệm thu các kịch bản; ngưỡng còn chờ chốt.
+
+Công cụ nghiệm thu (bảng T1–T15 của kịch bản mục 7, đối chiếu mã ngày 02/10/2026): đã có T1 (thẻ "Bo điều khiển"), T5 (chấm một lần chạy, `evaluation/score_run.py`), T6 (tiêm lỗi có kiểm soát, chỉ ở mức mô phỏng), T9 (phát lại log lần chạy qua `VehicleIO`), T10 (khoảng hở cuối phiên của camera), T11 (camera ngoài hub trong công cụ hiệu chuẩn), T12 (giới hạn số lần đổi chiều, mặc định tắt), T13 (sự kiện dừng của phiên trong log), T14 (dấu đồng bộ video–log) và T15 (nút CLEAR_FAULT); T8 có một phần; còn thiếu T2 (nguồn tư thế thật), T3 (ghi cảm biến trong phiên đỗ), T4 (trích tư thế tham chiếu từ video; định dạng tệp tư thế đã có) và T7 (LED trên bo). Các công cụ thêm ngày 02/10/2026 mới kiểm bằng test: bo mô phỏng, cổng serial giả, camera giả, giao diện offscreen, bản ghi phát lại; chưa dùng với LiDAR, camera thật, bo ảo qua giao diện hay ESP32-S3. Lệnh của từng công cụ: [hướng dẫn chạy](autopark/README.md) mục 3, 4, 7, 8, 9.
+
+Công cụ chấm T5 đọc log VehicleIO hoặc gói của `export_run` cùng tham chiếu độc lập, tính các ngưỡng N-… theo `autopark/configs/nguong_nghiem_thu.json` (bản sao các ngưỡng ĐỀ XUẤT – CHỜ CHỐT) và ghi một dòng biên bản cùng tệp chi tiết; nó chỉ tự đề xuất THÀNH CÔNG hay THẤT BẠI. Mới chấm dữ liệu tổng hợp và lần chạy mô phỏng; chưa chấm lần chạy thật vì chưa có tham chiếu R1 (T4). Chấm thử mức MP cho DO-1 (02/10/2026, trên log tạm, không lưu trong repo): ở tốc độ mặc định 0,15 m/s của planner, tốc độ thật lớn nhất trên đoạn 0,2 m là 0,150 m/s ở nhánh SIM và ≈ 0,18 m/s qua bo mô phỏng (số lẻ đổi theo cấu hình bo), vượt N-V1 (0,12 m/s), nên công cụ đề xuất THẤT BẠI; đặt `max_speed_mps` 0,10 cho xe (và bo mô phỏng) thì mọi kiểm đạt, phần này có test (`tests/test_score_run.py`, `bai_do_xe.json` qua bo mô phỏng) ([ngưỡng đề xuất](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md) N-V1).
 
 [Kịch bản](autopark/docs/KICH_BAN_NGHIEM_THU.md), [ngưỡng đề xuất](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md).
 
@@ -374,13 +382,13 @@ Mặc định thử nghiệm: BLOCKED 0,15; xuất hiện ít nhất hai trong b
 ### 5.1. Những lựa chọn còn cần chốt
 
 - Phương án định vị và nguồn tư thế thật cho phiên đỗ.
-- Tốc độ, ngưỡng và bộ kịch bản nghiệm thu; máy chạy khi nghiệm thu, camera trên cao, nơi lưu biên bản ([kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 8).
+- Tốc độ, ngưỡng và bộ kịch bản nghiệm thu; máy chạy khi nghiệm thu, camera trên cao, nơi lưu biên bản ([kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 8). Tốc độ mặc định 0,15 m/s của planner vượt N-V1 khi chấm mức MP (mục 4.15): cần chọn giữa một cấu hình xe riêng cho nghiệm thu và đổi mặc định.
 - Nguồn, E-stop, phần tử ngắt, encoder, gá; loại bo ESP32-S3 và chân ESC, servo, E-stop.
 - Chốt phía firmware sau `COMMAND_TIMEOUT`; báo sức khỏe ToF (đổi bố cục byte, phải tăng phiên bản giao thức).
 - Xe tự tiếp tục hay chờ xác nhận sau vật cản thông thường.
 - Chính sách AI bắt buộc và tham số của ngăn AI camera; ngăn chỉ nhận checkpoint học trên WoodScape (không AVM-SS) hay không.
 - Có dùng nhãn nháp AI khi gán nhãn ảnh sa bàn không.
-- Tiêu chí "đường thực dụng": trần số lần đổi chiều, nhịp ngắn nhất.
+- Tiêu chí "đường thực dụng": trần số lần đổi chiều, nhịp ngắn nhất (công cụ giới hạn số lần đổi chiều T12 đã có, mặc định tắt).
 - Sao lưu `autopark/runs/` (checkpoint tham chiếu, bản ghi đo) và dataset ra ngoài ổ D: hồ sơ chưa ghi nhận bản sao lưu nào.
 
 Bản viết lại không thay đổi quyết định kỹ thuật hoặc tự duyệt đề xuất.
@@ -404,13 +412,17 @@ Ngoài sáu đợt mua, tài liệu chưa ghi đã có máy hiện sóng hoặc 
 
 ### 5.4. Phần mềm có thể chuẩn bị
 
-Cho giao diện chọn được bo ảo QEMU (`socket://`, hiện chỉ dùng từ Python) và nối bo ảo vào phiên đỗ; làm nguồn tư thế thật và bước mở cổng (`reopen()`) trong `begin_run`; thêm nút CLEAR_FAULT; hoàn thiện ghi sự kiện dừng và đồng bộ video–log; phát lại lần chạy qua `VehicleIO`; xử lý các công cụ còn thiếu trong [kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 7; đo xem ứng dụng có bị Windows hạ tốc (EcoQoS) khi cửa sổ thu nhỏ hay bị che không. Thay đổi giao thức cần được thiết kế/kiểm riêng.
+Còn lại: cho giao diện chọn được bo ảo QEMU (`socket://`, hiện chỉ dùng từ Python) và nối bo ảo vào phiên đỗ; làm nguồn tư thế thật và bước mở cổng (`reopen()`) trong `begin_run`; các công cụ còn thiếu trong [kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 7: T2, T3, T4 (khớp mặt sàn từ mốc, kiểm trên điểm kiểm tra, trích tư thế từ video; đã có định dạng tệp đầu ra và công cụ nội tham cho camera trên cao, T11) và mã firmware của T7, T8; đo độ trễ hiển thị của dấu đồng bộ (T14) và thử nó với màn hình, camera thật; chọn cấu hình xe hay tốc độ cho nghiệm thu (mục 4.15). Thay đổi giao thức cần được thiết kế/kiểm riêng.
+
+Đã làm ngày 02/10/2026, mới kiểm bằng test (bo mô phỏng, cổng serial giả, camera giả, giao diện offscreen, bản ghi phát lại), chưa thử trên thiết bị: nút CLEAR_FAULT (T15); ghi sự kiện dừng của phiên vào log `VehicleIO` (T13) và dấu đồng bộ video–log (T14); phát lại lần chạy qua `VehicleIO` bằng log (T9); công cụ chấm một lần chạy (T5), tiêm lỗi có kiểm soát ở mức mô phỏng (T6), khoảng hở cuối phiên của camera (T10), camera ngoài hub trong công cụ hiệu chuẩn (T11), giới hạn số lần đổi chiều (T12).
+
+Ứng dụng tự tắt EcoQoS hay cảnh báo khi cửa sổ bị thu nhỏ: CHƯA LÀM, chờ quyết định. Đo ngày 02/10/2026 (`python -m autopark.evaluation.ecoqos_gui`): cửa sổ thu nhỏ thì lập đường hết hạn 8 s ở 4/4 lượt ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 10); vòng điều khiển 50 Hz khi cửa sổ thu nhỏ và kế hoạch nguồn Balanced: CHƯA ĐO.
 
 ## 6. Bản đồ tài liệu
 
 - [Cài/chạy](autopark/README.md): thao tác phần mềm, chạy test, firmware và bo ảo.
 - [Kế hoạch](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md): thứ tự, phụ thuộc, điều kiện hoàn thành.
-- [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md): các sơ đồ kiến trúc, luồng dữ liệu, an toàn, tiến độ và quy trình, tô màu theo trạng thái (30/09/2026).
+- [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md): các sơ đồ kiến trúc, luồng dữ liệu, an toàn, tiến độ và quy trình, tô màu theo trạng thái (30/09/2026, cập nhật 02/10/2026 cho các công cụ nghiệm thu).
 - [Huấn luyện](HUAN_LUYEN.md): dữ liệu, kết quả, tái hiện AI.
 - [Báo cáo giai đoạn 0](BAO_CAO_GIAI_DOAN_0.md): bằng chứng mô phỏng 20/09.
 - [Mục lục kỹ thuật](autopark/docs/README.md): hướng dẫn/biên bản theo công việc.

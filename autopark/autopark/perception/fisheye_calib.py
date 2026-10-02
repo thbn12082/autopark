@@ -3,9 +3,13 @@
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.fisheye_calib board --paper A4
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.fisheye_calib calibrate --images runs/calib/<thư mục> --cols 9 --rows 6 --square-mm <cỡ ô ĐO ĐƯỢC> --port 1 --out calibration/cam_p1.json
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.fisheye_calib check calibration/cam_p1.json
+    .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.fisheye_calib calibrate --images runs/calib/<thư mục> --square-mm <cỡ ô ĐO ĐƯỢC> --camera-name tren_cao
 
 Mỗi lệnh viết trên một dòng để dán được vào cmd.exe lẫn PowerShell; thay `<...>` bằng giá trị thật trước khi chạy
-(sửa 24/09/2026: bản trước ngắt lệnh `calibrate` thành hai dòng bằng `^` của cmd.exe).
+(sửa 24/09/2026: bản trước ngắt lệnh `calibrate` thành hai dòng bằng `^` của cmd.exe). Dòng cuối (T11, thêm 02/10/2026):
+camera KHÔNG qua hub 1..4 (camera trên cao) khóa theo tên thay cho cổng — tệp calibration/cam_tren_cao.json, bản ghi có
+`camera.hub_port` null; tên không được có dạng p<số> hay kết thúc bằng _<rộng>x<cao> (`camera_name_error`). Ngoại tham
+và BEV chỉ dùng tệp của camera xe theo cổng hub. Chỉ kiểm bằng ảnh tổng hợp; với camera trên cao thật CHƯA THỬ.
 
 Mô hình: Kannala–Brandt của `cv2.fisheye` (4 hệ số): với tia có góc θ so với trục quang,
 θ_d = θ·(1 + d1·θ² + d2·θ⁴ + d3·θ⁶ + d4·θ⁸), điểm ảnh = (fx·θ_d·cosφ + cx, fy·θ_d·sinφ + cy), skew cố định 0.
@@ -22,7 +26,8 @@ Việc của mô-đun (không cần Qt, không mở camera):
   ρ(θ) = k1·θ + k2·θ² + k3·θ³ + k4·θ⁴) bằng bình phương tối thiểu rồi lặp Lawson về nghiệm minimax, có báo sai số
   khớp lớn nhất theo điểm ảnh, nâng theta_max vừa đủ để mọi điểm ảnh (cả bốn góc) nghịch đảo được, và kiểm chéo bằng
   chính `FisheyeIntrinsics.project` / `unproject`;
-- ghi một tệp JSON cho mỗi camera, khóa theo CỔNG HUB (index OpenCV đổi sau khởi động lại).
+- ghi một tệp JSON cho mỗi camera, khóa theo CỔNG HUB (index OpenCV đổi sau khởi động lại); camera ngoài hub khóa theo
+  tên (T11, xem trên).
 
 Tệp hiệu chuẩn chỉ có NỘI THAM: không có ngoại tham (vị trí/hướng so với xe). Ngoại tham đo bằng
 `perception/extrinsics_calib.py` (giao diện `ui/roi_app.py`, từ 24/09/2026) và ghi vào
@@ -785,18 +790,71 @@ def observed_theta_max_deg(calib: FisheyeCalibration) -> float | None:
     return round(math.degrees(float(np.nanmax(th))), 2) if np.isfinite(th).any() else None
 
 
-def default_output_path(port: int, image_size: tuple[int, int], out_dir=Path("calibration")) -> Path:
+# ---- camera KHÔNG qua hub 1..4 (camera trên cao, T11, thêm 02/10/2026) ---------------------------------------------
+# Camera xe khóa theo cổng hub (cam_p<cổng>.json). Camera ngoài hub (camera trên cao của mục 3.4 KICH_BAN_NGHIEM_THU) khóa
+# theo TÊN: tệp cam_<tên>.json, bản ghi có hub_port null. Tên không được trùng dạng tên tệp của camera xe.
+CAMERA_NAME_RE = re.compile(r"[a-z][a-z0-9_]{0,31}")
+_HUB_LIKE_NAME_RE = re.compile(r"p\d")                # cam_p<số>… là tệp của camera xe
+_SIZE_SUFFIX_RE = re.compile(r"_\d+x\d+$")            # …_<rộng>x<cao> là hậu tố kích thước của tên tệp
+
+
+def camera_name_error(name: str | None) -> str | None:
+    """None khi `name` dùng được làm tên camera ngoài hub; không thì lý do (tiếng Việt, để in cho người dùng)."""
+    if not isinstance(name, str) or CAMERA_NAME_RE.fullmatch(name) is None:
+        return ("tên camera chỉ gồm chữ thường không dấu, số và gạch dưới, bắt đầu bằng chữ, tối đa 32 ký tự "
+                "(ví dụ tren_cao)")
+    if _HUB_LIKE_NAME_RE.match(name):
+        return f"tên {name!r} có dạng p<số>, trùng tệp camera xe cam_p<cổng>.json: chọn tên khác, ví dụ tren_cao"
+    if _SIZE_SUFFIX_RE.search(name):
+        return f"tên {name!r} kết thúc bằng _<rộng>x<cao>, trùng hậu tố kích thước của tên tệp"
+    return None
+
+
+def camera_key(port: int | None = None, name: str | None = None) -> str:
+    """Khóa camera trong tên tệp và `source_id`: "p<cổng>" (camera xe qua hub) hoặc tên đã kiểm (camera ngoài hub).
+    Phải có đúng một trong hai, không thì ValueError."""
+    if (port is None) == (name is None):
+        raise ValueError("cần đúng một trong hai: cổng hub (camera xe) hoặc tên (camera ngoài hub)")
+    if name is not None:
+        error = camera_name_error(name)
+        if error:
+            raise ValueError(error)
+        return name
+    return f"p{port}"
+
+
+def camera_label(camera: dict) -> str:
+    """Nhãn camera của một bản ghi để in: "cổng hub N", hay "ngoài hub 'tên' (index N lúc chụp)"."""
+    if camera.get("hub_port") is not None:
+        return f"cổng hub {camera['hub_port']}"
+    index = camera.get("opencv_index")
+    return f"ngoài hub {camera.get('name')!r}" + ("" if index is None else f" (index {index} lúc chụp)")
+
+
+def default_output_path(port: int | None, image_size: tuple[int, int], out_dir=Path("calibration"), *,
+                        name: str | None = None) -> Path:
     """calibration/cam_p<cổng>.json cho mode 640×480 (mode chạy bốn camera); mode khác thêm hậu tố kích thước để không
-    ghi đè bản 640×480 bằng một mode có thể cắt/co cảm biến khác."""
+    ghi đè bản 640×480 bằng một mode có thể cắt/co cảm biến khác. Camera ngoài hub (`name`, T11): cam_<tên>[_WxH].json."""
     w, h = image_size
     suffix = "" if (w, h) == DEFAULT_SIZE else f"_{w}x{h}"
-    return Path(out_dir) / f"cam_p{port}{suffix}.json"
+    return Path(out_dir) / f"cam_{camera_key(port, name)}{suffix}.json"
 
 
-def calibration_record(calib: FisheyeCalibration, spec: BoardSpec, *, port: int, square_mm_measured: float | None = None,
-                       images_dir: str | None = None, frame_reports: list[dict] | None = None, device: str | None = None,
-                       accept: dict | None = None, extra: dict | None = None) -> dict:
-    """Nội dung tệp hiệu chuẩn một camera (JSON). `spec.square_mm` là cỡ ô dùng để tính (nên là cỡ ĐO ĐƯỢC)."""
+def calibration_record(calib: FisheyeCalibration, spec: BoardSpec, *, port: int | None = None,
+                       camera_name: str | None = None, camera_index: int | None = None,
+                       square_mm_measured: float | None = None, images_dir: str | None = None,
+                       frame_reports: list[dict] | None = None, device: str | None = None, accept: dict | None = None,
+                       extra: dict | None = None) -> dict:
+    """Nội dung tệp hiệu chuẩn một camera (JSON). `spec.square_mm` là cỡ ô dùng để tính (nên là cỡ ĐO ĐƯỢC).
+
+    Camera xe: `port` (cổng hub). Camera ngoài hub (T11): `camera_name` (+ `camera_index` = index OpenCV lúc chụp, chỉ
+    để tra lại; index đổi sau khởi động lại) — khối camera có hub_port null, name, opencv_index."""
+    key = camera_key(port, camera_name)
+    if camera_name is None:
+        camera = {"hub_port": int(port), "source_id": f"cam_{key}", "device": device}
+    else:
+        camera = {"hub_port": None, "name": camera_name, "opencv_index": camera_index, "source_id": f"cam_{key}",
+                  "device": device}
     cov = coverage_summary(coverage_counts(calib.used_corners, calib.image_size))
     ws = woodscape_intrinsics(calib.K, calib.D, calib.image_size)
     by_name = {r.get("name"): r for r in (frame_reports or [])}
@@ -808,7 +866,7 @@ def calibration_record(calib: FisheyeCalibration, spec: BoardSpec, *, port: int,
         views.append(entry)
     record = {
         "format": FORMAT,
-        "camera": {"hub_port": int(port), "source_id": f"cam_p{port}", "device": device},
+        "camera": camera,
         "image_size": list(calib.image_size),
         "model": "opencv_fisheye_kannala_brandt",
         "K": np.round(calib.K, 6).tolist(),
@@ -891,7 +949,7 @@ def summary_text(record: dict) -> str:
     ws = record.get("woodscape_intrinsic") or {}
     views = record.get("views") or []
     rejected = [v for v in views if not v.get("used")]
-    lines = [f"camera cổng hub {record['camera']['hub_port']} · ảnh {w}×{h} · tạo {record.get('created_local')} · "
+    lines = [f"camera {camera_label(record['camera'])} · ảnh {w}×{h} · tạo {record.get('created_local')} · "
              f"OpenCV {record.get('software', {}).get('opencv')}",
              f"K: fx {_f(K[0, 0])}  fy {_f(K[1, 1])}  cx {_f(K[0, 2])}  cy {_f(K[1, 2])}   "
              f"D: [{', '.join(f'{d:+.5f}' for d in D)}]",
@@ -972,6 +1030,11 @@ def views_from_directory(directory, spec: BoardSpec, *, max_edge_width: float = 
 
 # ---- dòng lệnh -----------------------------------------------------------------------------------------------------
 def _cmd_calibrate(args) -> int:
+    if args.camera_name is not None:                 # tên sai thì báo ngay, trước khi dò bảng trên cả thư mục ảnh
+        error = camera_name_error(args.camera_name)
+        if error:
+            print(f"LỖI: --camera-name: {error}", file=sys.stderr)
+            return 2
     spec = BoardSpec(args.cols, args.rows, args.square_mm)
     views, reports, size = views_from_directory(args.images, spec, max_edge_width=args.max_edge_width)
     bad = [r for r in reports if not r.get("ok")]
@@ -986,9 +1049,10 @@ def _cmd_calibrate(args) -> int:
     except CalibrationError as exc:
         print(f"LỖI: {exc}", file=sys.stderr)
         return 2
-    record = calibration_record(calib, spec, port=args.port, square_mm_measured=args.square_mm,
-                                images_dir=str(Path(args.images)), frame_reports=reports, device=args.device)
-    out = Path(args.out) if args.out else default_output_path(args.port, size)
+    record = calibration_record(calib, spec, port=args.port, camera_name=args.camera_name,
+                                square_mm_measured=args.square_mm, images_dir=str(Path(args.images)),
+                                frame_reports=reports, device=args.device)
+    out = Path(args.out) if args.out else default_output_path(args.port, size, name=args.camera_name)
     save_calibration(out, record)
     print(summary_text(record))
     print(f"đã ghi {out}")
@@ -1030,8 +1094,12 @@ def main(argv=None) -> int:
     c.add_argument("--cols", type=int, default=9, help="số góc trong theo chiều ngang")
     c.add_argument("--rows", type=int, default=6, help="số góc trong theo chiều dọc")
     c.add_argument("--square-mm", type=float, required=True, help="cỡ ô ĐO ĐƯỢC trên bản in (mm), không phải cỡ danh định")
-    c.add_argument("--port", type=int, required=True, help="cổng hub của camera (1..4)")
-    c.add_argument("--out", type=Path, default=None, help="mặc định calibration/cam_p<cổng>.json")
+    which = c.add_mutually_exclusive_group(required=True)
+    which.add_argument("--port", type=int, default=None, help="cổng hub của camera (1..4)")
+    which.add_argument("--camera-name", default=None, metavar="TÊN",
+                       help="camera KHÔNG qua hub 1..4 (camera trên cao): tên dùng cho tệp và bản ghi, ví dụ tren_cao")
+    c.add_argument("--out", type=Path, default=None,
+                   help="mặc định calibration/cam_p<cổng>.json hoặc calibration/cam_<tên>.json")
     c.add_argument("--device", default=None, help="mô tả thiết bị ghi vào tệp (tùy chọn)")
     c.add_argument("--min-images", type=int, default=MIN_IMAGES)
     c.add_argument("--max-edge-width", type=float, default=MAX_EDGE_WIDTH_PX, help="ngưỡng mờ (px), đề xuất")

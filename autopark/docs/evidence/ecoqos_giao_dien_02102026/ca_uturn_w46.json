@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "name": "uturn_w46",
+  "notes": "Quay đầu tại chỗ trong hành lang rộng 46 cm (1.48× thân xe), dài 140 cm.",
+  "vehicle_config": "../../../configs/vehicle_default.json",
+  "bounds": {
+    "xmin": 0.0,
+    "ymin": 0.0,
+    "xmax": 1.4,
+    "ymax": 0.46
+  },
+  "start": {
+    "x": 0.34,
+    "y": 0.23,
+    "yaw_deg": 0.0
+  },
+  "goal": {
+    "x": 0.34,
+    "y": 0.23,
+    "yaw_deg": 180.0,
+    "tolerance_cm": 5.0,
+    "tolerance_deg": 5.0
+  },
+  "obstacles": [],
+  "seed": 0
+}

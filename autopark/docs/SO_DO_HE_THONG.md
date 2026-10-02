@@ -7,6 +7,12 @@ chưa commit: sửa chữ (docstring, chú thích trong mã, một tooltip trong
 dưới không phụ thuộc các sửa đổi đó. Tài liệu trước đợt biên tập: <https://github.com/thbn12082/autopark/tree/ff4a018>;
 trước đợt 26/09: <https://github.com/thbn12082/autopark/tree/9d68257>.
 
+*(Cập nhật 02/10/2026 theo mã của đợt công cụ nghiệm thu, cây làm việc dựng trên `3148014`: sơ đồ 1.2, 2.3–2.6, 3.4,
+4.4, 5.5, 6.3, 8.3, 8.4 và phần chữ của 2.2, 3.2, 3.7, 4.3, 4.6. Các công cụ nghiệm thu mới (T5, T6, T9–T15 của
+[kịch bản nghiệm thu](KICH_BAN_NGHIEM_THU.md) mục 7) mới kiểm bằng test: bo mô phỏng, cổng serial giả, camera giả, giao
+diện offscreen, bản ghi phát lại. Chưa công cụ nào chạy với LiDAR, camera thật, bo ảo QEMU qua giao diện hay ESP32-S3
+thật. Công cụ đo EcoQoS của giao diện ở sơ đồ 3.7.)*
+
 **Mới đọc dự án:** [README](../../README.md) → [Tổng quan và tiến độ](../../TONG_HOP_DU_AN.md) →
 [Cài đặt và chạy](../README.md) → tệp này → [Mục lục kỹ thuật](README.md).
 
@@ -19,9 +25,10 @@ trước đợt 26/09: <https://github.com/thbn12082/autopark/tree/9d68257>.
 - **Mũi tên** chỉ luồng dữ liệu, lời gọi hoặc thứ tự bước. Mũi tên không có nghĩa bước đó đã chạy trên xe thật. Mũi tên
   đứt nét là đoạn nối chưa có, chưa thử hoặc chỉ là phương án. Trong sơ đồ quy trình và lộ trình (ví dụ 4.6, 5.6,
   8.1–8.4, 9.3), mũi tên liền chỉ thứ tự hay phụ thuộc giữa các bước; bước chưa làm vẫn là ô đỏ viền đứt.
-- **Mã:** sơ đồ mô tả mã tại `ff4a018`; tên mô-đun, hàm và hằng số là tên thật trong mã. Số trong ô lấy từ tài liệu chi
-  tiết, tệp bằng chứng hoặc mã ghi ở dòng "Chi tiết" dưới mỗi sơ đồ. Tệp trong `runs/` bị git-ignore, chỉ có trên máy
-  đo, nên chỉ ghi đường dẫn, không tạo liên kết.
+- **Mã:** sơ đồ mô tả mã tại `ff4a018` (các sơ đồ cập nhật 02/10/2026: mã của đợt công cụ nghiệm thu, xem đầu tệp);
+  tên mô-đun, hàm và hằng số là tên thật trong mã. Số trong ô lấy từ tài liệu chi tiết, tệp bằng chứng hoặc mã ghi ở
+  dòng "Chi tiết" dưới mỗi sơ đồ. Tệp trong `runs/` bị git-ignore, chỉ có trên máy đo, nên chỉ ghi đường dẫn, không tạo
+  liên kết.
 - **Sơ đồ tuần tự và máy trạng thái** không tô màu (trừ 4.2); mức bằng chứng của chúng ghi ở câu dẫn và dòng giới hạn.
 - **Liên kết** trong tệp này tính từ thư mục `autopark/docs/`. Tài liệu khác dẫn tới đây theo số mục, ví dụ "sơ đồ 3.2
   trong Sơ đồ hệ thống". Thuật ngữ: bảng "Thuật ngữ thường gặp" trong [mục lục kỹ thuật](README.md).
@@ -163,6 +170,7 @@ flowchart TD
     subgraph DATA["Lưu và kiểm chứng"]
         STORE["storage: kịch bản JSON, export_run, replay_run"]
         EVAL["evaluation: phase0, robustness, sensitivity, replay dựng Session"]
+        ACC["evaluation: score_run chấm lần chạy (T5), fault_drill tiêm lỗi (T6): dữ liệu tổng hợp, lần chạy mô phỏng, bo mô phỏng"]
     end
     APP --> SES
     BENCH -->|kế thừa| APP
@@ -190,11 +198,12 @@ flowchart TD
     STORE -->|replay_run dựng lại| SES
     EVAL -->|phase0: export_run, replay_run| STORE
     EVAL --> SES
+    ACC -->|fault_drill: phiên qua bo mô phỏng| SES
     classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
     classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
     classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
     class APP,BENCH,RIGAPP,SES,PLAN,CTRL,SIMU,GEO,SAFE,LID,CAM,FUS,STORE,EVAL daco
-    class CDOCK,TOOLS,VL,VIO,FWM,QEMU giaLap
+    class CDOCK,TOOLS,VL,VIO,FWM,QEMU,ACC giaLap
     class EST,ESP chuaLam
 ```
 
@@ -205,7 +214,10 @@ giả hoặc ảnh tổng hợp · Đỏ viền đứt: chưa có.
 LiDAR vào phiên đỗ; AI camera chỉ qua `ui.lidar_app --camera-ai`; `chay_app.cmd` mở cockpit sa bàn, không nhập cảm biến.
 `Session` không tự ghi đĩa: `MainWindow` và `phase0` gọi `export_run`, còn `replay_run` dựng một `Session` mới. Công cụ
 riêng `lidar.live_view`, `lidar.viewer` không vẽ. Hai mô-đun gốc `image_io.py` (đọc, ghi ảnh chịu đường dẫn có dấu) và
-`power_throttling.py` (tắt EcoQoS, sơ đồ 3.7) dùng chung.
+`power_throttling.py` (tắt EcoQoS, sơ đồ 3.7) dùng chung. Từ 02/10/2026 `replay_run` còn phát lại log của lần chạy qua
+`VehicleIO` (`application/vehicle_replay.py`, sơ đồ 2.5); `evaluation` có thêm công cụ chấm một lần chạy (`score_run`,
+T5), diễn tập tiêm lỗi trên mô phỏng (`fault_drill`, T6, thư viện `safety/fault_injection.py` chỉ test và công cụ dùng)
+và đo EcoQoS của giao diện (`ecoqos_gui`, sơ đồ 3.7); hai công cụ nghiệm thu mới kiểm bằng test và mô phỏng.
 
 Chi tiết: [hướng dẫn chạy](../README.md) mục 10 · [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) ·
 [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) · mã: [session.py](../autopark/application/session.py),
@@ -420,7 +432,8 @@ stateDiagram-v2
 gọi `request_stop` và giữ đường; sự kiện an toàn đi qua `_safety_stop`, hủy đường và tăng `plan_version` (sơ đồ 3.4).
 Nút "Chọn lại vị trí" luôn gọi `set_start` nên đường cũ luôn bị bỏ, kể cả khi người dùng tự dừng; "Đỗ lại" dùng lại
 đường cũ từ xuất phát cũ. `STOP_NOT_CONFIRMED` và kết thúc ngay khi quan sát chỉ có ở nhánh qua `VehicleLink`. Đang
-STOPPING thì không đặt lại được (phải dừng hẳn).
+STOPPING thì không đặt lại được (phải dừng hẳn). Từ 02/10/2026 (T12) `start_run` còn từ chối đường có hơn N lần đổi
+chiều khi ứng dụng chạy với `--max-cusps N` (mặc định tắt): phiên giữ READY, đường giữ nguyên, xem trước vẫn được.
 
 Chi tiết: [BAO_CAO_GIAI_DOAN_0.md](../../BAO_CAO_GIAI_DOAN_0.md) mục 4 · [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) · mã:
 [session.py](../autopark/application/session.py) (`SessionState`, `reset`, `_step_closed_loop`),
@@ -447,13 +460,15 @@ flowchart TD
     SER -.->|cần PoseSource thật và reopen trong begin_run| REAL["Tự đỗ với ESP32-S3 thật"]
     B --> PROBE["Kiểm kết nối bo: HELLO, 5 khung telemetry, so giới hạn, đóng cổng, không ARM"]
     PROBE -.->|CHƯA THỬ| REALP["Kiểm kết nối với ESP32-S3 thật"]
+    SER --> CLR["Nút Xóa lỗi bo, khi chưa chạy: mở cổng, HELLO, gửi CLEAR_FAULT chỉ khi bo FAULT và ESTOP_INPUT = 0, đóng cổng. Không ARM, không COMMAND, một dòng board_actions.csv"]
+    CLR -.->|CHƯA THỬ| REALC["Xóa lỗi với ESP32-S3 thật"]
     QEMU["Chọn bo ảo QEMU socket:// từ giao diện"] -.->|danh sách chỉ có bo mô phỏng và cổng COM| B
     classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
     classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
     classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
     class A,B,SIM,REF daco
-    class VS,POSE,VIO,OBS,PROBE,SER giaLap
-    class REAL,REALP,QEMU chuaLam
+    class VS,POSE,VIO,OBS,PROBE,SER,CLR giaLap
+    class REAL,REALP,REALC,QEMU chuaLam
 ```
 
 Xanh: có mã và đã kiểm trên máy tính (test giao diện và phiên, offscreen) · Vàng: chỉ với bo mô phỏng hoặc cổng serial
@@ -462,12 +477,16 @@ là đường mặc định đã kiểm, nhưng vẫn là mô phỏng; chưa l�
 
 Đọc thế nào: nhánh và cổng chỉ đổi được khi phiên đang EDITING hoặc READY. `SerialVehicleIO` đã nói chuyện với firmware
 thật trong bo ảo QEMU qua `socket://` (30/09/2026), nhưng chỉ từ Python và test, ngoài `Session`; giao diện chưa chọn
-được bo ảo và chưa có nút CLEAR_FAULT.
+được bo ảo. Nút "Xóa lỗi bo (CLEAR_FAULT)" có từ 02/10/2026 (T15): chỉ bật ở nhánh VehicleIO hoặc Quan sát với bo chọn ở
+cổng COM, khi phiên EDITING hoặc READY; với bo mô phỏng của giao diện nút bị khóa, vì mỗi lần Bắt đầu đỗ tạo bo mới ở
+DISARMED. Cổng thật thì giao diện hỏi xác nhận trước khi mở. Nút quyết định theo khung telemetry đầu tiên bo gửi sau lúc
+bấm (dùng lại phiên đang có thì gửi một PING và chờ ACK trước khi đọc). Mới thử với bo mô phỏng và cổng serial giả; mở
+cổng có thể làm ESP32-S3 khởi động lại qua DTR/RTS (CHƯA KIỂM).
 
 Chi tiết: [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) · [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) · mã:
-[main_window.py](../autopark/ui/main_window.py) (`_set_drive_mode`, `_probe_board`),
-[vehicle_link.py](../autopark/application/vehicle_link.py) (`VehicleLink.simulated`, `serial_port`, `probe_board`),
-[vehicle_io_sim.json](../configs/vehicle_io_sim.json) · test:
+[main_window.py](../autopark/ui/main_window.py) (`_set_drive_mode`, `_probe_board`, `_clear_board_fault`),
+[vehicle_link.py](../autopark/application/vehicle_link.py) (`VehicleLink.simulated`, `serial_port`, `probe_board`,
+`clear_fault`, `BoardFaultClear`), [vehicle_io_sim.json](../configs/vehicle_io_sim.json) · test:
 [test_vehicle_board_ui.py](../tests/test_vehicle_board_ui.py),
 [test_session_vehicle.py](../tests/test_session_vehicle.py).
 
@@ -489,6 +508,7 @@ sequenceDiagram
     U->>W: Bắt đầu đỗ
     W->>S: start_run()
     S->>S: start_check() tư thế xuất phát
+    S->>S: cusp_check(): đường có hơn max_cusps lần đổi chiều thì từ chối, chưa I/O nào với bo (T12, mặc định tắt)
     S->>L: begin_run(kịch bản, cấu hình xe, 5 ms)
     Note over L: Cổng COM thật: NoPoseSource, từ chối ngay, không mở cổng
     L->>IO: connect()
@@ -511,6 +531,7 @@ sequenceDiagram
         S->>L: refresh() rồi take_events()
         L->>IO: poll(block=False), bo mô phỏng dùng take_new()
         opt có sự kiện dừng
+            S->>L: log_session_event → events.csv, dòng session_stop (T13), ghi trước khi đổi trạng thái
             S->>S: _safety_stop → STOPPING
         end
         opt nhịp điều khiển 50 Hz
@@ -534,55 +555,113 @@ sequenceDiagram
 
 Đọc thế nào: lỗi ở bất kỳ bước nào sau khi đã gửi ARM thì `begin_run` gửi DISARM trước khi báo lỗi; lần START bị từ chối
 ghi vào `start_refusals.csv`. Trạng thái xe ở nhánh này lấy từ telemetry và nguồn tư thế (thế giới gương), không tích
-phân lệnh. Nguồn tư thế duy nhất hiện có là `SimTruthPose` (mô phỏng).
+phân lệnh. Nguồn tư thế duy nhất hiện có là `SimTruthPose` (mô phỏng). Từ 02/10/2026: từ chối vì số lần đổi chiều (T12)
+thêm dòng `START_TOO_MANY_CUSPS` vào `start_refusals.csv`; mỗi quyết định dừng của phiên (sự kiện an toàn, yêu cầu dừng
+của người dùng, cầu nối hợp nhất, ngăn LiDAR, ngăn AI camera, đặt lại khi đang chạy, va chạm hình học) thành một dòng
+`session_stop` của `events.csv` có cột `t_perf` (T13); mỗi lần đọc io (`refresh`, `pump`) và mỗi lần đọc tư thế
+(`estimate`, `observe`) trong lần chạy thành một dòng `clock.csv` hay `poses.csv`, là băng để phát lại log (T9, sơ đồ
+2.5). Ghi log không gửi gì thêm tới bo. Mới kiểm với bo mô phỏng và cổng serial giả.
 
-Chi tiết: [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 3 · [GIAO_THUC_XE.md](GIAO_THUC_XE.md) · mã:
-[vehicle_link.py](../autopark/application/vehicle_link.py) (`begin_run`, `_open_run`, `refresh`, `observe`, `command`),
+Chi tiết: [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 3, 5 · [GIAO_THUC_XE.md](GIAO_THUC_XE.md) · mã:
+[vehicle_link.py](../autopark/application/vehicle_link.py) (`begin_run`, `_open_run`, `refresh`, `observe`, `command`,
+`log_session_event`, `record_refused_start`), [session.py](../autopark/application/session.py) (`cusp_check`,
+`_log_session_event`), [cusp_policy.py](../autopark/application/cusp_policy.py),
 [vehicle_io.py](../autopark/transport/vehicle_io.py) · test:
-[test_session_vehicle.py](../tests/test_session_vehicle.py).
+[test_session_vehicle.py](../tests/test_session_vehicle.py),
+[test_session_stop_log.py](../tests/test_session_stop_log.py), [test_cusp_policy.py](../tests/test_cusp_policy.py).
 
 ### 2.5. Lưu phiên và phát lại
 
-Hai nút "Lưu phiên" và "Xuất log CSV" (cùng một hàm `_export_log`) ghi gì theo loại lần chạy, và cách `replay` dựng lại
-một lần chạy SIM bằng quỹ đạo đã lưu.
+Hai nút "Lưu phiên" và "Xuất log CSV" (cùng một hàm `_export_log`) ghi gì theo loại lần chạy; nút "Dấu đồng bộ · F8"
+(T14, thêm 02/10/2026) ghi dấu đồng bộ video–log vào tệp riêng. Sơ đồ thứ hai ở dưới là cách phát lại và chấm các gói
+đó.
 
 ```mermaid
 flowchart TD
-    BTN["Nút Lưu phiên hoặc Xuất log CSV"] --> CSV["RunLog → tệp CSV, một dòng mỗi 20 ms"]
+    BTN["Nút Lưu phiên hoặc Xuất log CSV: khóa khi RUNNING hoặc STOPPING"] --> CSV["RunLog → tệp CSV, một dòng mỗi 20 ms"]
     BTN --> Q{"Log hiện tại thuộc lần chạy nào?"}
     Q -->|lái tay| MAN["Chỉ tệp CSV"]
     Q -->|SIM| EXP["export_run → thư mục tên_giờ"]
     EXP --> FILES["config_snapshot, telemetry.csv, events.jsonl, safety_events.json, result.json, source.zip, manifest.json"]
     Q -->|VEHICLE_IO hoặc OBSERVE| WL["VehicleLink.write_logs → thư mục tên_vehicle_io"]
-    WL --> VF["commands.csv, telemetry.csv, events.csv, start_refusals.csv, link.json"]
-    Q -->|VEHICLE_IO hoặc OBSERVE: không có gói replay| NR["Nút không xuất gói replay. Gọi thẳng export_run hay replay_run thì bị từ chối: ReplayNotSupported"]
-    CLI["python -m autopark.evaluation.phase0: 5 ca mẫu, xuất gói, replay, video MP4"] --> EXP
-    FILES --> RP["python -m autopark.evaluation.replay: dựng lại Session từ snapshot"]
+    WL --> VF["commands, telemetry, events có dòng session_stop và cột t_perf, start_refusals, board_actions, poses, clock (.csv), link.json có khóa clock và run_start"]
+    Q -->|VEHICLE_IO hoặc OBSERVE| EXV["export_run → thư mục tên_giờ: các tệp như gói SIM + vehicle_io/ là 8 tệp của write_logs, replay_kind vehicle_io_log"]
+    EXV -->|log không chắc thuộc lần chạy này| NR["ReplayNotSupported trước khi tạo thư mục, CSV và tên_vehicle_io vẫn ghi"]
+    Q -->|chưa chạy qua VehicleIO, liên kết đang chọn có START bị từ chối hay lần Xóa lỗi bo| RL["write_logs của liên kết đó → tên_vehicle_io"]
+    F8["Nút Dấu đồng bộ · F8: khóa khi RUNNING hoặc STOPPING"] --> LIVE["runs/sync_marks/giờ_nguồn.csv: dòng SYNC_MARK, dòng CLOCK tự ghi khi phiên đổi trạng thái"]
+    BTN -->|khi đã có ít nhất một dấu| SM["tên_sync_marks.csv cạnh tệp CSV"]
+    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
+    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
+    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
+    class BTN,CSV,MAN,EXP,FILES,F8,LIVE,SM daco
+    class WL,VF,EXV,NR,RL giaLap
+```
+
+Xanh: có mã và đã kiểm trên máy tính (test, giao diện offscreen) · Vàng: chỉ với bo mô phỏng hoặc cổng serial giả (bo
+thật CHƯA THỬ).
+
+Đọc thế nào: từ 02/10/2026, khi lần chạy còn mở (RUNNING, STOPPING) hai nút bị khóa; gọi thẳng `_export_log` lúc đó vẫn
+ghi tệp CSV, thư mục `_vehicle_io` và dấu đồng bộ nhưng không xuất gói, vì `export_run` chạy PowerShell và nén mã nguồn
+(cỡ 1,4 s trên máy bàn, đo tạm ngày 02/10/2026, không lưu trong repo) trên luồng của vòng điều khiển. Gói bị từ chối
+thì lý do chỉ hiện ở thanh trạng thái, không mở hộp thoại.
+Nhánh "chưa chạy qua VehicleIO" ghi log của liên kết đang chọn khi liên kết đó chưa mở lần chạy nào mà đã có START bị từ
+chối (ví dụ `START_TOO_MANY_CUSPS` của T12) hay lần bấm "Xóa lỗi bo" (`board_actions.csv`, T15). Dấu đồng bộ không vào
+`events.csv`: tệp sống tạo ở dấu đầu tiên, mỗi dòng ghi xuống đĩa ngay; dòng CLOCK ghép `perf_counter` với thời gian
+phiên; cột cuối `time_scale` là hệ số "tốc độ chạy" của phiên (ô này cũng khóa khi xe chạy; bằng 1 khi chạy qua bo thời
+gian thực). Dấu đồng bộ chỉ kiểm offscreen; với màn hình và camera thật CHƯA THỬ, độ trễ hiển thị CHƯA ĐO
+([KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 2.5).
+
+Cách lệnh `replay` dựng lại một gói: gói SIM được tái mô phỏng bằng quỹ đạo đã lưu; gói của lần chạy qua `VehicleIO`
+được phát lại log (T9, từ 02/10/2026). Công cụ chấm T5 đọc cùng các gói và thư mục log đó.
+
+```mermaid
+flowchart TD
+    CLI["python -m autopark.evaluation.phase0: 5 ca mẫu, xuất gói, replay, video MP4"] --> PS
+    PS["Gói SIM tên_giờ, từ Lưu phiên hoặc phase0"] --> RP["python -m autopark.evaluation.replay gói: dựng lại Session từ snapshot"]
     RP --> TRJ["Dùng quỹ đạo đã lưu, không gọi planner"]
     TRJ --> EV["Chèn lại obstacle, data_loss, stop đúng bước vật lý"]
     EV --> CMP{"Trạng thái cuối, tư thế, va chạm, quãng đường khớp?"}
     CMP -->|Có| OK["Replay OK"]
     CMP -->|Không| ERR["ValueError: Replay khác kết quả đã lưu"]
-    VF -.-> VREP["Phát lại lần chạy qua VehicleIO"]
+    PV["Gói lần chạy qua VehicleIO: có vehicle_io/, replay_kind vehicle_io_log"] --> VREP["Cùng lệnh replay: phát lại log, Session + VehicleLink chạy lại trên băng vehicle_io/, lệnh tính ra không đi đâu"]
+    VREP --> VCMP{"Lệnh, sự kiện kể cả session_stop, kết quả, RunLog và thẳng hàng đầu vào khớp?"}
+    VCMP -->|Có| VOK["KHỚP, mã thoát 0"]
+    VCMP -->|Không| VERR["KHÁC: in chỗ lệch sớm nhất, mã thoát 1"]
+    VREP -->|thiếu vehicle_io/, log ghi trước T9, gói hỏng| VNS["Không phát lại được: mã thoát 2. Lỗi bất ngờ khi phát lại: mã 3"]
+    PS --> SR["score_run (T5): log + tư thế tham chiếu + dấu đồng bộ T14 → dòng biên bản và tệp chi tiết JSON"]
+    PV --> SR
+    TV["Thư mục tên_vehicle_io và tệp tên.csv"] --> SR
     classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
     classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
     classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
-    class BTN,CSV,MAN,EXP,FILES,NR,CLI,RP,TRJ,EV,CMP,OK,ERR daco
-    class WL,VF giaLap
-    class VREP chuaLam
+    class CLI,PS,RP,TRJ,EV,CMP,OK,ERR daco
+    class PV,VREP,VCMP,VOK,VERR,VNS,SR,TV giaLap
 ```
 
-Xanh: có mã và đã kiểm trên máy tính · Vàng: chỉ với bo mô phỏng hoặc cổng giả · Đỏ viền đứt: chưa làm (việc T9 của kịch
-bản nghiệm thu).
+Xanh: có mã và đã kiểm trên máy tính · Vàng: chỉ với bo mô phỏng hoặc cổng serial giả, hay chỉ trên dữ liệu tổng hợp và
+lần chạy mô phỏng (bo thật CHƯA THỬ).
 
 Đọc thế nào: gói `export_run` ghi `"evidence": "simulation_only"` trong `manifest.json`; replay chỉ chứng minh tái hiện
 được lần chạy mô phỏng đó với cùng mã và môi trường. Ngày 29/09/2026 trên máy bàn hiện tại, `phase0` cho lại đúng năm
-phiên của đợt 20/09, replay khớp cả năm.
+phiên của đợt 20/09, replay khớp cả năm. Gói của lần chạy qua `VehicleIO` (T9, 02/10/2026) ghi `evidence` theo snapshot
+của liên kết (bo mô phỏng: `simulation_only`), `model` `vehicle_io_mirror` và `replay_kind` `vehicle_io_log`. Phát lại
+log chạy lại cùng phần mềm trên đầu vào đã ghi (khung telemetry và sự kiện của từng lần đọc io, mẫu tư thế, kết quả của
+từng lần gửi), nên chỉ chứng minh cùng đầu vào + cùng mã → cùng quyết định của phần mềm; không tái hiện xe, bo hay định
+vị, không thay đo trên xe ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5.1). Phát lại không chạy lại bước START; sai số
+so sánh 1e-9 cho số và 5 ms cho cột đồng hồ là ĐỀ XUẤT. Mới kiểm với bo mô phỏng và cổng serial giả; bo thật CHƯA THỬ
+(START với bo thật còn bị từ chối tới khi có nguồn tư thế thật). Công cụ chấm T5 đọc `vehicle_io/` của gói VehicleIO,
+không chấm nó như gói SIM; mới chấm dữ liệu tổng hợp và lần chạy mô phỏng (sơ đồ 8.4).
 
 Chi tiết: [BAO_CAO_GIAI_DOAN_0.md](../../BAO_CAO_GIAI_DOAN_0.md) mục 7 · [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5
-· [kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.1 · mã:
-[run_store.py](../autopark/storage/run_store.py), [phase0.py](../autopark/evaluation/phase0.py),
-[replay.py](../autopark/evaluation/replay.py), [main_window.py](../autopark/ui/main_window.py) (`_export_log`).
+· [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 2.5 (dấu đồng bộ), mục 7 (T5, T9, T14) ·
+[kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.1 · mã:
+[run_store.py](../autopark/storage/run_store.py), [vehicle_replay.py](../autopark/application/vehicle_replay.py),
+[phase0.py](../autopark/evaluation/phase0.py), [replay.py](../autopark/evaluation/replay.py),
+[sync_marks.py](../autopark/evaluation/sync_marks.py), [sync_flash.py](../autopark/ui/sync_flash.py),
+[score_run.py](../autopark/evaluation/score_run.py), [main_window.py](../autopark/ui/main_window.py) (`_export_log`,
+`_refusal_link`) · test: [test_run_store_vehicle.py](../tests/test_run_store_vehicle.py),
+[test_export_log_ui.py](../tests/test_export_log_ui.py), [test_sync_marks.py](../tests/test_sync_marks.py),
+[test_score_run.py](../tests/test_score_run.py).
 
 ### 2.6. Tệp cấu hình và nơi đọc
 
@@ -604,27 +683,32 @@ flowchart LR
     CAL["calibration/cam_pN.json, configs/rig/camera_rig_extrinsics_v1.json, configs/roi/rig_v1: chưa có"] --> CAI["fusion/camera_ai: chặn mọi lô khi thiếu tệp"]
     CK["runs/ai_woodscape_rtx4000_v1/best.pt, ngoài Git"] --> CAI
     TR["configs/woodscape_binary_v1.json, train_woodscape_rtx4000_baseline.json, acdc_cityscapes_to_binary_v1.json"] --> PER["perception: prepare, verify_cache, train, evaluate"]
+    NG["configs/nguong_nghiem_thu.json: ngưỡng ĐỀ XUẤT – CHỜ CHỐT, danh sách kiểm theo kịch bản"] --> SR["evaluation/score_run.py: chấm một lần chạy (T5)"]
     classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
     classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
     classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
     class TB,LP,LUSE,SCN,SS,SES,CK,TR,PER,CAI daco
-    class VD,VIS,MW,TOF,FL,R0,BEV,QB giaLap
+    class VD,VIS,MW,TOF,FL,R0,BEV,QB,NG,SR giaLap
     class CAL chuaLam
 ```
 
-Xanh: có và đã dùng trên máy tính hoặc thiết bị thật · Vàng: số GIẢ ĐỊNH, nguồn giả hoặc chỉ giả lập · Đỏ viền đứt: tệp
-chưa có.
+Xanh: có và đã dùng trên máy tính hoặc thiết bị thật · Vàng: số GIẢ ĐỊNH hay ĐỀ XUẤT, nguồn giả hoặc chỉ giả lập · Đỏ
+viền đứt: tệp chưa có.
 
 Đọc thế nào: đổi máy chỉ sửa `configs/thiet_bi.json` (`lidar_port`, đường dẫn QEMU và PlatformIO); `rig.may_moi` luôn tự
 tìm bộ chuyển CP210x. Với C1 thật, cổng đọc từ tệp này đã chạy qua `lidar.rplidar_c1 info` và `rig.bench --lidar` không
 kèm cổng (29/09/2026); `ui.lidar_app` chưa chạy lại với thiết bị thật sau thay đổi này. Mặt nạ ROI của ảnh WoodScape
 (`configs/roi/woodscape_v1`) chỉ dùng cho phần chấm và costmap trên ảnh WoodScape, không vẽ.
+`configs/nguong_nghiem_thu.json` (thêm 02/10/2026) là bản sao các ngưỡng ĐỀ XUẤT – CHỜ CHỐT của
+[NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md) cho công cụ chấm T5; chốt một ngưỡng thì sửa cả hai, rồi
+đặt `status` = `CHOT`. Công cụ mới chấm dữ liệu tổng hợp và lần chạy mô phỏng.
 
 Chi tiết: [hướng dẫn chạy](../README.md) mục 7 · [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 3, 5 ·
 [calibration/README.md](../calibration/README.md) · [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) (thay xe giả định
 bằng số đo) · [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2 (`camera_ai` chặn mọi lô khi phát lại o03) · mã:
 [lidar/port.py](../autopark/lidar/port.py), [scenario_store.py](../autopark/storage/scenario_store.py),
-[camera_ai.py](../autopark/fusion/camera_ai.py), [qemu_board.py](../autopark/transport/qemu_board.py).
+[camera_ai.py](../autopark/fusion/camera_ai.py), [qemu_board.py](../autopark/transport/qemu_board.py),
+[score_run.py](../autopark/evaluation/score_run.py), [nguong_nghiem_thu.json](../configs/nguong_nghiem_thu.json).
 
 ## 3. Lập đường, bám đường và mô phỏng
 
@@ -728,13 +812,16 @@ flowchart TD
 Vàng: bước chỉ chạy với xe mô phỏng (rollout). Các ô khác là logic của `portfolio.py`, đã kiểm trên máy tính.
 
 Đọc thế nào: RRT ở nấc 3 là ngẫu nhiên, nên cùng một ca có thể ra đường khác nhau giữa các lần chạy khi thời gian còn
-lại khác nhau. Portfolio chỉ ưu tiên đường ít đổi chiều hơn; giới hạn số lần đổi chiều: CHƯA CHỐT (việc T12 của kịch bản
-nghiệm thu).
+lại khác nhau. Portfolio chỉ ưu tiên đường ít đổi chiều hơn. Giới hạn số lần đổi chiều (T12 của kịch bản nghiệm thu, từ
+02/10/2026) đặt bằng `--max-cusps N` của `run_app.py` hay `ui.lidar_app`, mặc định tắt vì giới hạn vẫn CHƯA CHỐT; nó
+kiểm ở `Session.start_run` trước mọi I/O với bo chứ không ở planner, nên kết quả và thời gian lập đường không đổi. Giao
+diện cảnh báo khi đường có hơn 7 lần đổi chiều (`--warn-cusps N` đổi mức này).
 
 Chi tiết: [TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 4.1 ·
 [KIEM_THU_DO_BEN_GIAI_DOAN_0.md](KIEM_THU_DO_BEN_GIAI_DOAN_0.md) · mã: [portfolio.py](../autopark/planning/portfolio.py)
-(`PortfolioParams`, `default_ladder`, `plan`) · test:
-[test_portfolio_validation.py](../tests/test_portfolio_validation.py).
+(`PortfolioParams`, `default_ladder`, `plan`), [cusp_policy.py](../autopark/application/cusp_policy.py) (T12) · test:
+[test_portfolio_validation.py](../tests/test_portfolio_validation.py),
+[test_cusp_policy.py](../tests/test_cusp_policy.py).
 
 ### 3.3. Một nhịp mô phỏng kín vòng trong phiên
 
@@ -815,6 +902,8 @@ flowchart TD
     TO --> SS
     U --> RQ["request_stop: ghi sự kiện stop, giữ đường"]
     OLD --> RQ
+    SS --> SL["Qua VehicleIO: mỗi quyết định dừng thêm một dòng session_stop vào events.csv, kể cả đặt lại và va chạm (T13)"]
+    RQ --> SL
     SS --> STG["STOPPING: tốc độ mục tiêu 0, giữ góc lái. VEHICLE_IO gửi enable=0 mỗi 20 ms"]
     RQ --> STG
     STG --> LOCK["Trong lúc phanh: cấm lập đường và đặt lại, vẫn nhận thêm vật cản và mất dữ liệu"]
@@ -836,7 +925,7 @@ flowchart TD
     classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
     classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
     class U,GIA,TO,MC,SS,RQ,LOCK,COL,F1,D,KQ,F2,SP,RS,RP daco
-    class NEW,OLD,FBK,LNK,STG,F3,KT giaLap
+    class NEW,OLD,FBK,LNK,STG,F3,KT,SL giaLap
     class FW chuaLam
 ```
 
@@ -849,14 +938,26 @@ GIAI_DOAN_3_CHUAN_BI.md mục 3); với ngăn AI camera mới kiểm bằng ngu�
 trước C1 thật, rút cáp khi xe ảo chạy. Ô "Vật mới trên đường làm xe dừng" (mặc định tích) bật nhánh chèn vật mới ở cả
 hai ngăn; ở ngăn LiDAR nó bật luôn nhánh dừng khi lớp cũ quá 0,3 s. Phanh và E-stop trên xe thật: CHƯA THỬ.
 
+Từ 02/10/2026: dòng `session_stop` (T13) mang mã và nguồn của quyết định: `USER_STOP` (người dùng), `FUSED_MAP_INVALID`
+(cầu nối hợp nhất), mã `LIDAR_…` của ngăn LiDAR, mã `CAMERA_AI_…` của ngăn AI camera, `USER_RESET`, `COLLISION`, cùng mã
+của các sự kiện an toàn; nhánh SIM không ghi tệp này. Diễn tập tiêm lỗi (T6, `python -m autopark.evaluation.fault_drill`
+với lệnh con `pose`, `hang` hay `camera`) gây nguồn tư thế ngừng cập nhật, vòng điều khiển treo (có hoặc không
+Heartbeat) hay camera đứng hình. `pose` và `hang` kiểm phản ứng của phiên ở sơ đồ này (`hang` kiểm cả hết hạn lệnh và
+watchdog liên lạc của bo mô phỏng, sơ đồ 7.1); `camera` không chạy phiên đỗ, chỉ kiểm lớp camera báo camera cũ, bỏ nó
+khỏi bộ ảnh rồi nhận lại (sơ đồ 4.3). Chỉ ở mức mô phỏng: bo mô phỏng, camera giả, bản ghi phát lại, không mở cổng hay
+camera thật.
+
 Chi tiết: [BAO_CAO_GIAI_DOAN_0.md](../../BAO_CAO_GIAI_DOAN_0.md) mục 3, 5 ·
 [GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md) · [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) ·
 [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) · mã: [session.py](../autopark/application/session.py) (`_safety_stop`,
 `inject_obstacle`, `request_stop`, `_finish_run`), [bridge.py](../autopark/fusion/bridge.py),
 [lidar_dock.py](../autopark/ui/lidar_dock.py), [camera_dock.py](../autopark/ui/camera_dock.py),
-[vehicle_link.py](../autopark/application/vehicle_link.py) · test:
+[vehicle_link.py](../autopark/application/vehicle_link.py), [fault_injection.py](../autopark/safety/fault_injection.py),
+[fault_drill.py](../autopark/evaluation/fault_drill.py) · test:
 [test_runtime_safety.py](../tests/test_runtime_safety.py), [test_phase0.py](../tests/test_phase0.py),
-[test_session_vehicle.py](../tests/test_session_vehicle.py).
+[test_session_vehicle.py](../tests/test_session_vehicle.py),
+[test_session_stop_log.py](../tests/test_session_stop_log.py),
+[test_fault_injection.py](../tests/test_fault_injection.py).
 
 ### 3.5. Công cụ đánh giá planner
 
@@ -984,7 +1085,7 @@ flowchart TD
     M --> FIX["tests/conftest.py tắt EcoQoS cho tiến trình pytest, JUnit ghi ecoqos=off"]
     FIX --> OPT["Đặt AUTOPARK_KEEP_ECOQOS=1 để giữ mặc định của Windows"]
     FIX -.-> GAP1["Chưa tắt: tiến trình con do test mở, ví dụ ProcessPoolExecutor của sensitivity"]
-    FIX -.-> GAP2["CHƯA ĐO: ứng dụng giao diện khi bị thu nhỏ, các lệnh đánh giá không tự tắt EcoQoS"]
+    FIX -.-> GAP2["Đo 02/10/2026: giao diện thu nhỏ thì lập đường hết hạn 8 s ở 4 trên 4 lượt, ứng dụng chưa tự tắt EcoQoS"]
     B2 --> COV["Lượt coverage không chọn planner_budget: tracer làm chậm, kết quả có hạn giờ đổi theo"]
     classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
     classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
@@ -997,13 +1098,20 @@ Xanh: đã đo và đã sửa trên máy bàn hiện tại · Đỏ viền đứ
 
 Đọc thế nào: lượt để Windows tự quyết hỏng 3 và 1 test (ví dụ `uturn_w46` hết hạn 8 s), cả lệnh 107 s và 57 s; lượt tắt
 EcoQoS 39 s và 43 s; ba lượt sau khi sửa `conftest.py` đạt 15/15 trong khoảng 30 s. Cơ chế cụ thể của Windows (dồn sang
-lõi E hay hạ xung) chưa xác định. Bo ảo QEMU cũng tự tắt EcoQoS cho tiến trình QEMU (`qemu_board.py`).
+lõi E hay hạ xung) chưa xác định. Bo ảo QEMU cũng tự tắt EcoQoS cho tiến trình QEMU (`qemu_board.py`). *(Cập nhật
+02/10/2026: đã có công cụ đo cho ứng dụng giao diện, `python -X utf8 -m autopark.evaluation.ecoqos_gui do`: mở giao diện
+thật, đặt cửa sổ thường, thu nhỏ hay bị một màn che kín bằng Win32 rồi gọi lập đường như nút "Tìm đường đỗ", kèm hai
+đối chứng (cùng giao diện tắt EcoQoS, tiến trình không cửa sổ). Kết quả 02/10/2026
+([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 10): cửa sổ thu nhỏ thì Windows hạ tốc tiến trình giao diện và lập đường
+`uturn_w46` hết hạn 8 s ở 4/4 lượt, tự tắt EcoQoS thì hết, bị che thì không chậm; lúc đo (kế hoạch nguồn High
+performance) tiến trình không cửa sổ không bị hạ tốc. Ứng dụng vẫn chưa tự tắt EcoQoS: chờ quyết định.)*
 
-Chi tiết: [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8 ·
+Chi tiết: [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8, 10 ·
 [nhom_planner_budget.txt](evidence/mo_phong_20260930/ecoqos_30092026/nhom_planner_budget.txt) ·
 [do_uturn_w46.txt](evidence/mo_phong_20260930/ecoqos_30092026/do_uturn_w46.txt) · mã:
 [computation.py](../autopark/domain/computation.py), [power_throttling.py](../autopark/power_throttling.py),
-[conftest.py](../tests/conftest.py), [pyproject.toml](../pyproject.toml) (dấu `planner_budget`).
+[conftest.py](../tests/conftest.py), [pyproject.toml](../pyproject.toml) (dấu `planner_budget`),
+[ecoqos_gui.py](../autopark/evaluation/ecoqos_gui.py) · test: [test_ecoqos_gui.py](../tests/test_ecoqos_gui.py).
 
 ## 4. Cảm biến và bàn thử
 
@@ -1175,7 +1283,10 @@ Xanh: đã đo trên thiết bị thật (bàn thử) · Đỏ viền đứt: ch
 
 Đọc thế nào: bốn luồng chạy chung dùng được ở 640×480; ở 720p và 1080p khung bị cắt nhiều hay ít tùy cảnh, nguyên nhân
 chưa xác định. Sàn 60 ms và hệ số 1,5 là lựa chọn thiết kế, chưa chốt. Trên máy bàn hiện tại chưa kiểm danh tính camera
-sau khi khởi động lại máy.
+sau khi khởi động lại máy. *(Cập nhật 02/10/2026, T11: khi một số cổng có camera ở hai hub khác nhau, ví dụ camera trên
+cao cắm thẳng cổng 2 của máy, `resolve_ports` chỉ nhận camera trên hub mà các cổng hỏi khác cùng chỉ ra, như
+`rig.bench --ports 1 2 3 4`; hỏi một cổng (`calib_app --port 2`) hay không xác định được hub thì từ chối cả lời gọi thay
+vì chọn đại theo thứ tự DirectShow. Chỉ kiểm bằng test với PnP và DirectShow giả.)*
 
 Chi tiết: [GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) · [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 2, 10 ·
 [kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.7 (bộ thiếu camera chậm, camera cổng 2
@@ -1208,6 +1319,7 @@ flowchart LR
         UI["ui.rig_app: timer ảnh 40 ms, bảng số 500 ms"]
         SNAP["Chụp bộ ảnh vào runs/rig_snapshots"]
         REC["RigRecorder qua CameraTap, LidarTap: hàng đợi 192 MB, một luồng ghi"]
+        SYNC["Dấu đồng bộ T14: rig.bench --sync-mark nháy ô phủ cả màn hình, ghi tên.sync.csv và khóa sync_marks; nút F8 của ui.rig_app nháy ô trên cửa sổ, ghi runs/sync_marks"]
     end
     M29["29/09/2026 máy bàn hiện tại: 480p + LiDAR + AI 120 s, 2.861 bộ, 0 khung hỏng, 23,85 bộ AI mỗi giây"]
     LAP["Laptop RTX 3050 Ti: chưa đo bàn thử"]
@@ -1225,19 +1337,31 @@ flowchart LR
     UI --> SNAP
     CW -.-> REC
     LW -.-> REC
+    SYNC -.->|khóa sync_marks, khi bật --sync-mark| JSON
+    UI -.->|nút F8| SYNC
     JSON --> M29
     JSON -.-> LAP
     classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
     classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
     classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
     class CW,LW,SETS,AI,SL,OFF,RM,SER,JSON,UI,SNAP,REC,M29 daco
-    class LAP chuaLam
+    class LAP,SYNC chuaLam
 ```
 
-Xanh: đã đo trên thiết bị thật (bàn thử) · Đỏ viền đứt: chưa đo.
+Xanh: đã đo trên thiết bị thật (bàn thử) · Đỏ viền đứt: chưa đo, hoặc chưa chạy với thiết bị thật (dấu đồng bộ T14 thêm
+02/10/2026, mới kiểm offscreen).
 
-Đọc thế nào: mũi tên đứt tới bộ ghi nghĩa là chỉ khi bật ghi (`--record` hay nút ghi). Số đo kỹ nhất của bàn thử là của
-máy bàn trước (23–24/09/2026); lượt `do_may_moi.cmd` ngày 29/09 trên máy bàn hiện tại là tham chiếu `may_moi` đang dùng.
+Đọc thế nào: mũi tên đứt tới bộ ghi nghĩa là chỉ khi bật ghi (`--record` hay nút ghi); mũi tên đứt từ dấu đồng bộ tới
+`tên.rig.json` nghĩa là chỉ khi bật `--sync-mark` (hay `--sync-every S`), còn ở `ui.rig_app` dấu chỉ có khi bấm nút F8.
+Số đo kỹ nhất của bàn thử là của máy bàn trước (23–24/09/2026);
+lượt `do_may_moi.cmd` ngày 29/09 trên máy bàn hiện tại là tham chiếu `may_moi` đang dùng. Từ 02/10/2026 (T10)
+`gap_max_ms` của từng camera trong `.rig.json` tính cả khoảng hở còn mở lúc chốt số (`gap_end_ms`; camera chưa có khung
+tốt nào thì tính từ lần đặt lại số đếm), nghĩa cũ ở `gap_closed_max_ms`; khi `--replay` khoảng hở cuối đo tới cuối bản
+ghi; `rig.bench` in "khoảng cách max … ms (hở cuối phiên … ms)". Phần này chỉ kiểm bằng test với camera giả, chưa đo lại
+trên bàn thử thật; `gap_max_ms` của LiDAR chưa tính khoảng hở cuối. Dấu đồng bộ: ô trắng có số nháy 0,5 s ở đầu và cuối
+phần đo, mỗi lần nhấn Enter, Space hay m khi cửa sổ lệnh đang được chọn, và mỗi S giây với `--sync-every S`; mỗi dấu một
+dòng có `perf_counter`, cùng đồng hồ với stamp của bàn thử. Tiến trình đo thêm một cửa sổ Qt và thức mỗi 20 ms: ảnh
+hưởng lên số đo CHƯA ĐO.
 
 Chi tiết: [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) · [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2 ·
 [m01_480p_lidar_ai.rig.json](evidence/chuyen_may_20260929/may_moi/m01_480p_lidar_ai.rig.json) · mã:
@@ -1347,6 +1471,10 @@ kiểm trên ảnh tổng hợp, WoodScape, nguồn giả hoặc rig tổng hợ
 
 Đọc thế nào: chưa có tệp `calibration/cam_p*.json`, `camera_rig_extrinsics_v1.json` hay `configs/roi/rig_v1`; ngoại tham
 chỉ có bản v0 giả định. Nguồn vật cản AI camera dùng `t_blocked` 0,15 (sơ đồ 5.7); các bước sau phép chặn ở sơ đồ 5.4.
+*(Cập nhật 02/10/2026, T11: `ui.calib_app --index N --camera-name TÊN` và `fisheye_calib calibrate --camera-name TÊN`
+hiệu chuẩn camera không qua hub 1–4, như camera trên cao của tham chiếu R1, vào `calibration/cam_<tên>.json` (mode khác
+640×480 thêm hậu tố kích thước); BEV và `camera_ai` không đọc tệp này, `extrinsics_calib` từ chối nó. Chỉ kiểm offscreen
+với camera giả và ảnh tổng hợp; camera trên cao thật CHƯA THỬ.)*
 
 Chi tiết: [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md) · [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md) · [BEV.md](BEV.md)
 · [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3, 8.2 · [calibration/README.md](../calibration/README.md) · mã:
@@ -1613,7 +1741,7 @@ sequenceDiagram
         BR->>SS: add_obstacle, remove_obstacle, chỉ hộp camera_ai
     else RUNNING, AI bị chặn, chưa có, quá 0,5 s hoặc lỗi
         alt Ô AI bắt buộc được tích
-            DK->>SS: request_stop(lý do)
+            DK->>SS: request_stop(lý do, mã CAMERA_AI_…, nguồn camera_dock)
             SS-->>DK: RUNNING → STOPPING
         else Mặc định
             DK->>DK: cảnh báo một lần mỗi loại, giữ vật cản, xe chạy tiếp
@@ -1633,7 +1761,8 @@ sequenceDiagram
 Đọc thế nào: mức bằng chứng như sơ đồ 5.4, nhánh tạo vật cản chỉ kiểm bằng nguồn giả và rig tổng hợp; với dữ liệu camera
 thật (phát lại o03) mọi lô bị chặn nên lúc RUNNING ngăn chỉ cảnh báo. Mặc định "AI bắt buộc" tắt vì AI chưa được chấm
 trên ảnh sa bàn (ĐỀ XUẤT, CHỜ CHỐT). Các ô cấu hình bị khóa khi xe chạy; nếu cấu hình vẫn đổi thì ngăn yêu cầu dừng xe
-(chốt chặn cuối).
+(chốt chặn cuối). Từ 02/10/2026 mỗi yêu cầu dừng của ngăn mang một mã riêng (`CAMERA_AI_STALE`,
+`CAMERA_AI_CONFIG_CHANGED`…), thành dòng `session_stop` của `events.csv` khi chạy qua VehicleIO (T13).
 
 Chi tiết: [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 1, 5 · mã: [camera_dock.py](../autopark/ui/camera_dock.py)
 (`tick`, `_unusable_while_driving`, `_inject`), [camera_ai.py](../autopark/fusion/camera_ai.py),
@@ -1848,7 +1977,7 @@ sequenceDiagram
     Note over B: chốt FAULT ESTOP, effort 0 ngay, giữ lỗi đầu tiên
     B-->>IO: FAULT (một lần) và TELEMETRY có cờ ESTOP_INPUT
     IO-->>S: VEHICLE_FAULT (STOP), Session dừng lần chạy
-    Note over IO: clear_fault() chỉ gọi được từ Python, giao diện chưa có nút (T15)
+    Note over IO: Nút Xóa lỗi bo (T15, 02/10/2026) không gửi CLEAR_FAULT khi khung telemetry đầu tiên sau lúc bấm còn ESTOP_INPUT = 1. ACK ESTOP_ACTIVE dưới đây chỉ thấy khi nút bị nhấn lại sau khung đó, hoặc khi gọi clear_fault() từ Python
     IO->>B: REQUEST CLEAR_FAULT
     B-->>IO: ACK ESTOP_ACTIVE khi nút còn nhấn
     N->>B: nhả nút
@@ -1876,11 +2005,20 @@ là TELEMETRY_STALE sau 0,3 s; trong phiên đỗ, `VehicleLink` báo STALE_TELE
 FIRMWARE_RESET chỉ xuất hiện khi `connect()` của lần chạy sau thấy `boot_id` mới, và `VehicleLink` chỉ ghi nó vào log
 (`before_start`), không làm dừng lần chạy mới.
 
+Nút "Xóa lỗi bo (CLEAR_FAULT)" (T15, 02/10/2026) dùng chính `VehicleIO` của liên kết đang chọn, ngoài lần chạy: mở cổng
+nếu chưa mở rồi đóng lại khi xong; HELLO khi chưa có phiên hoặc laptop đã chốt TELEMETRY_STALE (bo giữ FAULT qua HELLO);
+dùng lại phiên đang có thì gửi một PING và chờ ACK trước khi đọc trạng thái. Nút chỉ gửi đúng một REQUEST CLEAR_FAULT
+khi khung telemetry đầu tiên sau lúc bấm báo bo FAULT và `ESTOP_INPUT` = 0; firmware vẫn tự kiểm lại. Không ARM, không
+COMMAND; mỗi lần bấm một dòng `board_actions.csv`, kể cả lần không gửi gì. Sau khi xóa lỗi, bo về DISARMED và vẫn phải
+ARM qua Bắt đầu đỗ. Chỉ thử với bo mô phỏng và cổng serial giả; với ESP32-S3 CHƯA THỬ.
+
 Chi tiết: [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 5–6 · [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md) mục 3.3, 5 ·
 [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7 (T15) · mã:
 [firmware_model.py](../autopark/transport/firmware_model.py), [vehicle_io.py](../autopark/transport/vehicle_io.py)
-(`check`, `_on_ack`, `connect`), [vehicle_link.py](../autopark/application/vehicle_link.py) (`_open_run`),
-[main.cpp](../firmware/esp32_vehicle/src/main.cpp) · test: [test_firmware_qemu.py](../tests/test_firmware_qemu.py).
+(`check`, `_on_ack`, `connect`), [vehicle_link.py](../autopark/application/vehicle_link.py) (`_open_run`,
+`clear_fault`), [main_window.py](../autopark/ui/main_window.py) (`_clear_board_fault`),
+[main.cpp](../firmware/esp32_vehicle/src/main.cpp) · test: [test_firmware_qemu.py](../tests/test_firmware_qemu.py),
+[test_vehicle_board_ui.py](../tests/test_vehicle_board_ui.py).
 
 ### 6.4. Máy trạng thái firmware
 
@@ -2348,7 +2486,7 @@ flowchart TD
         direction TB
         C1["1 Bản đồ, định vị LiDAR: bản đồ tĩnh thật, định vị offline"]
         C2["2 Bốn camera: chạy chung trên bàn, chưa hiệu chuẩn, chưa gá"]
-        C10["10 Tái hiện: replay mô phỏng, ghi và phát lại bàn thử"]
+        C10["10 Tái hiện: replay mô phỏng, ghi và phát lại bàn thử, phát lại log VehicleIO ở mức mô phỏng"]
         C1 ~~~ C2 ~~~ C10
     end
     subgraph SG_MP["Chỉ mô phỏng, giả lập hoặc dữ liệu công khai"]
@@ -2386,7 +2524,9 @@ QEMU không có phản hồi tốc độ, góc: firmware chưa có mã đọc c�
 chạy hở. Điều kiện 9 xếp nhóm đỏ vì task watchdog kích hoạt, `output_guard`, móc panic và ngõ vào E-stop thật chưa
 được kiểm ở đâu, kể cả trong bo ảo; riêng watchdog liên lạc (500 ms không nhận thông điệp hợp lệ thì về DISARMED,
 `LINK_TIMEOUT`) đã kiểm ở bản Python, test host C++ và bo ảo QEMU, và logic chốt E-stop (vector `estop_latch`) đã
-kiểm ở bản Python và test host. Ngưỡng nghiệm thu và 37 kịch bản còn là bản nháp, chờ chốt.
+kiểm ở bản Python và test host. Ngưỡng nghiệm thu và 37 kịch bản còn là bản nháp, chờ chốt. Điều kiện 10 vẫn chưa đạt:
+phát lại log của lần chạy qua `VehicleIO` (T9, 02/10/2026) mới ở mức mô phỏng; còn thiếu manifest GD1 của từng lần chạy
+và hướng dẫn tái hiện.
 
 Chi tiết: [kế hoạch](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 16.4 ·
 [NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md) mục 11 · [DAN_Y_KHOA_LUAN.md](DAN_Y_KHOA_LUAN.md) bảng
@@ -2401,7 +2541,7 @@ bản nháp [kịch bản nghiệm thu](KICH_BAN_NGHIEM_THU.md). Mọi bước n
 ```mermaid
 flowchart TD
     A["Duyệt ngưỡng N-… và 37 kịch bản: người dùng, GVHD"]
-    B["Công cụ: T1 có, T8 và T10 một phần, T2–T7, T9, T11–T15 thiếu"]
+    B["Công cụ: T1, T5, T9–T15 có, T6 ở mức mô phỏng, T8 một phần, T2–T4 và T7 thiếu"]
     C["Tham chiếu độc lập: camera trên cao R1, kiểm TC-1"]
     D{"Mức thử của kịch bản"}
     MP["MP: xe ảo, bo mô phỏng, bo ảo QEMU"]
@@ -2413,7 +2553,7 @@ flowchart TD
     H1["THÀNH CÔNG hoặc DỪNG ĐÚNG"]
     H2["THẤT BẠI: ghi một nguyên nhân chính"]
     H3["KHÔNG TÍNH: lỗi dụng cụ đo"]
-    I["Biên bản CSV ở docs/evidence, gốc ở runs/nghiem_thu, CHƯA CHỐT"]
+    I["Biên bản CSV: score_run (T5) ghi dòng và tệp chi tiết, nơi lưu docs/evidence, gốc ở runs/nghiem_thu: CHƯA CHỐT"]
     J["Đối chiếu ngưỡng đã chốt và 10 điều kiện V1"]
     A --> B --> C --> D
     D -->|MP| MP
@@ -2441,11 +2581,19 @@ Vàng: làm được ngay nhưng chỉ ở mức mô phỏng hoặc giả lập 
 xuất, chưa dùng lần nào.
 
 Đọc thế nào: kết quả mức MP chỉ là tiền nghiệm thu, không thay lần chạy trên xe. Kịch bản trên sàn chỉ làm ở mức M3 sau
-khi M0–M2 của đúng tình huống đã đạt. KHÔNG TÍNH không được dùng để bỏ một lần thất bại.
+khi M0–M2 của đúng tình huống đã đạt. KHÔNG TÍNH không được dùng để bỏ một lần thất bại. Các công cụ thêm ngày
+02/10/2026 (T5, T6, T9–T15) mới kiểm bằng test, bo mô phỏng, cổng serial giả, camera giả và giao diện offscreen; ô B vẫn
+đỏ vì còn thiếu nguồn tư thế thật (T2), ghi cảm biến trong phiên đỗ (T3) và công cụ trích tư thế tham chiếu từ video
+(T4). Công cụ chấm T5 chỉ đề xuất THÀNH CÔNG hay THẤT BẠI, người chấm quyết định phần còn lại. Chấm thử mức MP cho DO-1
+ở tốc độ mặc định 0,15 m/s của planner thì không đạt N-V1; còn phải chọn giữa một cấu hình xe riêng cho nghiệm thu (ví
+dụ `max_speed_mps` 0,10) và đổi mặc định ([NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md) N-V1).
 
 Chi tiết: [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 1, 2, 4, 7 ·
 [NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md) · [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md) mục
-5.1.
+5.1 · mã: [score_run.py](../autopark/evaluation/score_run.py),
+[reference_pose.py](../autopark/evaluation/reference_pose.py),
+[nguong_nghiem_thu.json](../configs/nguong_nghiem_thu.json) · test: [test_score_run.py](../tests/test_score_run.py),
+[test_reference_pose.py](../tests/test_reference_pose.py).
 
 ## 9. Quy trình làm việc
 
@@ -2686,16 +2834,18 @@ Chi tiết: [README](../../README.md) · [TONG_HOP_DU_AN.md](../../TONG_HOP_DU_A
 Nguồn của từng sơ đồ ghi ở dòng "Chi tiết" ngay dưới nó. Các sơ đồ được dựng từ việc đọc mã, tài liệu chi tiết và tệp
 bằng chứng ngày 30/09/2026 (mã tại `ff4a018`), rồi đối chiếu lại từng tên hàm, hằng số và con số với mã hoặc tệp nguồn
 trước khi đưa vào đây. Mọi sơ đồ đã qua kiểm cú pháp bằng thư viện mermaid bản 11. Sơ đồ nào khác với mã thì mã là đúng:
-sửa sơ đồ trong cùng đợt việc, theo quy ước ở [mục lục kỹ thuật](README.md).
+sửa sơ đồ trong cùng đợt việc, theo quy ước ở [mục lục kỹ thuật](README.md). Các sơ đồ sửa ngày 02/10/2026 (danh sách ở
+đầu tệp) được đối chiếu với mã, docstring và lệnh `--help` của cây làm việc đợt công cụ nghiệm thu (dựng trên `3148014`)
+cùng báo cáo của người làm từng công cụ.
 
 | Mục | Mã và tài liệu chính |
 |---|---|
 | 1 Toàn cảnh | [README](../../README.md), [kế hoạch](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), `autopark/ui`, `autopark/application`, [usb_topology.md](usb_topology.md), [MAY_NOP_DO_AN.md](MAY_NOP_DO_AN.md), [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) |
-| 2 Ứng dụng và phiên đỗ | `application/session.py`, `application/vehicle_link.py`, `ui/main_window.py`, `storage/run_store.py`, [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) |
-| 3 Lập đường và mô phỏng | `planning/parking.py`, `planning/portfolio.py`, `simulation/`, `control/tracker.py`, `evaluation/`, `tests/conftest.py`, [BAO_CAO_GIAI_DOAN_0.md](../../BAO_CAO_GIAI_DOAN_0.md), [KIEM_THU_DO_BEN_GIAI_DOAN_0.md](KIEM_THU_DO_BEN_GIAI_DOAN_0.md) |
-| 4 Cảm biến và bàn thử | `lidar/`, `video/`, `rig/`, `ui/lidar_dock.py`, `fusion/demo.py`, `perception/bev.py`, [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md), [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md), [GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md), [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) |
+| 2 Ứng dụng và phiên đỗ | `application/session.py`, `application/vehicle_link.py`, `ui/main_window.py`, `storage/run_store.py`, [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md); từ 02/10/2026 thêm `application/vehicle_replay.py`, `application/cusp_policy.py`, `evaluation/sync_marks.py`, `ui/sync_flash.py`, `evaluation/score_run.py`, `configs/nguong_nghiem_thu.json` |
+| 3 Lập đường và mô phỏng | `planning/parking.py`, `planning/portfolio.py`, `simulation/`, `control/tracker.py`, `evaluation/`, `tests/conftest.py`, [BAO_CAO_GIAI_DOAN_0.md](../../BAO_CAO_GIAI_DOAN_0.md), [KIEM_THU_DO_BEN_GIAI_DOAN_0.md](KIEM_THU_DO_BEN_GIAI_DOAN_0.md); từ 02/10/2026 thêm `application/cusp_policy.py`, `safety/fault_injection.py`, `evaluation/fault_drill.py`, `evaluation/ecoqos_gui.py` |
+| 4 Cảm biến và bàn thử | `lidar/`, `video/`, `rig/`, `ui/lidar_dock.py`, `fusion/demo.py`, `perception/bev.py`, [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md), [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md), [GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md), [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md); từ 02/10/2026 thêm `ui/calib_app.py`, `perception/fisheye_calib.py` (camera ngoài hub, T11) |
 | 5 AI nhận thức | `perception/`, `fusion/camera_ai.py`, `ui/camera_dock.py`, [HUAN_LUYEN.md](../../HUAN_LUYEN.md), [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md), [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md), [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md) |
 | 6 Liên kết và firmware | `transport/`, `firmware/esp32_vehicle/`, [GIAO_THUC_XE.md](GIAO_THUC_XE.md), [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) |
 | 7 An toàn và dừng | `firmware/esp32_vehicle/src/main.cpp`, `transport/firmware_model.py`, [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md) |
-| 8 Tiến độ và nghiệm thu | [kế hoạch](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), [TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md), [hardware_inventory.md](hardware_inventory.md), [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md), [NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md) |
+| 8 Tiến độ và nghiệm thu | [kế hoạch](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), [TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md), [hardware_inventory.md](hardware_inventory.md), [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md), [NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md); từ 02/10/2026 thêm `evaluation/score_run.py`, `evaluation/reference_pose.py` |
 | 9 Quy trình | git log (`13b3871`, `cbb218a`, `ebbec83`, `ff4a018`), [evidence/mo_phong_20260930/](evidence/mo_phong_20260930/), [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md), [mục lục kỹ thuật](README.md) |

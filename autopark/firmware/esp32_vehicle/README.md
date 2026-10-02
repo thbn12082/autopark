@@ -282,6 +282,14 @@ USB-CDC; a159x36/qemu có LEDC và tiêm chân, mới thử với sketch thử; 
    ARM, không COMMAND nào) nay làm được bằng nút "Kiểm kết nối bo" ở thẻ "Bo điều khiển" của giao diện, commit `6db5087`;
    [CHE_DO_QUAN_SAT.md](../../docs/CHE_DO_QUAN_SAT.md) mục 6. Mới thử với cổng serial GIẢ; ARM, lệnh, rút cáp vẫn phải
    gọi `SerialVehicleIO` như trên.)*
+   *(Thêm 02/10/2026: CLEAR_FAULT sau khi cắm lại đầu nối E-stop gửi được bằng nút "Xóa lỗi bo (CLEAR_FAULT)" cùng thẻ
+   "Bo điều khiển" (T15). Mỗi lần bấm, nút mở cổng, gửi HELLO (giao diện đóng cổng sau mỗi lần bấm nên luôn là phiên
+   mới; PING thay HELLO chỉ khi `VehicleIO` đã mở sẵn và còn phiên, như trong test), rồi CLEAR_FAULT khi bo đang
+   FAULT, rồi đóng cổng; có thể thêm DISARM mà `VehicleIO` tự gửi khi mất liên lạc. Nút không gửi CLEAR_FAULT khi
+   telemetry còn `ESTOP_INPUT = 1`, nên muốn thấy bo từ chối `ESTOP_ACTIVE` thì vẫn gọi
+   `io.clear_fault()` từ Python. Mỗi lần bấm một dòng `board_actions.csv`, có `boot_id` và lý do reset của HELLO_ACK để
+   phân biệt bo khởi động lại khi mở cổng với lỗi đã xóa. ARM và lệnh vẫn phải gọi `SerialVehicleIO` như trên. Mới thử
+   với bo mô phỏng và cổng serial GIẢ; CHƯA THỬ trên bo.)*
 2. Đo bằng máy hiện sóng/logic analyzer chân xung khi đã chốt chân, vẫn CHƯA nối ESC/servo: các bước 1–5 ở mục
    "Cách kiểm trên bo" phía trên (bật nguồn, loop im 150 ms, treo 400 ms, `abort()`, interrupt watchdog,
    `esp_restart()`, rút E-stop). Ghi thời gian tới lúc chân xuống thấp hoặc về trung tính, và độ rộng xung ở pha XTAL.

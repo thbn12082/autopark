@@ -33,6 +33,9 @@
 - `--replay <thư mục>`: chạy cả giao diện từ một phiên đã ghi, không mở thiết bị nào; tiêu đề và bảng số đo ghi "PHÁT LẠI",
   hết bản ghi thì mọi ô ghi "HẾT BẢN GHI" (báo đỏ) và camera thành "cũ" sau 0,5 s. Ảnh là JPEG mã hóa lại của khung
   tốt lúc ghi: chụp bộ ảnh từ phát lại ghi `replay` trong meta để không lẫn với ảnh camera thật.
+- "Dấu đồng bộ (F8)" (T14, 02/10/2026): nháy ô trắng lớn có số lên cả cửa sổ 0,5 s cho video R3 và ghi dòng `SYNC_MARK`
+  (`perf_counter`, `t_rig_s`, `recording` khi đang ghi phiên) vào `runs/sync_marks/<giờ>_ui_rig_app.csv`; khóa khi phát
+  lại. Chỉ kiểm offscreen.
 
 Mô hình chưa từng được chấm trên ảnh sa bàn: lớp tô là để NHÌN mô hình làm gì, không phải bằng chứng.
 """
@@ -57,7 +60,9 @@ from PySide6.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
                                QPushButton, QSlider, QVBoxLayout, QWidget)
 
+from autopark.evaluation.sync_marks import DEFAULT_SYNC_DIR, SyncMarkLog, sync_file_path
 from autopark.ui.scan_view import ScanView
+from autopark.ui.sync_flash import SyncFlash, SyncMarker
 from autopark.video.multicam import clock_info, fit_width
 from autopark.video.sources import bottom_repeat_share
 
@@ -215,6 +220,18 @@ class RigWindow(QMainWindow):
         self.btn_record.setCheckable(True)
         self.btn_record.setEnabled(hasattr(rig, "start_recording"))
         self.btn_record.toggled.connect(self.on_record)
+        # Dấu đồng bộ video–log (T14, 02/10/2026): như nút "Dấu đồng bộ · F8" của cockpit đỗ xe; tệp sống chỉ tạo ở dấu đầu.
+        self.btn_sync = QPushButton("Dấu đồng bộ (F8)")
+        self.btn_sync.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.btn_sync.setEnabled(replay is None)
+        self.btn_sync.setToolTip("phát lại: không có video thật để đồng bộ" if replay is not None else
+                                 "Dấu đồng bộ video–log (T14): nháy ô trắng lớn trên cửa sổ này 0,5 s để camera quay (R3) "
+                                 "thấy, ghi dòng SYNC_MARK kèm perf_counter vào runs/sync_marks/")
+        self.btn_sync.clicked.connect(lambda: self.make_sync_mark("button"))
+        self.sync_dir = DEFAULT_SYNC_DIR
+        self.sync_marks = SyncMarkLog("ui.rig_app")
+        self.sync_marker = SyncMarker(self.sync_marks, SyncFlash(self),
+                                      open_file=lambda: sync_file_path(self.sync_dir, "ui.rig_app"))
         self.on_threshold(self.thr_slider.value())
 
         controls = QVBoxLayout()
@@ -234,6 +251,7 @@ class RigWindow(QMainWindow):
         row2.addWidget(self.btn_snap)
         row2.addWidget(self.btn_reset)
         row2.addWidget(self.btn_record)
+        row2.addWidget(self.btn_sync)
         controls.addLayout(row2)
         side = QVBoxLayout()
         side.addWidget(self.scan_view, 3)
@@ -309,6 +327,43 @@ class RigWindow(QMainWindow):
 
     def _force_redraw(self) -> None:
         self._last_shown.clear()
+
+    # ---- dấu đồng bộ video–log (T14) ----------------------------------------------------------------------------------
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key.Key_F8:
+            if self.btn_sync.isEnabled() and not event.isAutoRepeat():
+                self.make_sync_mark("key_f8")
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def _sync_context(self, t_perf: float) -> dict:
+        """`t_rig_s` = t_perf − Rig.t_start (trống khi Rig chưa bắt đầu); đang ghi phiên thì state "recording"."""
+        t_start = getattr(self.rig, "t_start", None)
+        ctx: dict = {"t_rig_s": None if t_start is None else round(t_perf - t_start, 4)}
+        recorder = getattr(self.rig, "recorder", None)
+        if recorder is not None:
+            ctx.update(state="recording", note=f"đang ghi {recorder.folder}")
+        return ctx
+
+    def make_sync_mark(self, trigger: str = "button") -> dict | None:
+        """Nút "Dấu đồng bộ (F8)": nháy ô trắng có số lên cả cửa sổ 0,5 s, ghi dòng SYNC_MARK; báo ở bảng số đo."""
+        row = self.sync_marker.mark(trigger, self._sync_context)
+        log = self.sync_marks
+        if row is None:
+            self.message = (f"chưa tạo dấu đồng bộ: dấu trước còn đang nháy hoặc chưa đủ "
+                            f"{self.sync_marker.min_gap_s:g} s")
+        else:
+            self.message = (f"dấu đồng bộ #{row['n']} lúc {row['t_wall'][11:]}, perf_counter {row['t_perf']:.6f} s → "
+                            f"{log.path.name if log.path is not None else '(chưa có tệp)'}")
+            if log.path is None or log.unwritten:
+                # Cửa sổ này không có "Xuất log": dòng chưa ghi được chỉ còn trong bộ nhớ. Lần ghi sau (dấu mới, hay lúc
+                # đóng cửa sổ) ghi lại cả tệp; vẫn không ghi được thì các dòng đó mất khi đóng (02/10/2026).
+                missing = f"{log.unwritten} dòng" if log.path is not None else "dấu"
+                self.message += (f" — CHƯA GHI ĐƯỢC ra đĩa ({log.error}): {missing} chỉ còn trong bộ nhớ, lần ghi sau ghi "
+                                 f"lại cả tệp; đóng cửa sổ khi chưa ghi được thì mất")
+        self.update_metrics()
+        return row
 
     # ---- vẽ -----------------------------------------------------------------------------------------------------
     def _current(self):
@@ -519,6 +574,11 @@ class RigWindow(QMainWindow):
     def closeEvent(self, event):
         self.frame_timer.stop()
         self.metrics_timer.stop()
+        log = self.sync_marks          # cửa sổ này không có "Xuất log": thử lần cuối ghi đủ tệp dấu đồng bộ
+        lost = len(log.rows) if log.path is None else (0 if log.flush() else log.unwritten)
+        if lost:
+            print(f"CẢNH BÁO: {lost} dòng dấu đồng bộ chưa ghi được ra đĩa ({log.error}), mất khi đóng cửa sổ",
+                  file=sys.stderr)
         try:
             alive = self.rig.stop()
             if alive:
@@ -623,11 +683,9 @@ def build_window(argv=None, start: bool = True) -> RigWindow:
                    help="nút 'Ghi phiên' ghi vào <thư mục này>/<giờ>/")
     args = p.parse_args(argv)
     check_record_args(p, args)          # --jpeg-quality sai báo ngay, không đợi tới lúc bấm "Ghi phiên"
-    from autopark.lidar.port import LidarPortError
-
     try:
         rig = build_rig(args)
-    except LidarPortError as exc:
+    except ValueError as exc:           # cổng LiDAR (LidarPortError), cổng hub không tra được, --replay cùng --index…
         p.error(str(exc))
     checkpoints = [] if args.no_ai else checkpoint_choices(args.runs)
     return RigWindow(rig, checkpoints, args.snapshots, start=start, record_root=args.record_root,

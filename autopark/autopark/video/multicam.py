@@ -106,6 +106,11 @@ gian"). Không cần torch hay Qt.
   `time.monotonic`: trên Python 3.12 của Windows nó là GetTickCount64, bước 15,6 ms — các số đo độ lệch vài chục ms
   sẽ bị làm tròn thô (lỗi của bản đầu, phát hiện ngày 23/09). Stamp là thời điểm `read()` trả khung về Python, đã gồm
   chờ và giải mã, **không phải** thời điểm phơi sáng; độ lệch đo được là độ lệch lúc đến, không phải lúc chụp.
+- **Khoảng không có khung tốt** (T10, thêm 02/10/2026; `MultiCameraManager.camera_stats`): `gap_closed_max_ms` =
+  khoảng dài nhất giữa hai khung tốt liên tiếp (nghĩa của `gap_max_ms` trước T10), `gap_end_ms` = khoảng hở còn mở tới
+  cuối phiên (camera ngừng hẳn trước khi hết phiên, hay chưa có khung tốt nào), `gap_max_ms` = số lớn hơn (N-C2). Khoảng
+  đi qua lần đặt lại số đếm (bench: hết phần làm nóng) tính đủ cả phần trước đó, nên có thể dài hơn cửa sổ đo. Chỉ
+  kiểm bằng đồng hồ giả, camera giả và phát lại bản ghi; chưa đo lại trên bàn thử thật.
 """
 from __future__ import annotations
 
@@ -187,17 +192,71 @@ class CameraSpec:
 
 
 def resolve_ports(ports: list[int] | None = None) -> list[CameraSpec]:
-    """Cổng hub → index OpenCV qua PnP + DirectShow (Windows, cần pygrabber). `ports=None` lấy mọi camera thấy được."""
+    """Cổng hub → index OpenCV qua PnP + DirectShow (Windows, cần pygrabber). `ports=None` lấy mọi camera thấy được.
+
+    Một SỐ cổng có camera ở hai hub khác nhau (`camera_bench._port_of` chỉ đọc số cổng): ví dụ camera trên cao cắm vào
+    cổng gốc 2 của máy — KICH_BAN_NGHIEM_THU mục 3.4 bước 4 bảo cắm nó vào cổng gốc riêng, và cổng gốc của laptop thường
+    mang số 1–4 — khi camera xe ở cổng 2 của hub. Trước 02/10/2026 (T11) hàm chọn đại một camera theo thứ tự index
+    DirectShow, nên `calib_app --port 2` có thể hiệu chuẩn nhầm camera trên cao và ghi đè cam_p2.json. Nay
+    (`_rows_on_the_camera_hub`, sửa sau review 02/10/2026):
+    - hỏi nhiều cổng mà mọi cổng hỏi KHÔNG trùng số đều ở cùng một hub H (`rig.bench --ports 1 2 3 4`, ô Cổng của dock
+      camera, `ports=None` khi ngoài bốn camera xe chỉ có camera trùng số): cổng trùng số lấy camera của nó trên H — danh
+      tính camera là cổng của hub camera xe (docs/usb_topology.md);
+    - còn lại thì từ chối CẢ lời gọi (ValueError), `ports=None` cũng vậy chứ không bỏ riêng cổng đó: hỏi MỘT cổng
+      (`calib_app --port 2`, `roi_app`), mọi cổng hỏi đều trùng số, các cổng không trùng ở nhiều hub (ví dụ `ports=None`
+      khi webcam gắn sẵn của laptop cũng có số cổng) hay ở hub không rõ, hoặc H không có camera ở cổng trùng. Lời báo
+      nêu cách gỡ cho mọi công cụ.
+    Cách chọn giả định các camera hỏi CÙNG LÚC nằm trên một hub, như bàn thử hiện nay; camera xe chia ra nhiều hub mà
+    trùng số cổng thì số cổng không phân biệt được chúng: mở theo index (`rig.bench --index …`). Webcam gắn sẵn mang số
+    cổng gốc trùng một cổng hub thì chặn lời gọi một cổng số đó (CHƯA gặp: sơ đồ USB của hai máy bàn đã đo chỉ có bốn
+    camera xe; laptop chưa đo). Khi mỗi số cổng chỉ ở một hub (bốn camera xe trên một hub), kết quả như trước T11."""
     from . import camera_bench as cb
 
     pnp = cb.pnp_cameras()
     mapping = cb.join_index_to_port(cb.dshow_device_paths(), pnp)
-    by_port = {m["hub_port"]: m for m in mapping if m["hub_port"] is not None}
+    by_port: dict[int, list[dict]] = {}
+    for m in mapping:
+        if m["hub_port"] is not None:
+            by_port.setdefault(m["hub_port"], []).append(m)
     wanted = sorted(by_port) if ports is None else list(ports)
     missing = [p for p in wanted if p not in by_port]
     if missing:
         raise ValueError(f"không thấy camera ở cổng {missing}; đang thấy cổng {sorted(by_port)}")
-    return [CameraSpec(port=p, index=by_port[p]["index"], instance_id=by_port[p]["instance_id"]) for p in wanted]
+    rows = _rows_on_the_camera_hub(wanted, by_port)
+    # như trước: nhiều thiết bị DirectShow ở CÙNG cổng của cùng hub (một camera nhiều giao diện) → lấy cái sau cùng
+    chosen = {p: rows[p][-1] for p in wanted}
+    return [CameraSpec(port=p, index=chosen[p]["index"], instance_id=chosen[p]["instance_id"]) for p in wanted]
+
+
+def _rows_on_the_camera_hub(wanted: list[int], by_port: dict[int, list[dict]]) -> dict[int, list[dict]]:
+    """Thiết bị DirectShow của từng cổng hỏi. Cổng có camera ở nhiều hub chỉ giữ các thiết bị trên hub H chung của mọi
+    cổng hỏi không trùng số; không có H chắc chắn (xem `resolve_ports`) thì ValueError kèm lý do và cách gỡ."""
+    unknown = ("", "None")                         # PnP không đọc được hub: không dùng làm mốc
+    hubs = {p: sorted({str(m["hub"]) for m in by_port[p]}) for p in wanted}
+    rows = {p: by_port[p] for p in wanted}
+    anchors = sorted({hubs[p][0] for p in wanted if len(hubs[p]) == 1})
+    hub = anchors[0] if len(anchors) == 1 and anchors[0] not in unknown else None
+    for p in wanted:
+        if len(hubs[p]) == 1:
+            continue
+        if hub is not None and hub in hubs[p]:
+            rows[p] = [m for m in by_port[p] if str(m["hub"]) == hub]
+            continue
+        if not anchors:
+            why = "không cổng nào khác trong lần mở này chỉ ở một hub để biết hub của camera xe"
+        elif len(anchors) > 1:
+            why = f"các cổng còn lại ở nhiều hub ({', '.join(h or '?' for h in anchors)})"
+        elif hub is None:
+            why = "không rõ hub của các cổng còn lại"
+        else:
+            why = f"hub {hub} của các cổng còn lại không có camera ở cổng {p}"
+        raise ValueError(
+            f"cổng {p}: {len(hubs[p])} hub cùng có camera ở cổng số {p} ({', '.join(h or '?' for h in hubs[p])}); {why}. "
+            f"Cách gỡ: cắm camera không qua hub (camera trên cao) vào cổng của máy có số khác {p}, hay rút nó ra (webcam "
+            "gắn sẵn của laptop: tắt trong Device Manager); camera không qua hub mở theo index OpenCV (calib_app --index N, "
+            "tra N bằng camera_bench list); camera xe mở cùng các cổng khác của hub (ví dụ --ports 1 2 3 4) hay theo "
+            "index (rig.bench --index …)")
+    return rows
 
 
 @dataclass
@@ -212,7 +271,9 @@ class CameraStats:
     open_error: str | None = None
     last_error: str | None = None
     last_stamp: float | None = None
-    gap_max_s: float = 0.0
+    gap_max_s: float = 0.0             # khoảng dài nhất giữa hai khung tốt liên tiếp (khoảng ĐÃ ĐÓNG)
+    # đầu cửa sổ đo, lúc đặt lại số đếm gần nhất; mốc của khoảng hở cuối khi camera chưa có khung tốt nào (T10)
+    since: float | None = None
     recent: deque = field(default_factory=lambda: deque(maxlen=240))   # stamp các khung gần đây để tính FPS cửa sổ
 
     def fps(self, now: float, window_s: float = 2.0, recent: list[float] | None = None) -> float:
@@ -270,21 +331,27 @@ class CameraWorker(threading.Thread):
                         self.stats.read_failures += 1
                     time.sleep(0.05)
                     continue
-                t = frame.meta.stamp.t
                 with self.lock:
-                    if self.stats.last_stamp is not None:
-                        self.stats.gap_max_s = max(self.stats.gap_max_s, t - self.stats.last_stamp)
-                    self.seq += 1
-                    self.ring.append((self.seq, frame))
-                    self.stats.frames += 1
-                    self.stats.last_stamp = t
-                    self.stats.recent.append(t)
-                    self.arrivals.append(t)
+                    self._accept(frame)
         finally:
             try:
                 self.source.close()
             except Exception:  # noqa: BLE001
                 pass
+
+    def _accept(self, frame: Frame) -> None:
+        """Nhận một khung TỐT (gọi trong `self.lock`, như `_count_error`): khoảng cách tới khung tốt trước, vòng đệm, số
+        đếm, stamp gần nhất, cửa sổ FPS, lần tới. Tách khỏi `run()` (T10, 02/10/2026) để test nạp khung qua đúng logic
+        này mà không cần luồng hay nguồn."""
+        t = frame.meta.stamp.t
+        if self.stats.last_stamp is not None:
+            self.stats.gap_max_s = max(self.stats.gap_max_s, t - self.stats.last_stamp)
+        self.seq += 1
+        self.ring.append((self.seq, frame))
+        self.stats.frames += 1
+        self.stats.last_stamp = t
+        self.stats.recent.append(t)
+        self.arrivals.append(t)
 
     def _count_error(self, message: str, t: float | None = None) -> None:
         """Đếm một lần đọc hỏng (gọi trong `self.lock`). Khung cắt cụt/xé là một khung MỚI đã tới ở `t`: ghi vào
@@ -366,9 +433,12 @@ class CameraWorker(threading.Thread):
         return b
 
     def reset_stats(self) -> None:
+        """Đặt lại số đếm (đầu cửa sổ đo). Giữ `last_stamp`: khoảng đi qua lúc đặt lại vẫn tính đủ, như trước T10 — cả
+        khoảng hở cuối `gap_end_ms` của camera ngừng trước lúc đặt lại (xem `MultiCameraManager.camera_stats`)."""
         with self.lock:
             s = self.stats
             s.frames, s.duplicates, s.truncated, s.torn, s.read_failures, s.gap_max_s = 0, 0, 0, 0, 0, 0.0
+            s.since = self.clock()
 
 
 @dataclass
@@ -761,16 +831,37 @@ class MultiCameraManager:
                 out[port] = ring[-1][1]
         return out
 
-    def camera_stats(self) -> list[dict]:
-        """Số từng camera (rẻ: không đụng tới thống kê bộ ảnh). Dùng được 25 lần/giây từ giao diện."""
+    def camera_stats(self, t_end: float | None = None) -> list[dict]:
+        """Số từng camera (rẻ: không đụng tới thống kê bộ ảnh). Dùng được 25 lần/giây từ giao diện.
+
+        Khoảng không có khung tốt của từng camera (T10, 02/10/2026; ms). Chỉ xét khoảng ĐÓNG sau, hay còn mở lúc, lần
+        đặt lại số đếm gần nhất, nhưng mỗi khoảng tính ĐỦ từ khung tốt trước nó, kể cả phần trước lúc đặt lại
+        (`reset_stats` giữ `last_stamp`, như `gap_max_ms` trước T10):
+        - `gap_closed_max_ms`: khoảng dài nhất giữa hai khung tốt liên tiếp — đúng nghĩa của `gap_max_ms` trước T10;
+        - `gap_end_ms`: khoảng hở còn MỞ ở cuối phiên, từ khung tốt cuối (có thể trước lần đặt lại) tới `t_end`; chỉ
+          camera chưa có khung tốt nào mới tính từ lần đặt lại số đếm (`CameraStats.since`). `t_end` None = bây giờ;
+          muộn hơn bây giờ thì lấy bây giờ; không âm;
+        - `gap_max_ms` = max(hai số trên), đại lượng của N-C2: camera ngừng hẳn trước khi hết phiên, hay không có khung
+          tốt nào (kể cả camera không mở được), báo cả khoảng đó thay vì khoảng đã đóng cuối cùng hay 0.
+        Vì tính đủ nên hai số có thể LỚN HƠN cả cửa sổ đo (`duration_s` của .rig.json), thêm tới cỡ phần làm nóng của
+        `rig.bench`: camera ngừng trong lúc làm nóng báo `frames` 0 và `gap_end_ms` từ khung tốt cuối của nó (sửa
+        docstring sau review 02/10/2026; bản trước ghi "tính từ lần đặt lại số đếm", sai với mã).
+        Tệp .rig.json ghi trước T10 không có gap_end_ms và gap_max_ms của chúng = gap_closed_max_ms bây giờ. Khi phát
+        lại bản ghi, `Rig` truyền `t_end` = cuối bản ghi (`ReplaySession.end_t`): hết bản ghi không phải camera ngừng."""
         now = self.clock()
+        end = now if t_end is None else min(now, t_end)
         cams = []
         for port, w in self.workers.items():
             with w.lock:                               # vòng đệm stamp bị luồng camera ghi đồng thời
                 s = w.stats
                 recent = list(s.recent)
+                start = s.last_stamp if s.last_stamp is not None else s.since
+                gap_end = None if start is None else max(0.0, end - start)
+                gap = s.gap_max_s if gap_end is None else max(s.gap_max_s, gap_end)
                 row = {"port": port, "index": s.index, "frames": s.frames, "duplicates": s.duplicates,
-                       "truncated": s.truncated, "torn": s.torn, "read_failures": s.read_failures, "gap_max_ms": round(1000 * s.gap_max_s, 1),
+                       "truncated": s.truncated, "torn": s.torn, "read_failures": s.read_failures,
+                       "gap_max_ms": round(1000 * gap, 1), "gap_closed_max_ms": round(1000 * s.gap_max_s, 1),
+                       "gap_end_ms": None if gap_end is None else round(1000 * gap_end, 1),
                        "open_error": s.open_error, "last_error": s.last_error}
                 age = s.age_s(now)
             period = w.frame_interval_s()              # tự lấy khóa camera: gọi NGOÀI khối trên (Lock không vào lại được)
@@ -782,8 +873,9 @@ class MultiCameraManager:
             cams.append(row)
         return cams
 
-    def stats(self, window: int | None = LIVE_WINDOW) -> dict:
-        """Số camera + bộ ảnh. `window`: độ lệch tính trên chừng ấy bộ cuối (None = cả phiên, dùng cho tổng kết)."""
+    def stats(self, window: int | None = LIVE_WINDOW, t_end: float | None = None) -> dict:
+        """Số camera + bộ ảnh. `window`: độ lệch tính trên chừng ấy bộ cuối (None = cả phiên, dùng cho tổng kết).
+        `t_end`: cuối phiên cho khoảng hở cuối của từng camera (xem `camera_stats`; None = bây giờ)."""
         with self._lock:
             skews = tail(self.skews, window)
             waits = tail(self.waits, window)
@@ -793,6 +885,6 @@ class MultiCameraManager:
                       "sets_partial_wait": self.sets_partial_wait, "lagging_per_port": dict(self.lagging_per_port),
                       "sets_regrouped": self.sets_regrouped,
                       "frames_skipped": dict(self.frames_skipped)}
-        return {"cameras": self.camera_stats(), **counts, "skew_ms": dist(skews, 1000.0),
+        return {"cameras": self.camera_stats(t_end), **counts, "skew_ms": dist(skews, 1000.0),
                 "partial_wait_ms": dist(waits, 1000.0), "wait_limit_ms": dist(limits, 1000.0),
                 "skew_window": "cả phiên" if window is None else f"{window} bộ cuối"}

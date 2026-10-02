@@ -21,6 +21,9 @@ riêng tiền tố "camera_ai":
   không bao giờ để ngăn giữ Rig mà không có nguồn vật cản: chúng thành lý do chặn, nên "AI bắt buộc" vẫn dừng xe.
 - Đổi cấu hình (ngưỡng, cửa sổ lọc, lề thân xe, cách đặt camera) hay nạp lại hiệu chuẩn trong lúc chạy → dừng, vì bản
   đồ đang dùng không còn là bản đồ đã lập đường (các ô bị khóa khi chạy; đây là chốt chặn cuối).
+- Mỗi yêu cầu dừng của ngăn mang mã (CAMERA_AI_CONFIG_CHANGED, CAMERA_AI_DISABLED, CAMERA_AI_ERROR / _BLOCKED /
+  _NO_RESULT / _STALE; loại "không dùng được" chưa có mã riêng: CAMERA_AI_UNUSABLE) và nguồn camera_dock; qua VehicleIO
+  nó thành dòng session_stop của events.csv (02/10/2026, T13).
 
 Nguồn: camera thật theo CỔNG HUB (`video.multicam.resolve_ports`), hoặc bản ghi phiên bàn thử (`rig.replay.ReplaySession`,
 không mở thiết bị nào). Rig TỔNG HỢP (`--camera-ai-test-rig`) chỉ chạy với bản ghi hay nguồn giả, luôn hiện nhãn TỔNG HỢP,
@@ -55,6 +58,13 @@ from autopark.ui.theme import Card, WrapLabel
 
 RESOLUTION_M = 0.05
 DRIVING_STATES = (SessionState.RUNNING, SessionState.STOPPING)
+# Mã của yêu cầu dừng khi "AI bắt buộc" mà AI không dùng được, theo loại `kind` của `_unusable_while_driving` (T13,
+# 02/10/2026: mã và nguồn camera_dock vào dòng session_stop của events.csv khi chạy qua VehicleIO). Loại không có ở đây
+# vẫn dừng, với mã chung `_UNUSABLE_DEFAULT_CODE` (sửa sau review 02/10/2026: tra bằng [] thì loại mới quên thêm vào
+# bảng ném KeyError trong timer mỗi nhịp và xe không bao giờ dừng).
+_UNUSABLE_CODES = {"error": "CAMERA_AI_ERROR", "blocked": "CAMERA_AI_BLOCKED", "none": "CAMERA_AI_NO_RESULT",
+                   "stale": "CAMERA_AI_STALE"}
+_UNUSABLE_DEFAULT_CODE = "CAMERA_AI_UNUSABLE"
 POSE_BENCH, POSE_CAR = 0, 1
 POSE_LABELS = ("Camera cố định trên bàn (tại chỗ xuất phát)", "Camera gắn trên xe (theo tư thế xe)")
 
@@ -245,13 +255,16 @@ class CameraAIDock(QDockWidget):
     def _now(self) -> float:
         return self.rig.clock()
 
-    def _stop_run(self, reason: str) -> None:
+    def _stop_run(self, reason: str, code: str) -> None:
+        """Yêu cầu phiên dừng. `code` (CAMERA_AI_CONFIG_CHANGED, CAMERA_AI_DISABLED, một mã của `_UNUSABLE_CODES` hay
+        `_UNUSABLE_DEFAULT_CODE`) và nguồn "camera_dock" vào dòng session_stop của events.csv khi chạy qua VehicleIO
+        (T13, 02/10/2026)."""
         if not self._driving():
             return
         self.stale_stops += 1
         self.say(f"Dừng: {reason}")
         try:
-            self.session.request_stop(reason)
+            self.session.request_stop(reason, code=code, source="camera_dock")
         except SessionError as exc:
             self.say(f"Không dừng được: {exc}")
         self.window._refresh_mode_widgets()
@@ -304,7 +317,7 @@ class CameraAIDock(QDockWidget):
         current = None if self.mapper is None else self._mapper_settings
         if current != settings or self.mapper.rig is not self.camera_rig:
             if self.mapper is not None and self._driving():
-                self._stop_run("cấu hình AI camera đổi trong lúc chạy")
+                self._stop_run("cấu hình AI camera đổi trong lúc chạy", "CAMERA_AI_CONFIG_CHANGED")
             grid, t_blocked, window, min_hits, mask, _, cfg = settings
             t_free = min(camera_ai.AI_T_FREE, t_blocked / 2)
             self.mapper = CameraObstacleMapper(self.camera_rig, grid, source_kind=self.source_kind, vehicle_cfg=cfg,
@@ -434,7 +447,7 @@ class CameraAIDock(QDockWidget):
             return
         if self._driving():
             if self.chk_required.isChecked():
-                self._stop_run("tắt AI camera trong lúc chạy (AI bắt buộc)")
+                self._stop_run("tắt AI camera trong lúc chạy (AI bắt buộc)", "CAMERA_AI_DISABLED")
             else:
                 self.say("Tắt AI camera trong lúc chạy: giữ vật cản đã có (AI không bắt buộc)")
         rig, self.rig = self.rig, None
@@ -556,7 +569,8 @@ class CameraAIDock(QDockWidget):
         trong một lần chạy (`kind`: "blocked", "none", "stale", "error" — không theo chữ, vì tuổi trong chữ đổi mỗi nhịp;
         AI cũ rồi mới lại rồi cũ lại không cảnh báo lần hai, dòng trạng thái vẫn hiện "CŨ") và giữ vật cản."""
         if self.chk_required.isChecked():
-            self._stop_run(f"AI camera không dùng được ({why}) và 'AI bắt buộc' đang bật")
+            self._stop_run(f"AI camera không dùng được ({why}) và 'AI bắt buộc' đang bật",
+                           _UNUSABLE_CODES.get(kind, _UNUSABLE_DEFAULT_CODE))
             return
         if kind not in self._warned_kinds:
             self._warned_kinds.add(kind)

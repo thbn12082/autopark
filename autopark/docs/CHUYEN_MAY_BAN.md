@@ -299,7 +299,9 @@ Mỗi môi trường có thêm đúng 20 test so với lượt ở mục 6: 13 t
   - vì sao lượt `.venv` lúc 10:21 thì `uturn_w46` đạt.
 - CHƯA THỬ: chạy từ một cửa sổ terminal đang hiện, cách người dùng hay chạy.
 - CHƯA ĐO: ứng dụng thật gọi bộ lập kế hoạch có hạn giờ trong tiến trình giao diện. Khi cửa sổ đó bị thu nhỏ hay bị
-  che, Windows có thể hạ tiến trình tương tự.
+  che, Windows có thể hạ tiến trình tương tự. *(Cập nhật 02/10/2026: đã đo, mục 10. Cửa sổ thu nhỏ thì Windows hạ tốc
+  tiến trình giao diện và lập đường `uturn_w46` hết hạn 8 s ở cả 4/4 lượt; bị che thì không chậm; tiến trình tự tắt
+  EcoQoS thì hết.)*
 - Bằng chứng: [ecoqos_30092026/](evidence/mo_phong_20260930/ecoqos_30092026/) gồm `do_uturn_w46.txt`,
   `nhom_planner_budget.txt`, JUnit của từng lượt, `linger_probe.log` và các script đo.
 - **Đã sửa theo quyết định của người dùng (30/09/2026, 11:53–11:59):** `tests/conftest.py` tắt EcoQoS cho tiến trình
@@ -413,3 +415,44 @@ script ở mục 8 (ngày lấy lúc chạy, thư mục kết quả là tham s�
   chạy firmware thật trong QEMU), không có cảnh báo #175 hay LOOP_OVERRUN
   ([chay_lap_test_bo_ao_c03ff94.txt](evidence/bien_tap_20261001/chay_lap_test_bo_ao_c03ff94.txt)).
 - Chạy được trong bo ảo không chứng minh gì về bo thật ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1).
+
+## 10. Đo EcoQoS của ứng dụng giao diện (02/10/2026)
+
+Đo câu "CHƯA ĐO" ở mục 8: bộ lập đường có hạn 8 s chạy trong tiến trình giao diện; cửa sổ bị thu nhỏ hay bị che thì
+Windows có hạ tốc tiến trình đó không. Công cụ: `python -X utf8 -m autopark.evaluation.ecoqos_gui do` (thêm 02/10/2026,
+[hướng dẫn chạy](../README.md) mục 4). Công cụ mở giao diện thật (không offscreen), đặt cửa sổ thường, thu nhỏ hoặc bị
+một màn che kín, rồi gọi lập đường ca `uturn_w46` như nút "Tìm đường đỗ". Hai đối chứng: cùng giao diện nhưng tiến
+trình tự tắt EcoQoS (`gui_off`), và tiến trình không cửa sổ (`khong_cua_so`). Mỗi lượt ghi thời gian, kết quả, tải nền,
+phần CPU bận thêm rơi vào lõi E (chỉ báo, bộ đếm toàn máy) và cửa sổ nào ở trước.
+
+Điều kiện: máy bàn hiện tại (i9-14900, 32 bộ xử lý logic, lõi E là LP 16–31), Windows 11 26200, kế hoạch nguồn High
+performance, cắm điện; ở cả hai lần đo, 42/42 lượt có phiên Windows không khóa và màn hình bật, không ai dùng máy. Mã:
+commit `3148014` cộng các sửa đổi chưa commit của đợt công cụ nghiệm thu. Chạy từ shell của tác tử.
+
+| Lần đo | Kết quả | Bằng chứng |
+|---|---|---|
+| Lần 1 (02:54–03:00) | Không đủ để kết luận: 15/16 lượt "thu nhỏ" và "bị che" bị loại vì cửa sổ giao diện vẫn ở trước (khóa cửa sổ ở trước của Windows chặn tiến trình đo đưa cửa sổ khác ra trước). Lượt hợp lệ duy nhất (thu nhỏ, để Windows tự quyết): TRACKING_FAILED ở 8,00 s, 79 % phần CPU bận thêm trên lõi E | [ecoqos_giao_dien_02102026/](evidence/ecoqos_giao_dien_02102026/) |
+| Lần 2 (03:40–03:46), sau khi sửa cách đưa cửa sổ ra trước: cửa sổ đang ở trước cấp quyền `AllowSetForegroundWindow`; "thu nhỏ" là giao diện thu nhỏ trong khi một cửa sổ trung tính nhỏ của công cụ ở trước | Mọi lần đổi trạng thái kiểm lại được (28/28); bảng dưới | [ecoqos_giao_dien_02102026_lan2/](evidence/ecoqos_giao_dien_02102026_lan2/) |
+
+Lần 2, chỉ lượt hợp lệ (thời gian: trung vị, giây, từ lúc bấm tới khi bộ lập kế hoạch trả về; tải nền 0,5–5,3 %):
+
+| Biến thể | Thường | Thu nhỏ | Bị che |
+|---|---|---|---|
+| Để Windows tự quyết EcoQoS (`gui_system`) | 4/4 OK, 3,60 s | **0/4 OK: TRACKING_FAILED ở 8,00 s**, 100 % phần CPU bận thêm trên lõi E | 4/4 OK, 3,62 s |
+| Giao diện tự tắt EcoQoS (`gui_off`) | 4/4 OK, 3,61 s | 4/4 OK, 3,59 s | 4/4 OK, 3,62 s |
+| Tiến trình không cửa sổ (`khong_cua_so`) | 12/12 OK, 3,60 s | | |
+
+Kết luận (`tom_tat.txt` của lần 2): cửa sổ thu nhỏ thì Windows hạ tốc tiến trình giao diện (dồn sang lõi E) và lập đường
+`uturn_w46` hết hạn ở cả 4/4 lượt; tiến trình tự tắt EcoQoS thì hết (4/4 OK, cùng thời gian như cửa sổ thường); bị che
+thì không chậm. Khác ngày 30/09/2026: lúc đo, tiến trình không cửa sổ KHÔNG bị hạ tốc (kế hoạch nguồn ngày 30/09 không
+được ghi).
+
+Giới hạn:
+- 4 lượt hợp lệ mỗi trạng thái, một ca (`uturn_w46`), một máy, một kế hoạch nguồn (High performance); Balanced CHƯA ĐO.
+- Chỉ đo lần lập đường. Vòng điều khiển 50 Hz của lần chạy khi cửa sổ bị thu nhỏ: CHƯA ĐO.
+- Cột `ecoqos` của bảng ghi chính sách của tiến trình (`system`), không phải "đang bị hạ"; dấu hiệu hạ tốc là phần CPU
+  trên lõi E và thời gian.
+
+CHƯA LÀM, chờ quyết định: ứng dụng tự tắt EcoQoS cho mình (gọi `disable_power_throttling()` của
+`autopark/power_throttling.py` lúc khởi động `ui.app` và `ui.lidar_app`, như `tests/conftest.py`), hay giữ mặc định của
+Windows và cảnh báo không thu nhỏ cửa sổ khi đang lập đường hay đang chạy.

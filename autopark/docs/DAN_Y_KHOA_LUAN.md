@@ -553,7 +553,9 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   thái: cần vẽ.
 - *Thêm tối 24/09/2026:* ngăn "Mô phỏng" có ô chọn nhánh chạy (mô phỏng giai đoạn 0 mặc định / `VehicleIO` → bo mô phỏng /
   quan sát); nhánh mặc định giữ nguyên hành vi, snapshot và replay của giai đoạn 0; lần chạy qua `VehicleIO` chưa replay
-  được. Chi tiết ở 3.12b.
+  được. Chi tiết ở 3.12b. *(Cập nhật 02/10/2026, T9: lần chạy qua `VehicleIO` nay xuất gói và phát lại được bằng log ở
+  mức MP: chạy lại cùng phần mềm trên đầu vào đã ghi và so quyết định với bản ghi, không tái mô phỏng xe;
+  [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5.1. Gói SIM vẫn tái mô phỏng như trước.)*
 
 **3.5. Bộ lập đường danh mục và nghiệm thu bằng mô phỏng**
 - *Viết được:* thang bốn nấc (lưới thô có thao tác gộp 1,0 s; cùng bộ đó thêm thời gian 1,5 s; RRT-Connect + Reeds–Shepp
@@ -783,7 +785,8 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   quá thời hạn lệnh trong khi `Heartbeat` vẫn giữ liên lạc thì bo về ARMED (`COMMAND_TIMEOUT`), và phiên có thể gửi thêm
   **một** COMMAND enable=1 trước khi dừng (test `xfail(strict=True)`; cách sửa CHƯA LÀM; khoảng cách giữa hai lệnh trên
   bo thật CHƯA ĐO; chi tiết ở 3.12b); (b) `export_run`/`replay_run` từ chối lần chạy qua `VehicleIO`
-  (`ReplayNotSupported`, `tests/test_run_store_vehicle.py`). *(Cập nhật muộn tối 24/09/2026:* khoảng trống (a) đã sửa
+  (`ReplayNotSupported`, `tests/test_run_store_vehicle.py`; *02/10/2026: lời từ chối được thay bằng phát lại log, T9,
+  MP*). *(Cập nhật muộn tối 24/09/2026:* khoảng trống (a) đã sửa
   bằng `VehicleLink.refresh()` và lớp chặn trong `VehicleLink.command()`, mức MP; `xfail` đã gỡ; chi tiết ở 3.12b.)
 
 **3.12b. Nối `VehicleIO` vào phiên đỗ xe; chế độ quan sát** *(thêm tối 24/09/2026; kế hoạch mục 9, giai đoạn 5 và 9)*
@@ -794,7 +797,10 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   ở chế độ quan sát) → kiểm lại tư thế; dừng an toàn mỗi nhịp (`STALE_TELEMETRY`, `NO_MEASURED_STATE`, `STALE_POSE`) và
   theo sự kiện của bo; chưa xác nhận xe đứng yên sau 2,0 s thì FAULT `STOP_NOT_CONFIRMED`; bảy quy tắc an toàn (quan sát
   không bao giờ gửi COMMAND; đã dừng thì không chạy tiếp; chỉ START mới ARM; vòng điều khiển không đọc chặn và theo đồng hồ
-  io; đóng phiên gửi enable=0 rồi DISARM; …); năm tệp log; ô chọn nhánh chạy trong giao diện.
+  io; đóng phiên gửi enable=0 rồi DISARM; …); năm tệp log; ô chọn nhánh chạy trong giao diện. *(Cập nhật 02/10/2026,
+  mức MP: nay tám tệp log: thêm `board_actions.csv` của nút "Xóa lỗi bo (CLEAR_FAULT)" (T15), `poses.csv` và `clock.csv`
+  là băng phát lại log (T9); `events.csv` có dòng `session_stop` cho mọi quyết định dừng của phiên và cột `t_perf` (T13);
+  [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5, 6.)*
 - *Nguồn:* [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 1–6, 8, 9; [GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 12 *(thêm mục 8
   và GIAO_THUC_XE mục 12 muộn tối 24/09/2026)*; `application/vehicle_link.py`, `application/session.py`.
   *Mức:* MP (chuỗi `Session` → `VehicleLink` → `SimVehicleIO` → byte giao thức → `FirmwareModel` → `SimVehicle`; ba test
@@ -804,6 +810,8 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   ESP32: CHƯA CHỐT); replay cho lần chạy qua `VehicleIO` (`replay_run` chưa biết khóa `vehicle_link`). *(Cập nhật tối
   24/09/2026:* `export_run`/`replay_run` nay nhận ra khóa `vehicle_link` và từ chối rõ (`ReplayNotSupported`,
   `tests/test_run_store_vehicle.py`); bằng chứng của lần chạy là log `VehicleLink.write_logs`; vẫn chưa có cách phát lại.)
+  *(Cập nhật 02/10/2026, T9: lần chạy qua `VehicleIO` nay xuất gói và phát lại được bằng log ở mức MP: chạy lại cùng phần
+  mềm trên đầu vào đã ghi và so quyết định; [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5.1.)*
   Cách sửa khoảng trống an toàn ở dòng dưới (CHƯA LÀM). *(Cập nhật muộn tối 24/09/2026:* đã làm, xem ý "Thêm muộn tối
   24/09/2026" cuối mục này; còn thiếu phép thử trên bo thật.) *(Cập nhật khuya 24/09/2026, chưa commit (cập nhật 25/09/2026: đã commit, `6db5087`):* "lựa chọn cổng
   serial trong giao diện" đã có ở mức giao diện, xem ý cuối mục này.)
@@ -864,7 +872,10 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   - *Giới hạn phải nói:* chưa thử với ESP32-S3 (mở cổng có làm bo khởi động lại qua DTR/RTS không: cần tra); chọn nhầm cổng
     LiDAR thì HELLO tới C1, phản ứng chưa kiểm; chính sách so giới hạn là ĐỀ XUẤT – CHỜ CHỐT và so với cấu hình chứ không
     với đường đã lập; `begin_run` chưa có bước mở cổng; sự kiện dừng của phiên chưa vào log `VehicleIO` (T13 ở
-    [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7). Cách đóng khoảng hở ở ý trên bằng chốt phía firmware sau
+    [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7). *(Cập nhật 02/10/2026: T13 đã có. Mọi quyết định dừng của
+    phiên vào `events.csv` thành dòng `session_stop` kèm `t_perf`; bằng chứng mới ở mức mô phỏng (bo mô phỏng, cổng serial
+    giả), chưa thử với bo ảo QEMU hay ESP32-S3 qua phiên. Cùng ngày có nút "Xóa lỗi bo (CLEAR_FAULT)" (T15), cũng chỉ ở
+    mức MP.)* Cách đóng khoảng hở ở ý trên bằng chốt phía firmware sau
     `COMMAND_TIMEOUT` (bo không nhận enable=1 tới khi có ARM mới) đổi hành vi firmware nên **chờ người dùng duyệt, CHƯA
     LÀM**; không viết như đã có.
 
@@ -948,6 +959,12 @@ thuyết có sẵn thì cần trích nguồn gốc (mục 5).
   phát lại không tái tạo tranh chấp USB, DirectShow, giải mã MJPEG của driver, nên CPU/GPU/thời gian AI của phiên phát lại
   không thay số đo trực tiếp; ở speed ≠ 1 kết quả ghép bộ không so được với phiên gốc. Phát lại vì vậy dùng để so **thuật
   toán**, không thay phép đo trên thiết bị.
+- *Thêm 02/10/2026 — phát lại log lần chạy qua `VehicleIO` (T9, mức MP):* dùng để kiểm quyết định của phần mềm trên một
+  lần chạy đã ghi: chạy lại cùng mã trên đầu vào đã ghi (telemetry, sự kiện, tư thế, đồng hồ io của từng lần đọc) và so
+  lệnh, sự kiện dừng, kết quả với bản ghi; mã thoát 0 = KHỚP, 1 = KHÁC (2: gói không phát lại được, 3: lỗi
+  bất ngờ). Câu
+  viết được: "cùng đầu vào + mã này → cùng quyết định". Không tái hiện xe, bo hay cảm biến, không thay phép đo trên xe;
+  mới kiểm với bo mô phỏng và cổng serial giả ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5.1).
 
 **4.2. Mô phỏng giai đoạn 0 — MP, laptop i7-12700H, 20/09/2026**
 - *Viết được:* 220/220 test; chiến dịch 2.880 ca (2.000 tư thế/hình học, 600 chuyển động/vùng quét, 240 phiên kín vòng, 40
@@ -1422,7 +1439,7 @@ Không điều kiện nào được đánh dấu đạt (kế hoạch 17.4, 24/0
 | 7 | Hoàn thành các bài đỗ theo tiêu chí đã chốt | — *(khuya 24/09: bản đề xuất tiêu chí N-D… và kịch bản DO, TK, chưa duyệt)* | Tiêu chí chưa chốt; xe |
 | 8 | Vật cản/dữ liệu không hợp lệ làm dừng hoặc từ chối chạy | Dừng khi có vật mới trên đường hoặc mất LiDAR: chỉ kiểm bằng mô phỏng và nguồn quét kịch bản (MP). LiDAR thật đứng yên (22/09) chỉ cho thấy đỗ xong với 0 dừng giả trên cảnh tĩnh (BT), không phải bằng chứng về hành vi dừng. *Tối 24/09:* phiên đỗ xe qua `VehicleIO` mô phỏng dừng khi telemetry/tư thế cũ và từ chối START khi trạng thái thật không khớp (MP). *Đợt AI camera 25/09/2026 (chưa commit):* hộp AI camera mới trên đường làm xe ảo dừng qua MAP_CHANGED; AI không dùng được lúc chạy thì cảnh báo, hay dừng khi tích "AI bắt buộc" (camera giả, MP; 3.11b) | Đưa tay/hộp và rút cáp với LiDAR thật khi xe ảo đang chạy (cần người); trên xe. *Tối 24/09:* sửa khoảng trống an toàn khi có `Heartbeat` (một COMMAND enable=1 sau khi bo đã về ARMED, chỉ thấy trên mô phỏng; 3.12b), CHƯA LÀM. *Muộn tối 24/09:* đã sửa ở mức MP; còn thử trên bo thật. *(Cập nhật muộn tối 24/09/2026:)* còn một khoảng hở suy ra từ mã, chưa có test: bo vừa về ARMED mà khung báo điều đó chưa tới laptop (≈ 50 ms + trễ USB) thì vẫn có thể có một enable=1 (GIAO_THUC_XE mục 12; 3.12b). Xử lý rút cáp LiDAR trong phần mềm có test với cổng giả (TH, 4.4); rút cáp thật chưa thử. *(Khuya 24/09/2026:)* START bị từ chối khi giới hạn bo lệch nguy hiểm so với cấu hình và khi chọn bo thật mà chưa có nguồn tư thế (MP, cổng giả, 3.12b); cầu nối ToF (TH). Chốt firmware sau `COMMAND_TIMEOUT` để đóng khoảng hở trên: chờ người dùng duyệt, CHƯA LÀM |
 | 9 | Nguồn, watchdog, E-stop đã kiểm chứng | Watchdog ở bản tham chiếu Python (MP); ngõ vào E-stop đã chọn (TK); *tối 24/09:* bảng tải, sơ đồ nguồn/dừng, 16 kịch bản thử lỗi soạn nháp (TK, CHƯA THỬ); *(30/09/2026: hết hạn lệnh, watchdog liên lạc và logic chốt E-stop của lõi C++ còn được kiểm qua test host (29/09/2026); hết hạn lệnh và mất liên lạc còn chạy trong bo ảo QEMU (30/09/2026); đều mức MP. Task watchdog kích hoạt thật, `output_guard`, móc panic và ngõ vào E-stop thật chưa kiểm ở đâu, [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md))* | Toàn bộ phần cứng nguồn/dừng |
-| 10 | Có dữ liệu, cấu hình, hướng dẫn tái hiện | Replay mô phỏng; hồ sơ đo bàn thử; hướng dẫn laptop; *tối 24/09:* ghi/phát lại phiên bàn thử, một phiên thật phát lại đúng số bộ (BT) | Sao lưu `runs/`; chạy lại trên laptop và bản mã cuối; commit việc tối 24/09 (*khuya 24/09/2026:* đã commit và push lúc 20:22, `bfcbfc2` … `9bcc30c`; còn commit đợt khuya (*cập nhật 25/09/2026:* đã commit và push, `65b7127` … `54cb3e2`); kết quả độ nhạy và RA21 hiện chỉ ở `runs/` hoặc thư mục tạm) |
+| 10 | Có dữ liệu, cấu hình, hướng dẫn tái hiện | Replay mô phỏng; hồ sơ đo bàn thử; hướng dẫn laptop; *tối 24/09:* ghi/phát lại phiên bàn thử, một phiên thật phát lại đúng số bộ (BT); *(02/10/2026: phát lại log lần chạy qua `VehicleIO`, T9 (MP); điều kiện vẫn CHƯA ĐẠT)* | Sao lưu `runs/`; chạy lại trên laptop và bản mã cuối; commit việc tối 24/09 (*khuya 24/09/2026:* đã commit và push lúc 20:22, `bfcbfc2` … `9bcc30c`; còn commit đợt khuya (*cập nhật 25/09/2026:* đã commit và push, `65b7127` … `54cb3e2`); kết quả độ nhạy và RA21 hiện chỉ ở `runs/` hoặc thư mục tạm) |
 
 ### Chương 5. Kết luận và hướng phát triển
 
@@ -1727,7 +1744,7 @@ kiểm lại khi cập nhật dàn ý: mục cuối của phần này.
 | BEV từ AI: chiếu kết quả xuống sàn, giữ vùng chưa thấy/không chắc là UNKNOWN | [BEV.md](BEV.md); [camera_rig_extrinsics_v0.json](../configs/rig/camera_rig_extrinsics_v0.json) | **TH** (rig bốn camera tổng hợp, 32 test, 23 đột biến) + **DL** (ảnh WoodScape `00000_FV` và một lần ba ảnh khác thời điểm, chỉ minh họa; *sửa tối 24/09:* bản trước ghi "một ảnh"). Chưa chạy trên camera dự án: chưa có `calibration/cam_p*.json`, ngoại tham GIẢ ĐỊNH — CHƯA ĐO, chưa có ROI | 2.5, 3.8, 3.8b, 4.9b, M.5, 5.3, bảng 4.12 dòng 3, mục 5 (A24), mục 6 | Chừng nào còn là ảnh WoodScape thì là mức DL; kế hoạch 6 yêu cầu vật mẫu có vị trí đối chiếu được trên BEV, không chỉ ô màu. Không có con số sai số BEV nào |
 | Ghi và phát lại phiên bốn camera + LiDAR | [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) | **TH** (27 hàm test với nguồn giả; đột biến 12 + 15) + **BT** một phiên thật: o03 60 s 480p + LiDAR + AI, 5.724 khung, 0 bỏ, 4,98 MB/s; phát lại o06 cho 1.432 bộ như phiên thật, độ lệch trong bộ trùng | 3.6, 3.14, 4.1, 4.6b, M.5, bảng 4.12 dòng 10, mục 6 | Phát lại giúp kiểm thử lặp lại; không thay phép đo trên thiết bị. Chưa có bản ghi có camera lỡ nhịp thật; giao diện `--replay` chưa chạy với bản ghi thật |
 | Định vị LiDAR trên bản ghi có sẵn (khớp scan với bản đồ tĩnh) | [DINH_VI_LIDAR.md](DINH_VI_LIDAR.md); [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 8 | **TH** (29 test trên phòng tổng hợp) + chạy **offline** trên ba bản ghi BT (22/09, 24/09): chỉ độ nhất quán. Không có tham chiếu độc lập | 1.6, 2.7, 3.6b, 4.4, M.5, bảng 4.12 dòng 1, mục 5 (A21–A23), mục 6, mục 7 việc 12 | Bản ghi hiện có là LiDAR **đứng yên**; kế hoạch mục 5 đòi định vị tại các vị trí có tham chiếu độc lập, và cấm gán odometry bằng 0 để báo đã có định vị. Độ lệch +4,3° của live_headless chưa rõ nguyên nhân. *(Cập nhật tối 24/09:)* bốn ảnh overlay và tệp tóm tắt đã chép vào `docs/evidence/lidar/` (chưa commit; mục 4) |
-| Chế độ quan sát: tính đường và lệnh lái nhưng không gửi ra xe; nối `VehicleIO` vào phiên đỗ xe | [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) | **MP**: bo mô phỏng (`SimVehicleIO` + `FirmwareModel`), ba test đồng hồ với cổng serial GIẢ; 34 test lúc viết CHE_DO_QUAN_SAT mục 7 (*cập nhật tối 24/09:* nay 50: 49 đạt + 1 `xfail(strict=True)` ghi khoảng trống an toàn; *muộn tối 24/09:* sau bản sửa khoảng trống, 60 test, 60 đạt, 0 `xfail`; đột biến của bản sửa: bỏ `refresh()` → 7 test hỏng, bỏ lớp chặn → test mới hỏng), đột biến 6 + 27 (trên bản 34 test). Tư thế lý tưởng (`SimTruthPose`). Chưa từng nối ESP32-S3 hay MN300 | 3.12, 3.12b, 4.8, M.5, bảng 4.12 dòng 6 và 8, mục 6 | Chế độ này là việc của kế hoạch mục 13 "khi các khối thật chưa đồng thời sẵn sàng"; không chứng minh xe bám được lệnh. *(Cập nhật tối 24/09/2026)* Không viết "đã dừng thì không chạy tiếp" vô điều kiện: nhánh `VEHICLE_IO` có một khoảng trống an toàn đã biết khi có `Heartbeat` (một COMMAND enable=1 đưa bo ARMED → RUNNING thêm một lần, chỉ thấy trên mô phỏng, test xfail), cách sửa CHƯA LÀM (3.12b; GIAO_THUC_XE mục 12); lần chạy qua `VehicleIO` không phát lại được (`ReplayNotSupported`). *(Muộn tối 24/09/2026:* khoảng trống đã sửa ở mức MP; còn khoảng hở khi khung báo bo đã dừng chưa tới laptop, suy ra từ mã, chưa có test; câu nên viết ở 3.12b và mục 6.) |
+| Chế độ quan sát: tính đường và lệnh lái nhưng không gửi ra xe; nối `VehicleIO` vào phiên đỗ xe | [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) | **MP**: bo mô phỏng (`SimVehicleIO` + `FirmwareModel`), ba test đồng hồ với cổng serial GIẢ; *(02/10/2026: thêm phát lại log (T9), sự kiện dừng của phiên trong log (T13), nút "Xóa lỗi bo" (T15), vẫn MP)*; 34 test lúc viết CHE_DO_QUAN_SAT mục 7 (*cập nhật tối 24/09:* nay 50: 49 đạt + 1 `xfail(strict=True)` ghi khoảng trống an toàn; *muộn tối 24/09:* sau bản sửa khoảng trống, 60 test, 60 đạt, 0 `xfail`; đột biến của bản sửa: bỏ `refresh()` → 7 test hỏng, bỏ lớp chặn → test mới hỏng), đột biến 6 + 27 (trên bản 34 test). Tư thế lý tưởng (`SimTruthPose`). Chưa từng nối ESP32-S3 hay MN300 | 3.12, 3.12b, 4.8, M.5, bảng 4.12 dòng 6 và 8, mục 6 | Chế độ này là việc của kế hoạch mục 13 "khi các khối thật chưa đồng thời sẵn sàng"; không chứng minh xe bám được lệnh. *(Cập nhật tối 24/09/2026)* Không viết "đã dừng thì không chạy tiếp" vô điều kiện: nhánh `VEHICLE_IO` có một khoảng trống an toàn đã biết khi có `Heartbeat` (một COMMAND enable=1 đưa bo ARMED → RUNNING thêm một lần, chỉ thấy trên mô phỏng, test xfail), cách sửa CHƯA LÀM (3.12b; GIAO_THUC_XE mục 12); lần chạy qua `VehicleIO` không phát lại được (`ReplayNotSupported`). *(Muộn tối 24/09/2026:* khoảng trống đã sửa ở mức MP; còn khoảng hở khi khung báo bo đã dừng chưa tới laptop, suy ra từ mã, chưa có test; câu nên viết ở 3.12b và mục 6.) *(Cập nhật 02/10/2026, mức MP: lần chạy qua `VehicleIO` nay phát lại được bằng log (T9), chỉ kiểm quyết định của phần mềm, không tái hiện xe; thêm dòng `session_stop` cho mọi quyết định dừng của phiên (T13) và nút "Xóa lỗi bo (CLEAR_FAULT)" (T15); CHE_DO_QUAN_SAT mục 5, 5.1, 6.)* |
 | Bản nháp tài liệu giai đoạn 4 và 6 (phiếu kiểm kê và bảng đo MN300, bảng công suất, sơ đồ nguồn và dừng khẩn cấp, kịch bản thử lỗi) | [GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md); [mn300_inventory.md](mn300_inventory.md); [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md) | **TK**: mọi số CHƯA ĐO, mọi kịch bản CHƯA THỬ; số điện duy nhất là datasheet C1 | 3.2, 3.13, 4.1, 4.11, bảng 4.12 dòng 9, phụ lục L, mục 7 việc 15 | Là bản nháp thiết kế (TK), mọi số chưa đo. Không phải ngưỡng 16.2 hay bộ kịch bản 16.3 |
 
 **Kiểm lại khi cập nhật dàn ý** (tối 24/09/2026, máy bàn, `.venv`, `QT_QPA_PLATFORM=offscreen`, trên cây làm việc chưa

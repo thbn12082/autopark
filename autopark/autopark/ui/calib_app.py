@@ -2,6 +2,17 @@
 
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.ui.calib_app --port 1
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.ui.calib_app --port 2 --size 1280x720 --square-mm 19.9
+    .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.ui.calib_app --index 4 --camera-name tren_cao --size 1280x720
+
+Camera KHÔNG qua hub 1..4 (camera trên cao của mục 3.4 KICH_BAN_NGHIEM_THU; T11, thêm 02/10/2026): `--index N` mở theo
+index OpenCV, không tra cổng hub (`index_camera_factory`); index đổi sau khởi động lại hay cắm lại, tra mỗi lần bằng
+`python -m autopark.video.camera_bench list`. Tệp và thư mục ảnh khóa theo TÊN (`--camera-name`, mặc định tren_cao):
+calibration/cam_<tên>[_WxH].json, runs/calib/<ngày giờ>_<tên>/; bản ghi có `camera.hub_port` null. Ô chọn cổng bị khóa.
+Chỉ kiểm offscreen với camera giả; với camera trên cao thật CHƯA THỬ (bộ dò khung hỏng của `UsbCameraSource` và mô hình
+mắt cá chọn cho camera Sunplus của xe; camera khác có thể cần mô hình ống kính khác). Camera trên cao cắm vào cổng gốc
+của máy có SỐ trùng cổng hub của camera xe cần hiệu chuẩn (cổng gốc của laptop thường mang số 1–4) thì `--port N` báo
+lỗi chứ không đoán, kể cả khi các camera xe khác đang cắm: một cổng không có cổng nào khác làm mốc hub (`resolve_ports`).
+Khi đó cắm camera trên cao vào cổng có số khác N, hay rút nó ra lúc hiệu chuẩn camera xe.
 
 - Camera gọi theo CỔNG HUB (`resolve_ports` đổi cổng → index OpenCV lúc mở; index đổi sau khởi động lại), mặc định
   640×480 MJPG — mode chạy chung bốn camera; 1280×720 chọn được nhưng là hiệu chuẩn RIÊNG cho mode đó (tệp có hậu tố).
@@ -20,8 +31,9 @@
 - "Lưu" ghi calibration/cam_p<cổng>.json (mode khác 640×480 thêm hậu tố kích thước) và ảnh đã chụp + captures.json +
   bản sao tệp hiệu chuẩn vào runs/calib/<ngày giờ>_p<cổng>/. Ảnh ghi qua cv2.imencode (đường dẫn tiếng Việt).
 
-Camera lấy qua tham số `open_camera(cổng, rộng, cao)` nên test cắm được nguồn giả; `main()` dùng `resolve_ports` +
-`UsbCameraSource`. Công cụ chưa từng chạy với camera thật khi viết (chỉ test offscreen với nguồn giả).
+Camera lấy qua tham số `open_camera(cổng, rộng, cao)` nên test cắm được nguồn giả; `main()` (qua `build_window`) dùng
+`resolve_ports` + `UsbCameraSource`, hay `index_camera_factory` với `--index`. Công cụ chưa từng chạy với camera thật khi
+viết (chỉ test offscreen với nguồn giả).
 
 Bước sau nội tham (thêm tối 24/09/2026): ngoại tham (bảng đặt trên sàn ở vị trí đo bằng thước) và mặt nạ ROI làm ở giao
 diện riêng `autopark.ui.roi_app` (docs/NGOAI_THAM_VA_ROI.md). Giao diện đó dùng lại `LiveCamera`, `to_qimage`,
@@ -54,7 +66,9 @@ from autopark.video.sources import FrameReadError
 
 PORTS = (1, 2, 3, 4)
 SIZES = ((640, 480), (1280, 720))
-CameraFactory = Callable[[int, int, int], object]        # (cổng, rộng, cao) → nguồn có read() / close()
+DEFAULT_CAMERA_NAME = "tren_cao"     # tên camera ngoài hub khi --index không kèm --camera-name (T11)
+# (cổng hub, hay None với camera ngoài hub; rộng, cao) → nguồn có read() / close()
+CameraFactory = Callable[[int | None, int, int], object]
 
 
 def to_qimage(image_bgr: np.ndarray) -> QImage:
@@ -94,9 +108,10 @@ class CameraCounters:
 class LiveCamera(threading.Thread):
     """Một luồng: mở camera, đọc liên tục, dò bảng trên từng khung, giữ khung mới nhất (không hàng đợi)."""
 
-    def __init__(self, open_camera: CameraFactory, port: int, size: tuple[int, int], spec: BoardSpec,
-                 max_edge_width: float = fc.MAX_EDGE_WIDTH_PX, clock=time.perf_counter):
-        super().__init__(daemon=True, name=f"calib_cam_p{port}")
+    def __init__(self, open_camera: CameraFactory, port: int | None, size: tuple[int, int], spec: BoardSpec,
+                 max_edge_width: float = fc.MAX_EDGE_WIDTH_PX, clock=time.perf_counter, *, name: str | None = None):
+        # `name`: camera ngoài hub (T11), chỉ dùng cho tên luồng; `port` (None khi đó) vẫn được chuyển nguyên cho open_camera
+        super().__init__(daemon=True, name=f"calib_cam_p{port}" if name is None else f"calib_cam_{name}")
         self.open_camera, self.port, self.size, self.spec, self.clock = open_camera, port, size, spec, clock
         self.max_edge_width = max_edge_width           # giao diện đổi được lúc chạy (gán float là nguyên tử)
         self.counters = CameraCounters()
@@ -221,12 +236,19 @@ class ImageView(QWidget):
 
 
 class CalibWindow(QMainWindow):
-    def __init__(self, open_camera: CameraFactory, *, port: int = 1, size: tuple[int, int] = fc.DEFAULT_SIZE,
+    """`camera_name` (T11): camera KHÔNG qua hub 1..4 (camera trên cao), khóa theo tên thay cho cổng (`port` bỏ qua, thành
+    None); `camera_index` = index OpenCV lúc mở, chỉ để hiện và ghi vào bản ghi. Tên sai → ValueError."""
+
+    def __init__(self, open_camera: CameraFactory, *, port: int | None = 1, size: tuple[int, int] = fc.DEFAULT_SIZE,
                  spec: BoardSpec = BoardSpec(), out_dir: Path = Path("calibration"), runs_dir: Path = Path("runs/calib"),
                  gate: fc.AutoCaptureGate | None = None, min_images: int = fc.MIN_IMAGES, device: str | None = None,
-                 start: bool = True):
+                 camera_name: str | None = None, camera_index: int | None = None, start: bool = True):
+        if camera_name is not None and (error := fc.camera_name_error(camera_name)):
+            raise ValueError(error)
         super().__init__()
-        self.open_camera, self.port, self.size, self.spec = open_camera, int(port), tuple(size), spec
+        self.camera_name, self.camera_index = camera_name, camera_index
+        self.open_camera, self.size, self.spec = open_camera, tuple(size), spec
+        self.port = None if camera_name is not None else int(port)
         self.out_dir, self.runs_dir, self.min_images, self.device = Path(out_dir), Path(runs_dir), min_images, device
         self.gate = gate or fc.AutoCaptureGate()
         self.captures: list[Capture] = []
@@ -262,11 +284,14 @@ class CalibWindow(QMainWindow):
         self.cam_line.setTextFormat(Qt.TextFormat.PlainText)
 
         self.port_box = QComboBox()
-        for p in PORTS:
-            self.port_box.addItem(f"cổng {p}", p)
-        if self.port not in PORTS:
-            self.port_box.addItem(f"cổng {self.port}", self.port)
-        self.port_box.setCurrentIndex(self.port_box.findData(self.port))
+        if self.camera_name is not None:                 # camera ngoài hub: một mục, luôn khóa (không đổi sang cổng hub)
+            self.port_box.addItem(self.camera_label, None)
+        else:
+            for p in PORTS:
+                self.port_box.addItem(f"cổng {p}", p)
+            if self.port not in PORTS:
+                self.port_box.addItem(f"cổng {self.port}", self.port)
+            self.port_box.setCurrentIndex(self.port_box.findData(self.port))
         self.size_box = QComboBox()                      # dữ liệu là chuỗi "WxH": findData không so được tuple Python
         for w, h in SIZES + (() if self.size in SIZES else (self.size,)):
             self.size_box.addItem(f"{w}×{h}", f"{w}x{h}")
@@ -384,20 +409,36 @@ class CalibWindow(QMainWindow):
         self._update_buttons()
 
     # ---- camera -------------------------------------------------------------------------------------------------
+    @property
+    def camera_key(self) -> str:
+        """Khóa camera trong tên thư mục ảnh: "p<cổng>" (camera xe) hay tên (camera ngoài hub)."""
+        return f"p{self.port}" if self.camera_name is None else self.camera_name
+
+    @property
+    def camera_label(self) -> str:
+        """Nhãn camera trên giao diện: "cổng N", hay "tên (index N)" với camera ngoài hub."""
+        if self.camera_name is None:
+            return f"cổng {self.port}"
+        return self.camera_name if self.camera_index is None else f"{self.camera_name} (index {self.camera_index})"
+
     def _start_camera(self) -> None:
-        self.live_camera = LiveCamera(self.open_camera, self.port, self.size, self.spec, self.edge_spin.value())
+        self.live_camera = LiveCamera(self.open_camera, self.port, self.size, self.spec, self.edge_spin.value(),
+                                      name=self.camera_name)
         self.live_camera.start()
 
     def _stop_camera(self) -> None:
         if self.live_camera is not None and self.live_camera.stop():
-            print(f"CẢNH BÁO: luồng camera cổng {self.port} chưa dừng (read() treo)", file=sys.stderr)
+            print(f"CẢNH BÁO: luồng camera {self.camera_label} chưa dừng (read() treo)", file=sys.stderr)
 
-    def reopen(self, port: int, size: tuple[int, int]) -> None:
+    def reopen(self, port: int | None, size: tuple[int, int]) -> None:
         """Đổi camera hoặc mode: bỏ mọi ảnh đã chụp và kết quả (ảnh của camera/mode khác không dùng chung được).
 
         Một lần hiệu chuẩn còn đang chạy thì không dừng được giữa chừng, nhưng kết quả của nó mang số phiên cũ và bị
-        `_poll_calibration` bỏ — kể cả khi quay lại đúng cổng/mode cũ (ảnh của lần mở trước đã bị bỏ)."""
-        port, size = int(port), tuple(size)
+        `_poll_calibration` bỏ — kể cả khi quay lại đúng cổng/mode cũ (ảnh của lần mở trước đã bị bỏ). Camera ngoài hub
+        (`port` None) chỉ đổi mode; không đổi được giữa camera ngoài hub và cổng hub."""
+        if (port is None) != (self.camera_name is not None):
+            raise ValueError("camera ngoài hub chỉ đổi mode (cổng None); camera xe cần cổng hub")
+        port, size = (None if port is None else int(port)), tuple(size)
         if (port, size) == (self.port, self.size):
             return
         dropped = len(self.captures)
@@ -414,11 +455,12 @@ class CalibWindow(QMainWindow):
         self._start_camera()
         self._update_title()
         self._update_buttons()
-        self.message = (f"đã mở cổng {port} ở {size[0]}×{size[1]}" + (f"; bỏ {dropped} ảnh đã chụp" if dropped else "")
+        self.message = (f"đã mở {self.camera_label} ở {size[0]}×{size[1]}"
+                        + (f"; bỏ {dropped} ảnh đã chụp" if dropped else "")
                         + ("; kết quả hiệu chuẩn đang chạy của camera/mode cũ sẽ bị bỏ" if busy else ""))
 
     def _update_title(self) -> None:
-        self.setWindowTitle(f"Hiệu chuẩn camera — cổng {self.port}, {self.size[0]}×{self.size[1]}")
+        self.setWindowTitle(f"Hiệu chuẩn camera — {self.camera_label}, {self.size[0]}×{self.size[1]}")
 
     def _on_edge(self, value: float) -> None:
         if self.live_camera is not None:
@@ -489,7 +531,7 @@ class CalibWindow(QMainWindow):
 
     def status_text(self, live: LiveFrame | None, counters: CameraCounters) -> tuple[str, bool]:
         if counters.open_error:
-            return f"KHÔNG MỞ ĐƯỢC CAMERA cổng {self.port}: {counters.open_error}", True
+            return f"KHÔNG MỞ ĐƯỢC CAMERA {self.camera_label}: {counters.open_error}", True
         if live is None:
             return "đang chờ khung đầu tiên…", True
         q = live.quality
@@ -516,7 +558,7 @@ class CalibWindow(QMainWindow):
     def camera_line(self, live: LiveFrame | None, counters: CameraCounters) -> str:
         t = list(self._seen_t)
         fps = (len(t) - 1) / (t[-1] - t[0]) if len(t) >= 2 and t[-1] > t[0] else 0.0
-        line = (f"cổng {self.port} · {_f(fps)} khung dò/s · khung hỏng nguồn đã loại {counters.truncated + counters.torn} "
+        line = (f"{self.camera_label} · {_f(fps)} khung dò/s · khung hỏng nguồn đã loại {counters.truncated + counters.torn} "
                 f"(cắt {counters.truncated}, xé {counters.torn}) · hỏng lọt qua {counters.damaged_seen} · cũ {counters.duplicates} · "
                 f"lỗi đọc {counters.read_failures}")
         if counters.detect_errors:
@@ -614,7 +656,7 @@ class CalibWindow(QMainWindow):
         if session != self._session:
             # kết quả (hoặc lỗi) của camera/mode đã đóng: không gán cho camera đang mở, không hiện số, không nắn ảnh
             self.message = (f"đã đổi camera/mode trong lúc hiệu chuẩn: bỏ kết quả hiệu chuẩn của camera/mode trước "
-                            f"(không áp cho cổng {self.port} {self.size[0]}×{self.size[1]}); ảnh của lần mở trước cũng "
+                            f"(không áp cho {self.camera_label} {self.size[0]}×{self.size[1]}); ảnh của lần mở trước cũng "
                             "đã bị bỏ — chụp lại rồi hiệu chuẩn")
             self._update_buttons()
             return
@@ -646,7 +688,8 @@ class CalibWindow(QMainWindow):
                             "auto_captured": sum(c.auto for c in self.captures)}}
         if extra:
             base["capture"].update(extra)
-        return fc.calibration_record(self.calib, spec, port=self.port, square_mm_measured=measured, images_dir=images_dir,
+        return fc.calibration_record(self.calib, spec, port=self.port, camera_name=self.camera_name,
+                                     camera_index=self.camera_index, square_mm_measured=measured, images_dir=images_dir,
                                      frame_reports=reports, device=self.device, extra=base)
 
     def _update_buttons(self) -> None:
@@ -655,7 +698,7 @@ class CalibWindow(QMainWindow):
         busy = self._calib_thread is not None
         self.btn_calib.setEnabled(not busy and len(self.captures) >= self.min_images)
         self.btn_save.setEnabled(not busy and self.calib is not None and self._calib_version == self._captures_version)
-        self.port_box.setEnabled(not busy)
+        self.port_box.setEnabled(not busy and self.camera_name is None)     # camera ngoài hub: luôn khóa
         self.size_box.setEnabled(not busy)
 
     # ---- lưu ----------------------------------------------------------------------------------------------------
@@ -670,21 +713,25 @@ class CalibWindow(QMainWindow):
             self.message = "cỡ ô đã đổi sau khi hiệu chuẩn: bấm Hiệu chuẩn lại rồi mới lưu"
             return None
         spec = BoardSpec(self.spec.cols, self.spec.rows, float(self._calib_square))
-        folder = self.runs_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_p{self.port}"
+        folder = self.runs_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self.camera_key}"
         suffix = 1
         while folder.exists():
-            folder = self.runs_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_p{self.port}_{suffix}"
+            folder = self.runs_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self.camera_key}_{suffix}"
             suffix += 1
         folder.mkdir(parents=True)
         failed = [c.name for c in self.captures if not fc.write_image(folder / c.name, c.image)]
         record = self._build_record(spec, images_dir=str(folder), extra={"failed_writes": failed})
-        path = fc.default_output_path(self.port, self.calib.image_size, self.out_dir)
+        path = fc.default_output_path(self.port, self.calib.image_size, self.out_dir, name=self.camera_name)
         existed = path.exists()
         fc.save_calibration(path, record)
         fc.save_calibration(folder / path.name, record)
-        captures = {"port": self.port, "image_size": list(self.calib.image_size), "board": spec.to_dict(),
-                    "captures": [{"name": c.name, "t_s": c.t, "auto": c.auto,
-                                  "corners": np.round(c.corners, 4).tolist(), "quality": c.quality} for c in self.captures]}
+        captures: dict = {"port": self.port}
+        if self.camera_name is not None:                 # camera ngoài hub (T11): tên và index lúc chụp
+            captures.update(camera_name=self.camera_name, opencv_index=self.camera_index)
+        captures.update({"image_size": list(self.calib.image_size), "board": spec.to_dict(),
+                         "captures": [{"name": c.name, "t_s": c.t, "auto": c.auto,
+                                       "corners": np.round(c.corners, 4).tolist(), "quality": c.quality}
+                                      for c in self.captures]})
         (folder / "captures.json").write_text(json.dumps(captures, ensure_ascii=False, indent=1), encoding="utf-8")
         self.record, self.last_saved = record, path
         self.message = (f"LỖI: {len(failed)} ảnh không ghi được vào {folder}" if failed else
@@ -716,7 +763,8 @@ def parse_size(text: str) -> tuple[int, int]:
 
 
 def usb_camera_factory(port: int, width: int, height: int):
-    """Camera thật theo cổng hub: hỏi Windows cổng → index ngay lúc mở (cần pygrabber), mở MJPG ở kích thước yêu cầu."""
+    """Camera thật theo cổng hub: hỏi Windows cổng → index ngay lúc mở (cần pygrabber), mở MJPG ở kích thước yêu cầu.
+    Hỏi MỘT cổng, nên số cổng có camera ở hai hub luôn bị từ chối (ValueError của `resolve_ports`), không đoán."""
     from autopark.video.multicam import resolve_ports
     from autopark.video.sources import UsbCameraSource
 
@@ -728,9 +776,30 @@ def usb_camera_factory(port: int, width: int, height: int):
     return source
 
 
-def main(argv=None) -> int:
+def index_camera_factory(index: int, *, source_id: str) -> CameraFactory:
+    """Camera KHÔNG qua hub 1..4 (camera trên cao, T11): mở theo index OpenCV, KHÔNG tra cổng hub (`resolve_ports`), MJPG
+    ở kích thước yêu cầu. Index đổi sau khởi động lại hay cắm lại: tra mỗi lần bằng
+    `python -m autopark.video.camera_bench list`. Tệp hiệu chuẩn khóa theo tên camera nên index đổi không lẫn tệp."""
+    def open_camera(_port, width: int, height: int):
+        from autopark.video.sources import UsbCameraSource
+
+        source = UsbCameraSource(index, width=width, height=height, fps=30, fourcc="MJPG", source_id=source_id)
+        if source.mode_mismatch:
+            source.close()
+            raise ValueError(f"camera index {index} không nhận {width}×{height}: {source.mode_mismatch}")
+        return source
+    return open_camera
+
+
+def build_window(argv=None, *, start: bool = True) -> CalibWindow:
+    """Cửa sổ từ dòng lệnh (cần QApplication đã có). Tham số sai → mã 2 trước khi mở cửa sổ hay camera nào."""
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    p.add_argument("--port", type=int, default=1, help="cổng hub của camera (1..4)")
+    which = p.add_mutually_exclusive_group()
+    which.add_argument("--port", type=int, default=None, help="cổng hub của camera xe (1..4); mặc định 1")
+    which.add_argument("--index", type=int, default=None, metavar="N",
+                       help="camera KHÔNG qua hub 1..4 (camera trên cao): mở theo index OpenCV; tra bằng camera_bench list")
+    p.add_argument("--camera-name", default=None, metavar="TÊN",
+                   help=f"tên camera ngoài hub cho tệp và bản ghi (chỉ cùng --index; mặc định {DEFAULT_CAMERA_NAME})")
     p.add_argument("--size", type=parse_size, default=fc.DEFAULT_SIZE, help="640x480 (mặc định) hoặc 1280x720")
     p.add_argument("--cols", type=int, default=9)
     p.add_argument("--rows", type=int, default=6)
@@ -739,10 +808,24 @@ def main(argv=None) -> int:
     p.add_argument("--runs-dir", type=Path, default=Path("runs/calib"))
     p.add_argument("--device", default=None, help="mô tả thiết bị ghi vào tệp (tùy chọn)")
     args = p.parse_args(argv)
+    if args.camera_name is not None and args.index is None:
+        p.error("--camera-name chỉ dùng cùng --index (camera ngoài hub); camera xe chọn bằng --port")
+    common = {"size": args.size, "spec": BoardSpec(args.cols, args.rows, args.square_mm), "out_dir": args.out_dir,
+              "runs_dir": args.runs_dir, "device": args.device, "start": start}
+    if args.index is None:
+        return CalibWindow(usb_camera_factory, port=1 if args.port is None else args.port, **common)
+    if args.index < 0:
+        p.error(f"--index phải ≥ 0 (đang là {args.index})")
+    name = DEFAULT_CAMERA_NAME if args.camera_name is None else args.camera_name
+    if error := fc.camera_name_error(name):
+        p.error(f"--camera-name: {error}")
+    return CalibWindow(index_camera_factory(args.index, source_id=f"cam_{name}"), camera_name=name,
+                       camera_index=args.index, **common)
+
+
+def main(argv=None) -> int:
     app = QApplication.instance() or QApplication(sys.argv)
-    window = CalibWindow(usb_camera_factory, port=args.port, size=args.size,
-                         spec=BoardSpec(args.cols, args.rows, args.square_mm), out_dir=args.out_dir,
-                         runs_dir=args.runs_dir, device=args.device)
+    window = build_window(argv)
     window.show()
     return app.exec()
 

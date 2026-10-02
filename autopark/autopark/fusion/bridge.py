@@ -5,7 +5,9 @@ chỉ đưa vào những hình chữ nhật mang THÔNG TIN MỚI (không nằm 
 hành lang thân xe dọc phần quỹ đạo còn lại (nới `path_margin`); vật mới ngoài hành lang được ghi nhớ trong
 `seen` chứ không làm dừng xe, đúng nghĩa "vật mới làm đường mất hiệu lực" của kế hoạch. Vật cản mới trên đường
 đầu tiên làm phiên phát MAP_CHANGED → phanh → chờ lập lại đường, logic đã có của giai đoạn 0. Bản đồ hợp nhất
-không hợp lệ (lớp bắt buộc cũ/mất) khi đang chạy → yêu cầu dừng với lý do; đây là "dữ liệu cũ thì không dùng".
+không hợp lệ (lớp bắt buộc cũ/mất) khi đang chạy → yêu cầu dừng với lý do; đây là "dữ liệu cũ thì không dùng". Yêu cầu
+đó mang mã FUSED_MAP_INVALID và nguồn `<prefix>_bridge` (lidar_bridge, camera_ai_bridge); qua VehicleIO nó thành dòng
+session_stop của events.csv (02/10/2026, T13).
 Cầu nối không gọi planner và không sửa tư thế xe. Đo trên bàn 22/09: không có hành lang, cảnh tĩnh vẫn dừng
 xe ảo trong vòng một giây vì vài ô lẻ tẻ cách đường 40 cm trở lên.
 """
@@ -108,7 +110,8 @@ class ObstacleBridge:
             return []
         if not fused.valid:
             self.stops += 1
-            self.session.request_stop("Bản đồ hợp nhất không hợp lệ: " + "; ".join(fused.reasons))
+            self.session.request_stop("Bản đồ hợp nhất không hợp lệ: " + "; ".join(fused.reasons),
+                                      code="FUSED_MAP_INVALID", source=f"{self.prefix}_bridge")
             return []
         margin = fused.costmap.resolution_m if self.new_margin is None else self.new_margin
         fresh = new_obstacles(self.session.scenario.obstacles + self.seen, self._candidates(fused), margin=margin)

@@ -14,6 +14,10 @@ thẳng từ mô phỏng. Riêng các phép thử đồng hồ ở mục 7 dùng
 `FirmwareModel`). *(Cập nhật muộn hơn tối 24/09/2026: một số phép thử vòng điều khiển treo ở mục 7 cũng dùng cổng
 serial GIẢ này.)* Không số nào dưới đây là số đo trên xe hay trên bo. Giao thức, firmware và `VehicleIO` xem ở
 [GIAO_THUC_XE.md](GIAO_THUC_XE.md).
+*(Cập nhật 02/10/2026: các công cụ nghiệm thu thêm ngày 02/10 — sự kiện dừng của phiên trong log (T13), nút "Xóa lỗi
+bo" (T15), phát lại log (T9), dấu đồng bộ video–log (T14), giới hạn số lần đổi chiều (T12), tiêm lỗi có kiểm soát (T6)
+— cũng chỉ được kiểm ở mức này: bo mô phỏng, cổng serial GIẢ, giao diện offscreen. Chưa công cụ nào chạy với bo ảo QEMU
+qua phiên, với ESP32-S3, LiDAR hay camera thật.)*
 
 | Thành phần | File |
 |---|---|
@@ -23,6 +27,12 @@ serial GIẢ này.)* Không số nào dưới đây là số đo trên xe hay tr
 | Test | [`tests/test_session_vehicle.py`](../tests/test_session_vehicle.py) |
 | Cấu hình bo mô phỏng mà giao diện dùng | [`configs/vehicle_io_sim.json`](../configs/vehicle_io_sim.json) (toàn số GIẢ ĐỊNH) |
 | *(thêm muộn tối 24/09/2026)* So giới hạn bo, bo thật chưa có tư thế, "Kiểm kết nối bo", thẻ "Bo điều khiển" | mã: `vehicle_link.py`, `transport/vehicle_io.py`, `ui/main_window.py`; test: [`tests/test_vehicle_board_ui.py`](../tests/test_vehicle_board_ui.py) |
+| *(thêm 02/10/2026, T13)* Sự kiện dừng của phiên trong log: dòng `session_stop` của `events.csv`, cột `t_perf`, khóa `clock` của `link.json` | mã: `vehicle_link.py` (`EVENT_FIELDS`, `SESSION_STOP`, `log_session_event`, `write_logs`), `session.py` (`_log_session_event`, `_add_safety_event`, `request_stop(code=, source=)`), `fusion/bridge.py`, `ui/lidar_dock.py`, `ui/camera_dock.py`; test: [`tests/test_session_stop_log.py`](../tests/test_session_stop_log.py), `tests/test_lidar_dock_ui.py`, `tests/test_camera_dock_ui.py` |
+| *(thêm 02/10/2026, T15)* Nút "Xóa lỗi bo (CLEAR_FAULT)", `board_actions.csv` | mã: `vehicle_link.py` (`VehicleLink.clear_fault`, `BoardFaultClear`), `ui/main_window.py` (`_clear_board_fault`); test: `tests/test_vehicle_board_ui.py -k clear_fault`, `tests/test_session_vehicle.py::test_fault_refused_start_then_link_clear_fault_then_start` |
+| *(thêm 02/10/2026, T9)* Xuất gói và phát lại log của lần chạy qua `VehicleIO` | mã: [`autopark/application/vehicle_replay.py`](../autopark/application/vehicle_replay.py), `vehicle_link.py` (băng `poses.csv`, `clock.csv`), `storage/run_store.py` (`export_run`, `replay_vehicle_run`, `replay_run`), `evaluation/replay.py`, `ui/main_window.py` (`_export_log`); test: [`tests/test_run_store_vehicle.py`](../tests/test_run_store_vehicle.py) |
+| *(thêm 02/10/2026, T12)* Giới hạn số lần đổi chiều trước START | mã: [`autopark/application/cusp_policy.py`](../autopark/application/cusp_policy.py), `session.py` (`start_run`), `ui/main_window.py`; test: `tests/test_cusp_policy.py` |
+| *(thêm 02/10/2026, T14)* Dấu đồng bộ video–log ở cockpit | mã: [`autopark/evaluation/sync_marks.py`](../autopark/evaluation/sync_marks.py), `ui/sync_flash.py`, `ui/main_window.py`; test: `tests/test_sync_marks.py`, `tests/test_export_log_ui.py` |
+| *(thêm 02/10/2026, T6)* Tiêm lỗi có kiểm soát (chỉ test và diễn tập) | mã: [`autopark/safety/fault_injection.py`](../autopark/safety/fault_injection.py), `evaluation/fault_drill.py`, `SimVehicleIO.pause_host()`; test: `tests/test_fault_injection.py` (mục 7.1) |
 
 ## 1. Ba chế độ
 
@@ -96,12 +106,22 @@ Mọi kết quả bám đường trong tài liệu này dùng định vị lý t
 
   Kết quả so ghi ở `link.json` (khóa `limits_check`). Quy tắc này là ĐỀ XUẤT – CHỜ CHỐT.
 
+*(Thêm 02/10/2026, T12; chỉ kiểm với bo mô phỏng và giao diện offscreen.)* **Trước cả bước 0: số lần đổi chiều.**
+`Session.start_run` so số lần đổi chiều của đường đã lập với giới hạn `--max-cusps N` (`run_app.py`, `ui.lidar_app`;
+mặc định không chặn, giới hạn CHƯA CHỐT). Đường có hơn N lần đổi chiều thì START bị từ chối trước khi gọi `begin_run`:
+không I/O nào với bo (bo mô phỏng của giao diện còn chưa được dựng), phiên giữ READY và giữ đường. Qua `VehicleLink`,
+`start_refusals` có dòng `START_TOO_MANY_CUSPS` (nguồn `session`, `before_start`, `t_session` trống, `t_io` = `io.now()`
+khi liên kết đã có io, trống khi chưa). Nhánh SIM chỉ báo lỗi, không có log. Snapshot của lần chạy có khóa `cusps` (số
+lần đổi chiều đã lập và chính sách lúc bắt đầu).
+
 **Lần START bị từ chối không xóa bằng chứng của lần chạy trước.** `commands.csv`, `telemetry.csv`, `events.csv`,
 kết quả và (ở nhánh mô phỏng của giao diện) bo mô phỏng của lần chạy trước giữ nguyên cho tới khi lần mới đã thật
 sự mở (sau ARM ở `VEHICLE_IO`, sau khi nhận DISARMED ở `OBSERVE`, và sau bước 5). Các dòng trước START của lần bị
 từ chối (`START_CHECK` "TỪ CHỐI...", `START_NO_LINK`, `START_ABORTED`, sự kiện cũ đã rút khỏi `VehicleIO`...) được
 nối vào `start_refusals.csv`. Vì vậy `Session.log` và `run_link` luôn trỏ cùng một lần chạy. `START_CHECK` của lần
-đạt nằm trong `events.csv` của chính lần đó.
+đạt nằm trong `events.csv` của chính lần đó. *(Thêm 02/10/2026, T15: lần bấm "Xóa lỗi bo" cũng không đụng tới log của
+lần chạy trước. Nó thêm một dòng vào `board_actions.csv`; sự kiện `VehicleIO` gom được trong lúc bấm nằm ở cột `message`
+của dòng đó, không thành dòng `before_start` của lần START sau.)*
 
 **Mỗi nhịp điều khiển (20 ms):** lớp nối lấy trạng thái đo (`observe`). Dừng an toàn nếu:
 
@@ -139,6 +159,13 @@ rồi `Session` mới lấy sự kiện dừng, trước nhịp điều khiển.
   **FAULT** với mã `STOP_NOT_CONFIRMED`. Lý do: không có số đo thì phần mềm không được coi là xe đã dừng.
 - Ở `OBSERVE`, phần mềm không điều khiển xe nên kết thúc quan sát ngay, không chờ người lái dừng.
 
+*(Thêm 02/10/2026, T13; chỉ kiểm với bo mô phỏng và cổng serial giả.)* Mỗi quyết định dừng của phiên còn được ghi thành
+một dòng `handling` = `session_stop` trong `events.csv` (mục 5). Gồm mọi phần tử của `Session.safety_events` (kể cả sự
+kiện tới khi đã STOPPING, `STOP_NOT_CONFIRMED`, `WAIT_REPLAN`), mọi yêu cầu dừng khi đang chạy (nút Dừng hay phím Esc:
+`USER_STOP`; cầu nối hợp nhất: `FUSED_MAP_INVALID`; ngăn LiDAR; ngăn AI camera), đặt lại khi đang chạy (`USER_RESET`) và
+va chạm hình học (`COLLISION`). Dòng được ghi trước `end_run`, nên thuộc lần chạy đang mở. Ghi log không gửi gì tới bo.
+Yêu cầu dừng lặp lại khi đã STOPPING không thêm dòng.
+
 **Kết thúc lần chạy** (COMPLETED / STOPPED / FAULT, hoặc đặt lại khi đang chạy): `VEHICLE_IO` gửi enable=0 rồi
 DISARM. `OBSERVE` không gửi gì.
 
@@ -146,7 +173,8 @@ DISARM. `OBSERVE` không gửi gì.
 
 1. **Quan sát không bao giờ gửi COMMAND.** Lớp nối không gọi `send()` hay `stop()` ở chế độ này. Ra khỏi lớp nối
    chỉ có HELLO, DISARM và REQUEST do `VehicleIO` tự gửi. Nếu thấy bo ARMED/RUNNING hoặc cờ `CMD_ACTIVE`, lớp nối
-   gửi DISARM và kết thúc quan sát.
+   gửi DISARM và kết thúc quan sát. *(Cập nhật 02/10/2026, T15: ngoài lần chạy, nút "Xóa lỗi bo" còn có thể gửi qua
+   liên kết quan sát một PING và nhiều nhất một CLEAR_FAULT (mục 6); vẫn không COMMAND nào.)*
 2. **Đã dừng thì không chạy tiếp.** Sau sự kiện dừng đầu tiên, lần chạy chỉ gửi enable=0. Có thêm một chốt ở lớp
    nối (`_halted`) chặn lệnh enable kể cả khi `Session` gọi sai. Telemetry có lại không làm chạy tiếp.
    `connect()` lại cũng không: bo về DISARMED.
@@ -158,6 +186,8 @@ DISARM. `OBSERVE` không gửi gì.
 3. **Chỉ START mới ARM.** Sau dừng an toàn, đường bị hủy (`path_invalidated`). Người dùng phải đặt lại, lập lại
    đường từ chỗ xe đứng rồi bấm Bắt đầu đỗ. Lúc đó `begin_run` kiểm lại trạng thái thật rồi mới `arm()`. Bo đang
    FAULT (ví dụ E-stop) thì START bị từ chối tới khi có người gọi `clear_fault()`. Lớp nối không tự gọi hàm này.
+   *(Cập nhật 02/10/2026, T15: từ giao diện, người dùng gọi được bằng nút "Xóa lỗi bo (CLEAR_FAULT)" (mục 6), và lời
+   từ chối START vì FAULT nay chỉ tên nút đó. Lớp nối vẫn không tự gọi.)*
 4. **Bo thật chạy theo thời gian thực, và vòng điều khiển không đọc chặn.** Với `VehicleIO` không phải mô phỏng
    (`realtime`), `Session.advance()` không cộng thời gian giao diện và không tua nhanh: thời gian phiên lấy theo
    `io.now() - t0` (`VehicleLink.session_time_now()`). Mỗi bước 5 ms chỉ đọc byte đã có sẵn
@@ -171,6 +201,11 @@ DISARM. `OBSERVE` không gửi gì.
 6. **Lái tay sau một lần chạy qua `VehicleIO`** bỏ liên kết của lần chạy đó khỏi phiên (`run_link = None`). Nút
    "Xuất log CSV…"/"Lưu phiên…" khi ấy chỉ ghi log lái tay, không kèm thư mục `_vehicle_io` của lần chạy trước.
    Giao diện còn kiểm thêm một lớp: chỉ ghi `_vehicle_io` khi snapshot của log hiện tại có khóa `vehicle_link`.
+   *(Cập nhật 02/10/2026: có một ngoại lệ. Log hiện tại không thuộc lần chạy qua `VehicleIO` nào, liên kết đang chọn chưa
+   chạy lần nào nhưng đã có START bị từ chối hay lần bấm "Xóa lỗi bo": khi đó "Xuất log CSV…" bật ngay và ghi
+   `<tên>_vehicle_io/` của liên kết đó (`commands.csv`, `telemetry.csv`, `events.csv` rỗng, `runs` = 0 trong
+   `link.json`). Liên kết đã chạy thì không: log lái tay vẫn không kèm log `VehicleIO` của lần chạy cũ. Sau một lần
+   chạy qua `VehicleIO`, hai nút còn xuất gói phát lại, mục 5 và 5.1.)*
 7. Lớp nối không thay được đường cắt động lực phần cứng. Cờ STOP trên laptop không chứng minh xe thật dừng được
    ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 0, 12).
 
@@ -183,14 +218,169 @@ chạy qua `VehicleIO` không xuất gói replay, vì `replay_run` chỉ phát l
 `ReplayNotSupported` (lớp con của `ValueError`, lời báo tiếng Việt chỉ sang `VehicleLink.write_logs`) trước khi tạo thư
 mục nào; `replay_run` từ chối gói có khóa `vehicle_link` trong snapshot. Test:
 [`tests/test_run_store_vehicle.py`](../tests/test_run_store_vehicle.py), 4 test, bo mô phỏng.)*
+*(Cập nhật 02/10/2026, T13, T15, T9; chỉ bo mô phỏng và cổng serial GIẢ.)* Câu "ghi năm tệp", câu "Lần chạy qua
+`VehicleIO` không xuất gói replay" và lời từ chối ở trên đã lỗi thời:
+
+- `write_logs` nay ghi **tám tệp**: thêm `board_actions.csv` (T15), `poses.csv` và `clock.csv` (T9, băng phát lại).
+  `telemetry.csv` và `events.csv` có thêm cột cuối `call`; `events.csv` có dòng `session_stop` và cột `t_perf` (T13);
+  `link.json` có thêm `clock` (T13), `run_start`, `log_format` (= 2) và `io_source_id` (T9; khóa cuối cũng nằm trong
+  `describe()`, tức snapshot `vehicle_link`).
+- `export_run` nay xuất gói cho lần chạy qua `VehicleIO`: cùng các tệp của gói SIM (`config_snapshot/`, `telemetry.csv`
+  = RunLog của thế giới gương, `events.jsonl`, `safety_events.json`, `result.json`, `source.zip`, `manifest.json`) cộng
+  thư mục `vehicle_io/` = tám tệp trên. Manifest ghi `evidence` theo snapshot, `model` = `vehicle_io_mirror`,
+  `replay_kind` = `vehicle_io_log`; gói SIM không có khóa này và không đổi. Phát lại gói: mục 5.1.
+- `export_run` vẫn từ chối bằng `ReplayNotSupported`, trước khi tạo thư mục, khi log không chắc thuộc đúng lần chạy:
+  snapshot có `vehicle_link` mà phiên không còn `run_link`; phiên có `run_link` mà snapshot thiếu khóa; chế độ trong
+  snapshot khác chế độ của liên kết; liên kết chưa mở lần chạy nào.
+- Câu "chỉ khi log hiện tại là của một lần chạy qua `VehicleIO`" có một ngoại lệ (mục 4, quy tắc 6): liên kết đang chọn
+  chưa chạy lần nào mà đã có START bị từ chối hay lần bấm "Xóa lỗi bo" thì "Xuất log CSV…" cũng ghi `<tên>_vehicle_io/`
+  của liên kết đó.
 
 | Tệp | Nội dung |
 |---|---|
 | `commands.csv` | Mỗi nhịp điều khiển một dòng: `t_session`, `t_io`, `mode`, `kind` (TRACK/STOP), `sent` (1 = đã gửi tới bo, 0 = không gửi), `seq`; mục tiêu tốc độ/góc lái; trạng thái bộ bám (`phase`, `segment`, `index`, `distance_to_end_m`, `lateral_error_m`, `heading_error_deg`, `done`); trạng thái đo đã dùng (`obs_*`); tuổi telemetry; nguồn tư thế; `pose_simulated`; `note` |
-| `telemetry.csv` | Mọi khung telemetry nhận được: thời gian (`t_session` âm = nhận trước START), trạng thái, lỗi, lý do dừng, cờ, tốc độ/góc đo (rỗng = không hợp lệ), tham chiếu, effort, `last_cmd_seq`, tuổi lệnh, điện áp, bộ đếm lỗi |
-| `events.csv` | Sự kiện `VehicleIO` và của lớp nối trong lần chạy gần nhất đã mở (`START_CHECK` "Đạt...", `OBSERVE_DISARM`...), kèm cách xử lý: `stop`, `log`, `before_start`, `after_run` |
-| `start_refusals.csv` | Cùng cột với `events.csv`. Các dòng trước START của **mọi** lần START bị từ chối của liên kết này (`START_CHECK` "TỪ CHỐI...", `START_NO_LINK`, `START_ABORTED`, `DISARM_FAILED`, sự kiện cũ rút khỏi `VehicleIO`). Luôn được tạo; có thể chỉ có dòng tiêu đề |
-| `link.json` | Chế độ, loại `VehicleIO`, nguồn tư thế, cờ mô phỏng, tham số, cấu hình bo mô phỏng, kết quả, số lần chạy đã mở (`runs`), số lần START bị từ chối (`refused_starts`), `LinkStats` |
+| `telemetry.csv` | Mọi khung telemetry nhận được: thời gian (`t_session` âm = nhận trước START), trạng thái, lỗi, lý do dừng, cờ, tốc độ/góc đo (rỗng = không hợp lệ), tham chiếu, effort, `last_cmd_seq`, tuổi lệnh, điện áp, bộ đếm lỗi. *(02/10/2026, T9: thêm cột cuối `call` = số của lần đọc io đã trả khung, xem `clock.csv`)* |
+| `events.csv` | Sự kiện `VehicleIO` và của lớp nối trong lần chạy gần nhất đã mở (`START_CHECK` "Đạt...", `OBSERVE_DISARM`...), kèm cách xử lý: `stop`, `log`, `before_start`, `after_run`. *(Cập nhật 02/10/2026: cột theo thứ tự `t_session, t_io, t_perf, source, code, action, handling, message, call`; thêm cách xử lý `session_stop` = quyết định dừng của phiên (T13, xem dưới bảng); `call` (T9) chỉ có ở dòng sự kiện `VehicleIO`, trống ở dòng của lớp nối và của phiên)* |
+| `start_refusals.csv` | Cùng cột với `events.csv`. Các dòng trước START của **mọi** lần START bị từ chối của liên kết này (`START_CHECK` "TỪ CHỐI...", `START_NO_LINK`, `START_ABORTED`, `DISARM_FAILED`, sự kiện cũ rút khỏi `VehicleIO`). Luôn được tạo; có thể chỉ có dòng tiêu đề. *(02/10/2026: có cả cột `t_perf`, còn `call` luôn trống; thêm mã `START_TOO_MANY_CUSPS`, nguồn `session`, khi đường đổi chiều quá giới hạn, T12, mục 3)* |
+| `board_actions.csv` | *(Thêm 02/10/2026, T15.)* Mỗi lần bấm "Xóa lỗi bo (CLEAR_FAULT)" của liên kết này một dòng, kể cả lần không gửi CLEAR_FAULT. Cộng dồn suốt đời liên kết như `start_refusals.csv`; luôn được tạo, có thể chỉ có dòng tiêu đề. Cột: `t_io` (đồng hồ io của liên kết, so được với `t_io` của các tệp khác cùng liên kết), `t_perf` (`perf_counter()` thô), `wall_time` (giờ máy ISO 8601 có múi giờ), ba mốc đọc liền nhau lúc quyết định gửi hay không gửi (chưa tới bước đó thì là lúc bấm); `target`, `request` (= CLEAR_FAULT), `outcome` (CLEARED, NOT_NEEDED, ESTOP_PRESSED, REFUSED, NOT_CONFIRMED, NO_ACK, NO_LINK), `ack_result`, `state_before`/`fault_before`/`estop_before` (khung đầu tiên bo gửi sau lúc bấm), `state_after`/`fault_after` (khung đầu tiên sau ACK), `requests_sent` (gồm cả PING), `commands_sent` (luôn 0), `message` (câu kết quả, lỗi, và đủ từng sự kiện `VehicleIO` gom được: "MÃ (ACTION, t_io X.XXX): lời", nối bằng "; "). Sau review 02/10/2026 nối thêm bốn cột cuối (15 cột cũ giữ thứ tự): `hello_firmware`, `hello_boot_id` ("0x" + 8 chữ số hex), `hello_reset_reason` (tên `ResetReason`: POWER_ON, WATCHDOG…), `hello_state` = HELLO_ACK của lần bấm, trống khi dùng lại phiên hay không có HELLO_ACK. `boot_id` đổi giữa các dòng, hay lý do reset, phân biệt "bo khởi động lại khi mở cổng" với "đã xóa bằng CLEAR_FAULT" |
+| `poses.csv` | *(Thêm 02/10/2026, T9.)* Mỗi lần đọc nguồn tư thế trong lần chạy một dòng: `n`, `use` (`estimate` = thế giới gương cuối bước, `observe` = trạng thái đo cho bộ bám), `t_session`, `t_io` (`io.now()` đọc liền SAU mẫu), `available` (0 = nguồn không có mẫu, các cột của mẫu để trống), `sample_t_io`, `x`, `y`, `yaw_rad`, `source_id`, `simulated`. Tư thế đọc lúc kiểm START không ghi |
+| `clock.csv` | *(Thêm 02/10/2026, T9.)* Mỗi lần đọc io trong lần chạy một dòng: `call` (0, 1, 2…), `kind` (`refresh` đầu bước khi đang chạy, `pump` cuối bước), `t_session`, `t_io` (`io.now()` sau lần đọc). Cột `call` của `telemetry.csv` và `events.csv` trỏ về số này |
+| `link.json` | Chế độ, loại `VehicleIO`, nguồn tư thế, cờ mô phỏng, tham số, cấu hình bo mô phỏng, kết quả, số lần chạy đã mở (`runs`), số lần START bị từ chối (`refused_starts`), `LinkStats`. *(02/10/2026: thêm khóa `clock` = {`t_io_at_start`, `t_perf_at_start`} (T13, xem dưới bảng); `run_start` = `t_io0`, `x`, `y`, `yaw_rad`, `steer_rad`, `state_source` của thế giới gương lúc mở lần chạy (null khi chưa mở lần nào), `log_format` (= 2) và `io_source_id` (T9, mục 5.1))* |
+
+**Dòng `session_stop`, cột `t_perf`, khóa `clock`** *(thêm 02/10/2026, T13; bo mô phỏng và cổng serial GIẢ; bo ảo QEMU
+và ESP32-S3 chưa thử qua phiên)*:
+
+- Các dòng `session_stop` là đúng `Session.safety_events`: cùng thứ tự, `code`, `source` (nguồn của sự kiện),
+  `t_session` (thời điểm phiên của sự kiện), `action` (STOP hay WAIT), `message` bằng message của sự kiện (riêng
+  `MAP_CHANGED` có thêm "(vật <id> tại (x, y) m, R×C cm)", chỉ ở dòng log). Cộng thêm mọi yêu cầu dừng khi đang chạy,
+  `USER_RESET` và `COLLISION`; ba loại này không vào `safety_events`. Sau khi lần chạy kết thúc, phiên không ghi thêm
+  dòng nào.
+- Ba mốc của dòng `session_stop`: `t_session` (với yêu cầu dừng là thời gian phiên lúc yêu cầu); `t_io` = `io.now()` lúc
+  phiên quyết định, cùng quy ước với `commands.csv`; `t_perf` = `time.perf_counter()` thô (giây) lúc ghi dòng.
+- `t_perf` có ở mọi dòng `events.csv` và `start_refusals.csv`. Đó là QPC trên Windows, chung cho mọi tiến trình của một
+  máy, cùng gốc với stamp bàn thử (`RIG_CLOCK`) và cột `t_perf` của dấu đồng bộ T14. Với dòng sự kiện của `VehicleIO`
+  (`stop`, `log`, `after_run`), `t_perf` là lúc lớp nối gom sự kiện, không phải lúc bo phát.
+- Sự kiện của `VehicleIO` (ví dụ `VEHICLE_FAULT`, `TELEMETRY_STALE`) và hai kiểm khung telemetry của lớp nối
+  (`VEHICLE_NOT_ARMED`, `OBSERVE_NOT_DISARMED`) có HAI dòng: `stop` lúc lớp nối nhận, `session_stop` lúc phiên quyết
+  định. Các kiểm ở nhịp điều khiển của lớp nối (`STALE_TELEMETRY`, `NO_MEASURED_STATE`, `STALE_POSE`, `HALTED`,
+  `SEND_FAILED`) trả sự kiện thẳng cho `Session` nên chỉ có dòng `session_stop`, không có dòng `stop`. Lọc theo
+  `handling`. Lý do dừng đầu tiên và `t_phát_hiện` là dòng đầu tiên có `handling` = `session_stop` và `action` = STOP.
+  Với `USER_STOP`, lúc bấm thật đọc ở `t_perf` (và `t_io` với bo thật); `t_session` có thể sớm hơn tới một nhịp giao
+  diện.
+- Ở bo mô phỏng, `t_session` của dòng `session_stop` có thể sớm hơn tới 5 ms so với dòng `stop` cùng mã: dòng `stop`
+  mang thời điểm của khung trên đồng hồ bo mô phỏng (nhịp 10 ms, đi trước thời gian phiên tới 5 ms), dòng
+  `session_stop` mang thời gian phiên. Kiểm lại 02/10/2026 (script tạm, không lưu trong repo; đường thẳng như
+  `tests/test_session_stop_log.py`): E-stop giả ở `t_session` 0,795 s cho dòng `stop` VEHICLE_FAULT 0,82 s, dòng
+  `session_stop` 0,815 s, cùng `t_io` 1,21 s; STOP đầu của `commands.csv` 0,82 s. Xếp thứ tự theo `t_io` hay theo thứ
+  tự dòng, không theo `t_session`.
+- `link.json` → `clock`: `io.now()` và `perf_counter()` đọc liền nhau lúc mở lần chạy (cả hai null khi chưa mở lần nào).
+  Với bo chạy thời gian thực trên đồng hồ mặc định của `SerialVehicleIO` (`io_simulated` false):
+  `t_perf = t_io + (t_perf_at_start − t_io_at_start)`, áp cho cột `t_io` của `commands.csv`, `telemetry.csv`,
+  `events.csv` (test với cổng serial giả, đồng hồ io dựng từ `perf_counter`). Bo mô phỏng: `t_io` là đồng hồ mô phỏng,
+  không đổi được.
+- Qua `VehicleIO`, mục "stop" của `Session.run_events` mang thêm `code`/`source` khi khác mặc định, để phát lại log
+  (mục 5.1) dựng lại đúng dòng. Nhánh SIM và dừng của người dùng giữ {t, kind, reason}.
+- *(Sau review 02/10/2026.)* `log_session_event` không bao giờ ném lỗi: đọc `io.now()` hỏng thì `t_io` để trống và lời
+  lỗi nối vào `message`; lỗi khác khi ghi thì mất dòng đó, phiên vẫn dừng. Mọi dòng `events.csv` và
+  `start_refusals.csv` dựng bằng một hàm (`_event_row`), kể cả dòng `START_TOO_MANY_CUSPS` của T12.
+
+Mã mới (mã cũ giữ nguồn cũ):
+
+| `code` | `source` | Từ đâu |
+|---|---|---|
+| `USER_STOP` | `user` | nút Dừng, phím Esc hay Space khi đang chạy (ở Quan sát với bo mô phỏng, Space chỉ phanh xe của người lái mô phỏng) (`MainWindow.stop()`); mặc định của `request_stop` |
+| `USER_RESET` | `user` | đặt lại khi đang chạy (`Session.reset()`) |
+| `COLLISION` | `sim_safety` | va chạm hình học của thế giới gương |
+| `FUSED_MAP_INVALID` | `lidar_bridge`, `camera_ai_bridge` | bản đồ hợp nhất không hợp lệ khi đang chạy |
+| `LIDAR_CONFIG_CHANGED`, `LIDAR_MIRROR_CHANGED`, `LIDAR_DISCONNECTED` | `lidar_dock` | ngăn LiDAR |
+| `CAMERA_AI_CONFIG_CHANGED`, `CAMERA_AI_DISABLED`, `CAMERA_AI_ERROR`, `CAMERA_AI_BLOCKED`, `CAMERA_AI_NO_RESULT`, `CAMERA_AI_STALE`, `CAMERA_AI_UNUSABLE` | `camera_dock` | ngăn AI camera; mọi mã trừ `CAMERA_AI_CONFIG_CHANGED` chỉ có khi tích "AI bắt buộc"; `CAMERA_AI_UNUSABLE` cho loại "không dùng được" chưa có mã riêng (thêm sau review 02/10/2026) |
+
+Mã cũ: `MAP_CHANGED`, `RUN_TIMEOUT`, `WAIT_REPLAN` (nguồn `sim_safety`: tên cũ của lớp an toàn trong `Session`, dùng
+cả khi chạy qua `VehicleIO`, KHÔNG có nghĩa là sự kiện mô phỏng); `STALE_TELEMETRY`, `NO_MEASURED_STATE`, `STALE_POSE`,
+`HALTED`, `SEND_FAILED`, `STOP_NOT_CONFIRMED`, `VEHICLE_NOT_ARMED`, `OBSERVE_NOT_DISARMED` (nguồn `vehicle_link`); mã của
+`VehicleIO` (nguồn `sim_vehicle_io` hoặc `esp32_vehicle`).
+
+**Tệp dấu đồng bộ video–log** *(thêm 02/10/2026, T14; do giao diện ghi, không phải `write_logs`; chỉ kiểm offscreen)*.
+"Xuất log CSV…" ghi thêm `<tên>_sync_marks.csv` cạnh tệp CSV (không nằm trong `<tên>_vehicle_io/`), chỉ khi đã có ít
+nhất một dấu; có ở mọi nhánh, kể cả SIM. Tệp gồm các dòng `SYNC_MARK` (nút hay phím F8, mục 6; `t_perf` đọc ngay sau khi
+vẽ ô) và `CLOCK` (giao diện tự ghi mỗi khi phiên vào RUNNING, STOPPING, STOPPED, COMPLETED hay FAULT, ghép `perf_counter`
+với thời gian phiên trong cùng nhịp giao diện). Cột: `n`, `kind`, `t_perf`, `t_wall`, `source`, `trigger`, `state`,
+`t_session`, `t_io`, `io_clock`, `t_rig_s`, `flash_ms`, `paint_ms`, `note`, `time_scale`; `time_scale` (thêm sau review)
+là "tốc độ chạy" của cockpit, bằng 1 khi lần chạy đi qua `VehicleIO` thời gian thực. Tệp sống
+`runs/sync_marks/<ngày giờ>_ui_app.csv` (hay `_ui_lidar_app.csv`) có cùng nội dung, tạo ở dấu đầu tiên rồi ghi từng dòng
+ngay khi có; ghi lỗi (ví dụ tệp đang mở trong Excel) thì dòng vẫn giữ trong bộ nhớ, thanh trạng thái báo, và lần ghi được
+sau đó ghi lại cả tệp. Cách đổi đồng hồ video và log sang `perf_counter`: docstring của
+[`autopark/evaluation/sync_marks.py`](../autopark/evaluation/sync_marks.py); [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md)
+mục 7 (T14).
+
+*(Thêm 02/10/2026, T5.)* Thư mục `<tên>_vehicle_io/` cùng `<tên>.csv` bên cạnh, hay gói `<tên>_<ngày giờ>/` có
+`vehicle_io/` (T9), là đầu vào của công cụ chấm `python -m autopark.evaluation.score_run --log …`; gói được chấm như log
+`VehicleIO`, không như gói SIM. Tệp `<tên>_sync_marks.csv` được tìm theo tên log hay tên gói. Mã và thời điểm quyết
+định dừng lấy từ dòng `session_stop`; với log ghi trước T13, công cụ lấy gần đúng bằng dòng STOP đầu của `commands.csv`
+(±20 ms).
+
+### 5.1. Phát lại lần chạy qua VehicleIO (T9, thêm 02/10/2026)
+
+*Mức bằng chứng: chỉ bo mô phỏng và cổng serial GIẢ. Bo thật CHƯA THỬ: START với bo thật còn bị từ chối (mục 3, bước 0).*
+
+Gói SIM được tái mô phỏng như trước. Lần chạy qua `VehicleIO` (`VEHICLE_IO`, `OBSERVE`) không tái mô phỏng được: trạng
+thái lấy từ telemetry và nguồn tư thế; tay người lái (`OBSERVE`) và lỗi gây ra phía xe không được ghi. "Phát lại log" là
+chạy lại CÙNG phần mềm (`Session` → `VehicleLink` → bộ bám → thế giới gương, mã không đổi), vòng hở, trên đầu vào đã ghi,
+đúng thứ tự, qua `ReplayVehicleIO` và `ReplayPoseSource`
+([`autopark/application/vehicle_replay.py`](../autopark/application/vehicle_replay.py)). Lệnh tính ra không đi đâu.
+
+- **Đầu vào đã ghi** (băng của `write_logs`, `log_format` 2): mỗi lần đọc io của lớp nối (`refresh` đầu bước khi đang
+  chạy, `pump` cuối bước) với đúng các khung telemetry và sự kiện `VehicleIO` mà lần đọc đó trả (cột `call`) và
+  `io.now()` sau lần đọc (`clock.csv`); mỗi lần đọc nguồn tư thế: mẫu và `io.now()` liền sau mẫu (`poses.csv`); mỗi
+  `send()`/`stop()`: số thứ tự hay lời lỗi và `io.now()` liền sau (`commands.csv`); vật cản chèn vào và yêu cầu dừng
+  (`events.jsonl` của gói), chèn lại đúng bước như nhánh SIM (mục "stop" mang `code`/`source` của T13 được chuyển
+  nguyên).
+- **So với bản ghi:** `commands.csv` (cột đồng hồ `t_io`, `telemetry_age_s`), `telemetry.csv`, `events.csv` (cả dòng
+  `session_stop`; bỏ dòng `before_start` và mã `DISARM_FAILED`, `END_RUN_SEND_FAILED`; không so cột `t_io` của dòng
+  `session_stop`), `poses.csv` và `clock.csv` (thẳng hàng: `use`/`kind` và `t_session`), `safety_events.json`,
+  `result.json` (`state`, `reason`, `steps`, `collided` phải bằng; `final_state`, `distance` theo sai số), RunLog
+  (`telemetry.csv` của gói) và `result` trong `link.json` (`outcome`, `reason`, `t_session`). Cột `t_perf` không so ở
+  tệp nào. Sai số: số thực 1e-9; cột đồng hồ, và số giây in trong lời (ví dụ tuổi telemetry trong lời của
+  `STALE_TELEMETRY`, sửa sau review), 5 ms, tức một bước. Cả hai là ĐỀ XUẤT, chưa đo trên bo thật.
+- **Không so:** bước kiểm START (kết nối, HELLO, so giới hạn, ARM/DISARM, kiểm lại tư thế; phát lại mở lần chạy ở
+  `run_start` đã ghi), thống kê io, trạng thái bo sau DISARM cuối, `start_refusals.csv`, `board_actions.csv`, và bản thân
+  xe, bo, cảm biến, định vị. Điều khẳng định được: "cùng đầu vào + mã này → cùng quyết định". Phát lại KHÔNG cho thấy xe
+  sẽ lặp lại lần chạy, không thay phép đo trên xe.
+
+Lệnh (thư mục `autopark`, `.venv`):
+
+```
+.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.replay <thư mục gói>
+```
+
+Gói SIM in "Replay OK: …" như trước. Gói `VehicleIO` in báo cáo tiếng Việt: KHỚP hay KHÁC, số dòng đã so theo tệp, lệch
+đồng hồ lớn nhất, tối đa 20 chỗ khác xếp theo `t_session` (chỗ đầu là chỗ lệch sớm nhất), phần không so. Mã thoát: 0 =
+KHỚP, 1 = KHÁC, 2 = không phát lại được (`ReplayNotSupported`: thiếu `vehicle_io/`; log ghi trước T9, không có
+`log_format` 2; chế độ không khớp; tệp hỏng như CSV không phải UTF-8 hay lỗi CSV, JSON sai kiểu, snapshot không dựng
+lại được phiên), 3 = lỗi bất ngờ khi phát lại (in tên lỗi, traceback ra stderr; không phải KHÁC; thêm sau review).
+Gói thiếu hay hỏng `config_snapshot/run.json` (`run_store.is_vehicle_io_package` khi đó trả False) dòng lệnh vẫn
+nhận là gói `VehicleIO` nhờ `vehicle_io/link.json`, nên cũng thoát mã 2, không rơi xuống nhánh gói SIM. Tệp CSV có BOM (Excel
+"CSV UTF-8") vẫn đọc được. Trong Python:
+`run_store.replay_vehicle_run(gói)` trả (phiên, báo cáo) và không đóng phiên; `replay_run(gói)` ném `ValueError` "Phát
+lại khác bản ghi (n chỗ); đầu tiên: …" khi khác.
+
+**Giới hạn của phát lại log:**
+
+- Không chạy lại bước START.
+- Khung bị lấy khỏi hàng đợi của `VehicleIO` ngoài lớp nối (hiện chỉ test làm: `io.advance()` lúc treo) không có trên
+  băng, nên phát lại KHÁC (đúng thiết kế; quyết định dừng vẫn khớp). Nếu có luồng `Heartbeat` đọc cổng song song (phiên
+  hiện không dùng) thì `latest()` lúc phát lại có thể khác.
+- Với đồng hồ tường (bo thật), đồng hồ lúc quan sát lấy từ lần đọc io trước nên sớm vài µs (cổng serial giả theo đồng
+  hồ tường: lệch lớn nhất 3,6 µs, script tạm của lượt viết mã T9). Một quyết định sát ngưỡng (ví dụ telemetry cũ đúng
+  0,15 s) vì thế có thể lật và hiện thành chỗ khác.
+- Máy khác có thể lệch bit cuối (libm, shapely): sai số 1e-9; quyết định rời rạc bị lật vẫn hiện là chỗ khác.
+
+**Kích thước và chi phí** (kiểm lại 02/10/2026 bằng script tạm, không lưu trong repo; máy bàn, `.venv`; bo mô phỏng theo
+`configs/vehicle_io_sim.json`, `bai_do_xe` ở `VEHICLE_IO`, COMPLETED sau 20,945 s, 4.189 bước, 1.049 COMMAND):
+`clock.csv` 195 KB (8.378 dòng), `poses.csv` 541 KB (5.237 dòng), cả thư mục `vehicle_io/` 1.062 KB; trong bộ nhớ
+2,25 MB + 3,15 MB (`sys.getsizeof` đệ quy); phát lại 0,67 s, KHỚP, lệch đồng hồ 0. Suy ra cho lần chạy dài nhất 180 s
+(`MAX_RUN_TIME`): ≈ 6,3 MB trên đĩa cho hai băng, ≈ 46 MB bộ nhớ. Theo lượt viết mã T9, vòng điều khiển chậm thêm
+≈ 0–16 µs mỗi bước 5 ms, cùng cỡ nhiễu đo.
 
 ## 6. Giao diện
 
@@ -236,15 +426,71 @@ khi đang chỉnh hoặc sẵn sàng; từ lúc chạy tới lúc đặt lại t
   HELLO_ACK của một phiên cũ (cổng đã đóng) không bao giờ được báo như của lần kiểm mới. Bo trả HELLO_ACK mà không gửi
   telemetry: vòng đọc dừng sau `frames_timeout_s` (1 s, đồng hồ io), lỗi "Chỉ nhận 0/5 khung", có `TELEMETRY_STALE`
   và đúng một REQUEST DISARM do `VehicleIO` tự gửi, 0 COMMAND.
-- Ô chọn cổng, "Quét cổng" và "Kiểm kết nối bo" bị khóa từ lúc chạy tới lúc đặt lại.
+- *(Thêm 02/10/2026, T15; chỉ thử với bo mô phỏng và cổng serial GIẢ, CHƯA THỬ với ESP32-S3.)* **Nút "Xóa lỗi bo
+  (CLEAR_FAULT)"** (`VehicleLink.clear_fault`), hàng riêng dưới "Quét cổng | Kiểm kết nối bo".
+  - Nút chỉ bật khi phiên đang chỉnh hoặc sẵn sàng (EDITING/READY), ở nhánh VehicleIO hoặc Quan sát, với bo chọn ở cổng
+    COM. Với bo mô phỏng của giao diện thì khóa, vì mỗi lần Bắt đầu đỗ tạo bo mới ở DISARMED; tooltip nêu lý do khóa.
+    Với cổng thật, giao diện hỏi xác nhận trước khi mở (chỉ tiếp tục nếu cổng là bo ESP32-S3 của xe, không phải LiDAR).
+  - Nút dùng `VehicleIO` của chính liên kết đang chọn: cổng chưa mở thì mở rồi đóng lại khi xong. Với cổng COM của giao
+    diện, cổng luôn chưa mở lúc bấm nên mỗi lần bấm là một phiên mới (HELLO); nhánh PING dưới đây chỉ chạy khi
+    `VehicleIO` đã mở sẵn (test; cổng giữ mở giữa các lần chạy là việc của T2, chưa có). Chưa có phiên, hoặc
+    laptop đã chốt `TELEMETRY_STALE`, thì gửi HELLO mở phiên mới (bo giữ FAULT). Dùng lại phiên đang có thì gửi một
+    REQUEST PING và chờ ACK trước khi đọc trạng thái (rào "khung mới": luồng byte của bo đúng thứ tự, nên khung đọc sau
+    ACK là bo gửi sau lúc bấm; sửa sau review 02/10/2026, trước đó khung cũ tồn đọng trong cổng có thể thành căn cứ).
+  - Quyết định theo khung telemetry đầu tiên bo gửi sau lúc bấm: bo không ở FAULT thì không cần và không gửi
+    CLEAR_FAULT (NOT_NEEDED); `ESTOP_INPUT` = 1 thì không gửi CLEAR_FAULT (ESTOP_PRESSED); còn lại gửi đúng một REQUEST
+    CLEAR_FAULT (firmware tự kiểm lại: `ESTOP_ACTIVE`, `FAULT_ACTIVE`) rồi đọc khung kế tiếp. Không bao giờ ARM, không
+    COMMAND nào.
+  - Báo cáo trong thẻ: HELLO_ACK, hay "Dùng phiên đang có với bo (không gửi HELLO); gửi PING và chờ ACK…"; khung trước
+    và sau (trạng thái, lỗi kèm ghi chú nguyên nhân, E-stop); ACK; sự kiện; số COMMAND/REQUEST (PING được tính, nên
+    CLEARED trên phiên dùng lại là 2 REQUEST); KẾT QUẢ; LỖI. Chữ xanh khi CLEARED hay NOT_NEEDED, vàng khi khác.
+  - Lỗi khác E-stop (STALL, LOOP_OVERRUN, FEEDBACK_LOST, SUPPLY_LOW) xóa theo luật firmware (SUPPLY_LOW chỉ khi điện áp
+    đủ lại); bo về DISARMED và vẫn phải ARM qua Bắt đầu đỗ. Mỗi lần bấm một dòng `board_actions.csv` (mục 5).
+- Ô chọn cổng, "Quét cổng" và "Kiểm kết nối bo" bị khóa từ lúc chạy tới lúc đặt lại. *(Cập nhật 02/10/2026: nút "Xóa
+  lỗi bo" cũng vậy, và còn khóa ở nhánh Mô phỏng giai đoạn 0, với bo mô phỏng của giao diện, khi liên kết đã đóng
+  (`VehicleLink.clear_fault_blocker`); gọi thẳng `_clear_board_fault` khi bị khóa chỉ báo lý do ở thanh trạng thái.)*
 - Việc chặn giao diện trong lúc kiểm: hàm chạy trên luồng giao diện (con trỏ chờ), tối đa khoảng 1 s chờ HELLO_ACK
-  cộng 1 s chờ telemetry. Trên bo thật: CHƯA ĐO.
+  cộng 1 s chờ telemetry. Trên bo thật: CHƯA ĐO. *(Thêm 02/10/2026: nút "Xóa lỗi bo" cũng chạy trên luồng giao diện,
+  chờ tối đa ≈ 3,5 s: HELLO 1 s (hay PING 0,5 s), khung 1 s, ACK của CLEAR_FAULT 0,5 s, khung 1 s, chưa kể lúc mở cổng.
+  Trên bo thật: CHƯA ĐO.)*
+
+*(Thêm 02/10/2026, T9 và sửa sau review; chỉ kiểm offscreen.)* **"Xuất log CSV…" và "Lưu phiên…"** (hai nút gọi cùng
+một hàm):
+
+- Sau một lần chạy qua `VehicleIO`, ngoài tệp CSV và thư mục `<tên>_vehicle_io/` còn xuất gói
+  `<tên>_<ngày>_<giờ>_<micro giây>/` phát lại được bằng log (mục 5.1). Thanh trạng thái báo "Đã ghi N dòng vào <tệp> (+
+  thư mục _vehicle_io, gói phát lại <tên gói>)", hoặc "(+ thư mục _vehicle_io; KHÔNG xuất gói phát lại: <lý do>)". Không
+  có hộp thoại hay nút mới.
+- Liên kết đang chọn chưa chạy lần nào mà có START bị từ chối hay lần bấm "Xóa lỗi bo": hai nút bật và ghi thêm
+  `<tên>_vehicle_io/` của liên kết đó (mục 4, quy tắc 6). Đổi nhánh chạy hay cổng thì liên kết cũ bị thay, các dòng này
+  mất nếu chưa xuất.
+- Hai nút và ô "tốc độ chạy" bị khóa khi xe đang chạy (RUNNING/STOPPING): luồng giao diện cũng là luồng của vòng điều
+  khiển 50 Hz, mà xuất gói chạy PowerShell và nén mã nguồn (≈ 1,4 s:
+  lượt review 02/10/2026 đo 1,46 s, offscreen, bo mô phỏng của giao diện, không lưu log). Gói chỉ xuất sau khi xe dừng;
+  lời gọi thẳng giữa lần chạy chỉ ghi tệp CSV, `_vehicle_io` và tệp dấu đồng bộ.
+
+*(Thêm 02/10/2026, T14; chỉ kiểm offscreen, `tests/test_sync_marks.py`.)* **Nút "Dấu đồng bộ · F8"** ở hàng đầu cockpit,
+cạnh thẻ trạng thái; phím F8 tương đương, kể cả khi lái tay. Mỗi dấu nháy một ô trắng có số phủ cả cửa sổ trong 0,5 s và
+ghi một dòng `SYNC_MARK` (mục 5). Dùng được ở mọi trạng thái trừ RUNNING/STOPPING: nút mờ, F8 bị từ chối kèm lời báo ở
+thanh trạng thái. Hai dấu cách nhau ít nhất 1 s; Bắt đầu đỗ bị từ chối khi ô còn sáng. Ở VEHICLE_IO/OBSERVE, dòng có
+`t_io`/`io_clock` của liên kết (lần chạy vừa xong, hoặc lần Bắt đầu đỗ tới; với bo mô phỏng của giao diện, trước lần
+Bắt đầu đỗ đầu tiên chưa có bo nên hai ô này trống); với cổng thật chưa mở vẫn đọc được đồng hồ
+mà không mở cổng (test thay `serial.Serial`/`serial_for_url` bằng hàm từ chối). Màn hình thật: CHƯA THỬ; độ trễ hiển thị
+của màn hình: CHƯA ĐO.
+
+*(Thêm 02/10/2026, T12; chỉ kiểm offscreen, `tests/test_cusp_policy.py`.)* **Số lần đổi chiều.** Dòng đường của cockpit
+("… m · N lần đổi chiều") thêm "nhiều đổi chiều (> M)" màu cam khi đường có hơn `--warn-cusps M` lần đổi chiều (mặc định
+7), hay "vượt giới hạn N: không chạy" màu đỏ khi có `--max-cusps N` và đường vượt; thanh trạng thái báo câu đầy đủ sau
+khi lập đường. Nút Bắt đầu đỗ vẫn bấm được; bấm thì hiện hộp "Không bắt đầu được" như các lý do từ chối khác (mục 3).
+Cờ: `python run_app.py [kịch bản] --max-cusps N --warn-cusps M`, hay
+`python -m autopark.ui.lidar_app --max-cusps N --warn-cusps M`; số âm bị từ chối (mã 2) trước khi mở cửa sổ.
 
 ## 7. Đã kiểm (chỉ mô phỏng và cổng serial giả, 24/09/2026, máy bàn, `.venv`)
 
-`tests/test_session_vehicle.py`, 34 test (tính cả tham số hóa), đạt 34/34. Mọi test chạy trên `SimVehicleIO` +
-`FirmwareModel`, trừ ba test đồng hồ dùng `SerialVehicleIO` với cổng serial GIẢ (`FirmwareSerialLoopback` với
-`ManualClock`, hoặc một cổng giả theo đồng hồ tường ngay trong tệp test). Không test nào mở cổng thật.
+`tests/test_session_vehicle.py`, 34 test (tính cả tham số hóa), đạt 34/34 *(02/10/2026: nay 61, xem cuối mục 7)*. Mọi
+test chạy trên `SimVehicleIO` + `FirmwareModel`, trừ ba test đồng hồ dùng `SerialVehicleIO` với cổng serial GIẢ
+(`FirmwareSerialLoopback` với `ManualClock`, hoặc một cổng giả theo đồng hồ tường ngay trong tệp test). Không test nào
+mở cổng thật.
 
 *(Cập nhật muộn hơn tối 24/09/2026, máy bàn, `.venv`.)* Số 34/34 ở trên là trước khi thêm test tối 24/09. Nay tệp có
 **60 test (tính cả tham số hóa), 60 đạt, 0 `xfail`**. Chạy lại riêng tệp này khi sửa tài liệu: 60 passed. Thêm 26
@@ -306,7 +552,9 @@ Test thêm tối 24/09/2026 (26 trường hợp; vẫn chỉ bo mô phỏng ho�
 *(Thêm muộn tối 24/09/2026, máy bàn, `.venv`.)* Test của phần so giới hạn, bo thật chưa có tư thế, "Kiểm kết nối
 bo" và thẻ "Bo điều khiển": [`tests/test_vehicle_board_ui.py`](../tests/test_vehicle_board_ui.py), **26 test, 26 đạt**.
 *(Cập nhật muộn hơn tối 24/09/2026, sau đợt sửa theo rà soát: nay **30 test, 30 đạt**; bốn test mới và phần thêm của
-`test_sim_truth_pose_is_never_paired_with_another_board` được đánh dấu trong bảng.)*
+`test_sim_truth_pose_is_never_paired_with_another_board` được đánh dấu trong bảng.)* *(Cập nhật 02/10/2026: tệp nay có
+45 test, thêm 14 test của nút "Xóa lỗi bo" (T15) và `test_pose_wrapper_unwrapping_stops_for_proxies_and_cycles` (sửa
+sau review); xem cuối mục 7.)*
 Bo là `SimVehicleIO` hoặc `FirmwareModel` sau cổng serial GIẢ (`FirmwareSerialLoopback` + `ManualClock`).
 `serial.Serial` bị thay bằng hàm ghi lại mọi lần mở và từ chối; `serial.tools.list_ports.comports` bị thay bằng danh
 sách giả. Không test nào mở hay liệt kê cổng thật.
@@ -483,6 +731,142 @@ Các số trên là của mô hình giả định (trễ, vùng chết, nhiễu,
 hay độ bám đường của MN300. Thời điểm phát hiện mất telemetry phụ thuộc pha của chu kỳ telemetry 50 ms. Với cấu
 hình bo nhanh dùng trong test (`boot_hold_ms` 200), cùng phép thử cho 160 ms.
 
+**Test thêm ngày 02/10/2026** (đợt công cụ nghiệm thu T6, T9, T12–T15; máy bàn, `.venv`, giao diện offscreen; bo mô
+phỏng hoặc cổng serial GIẢ; ở test giao diện `serial.Serial` và `comports` bị thay bằng bản giả; không test nào mở cổng,
+camera hay LiDAR thật). Số test đếm bằng `pytest --collect-only` ngày 02/10/2026, sau lượt sửa theo review; kết quả chạy
+trên bản commit ghi ở biên bản của lượt chạy toàn bộ, không ghi ở đây.
+
+*T13* — [`tests/test_session_stop_log.py`](../tests/test_session_stop_log.py), 19 test (16 lúc viết mã, 3 thêm sau
+review); thêm 3 test trong `tests/test_lidar_dock_ui.py` (nay 8) và 6 trong `tests/test_camera_dock_ui.py` (5 mục của
+`test_ai_stop_in_vehicle_io_is_logged_with_its_code`, cộng
+`test_every_unusable_kind_used_by_the_dock_has_its_own_stop_code`; tệp nay 30 mục, kể cả test T6 ở mục 7.1). Hai
+test dùng `SerialVehicleIO` với cổng serial GIẢ.
+
+| Test | Kiểm |
+|---|---|
+| `test_session_stop_rows_mirror_safety_events[estop/map_changed/no_measured_state/stale_pose/stale_telemetry]` | Dòng `session_stop` khớp từng phần tử `safety_events` (mã, nguồn, `t_session`, action, message); dòng đầu đúng mã và nguồn; `t_io` không giảm và không muộn hơn STOP đầu của `commands.csv`; mô tả vật chỉ ở dòng log |
+| `test_user_stop_is_logged_but_not_added_to_safety_events` | Một dòng `USER_STOP` dù gọi hai lần; `safety_events` rỗng; `run_events` giữ {t, kind, reason} |
+| `test_fused_map_invalid_stop_from_bridge_is_logged` | Một dòng (`FUSED_MAP_INVALID`, `lidar_bridge`); lần hai lúc STOPPING không thêm; `run_events` mang mã và nguồn |
+| `test_reset_while_running_logs_user_reset`, `test_collision_in_mirrored_world_is_logged` | Đặt lại ngay sau START: một dòng `USER_RESET`, kết quả RESET. Va chạm hình học: FAULT, đúng một dòng `COLLISION` |
+| `test_observe_mode_logs_session_stops_without_sending` | Quan sát: dòng `USER_STOP`, 0 COMMAND |
+| `test_realtime_session_stop_row_uses_the_io_clock` | Cổng serial giả, `ManualClock`: `t_io` = `io.now()` lúc yêu cầu, lệch 30–35 ms so với thời gian phiên khi io đi trước 30 ms |
+| `test_write_logs_has_t_perf_and_clock`, `test_link_json_clock_is_null_before_any_run` | Tiêu đề hai tệp = `EVENT_FIELDS`; mọi dòng, kể cả `START_NO_LINK`, có `t_perf`; `clock` đúng, null khi chưa mở lần chạy nào |
+| `test_link_json_clock_converts_io_time_to_perf_counter_on_a_wall_clock_board` *(sau review)* | Cổng serial giả, đồng hồ io = `perf_counter` dời 500 s: `t_io` cộng độ lệch của `clock` khớp `t_perf` của dòng `USER_STOP` (lệch < 0,05 s; test chỉ kiểm dòng này) |
+| `test_nothing_is_logged_after_the_run_has_ended`, `test_a_failing_io_clock_never_blocks_the_stop` *(sau review)* | Sau STOPPED, bấm Dừng, cầu nối báo bản đồ hỏng, chèn vật, đặt lại: không thêm dòng. Đồng hồ io ném lỗi lúc yêu cầu dừng: phiên vẫn STOPPING rồi STOPPED, dòng `USER_STOP` có `t_io` trống và lời lỗi |
+| `test_sim_branch_safety_events_unchanged`, `test_sim_branch_stop_request_keeps_the_old_run_events` | Nhánh SIM không đổi |
+| `test_window_stop_in_vehicle_io_logs_user_stop_and_exports` | Giao diện: nút Dừng rồi "Xuất log CSV…" |
+| `test_lidar_disconnect_in_vehicle_io_is_logged`, `test_lidar_setting_change_in_vehicle_io_is_logged_with_its_code[mirror/mask]` | Ngăn LiDAR: mã và nguồn `lidar_dock` |
+| `test_ai_stop_in_vehicle_io_is_logged_with_its_code[stale/disabled/error/config/unknown_kind]`, `test_every_unusable_kind_used_by_the_dock_has_its_own_stop_code` | Ngăn AI camera: mã và nguồn `camera_dock`; loại chưa có mã riêng dừng với `CAMERA_AI_UNUSABLE` (trước bản sửa sau review: `KeyError` trong timer, xe không dừng) |
+
+*T15* — 14 test `-k clear_fault` trong `tests/test_vehicle_board_ui.py` (tệp nay 45) và
+`tests/test_session_vehicle.py::test_fault_refused_start_then_link_clear_fault_then_start` (tệp nay 61).
+
+| Test | Kiểm |
+|---|---|
+| `test_clear_fault_after_release_goes_to_disarmed_without_arm_or_command[VEHICLE_IO/OBSERVE]` | Bo mô phỏng FAULT ESTOP, nút đã nhả, chưa có phiên: HELLO (bo giữ FAULT), đúng một REQUEST CLEAR_FAULT (không ARM, không DISARM), 0 COMMAND; khung sau DISARMED, lỗi NONE; 1 s sau xe đứng yên, effort 0, bo vẫn DISARMED; một dòng `board_actions.csv` đủ cột, `message` có đủ sự kiện, bốn cột `hello_*` đúng HELLO_ACK; không đụng `event_rows`, `start_refusals` |
+| `test_clear_fault_sends_nothing_while_estop_pressed_or_board_not_in_fault` | Nút còn nhấn: ESTOP_PRESSED, không REQUEST nào. Nhả rồi bấm lại: CLEARED trên phiên đang có, không HELLO, trên dây PING rồi CLEAR_FAULT (2 REQUEST). Bo không FAULT: NOT_NEEDED. Phiên đã chốt `TELEMETRY_STALE`: mở phiên mới |
+| `test_clear_fault_estop_pressed_after_the_telemetry_is_refused_by_the_board` | E-stop nhấn lại đúng lúc REQUEST tới bo: `ESTOP_ACTIVE`, REFUSED, `COMMAND_REJECTED` |
+| `test_clear_fault_ack_ok_but_fault_again_is_not_confirmed` | ACK OK nhưng khung sau còn FAULT: NOT_CONFIRMED |
+| `test_clear_fault_supply_low_refused_until_voltage_is_back_on_fake_serial` | Cổng serial giả, SUPPLY_LOW: `FAULT_ACTIVE`; điện áp đủ: CLEARED; trên dây HELLO, CLEAR_FAULT, PING, CLEAR_FAULT, không COMMAND |
+| `test_clear_fault_on_a_reused_session_decides_on_a_frame_sent_after_the_press[released/pressed]` *(sau review)* | Cổng serial giả không ai đọc 120 s (hơn hai lần đọc 64 KiB khung DISARMED tồn đọng), rồi E-stop: quyết định theo khung bo gửi sau lúc bấm, không báo NOT_NEEDED khi bo đang FAULT |
+| `test_clear_fault_on_a_real_port_link_opens_the_port_then_closes_it` | Cổng chưa mở được mở rồi đóng ở mỗi lần bấm; START sau đó vẫn `START_NO_POSE_SOURCE`, không mở thêm cổng |
+| `test_clear_fault_open_failure_and_unplug_are_reported_not_raised` | Không mở được cổng: NO_LINK. Rút cáp sau CLEAR_FAULT: NO_ACK, `LINK_ERROR`, không treo, không báo đã xóa |
+| `test_clear_fault_blocked_for_ui_sim_board_open_run_and_closed_link` | Bo mô phỏng của giao diện, RUNNING/STOPPING, liên kết đã đóng: `VehicleLinkError`, không ghi dòng, không CLEAR_FAULT nào tới bo |
+| `test_window_clear_fault_button_follows_mode_board_and_run_state`, `test_window_clear_fault_on_a_real_port[released/pressed]` | Nút bật/khóa theo nhánh, bo, trạng thái; cổng COM giả: hộp thoại xác nhận, nhãn xanh/vàng; trả lời No thì không mở cổng |
+| `test_fault_refused_start_then_link_clear_fault_then_start` | E-stop → STOPPED → START bị từ chối vì FAULT → `clear_fault()` → START ARM lại (AT-2, DI-4 (d) ở mức mô phỏng) |
+
+*T9* — [`tests/test_run_store_vehicle.py`](../tests/test_run_store_vehicle.py), nay 33 test (4 trước T9; 29 lúc viết mã,
+4 thêm sau review):
+
+- xuất gói và phát lại KHỚP ở `VEHICLE_IO` và `OBSERVE`; từ chối khi phiên không còn log `VehicleLink`, khi chế độ
+  lệch, khi liên kết chưa mở lần chạy nào; băng ghi đủ mọi lần đọc io và mọi lần đọc tư thế; chưa chạy thì không có
+  `run_start`;
+- `test_replay_reproduces_the_stop[…]`: phát lại 10 kiểu dừng (`STALE_POSE`; E-stop `VEHICLE_FAULT`; rút cáp →
+  `STALE_TELEMETRY`, `TELEMETRY_STALE`, `STOP_NOT_CONFIRMED`; `MAP_CHANGED`; `COLLISION`; dừng tay; `FUSED_MAP_INVALID`
+  của cầu nối; `COMMAND_REJECTED`; mất góc lái `NO_MEASURED_STATE`; `OBSERVE_NOT_DISARMED` có chờ DISARM trong lần
+  đọc), dòng `session_stop` dựng lại đúng, lệch đồng hồ 0;
+- cổng serial GIẢ, `ManualClock`, vòng điều khiển treo 300 ms: phát lại theo đồng hồ io đã ghi; tư thế sửa tay 2 cm bị
+  báo ở đúng dòng `commands.csv`; khung lấy ngoài lớp nối bị báo KHÁC;
+- log thiếu `poses.csv`, `clock.csv` hay `log_format`, dòng hỏng, thiếu cột `call`: bị từ chối; *(sau review)* tám kiểu
+  gói hỏng bị `replay_vehicle_run` từ chối (`ReplayNotSupported`) thay vì lỗi lọt ra; qua dòng lệnh, test kiểm mã 2
+  với ba kiểu (CSV ANSI, thiếu `config_snapshot/run.json`, `run.json` không phải JSON; mục 5.1); gói có BOM
+  vẫn KHỚP; số giây trong lời so như cột đồng hồ (lệch 1 ms
+  KHỚP, 10 ms KHÁC); lỗi bất ngờ cho mã 3, báo cáo in được cả khi stdout là cp1252;
+- START bị từ chối không làm hỏng băng của lần trước (kèm dòng `board_actions.csv` của T15); mã thoát CLI và dòng
+  "Replay OK" của gói SIM; giao diện offscreen: gói của một lần quan sát phát lại được.
+
+Gói SIM: đo lại 02/10/2026 bằng script tạm của lượt sửa theo review (không lưu trong repo), so gói ghi bằng `3148014` với
+gói ghi bằng cây làm việc có T5, T6, T9–T15: 4 lần chạy (đường thẳng COMPLETED, chèn vật, dừng tay, `bai_do_xe`), 32
+tệp, trừ `source.zip` và hai trường `created_utc`, `source_sha256` của manifest. 28 tệp trùng từng byte; khác duy nhất là
+khóa `cusps` (T12) nối cuối `config_snapshot/run.json` của cả 4 gói. Mọi khóa khác và thứ tự khóa giữ nguyên; cả 8 gói
+phát lại (`replay_run`) đúng trạng thái.
+
+*T12* — `tests/test_cusp_policy.py`, 10 test, gồm:
+
+| Test | Kiểm |
+|---|---|
+| `test_refusal_through_a_vehicle_link_is_logged_before_any_board_io` | `VehicleLink.simulated(VEHICLE_IO)`, giới hạn 1, đường 2 lần đổi chiều: START bị từ chối, `link.io` vẫn None (chưa dựng bo), 0 lần chạy; `start_refusals.csv` đúng một dòng `START_TOO_MANY_CUSPS` (nguồn `session`, `before_start`, có `t_perf`, `call` trống); `events.csv` chỉ có tiêu đề. Nâng giới hạn thì chạy được và dòng từ chối vẫn còn; lần từ chối khi liên kết đã có io thì `t_io` = `io.now()` |
+| `test_window_warns_about_many_reversals_and_refuses_above_the_limit` | Giao diện offscreen: cảnh báo ở dòng đường và thanh trạng thái, hộp "Không bắt đầu được", phiên giữ READY |
+
+*T14 và các nút xuất log* — `tests/test_sync_marks.py`, 26 test (tệp mới; cả phần `rig.bench`, `ui.rig_app`), và
+`tests/test_export_log_ui.py`, 4 test (tệp mới, sau review). Phần của cockpit:
+
+| Test | Kiểm |
+|---|---|
+| `test_main_window_marks_before_start_and_after_stop_but_never_while_driving` | Dấu được trước Bắt đầu đỗ và sau khi xe dừng, không được khi xe đang chạy |
+| `test_start_waits_until_the_flash_is_off` *(sau review)* | Bắt đầu đỗ bị từ chối khi ô dấu còn sáng |
+| `test_rows_carry_the_run_speed_factor_and_it_is_locked_while_driving` *(sau review)* | Cột `time_scale`; ô "tốc độ chạy" khóa khi xe đang chạy |
+| `test_vehicle_io_rows_carry_the_io_clock_and_a_real_port_is_never_opened` | `t_io`, `io_clock` của liên kết; cổng thật không bao giờ bị mở |
+| `test_export_writes_sync_file_only_when_marks_exist` | `<tên>_sync_marks.csv` chỉ được ghi khi đã có dấu |
+| `tests/test_export_log_ui.py` (4 test) | Xuất giữa lần chạy chỉ bỏ gói phát lại (SIM và `VEHICLE_IO`); START bị từ chối hay lần "Xóa lỗi bo" của liên kết chưa chạy lần nào xuất được |
+
+### 7.1. Tiêm lỗi có kiểm soát (T6, thêm 02/10/2026)
+
+Chỉ ở mức mô phỏng: [`autopark/safety/fault_injection.py`](../autopark/safety/fault_injection.py) (mã sản phẩm không
+nhập mô-đun này, giao diện không có nút tiêm lỗi) và công cụ diễn tập `autopark.evaluation.fault_drill` (bo mô phỏng,
+camera giả hay bản ghi phát lại; không mở cổng COM, LiDAR hay camera), chạy từ thư mục `autopark`:
+
+```
+.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.fault_drill hang --seconds 1 --phases 0 1 2 3 --out runs\fault_drill\<ngày> --name cb5b
+.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.fault_drill pose --mode hold --repeat 10 --out runs\fault_drill\<ngày> --name cb6
+.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.fault_drill camera --mode stall --repeat 10 --out runs\fault_drill\<ngày> --name cb2
+```
+
+Mỗi lần chạy ghi một thư mục `<out>/<name>_<kk>/` (`faults.csv`, `drill.json`, và với `pose`, `hang` thêm tám tệp log
+của liên kết), cả đợt ghi `<out>/<name>.drill.json`; thêm `--heartbeat` cho biến thể treo có Heartbeat. Mỗi lần gây lỗi
+và hết lỗi là một dòng `faults.csv`, cùng cột với `events.csv` thêm `t_rig` sau `t_io`, nên ghép được theo `t_io`. Lớp
+bọc tư thế mang tên nguồn `sim_truth_pose+fault`; `VehicleLink` bóc lớp bọc (`fault_inner`) để luật `SimTruthPose` vẫn
+áp dụng. *(Sau review 02/10/2026: bóc tối đa 8 lớp (`unwrap_pose_source`), chỉ qua thuộc tính có thật của đối tượng hay
+của lớp, kể cả property, không qua `__getattr__`; Mock hay proxy không còn làm `VehicleLink.__init__` chạy mãi, lớp bọc
+trỏ vòng thì `ValueError`.)*
+
+`tests/test_fault_injection.py`, 31 test (28 lúc viết mã, 3 thêm sau review; bo mô phỏng, cổng serial giả với
+`ManualClock` hay theo đồng hồ tường, camera giả, bản ghi phát lại dựng trong test), cộng
+`tests/test_camera_dock_ui.py::test_frozen_camera_makes_the_ai_stale_then_required_ai_stops_the_run`:
+
+| Nhóm | Test | Kiểm |
+|---|---|---|
+| Log | `test_fault_log_rows_share_the_events_csv_columns` | Cột `faults.csv` = cột `events.csv` thêm `t_rig`; mọi dòng có `t_perf`, `call` trống |
+| Camera | `test_repeat_on_a_usb_camera_is_caught_by_its_own_duplicate_check`, `test_repeat_on_other_sources_is_counted_as_a_duplicate_by_the_camera_worker`, `test_stall_ends_on_thaw_release_or_the_safety_cap`, `test_items_scheduled_during_a_stall_are_dropped_after_the_thaw_not_delivered_late` *(sau review)*, `test_frozen_camera_is_stale_and_missing_after_half_a_second_and_the_other_keeps_its_rate[stall/repeat]` | REPEAT bị đếm là khung cũ; STALL hết khi thả, khi `release()` hay khi chạm trần an toàn; khung lẽ ra ra trong lúc đóng băng bị bỏ, không ra dồn với stamp cũ; hai camera giả 0,03 s: camera đóng băng thành "cũ" và vào `FrameSet.missing` sau 0,45–0,75 s, camera kia giữ nhịp, quay lại ≤ 0,3 s sau khi thả |
+| Tư thế | `test_pose_source_that_stops_updating_stops_the_run_with_stale_pose[hold/silent]`, `test_fault_wrapper_does_not_hide_the_sim_truth_pose_rule` | `STALE_POSE` trong ≤ 0,175 s (HOLD) hay ≤ 0,025 s (SILENT), không enable nào sau lần dừng; lớp bọc (cả hai lớp) không che luật `SimTruthPose`, bọc `NoPoseSource` vẫn bị từ chối trước khi gửi byte nào |
+| Treo | `test_sim_board_pause_host_keeps_bytes_unread_and_skips_the_stale_check`, `test_hang_without_heartbeat_on_the_sim_board_matches_the_serial_port[0,3 s/1 s × pha 0–3]`, `test_hang_with_heartbeat_keeps_the_link_and_only_the_command_times_out`, `test_hang_on_the_fake_serial_port_reads_nothing_while_hung[0,3 s/1 s]`, `test_hang_on_a_wall_clock_port_sleeps_with_and_without_the_heartbeat_thread[False/True]`, `test_hang_is_refused_outside_a_vehicle_io_run` | Bo mô phỏng treo 0,3 s: bo ARMED (`COMMAND_TIMEOUT`), mã dừng đầu `VEHICLE_STOPPED`; treo 1 s: bo DISARMED (`LINK_TIMEOUT`), `VEHICLE_NOT_ARMED`; cả 4 pha, không `TELEMETRY_STALE`, không lệnh nào trong lúc treo, không enable nào sau khi hết treo; cùng mã với cổng serial giả. Có Heartbeat: ≥ 8 PING, bo chỉ `COMMAND_TIMEOUT`, `VEHICLE_STOPPED` |
+| Công cụ diễn tập | `test_judge_flags_each_missing_reaction`, `test_git_state_reads_the_repo_without_taking_the_index_lock` *(sau review)*, `test_drill_pose_and_hang_write_logs_and_pass`, `test_drill_camera_on_fake_cameras_reports_when_the_camera_went_stale`, `test_drill_camera_stall_on_a_replay_loses_the_frozen_frames_like_a_real_camera` *(sau review)*, `test_drill_exit_code_is_one_when_a_reaction_is_missing` | Hàm chấm báo từng phản ứng thiếu; thư mục mỗi lần chạy có đủ tám tệp log cộng `faults.csv`, `drill.json`; mã thoát 0/1/2 |
+| Giao diện | `test_frozen_camera_makes_the_ai_stale_then_required_ai_stops_the_run` | Camera giả duy nhất thật sự ngừng trả khung: AI cũ sau ≈ 0,5 s, một cảnh báo, xe vẫn chạy; tích "AI bắt buộc" thì STOPPING ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.1) |
+
+Phản ứng dự kiến (theo docstring của `safety/fault_injection.py`, đo trên mô phỏng 01–02/10/2026). Các giới hạn là phép
+kiểm của công cụ, suy từ tham số hiện tại, KHÔNG phải ngưỡng nghiệm thu: N-T2, N-T4, N-P7 vẫn ĐỀ XUẤT – CHỜ CHỐT.
+
+| Lỗi tiêm | Phản ứng dự kiến |
+|---|---|
+| Camera STALL hoặc REPEAT | Bộ ảnh bỏ camera đó (`FrameSet.lagging`) sau khoảng L_p (60–63 ms); `camera_stats` báo "cũ" và camera vào `FrameSet.missing` sau 0,5 s cộng tuổi khung tốt cuối; camera khác giữ nhịp; REPEAT đếm là khung cũ (USB: bộ dò của nguồn bắt). Lớp AI cũ: một cảnh báo mỗi lần chạy, hay dừng khi "AI bắt buộc"; vùng chỉ camera đó thấy thành UNKNOWN, không bao giờ FREE. Không có `STALE_DATA`: `FreshnessMonitor` mới nối cho LiDAR |
+| Tư thế HOLD hoặc SILENT | `STALE_POSE` trong ≤ 0,175 s (HOLD) hoặc ≤ 0,025 s (SILENT); STOPPING, enable=0 mỗi 20 ms; kết thúc STOPPED + DISARM + `WAIT_REPLAN`. Không enable nào sau đó; tư thế có lại không đổi gì |
+| Treo, không Heartbeat (phiên hiện nay) | Bo `COMMAND_TIMEOUT` → ARMED sau 0,15 s, `LINK_TIMEOUT` → DISARMED sau 0,5 s im lặng; laptop không thấy gì trong lúc treo nên không có `TELEMETRY_STALE`. Tỉnh dậy: `VEHICLE_STOPPED` nếu treo dưới 0,5 s, `VEHICLE_NOT_ARMED` nếu trên 0,5 s (gần 0,5 s thì tùy pha). Không enable nào sau đó |
+| Treo, có Heartbeat | Bo chỉ `COMMAND_TIMEOUT`, telemetry vẫn mới; `VEHICLE_STOPPED` khi tỉnh dậy |
+
+Mất telemetry khi laptop vẫn chạy (`TELEMETRY_STALE`, `STALE_TELEMETRY`) đã có `SimVehicleIO.set_link` và test riêng;
+T6 không thêm cách tiêm lỗi cho trường hợp đó. Bằng chứng diễn tập trên bản commit (`drill.json` của các lần chạy) chưa
+có trong `docs/evidence/`.
+
 ## 8. Chưa kiểm / giới hạn
 
 - **Chưa chạy với ESP32-S3 hay MN300.** `SerialVehicleIO` mới chỉ nối vào phiên qua cổng serial GIẢ (mục 7), chưa
@@ -570,7 +954,50 @@ hình bo nhanh dùng trong test (`boot_hold_ms` 200), cùng phép thử cho 160 
   replay được. Giao diện không xuất gói replay cho các lần chạy đó. *(Cập nhật tối 24/09/2026: nay đây là từ chối có
   chủ ý, không còn là thiếu sót im lặng. `export_run` và `replay_run` ném `ReplayNotSupported` với lời báo tiếng Việt,
   và `export_run` từ chối trước khi tạo thư mục (mục 5, `tests/test_run_store_vehicle.py`). Bằng chứng của lần chạy qua
-  `VehicleIO` là log `VehicleLink.write_logs`. Phát lại một lần chạy qua `VehicleIO` vẫn CHƯA CÓ.)*
+  `VehicleIO` là log `VehicleLink.write_logs`. Phát lại một lần chạy qua `VehicleIO` vẫn CHƯA CÓ.)* *(Cập nhật
+  02/10/2026, T9: nay có. Lần chạy qua `VehicleIO` xuất gói và phát lại được bằng log (mục 5.1), mức MP: bo mô phỏng và
+  cổng serial GIẢ; bo thật CHƯA THỬ, START với bo thật vẫn bị từ chối. Phát lại log chứng minh "cùng đầu vào + mã → cùng
+  quyết định", không tái hiện xe.)*
+- *(Thêm 02/10/2026, T9.)* **Giới hạn của phát lại log** (mục 5.1): không chạy lại bước START; khung bị lấy khỏi hàng
+  đợi của `VehicleIO` ngoài lớp nối thì phát lại KHÁC; luồng `Heartbeat` song song (phiên chưa dùng) có thể làm
+  `latest()` khác; với đồng hồ tường, quyết định sát ngưỡng có thể lật; sai số 1e-9 và 5 ms là ĐỀ XUẤT; log ghi trước T9
+  bị từ chối.
+- *(Thêm 02/10/2026, T13.)* **Giới hạn của dòng `session_stop`.** Mới kiểm với bo mô phỏng và cổng serial giả; bo ảo QEMU
+  và ESP32-S3 chưa thử qua `Session`. Nhánh SIM không có `events.csv` nên không có `t_perf`; đổi thời gian của lần chạy
+  SIM sang `perf_counter` thì dùng dòng `CLOCK` của tệp dấu đồng bộ (T14, mục 5). Log không tự ghi: đóng cửa sổ giữa lần
+  chạy, hay mở lần chạy kế tiếp khi chưa "Xuất log CSV…", thì mất các dòng của lần đó; tự ghi chờ chốt nơi lưu biên bản.
+  `t_perf` của dòng sự kiện `VehicleIO` là lúc gom, không phải lúc bo phát. Đổi `t_io` sang `perf_counter` bằng `clock`
+  chỉ đúng với bo chạy thời gian thực trên đồng hồ mặc định. `fusion/demo.py` gọi `request_stop` mặc định (mất LiDAR, hết
+  bản ghi): nếu sau này chạy qua `VehicleIO` thì thành `USER_STOP`/`user`; hiện demo chỉ chạy nhánh SIM nên không ghi gì.
+- *(Thêm 02/10/2026, T15.)* **Nút "Xóa lỗi bo" chưa thử với bo thật.** Mở cổng có thể làm ESP32-S3 khởi động lại qua
+  DTR/RTS (CHƯA KIỂM); khi đó FAULT mất vì bo khởi động lại chứ không vì CLEAR_FAULT. Để phân biệt: báo cáo và các cột
+  `hello_*` của `board_actions.csv` có `boot_id` và lý do reset của HELLO_ACK, các khung có `t_bo`, và từ lần bấm thứ hai
+  có sự kiện `FIRMWARE_RESET` khi `boot_id` đổi. `board_actions.csv` xuất được cùng log của lần chạy qua `VehicleIO`,
+  hoặc (sửa sau review) ngay khi liên kết đang chọn chưa chạy lần nào; đổi nhánh chạy hay cổng thì liên kết bị thay và
+  các dòng chưa xuất mất. Chọn nhầm cổng LiDAR: chỉ một HELLO được gửi rồi hết giờ, như "Kiểm kết nối bo"; chặn duy nhất
+  là hộp thoại xác nhận. PING rào dùng hạn chờ ACK chung 0,5 s của `VehicleIO` (`ping()` chưa có tham số riêng), nên phần
+  tồn đọng rất lớn trong cổng (lượt sửa lỗi ước từ khoảng 600 kB) cho NO_LINK; bấm lại thì được, vì lần bấm trước đã đọc
+  hết phần tồn đọng.
+- *(Thêm 02/10/2026, T12.)* Giới hạn số lần đổi chiều mặc định TẮT. Con số (N-D6 đề xuất ≤ 2 ở kịch bản rộng, ≤ 7 ở kịch
+  bản hẹp) CHƯA CHỐT; giới hạn theo từng kịch bản trong tệp kịch bản: CHƯA CÓ. Kiểm đặt ở `Session.start_run`, nên bộ lập
+  đường không đổi và vẫn có thể trả đường nhiều đổi chiều.
+- *(Thêm 02/10/2026, T14.)* Dấu đồng bộ mới kiểm offscreen. Độ trễ từ lúc vẽ ô tới lúc ô sáng thật trên màn hình laptop:
+  CHƯA ĐO. Dòng `CLOCK` ghép `perf_counter` với thời gian phiên trong một nhịp giao diện (≈ 16 ms, tới 100 ms khi giao
+  diện khựng). Ở nhánh SIM và bo mô phỏng, thời gian phiên trôi so với đồng hồ thật (≈ 3,9 % trong một thử offscreen
+  01/10/2026, CHƯA ĐO trên giao diện thật), nên đổi sang `perf_counter` phải nội suy giữa hai dòng `CLOCK`.
+- *(Thêm 02/10/2026, T6.)* `SimVehicleIO.pause_host()`/`resume_host()` tái hiện "laptop treo hẳn" trên bo mô phỏng:
+  byte của bo nằm trong bộ đệm, không kiểm `TELEMETRY_STALE`, đọc dồn khi hết treo (đóng dấu lúc đọc). Cho cùng mã dừng
+  đầu với cổng serial giả ở 0,3 s (`VEHICLE_STOPPED`) và 1 s (`VEHICLE_NOT_ARMED`), cả 4 pha. Bộ đệm phía laptop không
+  giới hạn; giới hạn bộ đệm của cổng thật CHƯA ĐO.
+- *(Thêm 02/10/2026, T6.)* **Khoảng hở log khi xe đã đứng yên lúc sự kiện dừng tới** (ví dụ sau khi treo ≥ 1 s). Lần
+  chạy kết thúc ngay trong bước đó; nếu bước ấy không phải nhịp điều khiển thì không có lệnh dừng nào được ghi, và
+  `end_run` gửi enable=0 + DISARM mà không ghi dòng nào, nên `commands.csv` có thể không có dòng STOP (suy từ mã; 3/4
+  lần treo 1 s trong lượt diễn tập của người viết mã). Mốc của lần dừng khi đó là dòng `session_stop` (T13) hay `t_io`
+  của sự kiện. Sau một lần treo trên bo mô phỏng, thời gian thế giới của phiên (`t_session` của `commands.csv` và của
+  dòng `session_stop`) chậm hơn `t_session` = `t_io − t0` của dòng `stop`/`log` đúng bằng thời lượng treo; ghép các
+  tệp theo `t_io`.
+- *(Thêm 02/10/2026, T6.)* Dữ liệu đứng yên mà stamp vẫn mới (định vị kẹt lặp tư thế với stamp mới; ảnh đứng mà không
+  trùng từng byte): chưa có phản ứng an toàn nào, và T6 không có chế độ tiêm lỗi cho trường hợp này.
 - Các ngưỡng ở mục 9 đều CHƯA CHỐT.
 
 ## 9. Tham số (`LinkParams`, CHƯA CHỐT)
