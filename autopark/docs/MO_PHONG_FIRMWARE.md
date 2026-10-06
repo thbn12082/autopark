@@ -105,6 +105,16 @@ Kết quả (mã sau review, chạy 10:11–10:13 ngày 30/09/2026, máy bàn; t
   `test_parking_session_through_qemu_board` 6,4 s, QEMU dùng trung bình 1,01 lõi; không cảnh báo #175 hay LOOP_OVERRUN.
   Lượt 18:14–18:15 (cây gộp đợt 2, sau các sửa theo review): 14 đạt, 16,9 s; test phiên đỗ 6,4 s, QEMU 0,97 lõi. Đầu ra
   console và tệp JUnit để ngoài repo, không lưu trong repo.
+- Chạy lại trên commit `470abb3` (06/10/2026, cây làm việc sạch, 14:43–14:46): `kiem` đạt, 39 khung trong 2 s, cộng
+  15 khung nhận trước đó, QEMU khởi động 1 lần
+  ([kiem_bo_ao_470abb3.txt](evidence/dot2_20261006/kiem_bo_ao_470abb3.txt)); chạy lặp 10 lượt: 10/10 lượt đạt cả 14
+  test (7 chạy firmware thật trong QEMU), không có cảnh báo #175 hay LOOP_OVERRUN
+  ([chay_lap_test_bo_ao_470abb3.txt](evidence/dot2_20261006/chay_lap_test_bo_ao_470abb3.txt)). Trong lượt toàn bộ bộ
+  test `.venv-train` sau đó (14:57, sau lượt `.venv`; tải CPU 42 %), `test_parking_session_through_qemu_board` hỏng
+  một lần: START bị từ chối vì test trước để bo còn dốc tham chiếu tốc độ về 0 (≈ 167 ms); cổng START từ chối đúng,
+  khung của phiên trước bị lọc đúng; sửa ở test, đợt sau (101 lượt trên bo ảo:
+  [dua_start_bo_ao/README.txt](evidence/dot2_20261006/dua_start_bo_ao/README.txt);
+  [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 15).
 
 **Độ tin cậy khi máy bận** (30/09/2026; máy bàn đang chạy việc khác của người dùng):
 - Lúc sáng, khi máy đang rất bận (đo nhanh bằng `Get-Process`: Edge chạy ẩn dựng hình bằng CPU ≈ 13 lõi, một job mô
@@ -231,7 +241,8 @@ riêng): CHƯA LÀM. Chưa chạy thử: suy ra từ mã (`vehicle_core.h`, `com
 **Đã chạy.** Test: 54 test với bo ảo GIẢ (bảng thành phần ở đầu mục 1; danh sách ở
 [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 7) và `test_parking_session_through_qemu_board` với QEMU thật (hai lượt
 02/10/2026 ở danh sách kết quả trên). **Ứng dụng với bo ảo QEMU thật, không người bấm** (02/10/2026, 18:58, máy bàn, cây
-gộp đợt 2 trên `63017a5`, chưa commit): script [`chay_bo_ao_ui.py`](evidence/bo_ao_ui_20261002/chay_bo_ao_ui.py) dựng
+gộp đợt 2 trên `63017a5`, chưa commit; cùng các sửa sau đó, nay ở commit `470abb3`):
+script [`chay_bo_ao_ui.py`](evidence/bo_ao_ui_20261002/chay_bo_ao_ui.py) dựng
 `MainWindow` của `ui.app` (offscreen), chọn nhánh VehicleIO và mục "Bo ảo QEMU", gọi "Khởi động bo ảo" (ảnh firmware
 `esp32s3_qemu` đã build sẵn: RUNNING sau 0,5 s, QEMU khởi động 1 lần), lập đường `scenarios/bai_do_xe.json` (2,55 m, 1 lần
 đổi chiều), "Bắt đầu đỗ" hai lần, để vòng 50 Hz của cửa sổ chạy, rồi đóng cửa sổ. Kết quả
@@ -484,6 +495,9 @@ Thư mục [evidence/mo_phong_20260930/](evidence/mo_phong_20260930/):
   `chay_tren_commit.py` ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 9).
 - [cong_cu_20261002/](evidence/cong_cu_20261002/): chạy lại trên commit `d3e1555` (02/10/2026, cây làm việc sạch) bằng cùng script
   ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 11).
+- [dot2_20261006/](evidence/dot2_20261006/) *(thêm 06/10/2026)*: chạy lại trên commit `470abb3` (06/10/2026, cây
+  làm việc sạch) bằng cùng script; `dua_start_bo_ao/`: thí nghiệm về test phiên đỗ qua bo ảo bị từ chối START
+  ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 15).
 - [bo_ao_ui_20261002/](evidence/bo_ao_ui_20261002/) *(thêm 02/10/2026)*: lần chạy ứng dụng với bo ảo QEMU thật, các nút gọi
   bằng mã (mục 1.1): script `chay_bo_ao_ui.py`, kết quả `ket_qua_bai_do_xe.json`, `bo_ao.json` của lần khởi động bo ảo.
   Log đầy đủ của bo ảo (`uart0.log`, `build.log`…) nằm ở `runs/bo_ao_qemu/` (git bỏ qua).

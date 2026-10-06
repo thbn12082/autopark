@@ -13,7 +13,8 @@ trước đợt 26/09: <https://github.com/thbn12082/autopark/tree/9d68257>.
 diện offscreen, bản ghi phát lại. Chưa công cụ nào chạy với LiDAR, camera thật, bo ảo QEMU qua giao diện hay ESP32-S3
 thật. Công cụ đo EcoQoS của giao diện ở sơ đồ 3.7.)*
 
-*(Cập nhật 02/10/2026 lần hai, theo mã gộp đợt 2 (`63017a5` cộng các thay đổi chưa commit lúc viết) và các lượt chạy
+*(Cập nhật 02/10/2026 lần hai, theo mã gộp đợt 2 (`63017a5` cộng các thay đổi chưa commit lúc viết,
+nay là commit `470abb3`) và các lượt chạy
 thiết bị cùng ngày: sơ đồ 1.1, 1.2, 2.3–2.6, 3.4, 3.7, 4.1, 4.2, 4.4, 6.1, 6.6, 6.7, 8.1, 8.3, 8.4, 9.4; thêm sơ đồ 4.8;
 phần chữ của 2.2, 3.2, 3.3, 4.5, 6.2, 6.5, 7.1. Người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất: ứng
 dụng và công cụ đo tự tắt EcoQoS, xe nghiệm thu 0,10 m/s, giới hạn đổi chiều theo từng kịch bản nghiệm thu, định vị
@@ -242,7 +243,8 @@ Từ 02/10/2026 `replay_run` còn phát lại log của lần chạy qua
 T5), diễn tập tiêm lỗi trên mô phỏng (`fault_drill`, T6, thư viện `safety/fault_injection.py` chỉ test và công cụ dùng)
 và đo EcoQoS của giao diện (`ecoqos_gui`, sơ đồ 3.7); hai công cụ nghiệm thu mới kiểm bằng test và mô phỏng.
 
-Thêm trong đợt 2 (02/10/2026, mã gộp trên `63017a5`): `transport/qemu_plant.py` (xe mô phỏng phía laptop đi cùng bo ảo)
+Thêm trong đợt 2 (02/10/2026, mã gộp trên `63017a5`, nay là commit `470abb3`):
+`transport/qemu_plant.py` (xe mô phỏng phía laptop đi cùng bo ảo)
 và `ui/qemu_runner.py` (nút "Khởi động bo ảo") cho bo ảo QEMU trong phiên đỗ (sơ đồ 2.3, 6.7);
 `application/lidar_pose_source.py`, `lidar/pose_estimator.py`, `lidar/map_builder.py`, `lidar/pose_config.py` cho nguồn
 tư thế LiDAR (T2, sơ đồ 4.1); gói `estimation` vẫn trống. `rig/session_recording.py` và `ui/record_dock.py` ghi cảm biến
@@ -2508,8 +2510,8 @@ Xanh: đã có và đã kiểm trên máy tính · Vàng: chỉ trong bo ảo ·
 Đọc thế nào: "đã biên dịch" khác "đã chạy trên bo", "bo ảo" khác "bo thật"; số đo trong QEMU không phải số đo phần cứng.
 Lượt chạy lặp 10 lần của test bo ảo đạt 10/10 trên `ebbec83` (30/09/2026) và `d3e1555` (02/10/2026), khi tệp còn 13
 test; tệp 14 test (thêm `test_parking_session_through_qemu_board`, phiên đỗ qua bo ảo với xe mô phỏng phía laptop) đạt
-14/14 ở hai lượt chạy trong lúc làm ngày 02/10/2026 ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1); lượt mới nhất
-ở sơ đồ 9.2.
+14/14 ở hai lượt chạy trong lúc làm ngày 02/10/2026 và 10/10 lượt chạy lặp trên `470abb3` (06/10/2026)
+([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1); lượt mới nhất ở sơ đồ 9.2.
 Test host bắt được cả bảy đột biến vector; máy không có cmake, g++ hay QEMU thì các test tương ứng tự bỏ qua. Các cơ chế
 chỉ có trên chip (xung LEDC 50 Hz, `output_guard` 100 ms, task watchdog 1 s, móc panic, ngõ E-stop, USB-CDC): CHƯA THỬ
 trên bo thật; trình giả lập mới thử được một phần ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 2).
@@ -3096,19 +3098,22 @@ sequenceDiagram
     N->>J: dẫn số vào tài liệu bằng commit riêng
 ```
 
-Đọc thế nào: lượt mới nhất (commit `d3e1555`, cây làm việc sạch, máy bàn, 02/10/2026, offscreen, JUnit ghi
-`ecoqos=off`): `.venv` 1645 đạt, 8 bỏ qua (cần torch), 0 hỏng, 469 s; `.venv-train` 1707 đạt, 0 hỏng, 483 s; bo ảo 10/10
-lượt đạt, mỗi lượt 13 test, 6 trong đó chạy firmware thật trong QEMU. Thêm 265 test so với lượt trên `c03ff94`
-(01/10/2026), là test của các công cụ nghiệm thu mới. Script không tự checkout commit: người chạy phải ở
+Đọc thế nào: lượt mới nhất (commit `470abb3`, cây làm việc sạch, máy bàn, 06/10/2026, offscreen, JUnit ghi
+`ecoqos=off`): `.venv` 2105 đạt, 10 bỏ qua (cần torch), 0 hỏng, 640 s, nhưng tiến trình thoát mã 0xC0000005 sau khi
+đã ghi JUnit (có lẽ lúc tắt Python; chưa rõ nguyên nhân); `.venv-train` 2168 đạt, 1 hỏng, 683 s (test bo ảo bị từ
+chối START vì test trước để bo còn dốc tham chiếu tốc độ về 0: cổng START từ chối đúng, sửa ở test); bo ảo 10/10
+lượt đạt, mỗi lượt 14 test, 7 trong đó chạy firmware thật trong QEMU. Thêm 462 test so với lượt trên `d3e1555`
+(02/10/2026). Script ghi mã thoát của pytest nhưng không giữ stdout lẫn stderr.
+Script không tự checkout commit: người chạy phải ở
 đúng commit với cây làm việc sạch. Mục `[tool.pytest.ini_options]` của `pyproject.toml` đặt
 `tmp_path_retention_policy = "failed"`: chỉ giữ thư mục tạm của test hỏng.
 
 Chi tiết: [chay_tren_commit.py](evidence/mo_phong_20260930/chay_tren_commit.py) (bản sửa 01/10/2026:
 [evidence/bien_tap_20261001/chay_tren_commit.py](evidence/bien_tap_20261001/chay_tren_commit.py)) ·
-[chay_tren_commit_d3e1555.txt](evidence/cong_cu_20261002/chay_tren_commit_d3e1555.txt) ·
-[pytest_venv_d3e1555.xml](evidence/cong_cu_20261002/pytest_venv_d3e1555.xml) ·
-[pytest_venv_train_d3e1555.xml](evidence/cong_cu_20261002/pytest_venv_train_d3e1555.xml) ·
-[CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8, 9, 11 · [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) · mã:
+[chay_tren_commit_470abb3.txt](evidence/dot2_20261006/chay_tren_commit_470abb3.txt) ·
+[pytest_venv_470abb3.xml](evidence/dot2_20261006/pytest_venv_470abb3.xml) ·
+[pytest_venv_train_470abb3.xml](evidence/dot2_20261006/pytest_venv_train_470abb3.xml) ·
+[CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8, 9, 11, 15 · [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) · mã:
 [conftest.py](../tests/conftest.py), [power_throttling.py](../autopark/power_throttling.py),
 [pyproject.toml](../pyproject.toml).
 
@@ -3235,7 +3240,8 @@ trước khi đưa vào đây. Mọi sơ đồ đã qua kiểm cú pháp bằng 
 sửa sơ đồ trong cùng đợt việc, theo quy ước ở [mục lục kỹ thuật](README.md). Các sơ đồ sửa ngày 02/10/2026 (danh sách ở
 đầu tệp) được đối chiếu với mã, docstring và lệnh `--help` của đợt công cụ nghiệm thu (commit `d3e1555`)
 cùng báo cáo của người làm từng công cụ. Các sơ đồ sửa lần hai cùng ngày được đối chiếu với mã của cây gộp đợt 2 (trên
-`63017a5`, sau đợt sửa lỗi theo review), báo cáo của người làm, tóm tắt review và tệp bằng chứng của các lượt chạy ngày
+`63017a5`, sau đợt sửa lỗi theo review; nay là commit `470abb3`),
+báo cáo của người làm, tóm tắt review và tệp bằng chứng của các lượt chạy ngày
 02/10/2026 (`evidence/thiet_bi_20261002/`, `evidence/ecoqos_chay_02102026/`, `evidence/bo_ao_ui_20261002/`).
 
 | Mục | Mã và tài liệu chính |

@@ -502,6 +502,7 @@ Test (chạy trên máy tính, không mở camera hay cổng nào; số test và
 | `tests/test_score_run.py`, `tests/test_nominal_clock_and_reader_stop.py` | T5: sai số đồng bộ khai báo của đồng hồ `perf_counter`; tham chiếu tổng hợp bị từ chối ở BT/XT; đồng hồ video danh định cần ≥ 2 cặp |
 
 Lượt kiểm chuỗi lệnh khi viết tài liệu này (02/10/2026 19:04–19:05, máy bàn, cây gộp đợt 2 = commit `63017a5` cộng các
-thay đổi chưa commit, đầu ra ở thư mục tạm, không lưu): `synthetic`, `floor`, `tc1 --kind full`, `track` và `check`
+thay đổi chưa commit; các thay đổi đó, cùng các sửa sau đó, nay ở commit `470abb3`;
+đầu ra ở thư mục tạm, không lưu): `synthetic`, `floor`, `tc1 --kind full`, `track` và `check`
 (khớp mặt sàn, tệp tham chiếu, JSON bản ghi) theo `README.txt` của bộ thử đều thoát mã 0, ra các số ở mục 13. Không có
 lượt nào với camera thật.

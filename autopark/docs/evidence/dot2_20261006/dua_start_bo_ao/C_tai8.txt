@@ -1,0 +1,20 @@
+EcoQoS tiến trình: off; python D:\xetulai\autopark\autopark\.venv\Scripts\python.exe; tải nhân tạo 8
+tải CPU trước khi chạy: 16.6 %
+tải CPU sau khi bật 8 tiến trình bận: 52.6 %
+QEMU pid 4052, socket://127.0.0.1:49372, khởi động 1 lần
+#00 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[210.1, 230.1, 250.1] dtau_run=[210, 230, 250] tau0_park=None tau_run=3393 lat=[5.9, 5.9, 6.0] plan=164ms park→ret=250ms foreign=0 cpu=53.5% nb=ok warn=0
+#01 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[208.0, 228.3, 249.2] dtau_run=[210, 230, 250] tau0_park=None tau_run=5673 lat=[4.4, 4.6, 5.5] plan=166ms park→ret=250ms foreign=0 cpu=58.7% nb=ok warn=0
+#02 d=0.05 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[271.8, 292.7, 312.9] dtau_run=[270, 290, 310] tau0_park=None tau_run=7953 lat=[4.3, 5.2, 5.4] plan=184ms park→ret=265ms foreign=0 cpu=59.0% nb=ok warn=0
+#03 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[242.6, 262.8, 282.7] dtau_run=[240, 260, 280] tau0_park=None tau_run=10293 lat=[4.3, 4.4, 4.3] plan=188ms park→ret=283ms foreign=1 cpu=58.5% nb=ok warn=0
+#04 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[190.7, 210.2, 230.2] dtau_run=[190, 210, 230] tau0_park=None tau_run=12603 lat=[5.3, 4.8, 4.8] plan=147ms park→ret=232ms foreign=0 cpu=57.7% nb=ok warn=0
+#05 d=0.05 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[259.3, 279.4, 300.4] dtau_run=[260, 280, 300] tau0_park=None tau_run=14863 lat=[4.4, 4.4, 5.4] plan=178ms park→ret=250ms foreign=0 cpu=57.4% nb=ok warn=0
+#06 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[190.0, 210.1, 230.1] dtau_run=[190, 210, 230] tau0_park=None tau_run=17193 lat=[4.1, 4.1, 4.2] plan=148ms park→ret=232ms foreign=0 cpu=57.8% nb=ok warn=0
+#07 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[205.0, 225.0, 245.0] dtau_run=[210, 230, 250] tau0_park=None tau_run=19453 lat=[4.2, 4.2, 4.2] plan=162ms park→ret=245ms foreign=0 cpu=54.4% nb=ok warn=0
+#08 d=0.05 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[256.2, 276.0, 296.0] dtau_run=[260, 280, 300] tau0_park=None tau_run=21733 lat=[5.0, 4.8, 4.8] plan=160ms park→ret=246ms foreign=0 cpu=56.9% nb=ok warn=0
+#09 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[248.1, 267.7, 288.2] dtau_run=[250, 270, 290] tau0_park=None tau_run=24063 lat=[4.5, 4.1, 4.6] plan=200ms park→ret=290ms foreign=0 cpu=52.2% nb=ok warn=0
+#10 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[190.9, 210.9, 231.8] dtau_run=[190, 210, 230] tau0_park=None tau_run=26383 lat=[4.6, 4.6, 5.5] plan=136ms park→ret=226ms foreign=1 cpu=49.7% nb=ok warn=0
+#11 d=0.05 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[253.6, 273.5, 293.5] dtau_run=[300, 320, 340] tau0_park=None tau_run=28593 lat=[4.9, 4.8, 4.8] plan=163ms park→ret=245ms foreign=0 cpu=52.2% nb=ok warn=0
+#12 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[197.9, 217.9, 238.7] dtau_run=[200, 220, 240] tau0_park=None tau_run=30963 lat=[4.9, 4.9, 5.7] plan=152ms park→ret=240ms foreign=0 cpu=52.0% nb=ok warn=0
+#13 d=0.00 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[199.6, 219.6, 239.7] dtau_run=[200, 220, 240] tau0_park=None tau_run=33233 lat=[4.7, 4.8, 4.8] plan=155ms park→ret=241ms foreign=0 cpu=51.2% nb=ok warn=0
+#14 d=0.05 START ĐẠT refs=[0, 0, 0] v=[0, 0, 0] dp_stop=[240.3, 260.4, 280.4] dtau_run=[240, 260, 280] tau0_park=None tau_run=35503 lat=[5.0, 5.1, 5.0] plan=159ms park→ret=232ms foreign=0 cpu=49.4% nb=ok warn=0
+xong sau 39 s

@@ -368,8 +368,8 @@ lần mỗi máy" (laptop RTX 3050 Ti: CHƯA ĐO); N-C1 … N-C3, N-T4 … N-T7 
 ([NGUONG_NGHIEM_THU_DE_XUAT.md](NGUONG_NGHIEM_THU_DE_XUAT.md) mục 12); máy chạy khi nghiệm thu do người dùng chọn
 ([KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 8). Điều kiện V1 số 2.
 
-**Điều kiện trước.** Laptop có mã của đợt 2 (`git pull` sau khi đợt 2 được commit và push); checkpoint
-`runs\ai_woodscape_rtx4000_v1\best.pt` chép từ máy bàn; Python 3.12; mạng Internet để cài.
+**Điều kiện trước.** Laptop có mã của đợt 2 (`git pull`; đợt 2 là commit `470abb3`, đã push ngày 06/10/2026);
+checkpoint `runs\ai_woodscape_rtx4000_v1\best.pt` chép từ máy bàn; Python 3.12; mạng Internet để cài.
 
 **Các bước** ([MAY_NOP_DO_AN.md](MAY_NOP_DO_AN.md) mục 2):
 1. `git pull` trong repo trên laptop (hay `git clone https://github.com/thbn12082/autopark`).

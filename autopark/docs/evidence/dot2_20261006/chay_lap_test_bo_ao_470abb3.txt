@@ -1,0 +1,12 @@
+# Chạy lặp tests/test_firmware_qemu.py, commit 470abb3, máy bàn, bắt đầu 06/10/2026 14:43:40
+lượt  1: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 17s
+lượt  2: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 16s
+lượt  3: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 16s
+lượt  4: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 16s
+lượt  5: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 17s
+lượt  6: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 16s
+lượt  7: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 16s
+lượt  8: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 16s
+lượt  9: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 16s
+lượt 10: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; cảnh báo QEMU tự thoát (#175): 0; cảnh báo LOOP_OVERRUN: 0; 16s
+# kết thúc 14:46:21

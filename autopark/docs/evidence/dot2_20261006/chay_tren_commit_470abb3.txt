@@ -1,0 +1,6 @@
+# Chạy trên commit 470abb3 (cây làm việc sạch), máy bàn, bắt đầu 06/10/2026 14:43:29
+kiem: exit=0
+chạy lặp: 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua; 14 đạt, 0 hỏng, 0 lỗi, 0 bỏ qua
+.venv: bắt đầu 14:46:22, tải CPU 10 %, exit=3221225477, 2115 test, 0 hỏng, 0 lỗi, 10 bỏ qua, 640 s (JUnit), 641 s (cả lệnh), ecoqos=off, hỏng: []
+.venv-train: bắt đầu 14:57:05, tải CPU 42 %, exit=1, 2169 test, 1 hỏng, 0 lỗi, 0 bỏ qua, 683 s (JUnit), 685 s (cả lệnh), ecoqos=off, hỏng: ['tests.test_firmware_qemu::test_parking_session_through_qemu_board']
+# kết thúc 15:08:30

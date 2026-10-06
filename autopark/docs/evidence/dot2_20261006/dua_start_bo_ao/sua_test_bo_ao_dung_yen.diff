@@ -1,0 +1,83 @@
+--- a/autopark/tests/test_firmware_qemu.py
++++ b/autopark/tests/test_firmware_qemu.py
+@@ -100,6 +100,27 @@
+         io.close()
+ 
+ 
++def wait_board_at_rest(board, timeout_s: float = 1.0) -> float:
++    """Chờ firmware dốc xong tham chiếu tốc độ về 0 (thêm 06/10/2026). Test trước có thể dừng xe rồi trả về ngay
++    (`test_nonblocking_control_loop_keeps_up_with_telemetry`: 0,1 m/s, stop + DISARM, không chờ); firmware còn dốc về 0
++    theo stop_decel 600 mm/s² (≈ 167 ms), và cổng START của VehicleLink từ chối ĐÚNG ("Xe đang chuyển động") khi khung
++    START cuối còn speed_ref ≠ 0: lượt .venv-train trên 470abb3 ngày 06/10/2026 hỏng như vậy (tham chiếu của bo
++    +0,004 m/s). Mở một phiên riêng (HELLO đưa bo về DISARMED, không gửi lệnh chuyển động), đọc telemetry tới khi
++    speed_ref = 0, đóng. Bo đang FAULT có speed_ref = 0 nên trả ngay (START tự báo lỗi đó). Quá `timeout_s` →
++    AssertionError. Trả số giây đã chờ (đồng hồ của io)."""
++    io = board.open_io()
++    try:
++        t0 = io.now()
++        qemu_board.connect_with_retry(io)
++        io.wait_ready()
++        while io.latest().speed_ref_mps != 0.0:
++            assert io.now() - t0 < timeout_s, f"bo chưa dốc về 0 sau {timeout_s:g} s: {io.latest()}"
++            io.poll()
++        return io.now() - t0
++    finally:
++        io.close()
++
++
+ def on_board(board, body, attempts: int = 3):
+     """Chạy `body(io)` trên một phiên mới. Hỏng (assert, VehicleIOError, lỗi cổng, kể cả lúc mở phiên) do chính bo ảo thì
+     kết quả vô nghĩa, chạy lại, tối đa `attempts` lần, có cảnh báo: (1) tiến trình QEMU tự thoát (espressif/qemu#175, hay
+@@ -211,6 +232,28 @@
+     assert len(calls) == 2 and board.starts == 1
+ 
+ 
++def test_wait_board_at_rest_waits_out_the_stop_ramp():
++    """Bo giả: phiên trước dừng ở 0,1 m/s rồi đóng ngay như cuối test nonblocking; `wait_board_at_rest` phải chờ hết dốc
++    stop_decel (0,1 m/s ÷ 0,6 m/s² ≈ 0,17 s) để phiên của START thấy speed_ref = 0 ngay khung đầu (06/10/2026)."""
++    board = LoopbackBoard()
++    io = fresh_io(board)
++    io.arm()
++    for _ in range(50):                                              # ≈ 0,5 s ở 0,1 m/s, lệnh mới mỗi ≈ 10 ms
++        io.send(0.1, 0.0, enable=True, validity_s=0.15)
++        io.poll()
++    assert io.latest().speed_ref_mps == pytest.approx(0.1)
++    io.stop()
++    io.disarm()
++    io.close()
++    assert board.firmware.speed_ref_mm_s >= 90                       # firmware còn dốc về 0
++    assert 0.1 <= wait_board_at_rest(board) <= 0.3
++    assert board.firmware.speed_ref_mm_s == 0
++    io = fresh_io(board)
++    assert io.latest().speed_ref_mps == 0.0                          # khung đầu của phiên sau: đứng yên
++    io.close()
++    assert wait_board_at_rest(board) < 0.1                           # đã đứng yên: không chờ thêm khung nào
++
++
+ # ---- bo ảo QEMU -----------------------------------------------------------------------------------------------------
+ @pytest.fixture(scope="module")
+ def board():
+@@ -341,11 +384,13 @@
+ 
+ def parking_run(board, scenario, cfg) -> tuple[Session, VehicleLink, float | None]:
+     """Một lần đỗ VEHICLE_IO qua bo ảo theo đồng hồ tường (nhịp 16 ms như giao diện, tối đa 20 s). Trả (phiên, liên kết,
+-    số lõi CPU QEMU dùng trung bình trong lần chạy hoặc None)."""
++    số lõi CPU QEMU dùng trung bình trong lần chạy hoặc None). Trước START chờ bo dốc xong về 0 (`wait_board_at_rest`,
++    06/10/2026): người vận hành cũng chờ xe đứng yên rồi mới bấm Bắt đầu đỗ."""
+     session = Session(scenario, cfg)
+     assert session.plan_sync().ok
+     link = VehicleLink.qemu_board(DriveMode.VEHICLE_IO, BoardSource(board))
+     session.set_vehicle_link(link)
++    wait_board_at_rest(board)
+     session.start_run()
+     cpu0, t0 = board.cpu_seconds(), time.perf_counter()
+     deadline = t0 + 20.0
+@@ -371,7 +416,7 @@
+             board.start()
+         try:
+             session, link, cores = parking_run(board, scenario, cfg)
+-        except SessionError as exc:
++        except (SessionError, VehicleIOError, OSError) as exc:          # 2 loại sau: phiên chờ của wait_board_at_rest
+             if attempt == 1 and ("LOOP_OVERRUN" in str(exc) or not board.running()):
+                 warnings.warn(f"bo ảo trục trặc lúc START ({exc}); xóa lỗi hoặc khởi động lại rồi chạy lại một lần")
+                 if board.running():

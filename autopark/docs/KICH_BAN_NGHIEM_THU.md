@@ -72,7 +72,8 @@ cổng trong tệp đó ([chuyển máy](CHUYEN_MAY_BAN.md)).
   cổng serial giả, camera giả, bản ghi phát lại), CHƯA THỬ trên thiết bị thật. Vẫn thiếu: nguồn tư thế thật cho phiên
   (T2), ghi cảm biến trong phiên (T3), công cụ tham chiếu trên cao (T4), LED đồng bộ (T7), mã đọc cảm biến trong firmware
   (T8); mục 7.)*
-  *(Cập nhật 02/10/2026, sau `63017a5`: T2 (nguồn tư thế LiDAR cho phiên), T3 (ngăn "Ghi cảm biến" của `ui.lidar_app`) và
+  *(Cập nhật 02/10/2026, sau `63017a5` (cây gộp đợt 2, nay là commit `470abb3`):
+  T2 (nguồn tư thế LiDAR cho phiên), T3 (ngăn "Ghi cảm biến" của `ui.lidar_app`) và
   T4 (công cụ tham chiếu trên cao) nay có ở mức phần mềm: T2 kiểm ở mức MP và trên bản ghi C1 đứng yên, T3 mới kiểm
   offscreen với nguồn giả, T4 mới kiểm trên ảnh TỔNG HỢP; cả ba CHƯA THỬ với thiết bị. Vẫn thiếu T7 và T8 (mã đọc cảm
   biến trong firmware). START với bo thật vẫn bị từ chối (mục 7, dòng T2).)*
@@ -1009,7 +1010,7 @@ Mỗi kịch bản CB trên xe thật chỉ làm ở M3 sau khi tình huống t�
 | Số lần | 10 |
 | Dữ liệu ghi | GD1–GD6 |
 | Công cụ, lệnh | MP (không chạm thiết bị): `.venv\Scripts\python.exe -X utf8 -m pytest tests\test_session_vehicle.py -k stale_pose`. Xe thật: CHƯA CÓ (T2, T6, T13) *(Cập nhật 02/10/2026: thêm diễn tập MP `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.fault_drill pose --mode hold --repeat 10 --out runs\fault_drill\<ngay> --name cb6` (và `--mode silent`) và test `.venv\Scripts\python.exe -X utf8 -m pytest tests\test_session_stop_log.py -k stale_pose`. T6 (mức MP) và T13 đã có; xe thật còn chờ T2)* |
-| Điều kiện trước | ĐK-XT; T2; T6; T13 *(02/10/2026: T6 có ở mức MP, T13 đã có; T2 vẫn chưa)* *(Cập nhật 02/10/2026, sau `63017a5`: T2 nay có ở mức MP và trên bản ghi C1 đứng yên; mục 7)* |
+| Điều kiện trước | ĐK-XT; T2; T6; T13 *(02/10/2026: T6 có ở mức MP, T13 đã có; T2 vẫn chưa)* *(Cập nhật 02/10/2026, sau `63017a5`, nay ở commit `470abb3`: T2 nay có ở mức MP và trên bản ghi C1 đứng yên; mục 7)* |
 | Ngưỡng | N-T2, N-P10 |
 | Trạng thái | CHƯA THỬ (có test mô phỏng `test_stale_pose_source_stops_the_run`) *(02/10/2026: thêm diễn tập MP trên bo mô phỏng; kiểm của công cụ là `STALE_POSE` trong ≤ 0,175 s (HOLD) hay ≤ 0,025 s (SILENT) và không enable nào sau lần dừng, không phải ngưỡng N-T2)* *(02/10/2026, T2, MP với LiDAR mô phỏng và bo mô phỏng: che LiDAR → `POSE_LOST` sau 0,16 s; nguồn im → `STALE_POSE` sau 0,18 s; không enable nào sau lần dừng (`tests/test_session_lidar_pose.py`))* |
 
@@ -1206,7 +1207,8 @@ kiểm bằng test trên máy tính: bo mô phỏng, cổng serial giả, camera
 với LiDAR, camera, màn hình thật, bo ảo QEMU qua giao diện hay ESP32-S3. Vẫn chưa có: T2, T3, T4 (trừ định dạng tệp), T7,
 T8 (mã đọc cảm biến trong firmware).)*
 
-*(Cập nhật 02/10/2026, sau `63017a5` (cây gộp đợt 2): T2, T3, T4 nay có ở mức phần mềm, xem từng dòng. T2 kiểm ở mức MP
+*(Cập nhật 02/10/2026, sau `63017a5` (cây gộp đợt 2, nay là commit `470abb3`):
+T2, T3, T4 nay có ở mức phần mềm, xem từng dòng. T2 kiểm ở mức MP
 và trên bản ghi C1 đứng yên; T3 mới kiểm offscreen với nguồn giả; T4 mới kiểm trên ảnh TỔNG HỢP và camera giả. Cả ba CHƯA
 THỬ với thiết bị (LiDAR gá trên xe chạy, camera và C1 thật trong `ui.lidar_app`, camera trên cao). Câu "Vẫn chưa có: T2,
 T3, T4 (trừ định dạng tệp), …" ở trên đã lỗi thời cho ba công cụ này; vẫn chưa có T7 và T8 (mã đọc cảm biến trong

@@ -11,8 +11,9 @@ hành vi) và sửa cách đếm khung của `python -m autopark.transport.qemu_
 mỗi số đo ghi ngày và máy đo trong hồ sơ gốc. Bản trước đợt này: [ff4a018](https://github.com/thbn12082/autopark/tree/ff4a018);
 bản trước đợt 26/09/2026: [9d68257](https://github.com/thbn12082/autopark/tree/9d68257). Cập nhật 02/10/2026 cho các
 công cụ nghiệm thu của commit `d3e1555` (gạch đầu dòng cuối của phần hiện trạng, dòng "Điều khiển xe" và dòng "Nghiệm thu" của bảng).
-Cập nhật lần hai cùng ngày cho đợt 2 (mã gộp trên `63017a5`, chưa commit lúc viết) và các lượt chạy thiết bị ngày
-02/10/2026: phần hiện trạng, bảng thiết bị, sơ đồ luồng V1, bảng "Đã có gì, còn thiếu gì?".
+Cập nhật lần hai cùng ngày cho đợt 2 (mã gộp trên `63017a5`, chưa commit lúc viết; nay là commit `470abb3`)
+và các lượt chạy thiết bị ngày 02/10/2026: phần hiện trạng, bảng thiết bị, sơ đồ luồng V1,
+bảng "Đã có gì, còn thiếu gì?".
 
 Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**
 ([phạm vi sử dụng](autopark/docs/GIAY_PHEP_DU_LIEU.md), mục "Dữ liệu và ghi công" cuối trang).
@@ -69,6 +70,9 @@ Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://gith
   trên cao R1 (T4). Firmware vẫn biên dịch cứng 300 mm/s nên bo ảo và ESP32-S3 từ chối xe nghiệm thu ở VehicleIO
   (LIMITS_MISMATCH, hướng an toàn; suy ra từ mã, chưa chạy thử); bản firmware 100 mm/s CHƯA LÀM. Chi tiết:
   [tổng quan](TONG_HOP_DU_AN.md) mục 4.15, 5.4; lệnh: [hướng dẫn chạy](autopark/README.md) mục 3, 4, 7–9.
+  *(Cập nhật 06/10/2026: toàn bộ test trên commit `470abb3`: `.venv` 2.105 đạt, 10 bỏ qua, 0 hỏng, nhưng tiến trình
+  thoát bất thường sau khi chạy hết; `.venv-train` 2.168 đạt, 1 hỏng (test bo ảo: test trước để bo còn dốc tham chiếu
+  tốc độ về 0, cổng START từ chối đúng); [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 15.)*
 
 ## Bắt đầu từ đâu?
 
@@ -233,9 +237,10 @@ chưa làm. GĐ 10 có dàn ý khóa luận, kịch bản và ngưỡng nháp, c
 từng giai đoạn: [tổng quan](TONG_HOP_DU_AN.md) mục 3; sơ đồ 8.1 và 8.3 trong
 [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
-Số test là kiểm trên máy tính, không thay số đo thiết bị. Lượt mới nhất (commit `d3e1555`, cây làm việc sạch, máy bàn,
-offscreen, 02/10/2026): [tóm tắt](autopark/docs/evidence/cong_cu_20261002/chay_tren_commit_d3e1555.txt); các lượt trước
-và giới hạn: [tổng quan](TONG_HOP_DU_AN.md) mục 7.
+Số test là kiểm trên máy tính, không thay số đo thiết bị. Lượt mới nhất (commit `470abb3`, cây làm việc sạch, máy bàn,
+offscreen, 06/10/2026): [tóm tắt](autopark/docs/evidence/dot2_20261006/chay_tren_commit_470abb3.txt); có 1 test bo ảo
+hỏng và một lần tiến trình pytest thoát bất thường sau khi chạy hết ([biên bản chuyển
+máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 15); các lượt trước và giới hạn: [tổng quan](TONG_HOP_DU_AN.md) mục 7.
 
 ## Chạy mô phỏng trên Windows
 

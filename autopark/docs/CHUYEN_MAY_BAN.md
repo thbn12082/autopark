@@ -625,7 +625,8 @@ Bản ghi phiên, `.rig.json` đầy đủ, đầu ra gốc và tệp theo dõi 
 
 Mã: các lệnh từ 14:08 tới 17:00 chạy trên cây chính ở commit `63017a5`, tức trước đợt 2: `rig.bench` chưa tự tắt EcoQoS,
 driver C1 chưa có bản sửa ở mục 12.2. LD-1 lần 3 chạy trên cây gộp đợt 2 (`63017a5` cộng các thay đổi chưa commit), có
-bản sửa đó. `camera_bench` và `fusion.demo` chạy bằng `.venv`; `rig.bench` bằng `.venv-train`.
+bản sửa đó *(các thay đổi đó, cùng các sửa sau đó, nay ở commit `470abb3`, mục 15)*.
+`camera_bench` và `fusion.demo` chạy bằng `.venv`; `rig.bench` bằng `.venv-train`.
 
 ### 12.1. Các lượt chạy
 
@@ -706,8 +707,9 @@ không cần RESET. `flush()` (`thu_flush.py`) sau 0,5 s và 1,0 s không đọc
 
 ### 12.3. Kiểm tĩnh nguồn tư thế LiDAR (T2) trên C1 thật
 
-21:00, cây chính đã có mã đợt 2 (chưa commit), driver C1 đã sửa; C1 đứng yên trên bàn, nhìn phòng (chưa có sa bàn
-thật); không ai ở cạnh. Lệnh và số trong [t2_kiem_tinh.tom_tat.json](evidence/thiet_bi_20261002/t2_kiem_tinh.tom_tat.json):
+21:00, cây chính đã có mã đợt 2 (chưa commit lúc đó; nay là commit `470abb3`, mục 15), driver C1 đã sửa; C1 đứng
+yên trên bàn, nhìn phòng (chưa có sa bàn thật); không ai ở cạnh. Lệnh và số trong
+[t2_kiem_tinh.tom_tat.json](evidence/thiet_bi_20261002/t2_kiem_tinh.tom_tat.json):
 `lidar.bench record` 20 s (bản đồ) rồi 30 s (kiểm), cùng chỗ; `lidar.map_builder --anchor 0 0 0` (một chỗ đặt: ok,
 session_ready); `lidar.pose_estimator --sensor-frame --initial 0 0 0` trên bản ghi kiểm.
 
@@ -767,7 +769,8 @@ lại SIM và bo mô phỏng ra cùng kết quả).
 (`tom_tat.txt`, `may.json`, `ket_qua.jsonl`, `nhat_ky.txt`, `powercfg_bo_xu_ly.txt`, kịch bản đã dùng
 `kich_ban_bai_do_xe.json`, chuỗi nhịp thô `nhip/*.json.gz`).
 - Lệnh `python -X utf8 -m autopark.evaluation.ecoqos_gui do-chay --ra docs/evidence/ecoqos_chay_02102026`, tham số mặc
-  định, từ cây gộp đợt 2 (commit `63017a5` cộng 151 tệp chưa commit), chạy từ shell của tác tử.
+  định, từ cây gộp đợt 2 (commit `63017a5` cộng 151 tệp chưa commit; các thay đổi đó, cùng các sửa sau đó, nay ở
+  commit `470abb3`, mục 15), chạy từ shell của tác tử.
 - Máy bàn (i9-14900, 32 bộ xử lý logic, lõi E là LP 16–31), Windows 11 26200, kế hoạch nguồn High performance, cắm điện,
   màn hình không tự tắt khi cắm điện. Ở cả 32 lần bấm phiên Windows mở và màn hình bật; không ai dùng máy. Tải nền
   1,7–20,3 % (một ứng dụng Omniverse của người dùng chạy cùng lúc).
@@ -889,4 +892,45 @@ Giới hạn:
 - Kịch bản dùng xe `vehicle_default.json`. Firmware biên dịch cứng `max_speed_mm_s` = 300, nên với xe nghiệm thu
   `configs/vehicle_nghiem_thu.json` (0,10 m/s) bo ảo và ESP32-S3 bị TỪ CHỐI ở VEHICLE_IO (LIMITS_MISMATCH, an toàn); với bo
   ảo chưa chạy thử, suy ra từ mã. Bản firmware 100 mm/s: CHƯA LÀM.
+- Chạy được trong bo ảo không chứng minh gì về bo thật ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1).
+
+## 15. Đợt 2, chạy lại trên commit `470abb3` (06/10/2026)
+
+Commit `470abb3` (06/10/2026, đã push lên `origin/main`) gồm mã, tài liệu và bằng chứng của đợt 2 (mục 10.1, 12–14;
+người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất). Bộ test có thêm 462 test ở mỗi venv so với lượt trên
+`d3e1555` (mục 11): test của các phần mới trong đợt 2.
+
+Chạy trên commit đó, cây làm việc sạch, cùng máy, 06/10/2026 14:43–15:08, offscreen, từ shell của tác tử, bằng script
+của mục 11 ([chay_tren_commit.py](evidence/cong_cu_20261002/chay_tren_commit.py)); tóm tắt:
+[chay_tren_commit_470abb3.txt](evidence/dot2_20261006/chay_tren_commit_470abb3.txt). Trong lúc chạy, máy còn có các tác
+tử thiết kế đợt sau đọc mã và chạy thí nghiệm nhỏ (tải CPU lúc bắt đầu ghi trong bảng).
+
+| Lượt (giờ bắt đầu, tải CPU) | Kết quả | Thời gian | Tệp |
+|---|---|---|---|
+| `.venv` (14:46, 10 %) | **2105 đạt, 10 bỏ qua** (cần torch), 0 hỏng; tiến trình thoát mã **0xC0000005** sau khi chạy hết | 640 s | [pytest_venv_470abb3.xml](evidence/dot2_20261006/pytest_venv_470abb3.xml) |
+| `.venv-train` (14:57, 42 %) | **2168 đạt, 1 hỏng** (`test_parking_session_through_qemu_board`), 0 bỏ qua | 683 s | [pytest_venv_train_470abb3.xml](evidence/dot2_20261006/pytest_venv_train_470abb3.xml) |
+
+- Cả hai tệp JUnit ghi `ecoqos=off`.
+- `.venv`: tệp JUnit đủ 2115 test, 0 hỏng, nhưng tiến trình pytest thoát mã 3221225477 = 0xC0000005 (vi phạm truy cập)
+  thay vì 0, sau khi đã ghi JUnit (có lẽ lúc tắt Python; script không giữ stdout lẫn stderr của pytest nên không xác
+  định được bước nào). Nhật ký Application và System của Windows không có sự kiện nào lúc 14:56–14:58. Đây là lần thứ
+  hai: ngày 02/10/2026 một lượt toàn bộ test `.venv` trên cây gộp đợt 2 chạy hết 100 % rồi Git Bash báo mã thoát 139
+  (theo ghi chép phiên làm việc, không có tệp bằng chứng); 139 = 128 + 11 là cách Git Bash báo mã Windows 0xC0000005
+  (kiểm trên máy tính 06/10/2026), tức cùng loại lỗi. Các lượt toàn bộ khác hôm đó không gặp lỗi này (lần đó chưa ghi
+  vào tài liệu). Nguyên nhân CHƯA RÕ; lượt sau sẽ giữ stdout, stderr và bật faulthandler.
+- `.venv-train`: `test_parking_session_through_qemu_board` hỏng sau 0,159 s: START bị từ chối "Xe đang chuyển động
+  (trung bình +0.007 m/s trên 3 khung, tham chiếu của bo +0.004 m/s)". Điều tra cùng ngày trên bo ảo (101 lượt, kiểm
+  trên máy tính; [dua_start_bo_ao/README.txt](evidence/dot2_20261006/dua_start_bo_ao/README.txt)): cổng START từ chối
+  ĐÚNG. Test ngay trước dừng xe ở 0,1 m/s rồi trả về ngay; firmware còn dốc tham chiếu tốc độ về 0 (≈ 167 ms ở
+  600 mm/s²); test đỗ chỉ chờ bước lập đường (≈ 109–135 ms khi chạy đúng chuỗi của test), nên khi lập đường nhanh hơn
+  ≈ 95–100 ms thì khung START cuối còn tham chiếu khác 0. Đúng chuỗi của test, không tải: 0/20 lượt hỏng, nhưng 14/20
+  lượt có khung START mang tham chiếu khác 0. Khi lập đường trước rồi START ngay sau lúc dừng (thí nghiệm B), START
+  hỏng 12 lần, 2 lần đúng nguyên văn câu lỗi. Vì sao chính lượt `.venv-train` này hỏng: SUY LUẬN (lập đường lượt đó
+  ≈ 85–95 ms), không đo. Không phải khung telemetry cũ: khung của phiên trước bị lọc (12/101 lượt có một khung như
+  thế, 0 khung lọt vào mẫu START). Sửa ở test (chờ bo đứng yên trước START): vào đợt mã sau, chưa có trong `470abb3`.
+- Bo ảo trên cùng commit: `kiem` đạt, 39 khung trong 2 s (≈ 19,5 Hz), cộng 15 khung nhận trước đó lúc kết nối và chờ bo
+  ra khỏi BOOT, QEMU khởi động 1 lần ([kiem_bo_ao_470abb3.txt](evidence/dot2_20261006/kiem_bo_ao_470abb3.txt)). Chạy lặp
+  `tests/test_firmware_qemu.py` 10 lượt (14:43–14:46): 10/10 lượt đạt cả 14 test (7 trong đó chạy firmware thật trong
+  QEMU), không có cảnh báo QEMU tự thoát (#175) hay LOOP_OVERRUN
+  ([chay_lap_test_bo_ao_470abb3.txt](evidence/dot2_20261006/chay_lap_test_bo_ao_470abb3.txt)).
 - Chạy được trong bo ảo không chứng minh gì về bo thật ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1).

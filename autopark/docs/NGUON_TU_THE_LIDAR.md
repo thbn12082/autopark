@@ -485,7 +485,8 @@ RunLog dùng tư thế đã dời vẫn được so. `localization.csv` không s
   (`tests/test_vehicle_board_ui.py`, `tests/test_pose_prediction.py`); luồng đọc đang dừng không đưa vòng nào cho người
   tiêu thụ (`tests/test_nominal_clock_and_reader_stop.py`).
 - Test: bảng ở đầu tài liệu. 5 test cần dữ liệu ngoài git (`runs/` cho C1, `datasets/` cho DROW) tự bỏ qua khi máy không
-  có. Kết quả chạy toàn bộ test trên commit: ở [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) (lượt của đợt 2).
+  có. Kết quả chạy toàn bộ test trên commit: ở [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 15 (commit `470abb3`,
+  06/10/2026).
 
 ## 10. Giới hạn
 
