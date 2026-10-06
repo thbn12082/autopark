@@ -49,7 +49,7 @@ import time
 
 import numpy as np
 
-from autopark.power_throttling import disable_power_throttling, execution_speed_throttling
+from autopark.power_throttling import apply_ecoqos_policy
 from autopark.safety.fault_injection import (CLEARED, INJECTED, FaultLog, FaultRecord, FreezablePoseSource,
                                              FreezeMode, FreezeSwitch, PoseFault, freezable_open_source,
                                              hang_control_loop)
@@ -162,7 +162,8 @@ def _detect_limit(kind: str, params: dict, limits: dict) -> float | None:
     tick = limits["control_period_s"] + limits["physics_dt_s"]       # chờ nhịp điều khiển kế + một bước
     if PoseFault(params["mode"]) is PoseFault.SILENT:
         return tick
-    return limits["max_state_age_s"] + tick
+    # T2 (02/10/2026): tuổi tư thế tối đa riêng (`LinkParams.pose_age_limit_s`); kết quả cũ không có khóa này
+    return limits.get("pose_age_limit_s", limits["max_state_age_s"]) + tick
 
 
 def collect_session_result(kind: str, run: int, params: dict, session, link,
@@ -186,6 +187,7 @@ def collect_session_result(kind: str, run: int, params: dict, session, link,
     limits = {"command_validity_s": link.params.command_validity_s or io.default_validity_s,
               "link_timeout_s": hello.limits.link_timeout_s if hello is not None else None,
               "max_state_age_s": link.params.max_state_age_s,
+              "pose_age_limit_s": link.params.pose_age_limit_s,
               "control_period_s": session.CONTROL_EVERY * session.PHYSICS_DT,
               "physics_dt_s": session.PHYSICS_DT}
     reference = t_fault_end_io if kind == "hang" else t_fault_io
@@ -791,6 +793,8 @@ def _plan_runs(ap: argparse.ArgumentParser, args) -> list[tuple[str, dict]]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # tiến trình không cửa sổ có thể bị EcoQoS làm chậm; AUTOPARK_KEEP_ECOQOS=1 giữ mặc định (power_throttling.py)
+    ecoqos = apply_ecoqos_policy("evaluation.fault_drill").state
     ap = build_parser()
     args = ap.parse_args(argv)
     out: Path = args.out
@@ -802,8 +806,6 @@ def main(argv: list[str] | None = None) -> int:
     if taken:
         ap.error(f"--name '{args.name}' đã có kết quả trong '{out}' ({', '.join(taken[:3])}): chọn tên khác, không ghi "
                  f"đè bằng chứng cũ")
-    disable_power_throttling()              # tiến trình không cửa sổ có thể bị EcoQoS làm chậm (power_throttling.py)
-    ecoqos = execution_speed_throttling() or "unknown"
     out.mkdir(parents=True, exist_ok=True)
     print(f"Diễn tập tiêm lỗi '{args.command}' ({len(runs)} lần), CHỈ MÔ PHỎNG; EcoQoS: {ecoqos}", flush=True)
     rows, t0 = [], time.perf_counter()

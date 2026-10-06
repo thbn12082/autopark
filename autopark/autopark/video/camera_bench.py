@@ -36,6 +36,7 @@ import cv2
 import numpy as np
 
 from autopark.image_io import imwrite
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
 from autopark.video.sources import torn_bands, truncated_rows
 
 DEFAULT_FOURCC = "MJPG"
@@ -481,7 +482,8 @@ def record(index: int, width: int, height: int, seconds: float, out_dir: Path, n
             "probe_duplicate_reads": probe.duplicate_reads, "probe_fps_real": round(probe.fps_real, 2),
             "video": video_path.name, "video_fps": file_fps, "frame_times": f"{name}.frames.csv",
             "frames_written": frames, "truncated_frames": truncated, "torn_frames": torn, "duplicate_reads": duplicates, "read_failures": failures,
-            "seconds": round(elapsed, 2), "fps_real": round(frames / elapsed, 2) if elapsed else 0.0, "snapshots": snapshots}
+            "seconds": round(elapsed, 2), "fps_real": round(frames / elapsed, 2) if elapsed else 0.0, "snapshots": snapshots,
+            "ecoqos": ecoqos_state()}       # EcoQoS của tiến trình đo lúc ghi (02/10/2026)
     (out_dir / f"{name}.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     return info
 
@@ -626,12 +628,14 @@ def _cmd_modes(args) -> int:
 def _cmd_measure(args) -> int:
     result = measure_many(args.index, args.width, args.height, args.seconds, args.fourcc, args.exposure, args.fps)
     result["name"] = args.name
+    result["ecoqos"] = ecoqos_state()
     for s in result["streams"]:
         print(f"  cam {s['index']}: {s['width']}×{s['height']} {s['fps_real']:.1f} fps thật (trong đó bị cắt {s['truncated_frames']}, xé {s['torn_frames']}) | "
               f"khung cũ {s['duplicate_reads']} | "
               f"đọc hỏng {s['read_failures']} | khoảng cách {s['gap_ms_median']:.0f}/{s['gap_ms_p95']:.0f}/{s['gap_ms_max']:.0f} ms | "
               f"read() {s['read_ms_median']:.0f} ms | sáng {s['mean_intensity'] if s['mean_intensity'] is None else round(s['mean_intensity'])}")
-    print(f"  tổng {result['total_fps_real']:.1f} khung/s, CPU tiến trình {result['process_cpu_cores']:.2f} lõi")
+    print(f"  tổng {result['total_fps_real']:.1f} khung/s, CPU tiến trình {result['process_cpu_cores']:.2f} lõi, "
+          f"EcoQoS {result['ecoqos']}")
     for s in result["streams"]:
         for note in s["notes"]:
             print(f"  cam {s['index']} LỖI: {note}")
@@ -653,6 +657,7 @@ def _cmd_record(args) -> int:
 def _cmd_traps(args) -> int:
     result = probe_traps(args.index, args.seconds)
     result["name"] = args.name
+    result["ecoqos"] = ecoqos_state()
     for key, value in result.items():
         print(f"  {key}: {value}")
     if args.out:
@@ -666,6 +671,7 @@ def _cmd_traps(args) -> int:
 def _cmd_source(args) -> int:
     result = source_smoke(args.index, args.width, args.height, args.frames, args.fourcc, args.exposure)
     result["name"] = args.name
+    result["ecoqos"] = ecoqos_state()
     print(f"  mode {result['mode']} | buffer_size_applied {result['buffer_size_applied']} | exposure_applied {result['exposure_applied']}")
     print(f"  {result['frames_ok']} khung, {result['read_errors']} lỗi đọc, stamp tăng nghiêm ngặt {result['stamps_strictly_increasing']}, "
           f"khoảng cách stamp trung bình {result['stamp_gap_ms_mean']} ms, max {result['stamp_gap_ms_max']} ms")
@@ -741,6 +747,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
+    apply_ecoqos_policy("video.camera_bench")         # trước mọi việc khác (power_throttling.py)
     args = build_parser().parse_args(argv)
     return args.func(args)
 

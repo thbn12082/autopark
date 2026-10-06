@@ -61,6 +61,8 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QGridLayout, 
                                QPushButton, QSlider, QVBoxLayout, QWidget)
 
 from autopark.evaluation.sync_marks import DEFAULT_SYNC_DIR, SyncMarkLog, sync_file_path
+from autopark.power_throttling import apply_ecoqos_policy
+from autopark.ui.process_status import add_ecoqos_label
 from autopark.ui.scan_view import ScanView
 from autopark.ui.sync_flash import SyncFlash, SyncMarker
 from autopark.video.multicam import clock_info, fit_width
@@ -646,7 +648,8 @@ def format_metrics(snap: dict, threshold: float, message: str = "", last_snapsho
         lines.append(f"  tuổi kết quả (khung cũ nhất): {f(a['result_age_oldest_frame_ms']['median'])} ms  p95 {f(a['result_age_oldest_frame_ms']['p95'])}")
     r = snap.get("resources") or {}
     lines.append("TÀI NGUYÊN")
-    lines.append(f"  CPU tiến trình {f(r.get('proc_cpu_cores'), 2)} lõi  CPU máy {f(r.get('sys_cpu_pct'))} %  RAM {f(r.get('proc_rss_mb'), 0)} MB")
+    lines.append(f"  CPU tiến trình {f(r.get('proc_cpu_cores'), 2)} lõi  CPU máy {f(r.get('sys_cpu_pct'))} %  RAM {f(r.get('proc_rss_mb'), 0)} MB"
+                 f"  EcoQoS {r.get('ecoqos') or '—'}")
     lines.append(f"  GPU {f(r.get('gpu_util_pct'), 0)} %  VRAM {f(r.get('gpu_mem_used_mb'), 0)} MB  {f(r.get('gpu_temp_c'), 0)} °C  {f(r.get('gpu_power_w'))} W")
     rec = snap.get("recording")
     if rec is not None:
@@ -693,9 +696,11 @@ def build_window(argv=None, start: bool = True) -> RigWindow:
 
 
 def main(argv=None) -> int:
+    ecoqos = apply_ecoqos_policy("ui.rig_app")         # trước mọi việc khác (power_throttling.py)
     app = QApplication.instance() or QApplication(sys.argv)
     window = build_window(argv)
     window.show()
+    add_ecoqos_label(window, ecoqos)
     return app.exec()
 
 

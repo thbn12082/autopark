@@ -44,6 +44,7 @@ from typing import Callable
 
 import numpy as np
 
+from autopark.power_throttling import ecoqos_state
 from autopark.rig.recording import CameraTap, LidarTap, RigRecorder
 from autopark.video.multicam import (LIVE_WINDOW, RIG_CLOCK, WAIT_PERIODS, FrameSet, MultiCameraManager, clock_info, dist,
                                      fit_width, tail)
@@ -449,7 +450,7 @@ class ResourceMonitor(threading.Thread):
             self.errors.append(f"nvml: {exc}")
 
     def sample(self) -> dict:
-        s: dict = {"t": self.clock()}
+        s: dict = {"t": self.clock(), "ecoqos": ecoqos_state()}     # EcoQoS của tiến trình đo (02/10/2026)
         if self._psutil is not None:
             s["proc_cpu_cores"] = round(self._proc.cpu_percent(None) / 100.0, 3)   # % của một lõi / 100 = số lõi
             s["sys_cpu_pct"] = round(self._psutil.cpu_percent(None), 1)
@@ -478,7 +479,8 @@ class ResourceMonitor(threading.Thread):
     def summary(self) -> dict:
         samples = list(self.samples)
         out: dict = {"n": len(samples), "gpu_name": self.gpu_name, "errors": self.errors,
-                     "cpu_temperature": "không đo (Windows không cho đọc nhiệt độ CPU khi không có quyền admin)"}
+                     "cpu_temperature": "không đo (Windows không cho đọc nhiệt độ CPU khi không có quyền admin)",
+                     "ecoqos": ecoqos_state()}       # off / system / on / unknown lúc chốt số (02/10/2026)
         for key in ("proc_cpu_cores", "sys_cpu_pct", "proc_rss_mb", "gpu_util_pct", "gpu_mem_used_mb", "gpu_temp_c", "gpu_power_w"):
             values = [s[key] for s in samples if key in s]
             if values:
@@ -519,6 +521,8 @@ class Rig:
         self.replay = replay                              # rig.replay.ReplaySession khi chạy từ bản ghi
         self.recorder: RigRecorder | None = None          # bộ ghi đang nhận dữ liệu (None: không ghi)
         self.last_recorder: RigRecorder | None = None     # lần ghi gần nhất, kể cả đang ghi nốt hay đã xong
+        self._external: RigRecorder | None = None         # bộ ghi NGOÀI đang gắn (attach_recorder, T3); không vào last_recorder
+        self._on_detach: Callable[[dict], None] | None = None
         # Bọc nguồn TRƯỚC khi luồng camera chạy (CameraWorker gọi open_source trong run()): mọi khung/sự kiện đi qua
         # lớp bọc, lớp bọc chỉ đẩy vào bộ ghi khi self.recorder khác None (tốn một lần đọc thuộc tính mỗi khung khi tắt).
         for port, worker in cams.workers.items():
@@ -637,8 +641,47 @@ class Rig:
         self.last_recorder = rec
         return rec
 
+    def attach_recorder(self, rec: RigRecorder, *, on_detach: Callable[[dict], None] | None = None) -> None:
+        """Gắn một bộ ghi NGOÀI do nơi khác tạo và làm chủ (bản ghi cảm biến trong phiên đỗ, T3: `rig.session_recording`):
+        Rig chỉ đưa khung camera và sự kiện đọc hỏng vào nó, KHÔNG BAO GIỜ dừng hay chờ nó. Gọi TRƯỚC `rec.start()` (lớp
+        bọc thấy bộ ghi ngay lúc nó bắt đầu nhận). Từ chối như `start_recording` (RuntimeError): đang có bộ ghi, hay bộ
+        ghi của chính Rig còn ghi nốt. `on_detach(dict)` được gọi một lần khi gỡ (`detach_recorder`, `stop_recording`,
+        `stop()`) với {"cameras_at_stop": …}. `last_recorder` vẫn chỉ là bộ ghi của Rig."""
+        if self.recorder is not None:
+            raise RuntimeError(f"đang ghi vào {self.recorder.folder}")
+        prev = self.last_recorder
+        if prev is not None and not prev.finished.is_set():
+            raise RuntimeError(f"bản ghi trước {prev.folder.name} còn đang ghi nốt: chờ xong rồi mới gắn bộ ghi khác")
+        if rec.state != "chưa chạy":
+            raise RuntimeError("gắn bộ ghi ngoài vào Rig TRƯỚC khi bộ ghi start()")
+        self._external, self._on_detach = rec, on_detach
+        self.recorder = rec
+
+    def detach_recorder(self) -> dict | None:
+        """Gỡ bộ ghi ngoài NGAY (khung sau đó không vào nó nữa); trả {"cameras_at_stop": số từng camera lúc gỡ} và gọi
+        `on_detach` đúng một lần với cùng dict. Không dừng, không chờ bộ ghi — chủ của nó làm. None khi không có bộ ghi
+        ngoài. Lỗi trong `on_detach` không bao giờ làm hỏng `stop()`: giữ ở khóa "on_detach_error"."""
+        rec, on_detach = self._external, self._on_detach
+        if rec is None:
+            return None
+        self._external, self._on_detach = None, None
+        if self.recorder is rec:
+            self.recorder = None
+        info = {"cameras_at_stop": self.cams.camera_stats(t_end=self.stats_end_t())}
+        if on_detach is not None:
+            try:
+                on_detach(info)
+            except Exception as exc:  # noqa: BLE001 - Rig.stop() phải dừng camera dù bên gắn lỗi
+                info["on_detach_error"] = f"{type(exc).__name__}: {exc}"
+        return info
+
     def stop_recording(self, wait: bool = True, timeout: float | None = RECORD_FINISH_S) -> dict | None:
-        """Ngừng đưa dữ liệu vào bộ ghi (ngay), rồi để nó ghi nốt; trả trạng thái (None nếu chưa từng ghi)."""
+        """Ngừng đưa dữ liệu vào bộ ghi (ngay), rồi để nó ghi nốt; trả trạng thái (None nếu chưa từng ghi). Bộ ghi ngoài
+        (`attach_recorder`) thì chỉ gỡ, không dừng, không chờ."""
+        if self._external is not None and self.recorder is self._external:
+            rec = self._external
+            self.detach_recorder()
+            return rec.status()
         rec, self.recorder = self.recorder, None
         if rec is None:
             return None if self.last_recorder is None else self.last_recorder.status()

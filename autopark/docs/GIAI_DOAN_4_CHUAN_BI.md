@@ -450,6 +450,14 @@ Các công cụ nhận `--config` (chạy trong thư mục `autopark` của repo
      mô phỏng và cổng serial GIẢ ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 7, [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục
      3). `load_sim_io_config` vẫn nạp hai tệp độc lập, và kiểm này không so `max_validity_ms`, `link_timeout_ms` hay các
      khóa khác của mục `firmware`, nên vẫn kiểm tay như trên.)*
+
+  *(Cập nhật 02/10/2026: giao diện nay tự chọn bo mô phỏng `configs/vehicle_io_sim*.json` có `vehicle_config` trỏ đúng
+  tệp xe đang dùng, nên bản chép ở bước trên được chọn khi chạy với `vehicle_measured.json`
+  (`run_app.py <kịch bản> --vehicle-config configs\vehicle_measured.json` hay ô "Cấu hình xe" của thẻ Xe). Đã có cặp
+  nghiệm thu `vehicle_nghiem_thu.json` + `vehicle_io_sim_nghiem_thu.json` (người dùng giao quyết định 02/10/2026
+  ('làm hết'), theo đề xuất). Khi có `vehicle_measured.json`: lập lại `vehicle_nghiem_thu.json` từ tệp đó (chỉ đổi
+  `max_speed_mps` = 0,10), sửa mục `firmware` của `vehicle_io_sim_nghiem_thu.json` cho khớp, rồi sửa
+  `tests/test_vehicle_acceptance.py` (hiện so với `vehicle_default.json`).)*
 - **Chỗ đang cố định `vehicle_default.json`** (kiểm bằng grep 24/09/2026): `evaluation/phase0.py`,
   `evaluation/robustness.py` (chiến dịch độ bền), `fusion/demo.py` (`default_vehicle`), `ui/lidar_app.py`
   (`DEFAULT_VEHICLE`). Muốn chạy chiến dịch độ bền với xe đo thì phải thêm tùy chọn cấu hình cho các công cụ này; tài liệu

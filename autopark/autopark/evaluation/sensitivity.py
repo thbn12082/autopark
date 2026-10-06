@@ -36,6 +36,7 @@ hoặc góc lái vượt giới hạn.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import contextlib
 import copy
 import hashlib
@@ -62,8 +63,13 @@ from autopark.geometry.footprint import check_motion, check_pose
 from autopark.planning.cand_rrt_rs import DEFAULT_SEED as RRT_DEFAULT_SEED
 from autopark.planning.hybrid_astar import PlannerParams, PlanResult
 from autopark.planning.parking import plan_parking
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
 from autopark.simulation.rollout import rollout
 from autopark.storage.scenario_store import load_scenario
+# Nạp tệp xe có kiểm tra: chuyển sang storage/scenario_store.py (02/10/2026); xuất lại cùng tên cho phase0, robustness,
+# ui.lidar_app và test.
+from autopark.storage.scenario_store import (REQUIRED_VEHICLE_KEYS, VehicleConfigError,  # noqa: F401
+                                            VehicleConfigFile, load_vehicle_config_file, vehicle_config_arg)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REFERENCE = PROJECT_ROOT / "configs" / "vehicle_default.json"
@@ -73,60 +79,6 @@ APP_PLANNER = "app"                  # plan_parking, đúng đường ứng dụ
 APP_MAX_RUN_TIME = Session.MAX_RUN_TIME   # s mô phỏng khi planner kiểm chứng bám đường, như Session.plan_sync
 ROLLOUT_MAX_TIME = 240.0             # s mô phỏng cho lần bám kín vòng độc lập, như bench.run_case
 RRT_SEED_ENV = "AUTOPARK_RRT_SEED"
-
-REQUIRED_VEHICLE_KEYS = ("name", "wheelbase_m", "width_m", "front_overhang_m", "rear_overhang_m", "max_steer_deg",
-                         "max_speed_mps", "max_accel_mps2", "max_decel_mps2", "max_steer_rate_deg_s")
-
-
-# ---------------------------------------------------------------- nạp cấu hình xe có kiểm tra (dùng chung cho CLI)
-
-class VehicleConfigError(ValueError):
-    """Tệp cấu hình xe không dùng được; thông điệp nói rõ tệp nào và vì sao."""
-
-
-@dataclass(frozen=True)
-class VehicleConfigFile:
-    """Cấu hình xe đã nạp, kèm đường dẫn tuyệt đối và sha256 của tệp để ghi vào bằng chứng."""
-
-    path: Path
-    cfg: VehicleConfig
-    sha256: str
-
-    def describe(self) -> dict[str, Any]:
-        return {"path": str(self.path), "sha256": self.sha256, "config": self.cfg.to_dict()}
-
-
-def load_vehicle_config_file(path: str | Path) -> VehicleConfigFile:
-    """Nạp và kiểm một tệp cấu hình xe JSON; mọi lỗi thành `VehicleConfigError` có tên tệp và lý do."""
-    p = Path(path)
-    if not p.exists():
-        raise VehicleConfigError(f"không thấy tệp cấu hình xe '{p}' (thư mục đang chạy: {Path.cwd()})")
-    if not p.is_file():
-        raise VehicleConfigError(f"'{p}' không phải một tệp cấu hình xe (là thư mục?)")
-    raw = p.read_bytes()
-    try:
-        data = json.loads(raw.decode("utf-8-sig"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise VehicleConfigError(f"'{p}' không phải JSON UTF-8 hợp lệ: {exc}") from exc
-    if not isinstance(data, dict):
-        raise VehicleConfigError(f"'{p}' phải chứa một đối tượng JSON {{...}}, đang là {type(data).__name__}")
-    missing = [key for key in REQUIRED_VEHICLE_KEYS if key not in data]
-    if missing:
-        raise VehicleConfigError(f"'{p}' thiếu khóa: {', '.join(missing)} (xem configs/vehicle_default.json)")
-    try:
-        cfg = VehicleConfig.from_dict(data)
-    except (TypeError, ValueError) as exc:
-        raise VehicleConfigError(f"'{p}': {exc}") from exc
-    return VehicleConfigFile(p.resolve(), cfg, hashlib.sha256(raw).hexdigest())
-
-
-def vehicle_config_arg(text: str) -> VehicleConfigFile:
-    """Kiểu cho argparse: tệp hỏng thành thông báo rõ ràng và mã thoát 2, trước khi công cụ làm việc gì khác."""
-    try:
-        return load_vehicle_config_file(text)
-    except VehicleConfigError as exc:
-        raise argparse.ArgumentTypeError(str(exc)) from exc
-
 
 # ---------------------------------------------------------------- sa bàn cố định
 
@@ -416,7 +368,9 @@ def load_planner_spec(spec: str) -> PlannerFn | None:
 def _run_task(task: tuple[Scene, Variant, float, str]) -> dict[str, Any]:
     """Hàm cấp mô-đun để tiến trình con gọi được (Windows dùng spawn)."""
     scene, variant, time_limit, planner_spec = task
-    return evaluate(scene, variant, time_limit, load_planner_spec(planner_spec))
+    row = evaluate(scene, variant, time_limit, load_planner_spec(planner_spec))
+    row["ecoqos"] = ecoqos_state()        # của tiến trình đã chạy ca này (tiến trình con khi --workers > 1)
+    return row
 
 
 @contextlib.contextmanager
@@ -445,7 +399,9 @@ def _execute(tasks: list[tuple[Scene, Variant, float, str]], workers: int, seed:
         else:
             # Tham chiếu hàm qua tên mô-đun thật, để tiến trình con nạp được cả khi chạy bằng `python -m`.
             fn = importlib.import_module("autopark.evaluation.sensitivity")._run_task
-            with ProcessPoolExecutor(max_workers=workers) as pool:
+            # Tiến trình con không thừa hưởng EcoQoS của tiến trình mẹ: mỗi tiến trình con tự tắt (02/10/2026).
+            with ProcessPoolExecutor(max_workers=workers, initializer=apply_ecoqos_policy,
+                                     initargs=("evaluation.sensitivity:worker",)) as pool:
                 futures = {pool.submit(fn, task): i for i, task in enumerate(tasks)}
                 for done, future in enumerate(as_completed(futures), 1):
                     i = futures[future]
@@ -557,6 +513,13 @@ def _threshold_text(entry: dict[str, Any]) -> str:
     return ", ".join(parts) if parts else "—"
 
 
+def _ecoqos_text(manifest: dict[str, Any]) -> str:
+    """'off (từng ca: off ×52)': EcoQoS của tiến trình chính và của các tiến trình đã chạy từng ca; ket_qua.json ghi
+    trước 02/10/2026 không có → '—'."""
+    per_row = ", ".join(f"{state} ×{count}" for state, count in (manifest.get("ecoqos_rows") or {}).items())
+    return (manifest.get("ecoqos") or "—") + (f" (từng ca: {per_row})" if per_row else "")
+
+
 def markdown_report(data: dict[str, Any]) -> str:
     """Bảng tóm tắt; mọi dòng ghi rõ đây là mô phỏng và cấu hình tham chiếu là giả định."""
     manifest, rows, summary = data["manifest"], data["rows"], data["summary"]
@@ -567,7 +530,8 @@ def markdown_report(data: dict[str, Any]) -> str:
         "# Độ nhạy của bộ lập đường theo kích thước xe — sa bàn cố định (CHỈ MÔ PHỎNG)",
         "",
         f"- Chạy lúc {manifest['started_at']} → {manifest['finished_at']}, máy: {manifest['machine']}; "
-        f"{manifest['workers']} tiến trình song song; ngân sách lập đường {manifest['time_limit_s']:g} s/ca"
+        f"{manifest['workers']} tiến trình song song; EcoQoS {_ecoqos_text(manifest)}; ngân sách lập đường "
+        f"{manifest['time_limit_s']:g} s/ca"
         + (f", chạy lại ca lật với {manifest['recheck_time_limit_s']:g} s" if manifest["recheck_time_limit_s"] else "")
         + f"; hạt giống RRT {manifest['rrt_seed']}; bộ lập đường `{manifest['planner']}`.",
         f"- Mã nguồn: git `{manifest['git'].get('head', '?')}`"
@@ -758,6 +722,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    apply_ecoqos_policy("evaluation.sensitivity")      # trước mọi việc khác; tiến trình con: initializer của _execute
     ap = build_parser()
     args = ap.parse_args(argv)
     reference: VehicleConfigFile = args.reference_config
@@ -826,6 +791,7 @@ def main(argv: list[str] | None = None) -> int:
                  "Cấu hình tham chiếu mặc định là GIẢ ĐỊNH – CHƯA ĐO. TIMEOUT không có nghĩa là vô nghiệm."),
         "started_at": started, "finished_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "elapsed_s": round(time.perf_counter() - t0, 2), "machine": _machine(), "git": _git_state(),
+        "ecoqos": ecoqos_state(), "ecoqos_rows": dict(Counter(r.get("ecoqos") for r in rows)),
         "argv": list(sys.argv if argv is None else argv), "workers": args.workers,
         "time_limit_s": args.time_limit, "recheck_time_limit_s": args.recheck_time_limit,
         "rrt_seed": args.rrt_seed, "planner": args.planner, "levels_pct": list(levels), "note_user": args.note,

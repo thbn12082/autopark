@@ -10,6 +10,7 @@ Quy ước (tài liệu tổng quan, mục 5.5):
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -331,12 +332,50 @@ class ParkingGoal:
         return goal
 
 
+# Trường "acceptance" của tệp kịch bản (thêm 02/10/2026, T12 theo kịch bản): sa bàn dựng cho kịch bản nghiệm thu nào của
+# docs/KICH_BAN_NGHIEM_THU.md mục 4. Planner, mô phỏng và bộ bám không đọc trường này; chỉ
+# application/cusp_policy.py đổi nó thành giới hạn số lần đổi chiều lúc Bắt đầu đỗ.
+ACCEPTANCE_CODE_RE = re.compile(r"[A-Z]{2}-\d+")           # cùng dạng mã với CODE_RE của evaluation/score_run.py
+ACCEPTANCE_VARIANT_RE = re.compile(r"[a-z0-9_]{0,16}")     # a, b, c, do, dung, p3
+
+
+@dataclass(frozen=True)
+class AcceptanceTag:
+    """Kịch bản nghiệm thu mà tệp sa bàn dựng cho: `code` dạng DO-1, `variant` tùy chọn (DO-3 + b = DO-3b)."""
+
+    code: str
+    variant: str = ""
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.code, str) or not ACCEPTANCE_CODE_RE.fullmatch(self.code):
+            raise ValueError(f"acceptance.code {self.code!r} phải có dạng DO-1 (mã của KICH_BAN_NGHIEM_THU.md mục 4)")
+        if not isinstance(self.variant, str) or not ACCEPTANCE_VARIANT_RE.fullmatch(self.variant):
+            raise ValueError(f"acceptance.variant {self.variant!r} chỉ gồm chữ thường không dấu, số, gạch dưới, tối đa "
+                             "16 ký tự")
+
+    @property
+    def label(self) -> str:
+        return self.code + self.variant
+
+    def to_dict(self) -> dict[str, str]:
+        return {"code": self.code, "variant": self.variant} if self.variant else {"code": self.code}
+
+    @classmethod
+    def from_dict(cls, d: Any) -> "AcceptanceTag":
+        if not isinstance(d, dict) or "code" not in d or set(d) - {"code", "variant"}:
+            raise ValueError("acceptance phải là object {code, variant}; variant tùy chọn")
+        return cls(d["code"], d.get("variant", ""))
+
+
 @dataclass
 class Scenario:
     """Một kịch bản sa bàn: vùng, xuất phát, ô đỗ/đích, vật cản, xe dùng, seed.
 
     Khi có `slot`, `goal.pose` được suy từ ô đỗ và `mode` (gọi `sync_goal`); khi
     không có ô đỗ, `goal` là đích đặt trực tiếp.
+
+    `acceptance` (thêm 02/10/2026): kịch bản nghiệm thu mà tệp này dựng cho (`AcceptanceTag`), None = không gắn. Chỉ ghi
+    vào JSON khi có, ở khóa cuối, nên tệp và gói lần chạy của kịch bản không gắn giữ nguyên từng byte.
     """
 
     name: str
@@ -350,6 +389,7 @@ class Scenario:
     vehicle_config_path: Path | None = None                    # đường dẫn tuyệt đối sau khi nạp
     seed: int = 0
     notes: str = ""
+    acceptance: AcceptanceTag | None = None                    # kịch bản nghiệm thu (T12 theo kịch bản)
 
     def sync_goal(self, cfg: VehicleConfig) -> Pose:
         """Cập nhật goal.pose từ ô đỗ (nếu có) và trả về tư thế đích."""
@@ -386,6 +426,8 @@ class Scenario:
         if self.slot is not None:
             data["slot"] = self.slot.to_dict()
             data["mode"] = self.mode.value
+        if self.acceptance is not None:
+            data["acceptance"] = self.acceptance.to_dict()
         return data
 
     @classmethod
@@ -416,6 +458,7 @@ class Scenario:
             vehicle_config=str(d.get("vehicle_config", "../configs/vehicle_default.json")),
             seed=int(d.get("seed", 0)),
             notes=str(d.get("notes", "")),
+            acceptance=None if d.get("acceptance") is None else AcceptanceTag.from_dict(d["acceptance"]),
         )
 
 

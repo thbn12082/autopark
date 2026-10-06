@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "name": "DO-6 uturn_w70",
+  "notes": "Quay đầu tại chỗ trong hành lang rộng 70 cm (2.26× thân xe), dài 130 cm. Tệp nghiệm thu DO-6 (mức MP) sinh bằng autopark.evaluation.acceptance_scenarios từ ca khó uturn_w70 của evaluation/hard_cases.py, xe configs/vehicle_nghiem_thu.json: kích thước theo xe GIẢ ĐỊNH; xe đo khác thì sinh lại. Giới hạn đổi chiều lúc Bắt đầu đỗ theo trường acceptance (khóa DO-6 của configs/nguong_nghiem_thu.json, N-D6 (b), ĐỀ XUẤT – CHỜ CHỐT).",
+  "vehicle_config": "../../configs/vehicle_nghiem_thu.json",
+  "bounds": {
+    "xmin": 0.0,
+    "ymin": 0.0,
+    "xmax": 1.3,
+    "ymax": 0.7
+  },
+  "start": {
+    "x": 0.34,
+    "y": 0.35,
+    "yaw_deg": 0.0
+  },
+  "goal": {
+    "x": 0.34,
+    "y": 0.35,
+    "yaw_deg": 180.0,
+    "tolerance_cm": 5.0,
+    "tolerance_deg": 5.0
+  },
+  "obstacles": [],
+  "seed": 0,
+  "acceptance": {
+    "code": "DO-6"
+  }
+}

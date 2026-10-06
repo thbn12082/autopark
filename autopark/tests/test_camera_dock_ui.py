@@ -203,6 +203,47 @@ def test_new_ai_obstacle_on_the_path_stops_the_run_and_the_known_one_does_not(qa
         window.close()
 
 
+def test_on_batch_hook_runs_after_safety_decisions_and_its_errors_stay_in_the_dock(qapp, front_calibration):
+    """T3 (02/10/2026): móc `on_batch` của bản ghi cảm biến chạy SAU mọi quyết định an toàn của một lô đã xét (một lần mỗi
+    lô); lỗi trong móc chỉ để lại MỘT dòng nhật ký — vật cản AI vẫn được chèn và xe vẫn dừng như không có móc."""
+    window, dock = open_window(test_rig=True)
+    session = window.session
+    seg = SceneSegmenter("gia.pt", front_calibration, SyntheticScene(boxes=(OFF_PATH,)))
+    calls = []
+
+    def hook(result, upd, info):
+        calls.append((result.batch_id, upd.processed, dict(info), session.state, len(dock.bridge.owned())))
+        raise RuntimeError("móc hỏng giả")
+    dock.on_batch = hook
+    dock.attach_rig(fake_rig(seg), camera_ai.SOURCE_FAKE)
+    try:
+        assert pump(dock, lambda: bool(dock.bridge.owned())), dock.lbl_gate.text()
+        assert calls and all(processed for _, processed, *_ in calls)
+        ids = [c[0] for c in calls]
+        assert ids == sorted(set(ids))                                       # mỗi lô đã xét đúng một lần
+        assert calls[-1][2]["ai_boxes"] == calls[-1][4] > 0                  # số hộp SAU khi đồng bộ của chính lô đó
+        assert calls[-1][2]["state"] == "EDITING" and calls[-1][2]["injected"] == 0
+        assert window.plan(sync=True).ok
+        window.run()
+        window.advance_by(1.0)
+        seg.scene = SyntheticScene(boxes=(OFF_PATH, ON_PATH))                # "đặt" một hộp lên đường
+        assert pump(dock, lambda: session.state != SessionState.RUNNING), dock.lbl_gate.text()
+        assert session.state == SessionState.STOPPING and dock.new_on_path >= 1
+        assert any(e.code == "MAP_CHANGED" for e in session.safety_events)
+        # lô đã chèn vật: móc thấy nó sau quyết định (phiên đã STOPPING), với số hộp vừa chèn
+        assert any(info["injected"] >= 1 and info["state"] == "RUNNING" and state == SessionState.STOPPING
+                   for _, _, info, state, _ in calls)
+        lines = [dock.log.item(k).text() for k in range(dock.log.count())]
+        failures = [t for t in lines if t.startswith("Ghi lô AI vào bản ghi cảm biến lỗi")]
+        assert len(failures) == 1 and "RuntimeError: móc hỏng giả" in failures[0] and "AI vẫn chạy" in failures[0]
+        info = dock.recording_info()
+        assert info["on"] and info["source_kind"] == camera_ai.SOURCE_FAKE and info["ports"] == [1]
+        assert info["synthetic"] is True and info["threshold"] == pytest.approx(0.15) and info["test_rig"] is True
+    finally:
+        dock.shutdown()
+        window.close()
+
+
 def test_stale_ai_while_driving_warns_by_default_and_stops_only_when_required(qapp, front_calibration):
     window, dock = open_window(test_rig=True)
     session = window.session
@@ -788,7 +829,9 @@ def test_lidar_app_without_camera_options_is_unchanged(qapp, capsys, monkeypatch
     window._timer.stop()
     dock.timer.stop()
     assert window.camera_dock is None and window.windowTitle() == "Autopark — bàn thử LiDAR"
-    assert window.findChildren(QDockWidget) == [dock]
+    # từ 02/10/2026 (T3) có thêm ngăn "Ghi cảm biến", xếp thẻ cạnh ngăn LiDAR; không có ngăn camera nào
+    assert set(window.findChildren(QDockWidget)) == {dock, window.record_dock}
+    assert window.tabifiedDockWidgets(dock) == [window.record_dock]
     window.close()
     code = ("import sys, autopark.ui.lidar_app as a; print('torch' in sys.modules, "
             "'autopark.ui.camera_dock' in sys.modules, 'autopark.fusion.camera_ai' in sys.modules)")
@@ -821,7 +864,8 @@ def test_camera_options_build_a_tabbed_camera_dock(qapp, tmp_path):
     dock.timer.stop()
     cam = window.camera_dock
     cam.timer.stop()
-    assert cam is not None and window.tabifiedDockWidgets(dock) == [cam]
+    assert cam is not None and set(window.tabifiedDockWidgets(dock)) == {cam, window.record_dock}   # T3: + "Ghi cảm biến"
+    assert cam.on_batch == window.sensor_recording.add_ai_batch
     assert "RIG TỔNG HỢP" in window.windowTitle() and cam.edit_ports.text() == "2 3"
     assert cam.edit_extr.text().endswith("camera_rig_extrinsics_v0.json")   # rig tổng hợp: tư thế giả định v0
     text = cam.lbl_attribution.text()                                       # ghi công hiện ở đầu ngăn

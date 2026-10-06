@@ -5,6 +5,10 @@ Phần đọc cấu hình và phần kiểm cơ chế chạy lại (bo giả `Lo
 configs/thiet_bi.json không có qemu_xtensa/platformio_python hoặc tệp không tồn tại (laptop nộp đồ án). Bo ảo chạy theo
 thời gian thực: cả tệp ≈ 9–10 s (chay_lap_test_bo_ao*.txt, 30/09/2026); lần build đầu của env thêm vài phút. Chạy được ở đây KHÔNG chứng minh gì về bo thật: QEMU không
 có LEDC, GPIO vào, watchdog kích hoạt, USB-CDC (autopark.transport.qemu_board).
+
+Thêm 02/10/2026: `test_parking_session_through_qemu_board` chạy cả một phiên đỗ qua bo ảo (Session →
+VehicleLink.qemu_board, xe mô phỏng phía laptop, `transport/qemu_plant.py`), thêm ≈ 6–10 s; bo ảo GIẢ cho các test phiên
+khác ở tests/qemu_fakes.py.
 """
 import json
 import statistics
@@ -13,10 +17,13 @@ import warnings
 
 import pytest
 
+from autopark.application.session import Session, SessionError, SessionState
+from autopark.application.vehicle_link import DriveMode, VehicleLink
+from autopark.domain.types import ParkingGoal, Pose
 from autopark.transport import qemu_board
 from autopark.transport.firmware_model import FirmwareConfig, FirmwareModel
 from autopark.transport.loopback import FirmwareSerialLoopback, ManualClock
-from autopark.transport.protocol import Fault, ResetReason, State, StopReason
+from autopark.transport.protocol import Fault, ResetReason, State, StopReason, TelemetryFlag
 from autopark.transport.vehicle_io import SerialVehicleIO, VehicleIOError
 
 
@@ -320,6 +327,81 @@ def test_nonblocking_control_loop_keeps_up_with_telemetry(board):
         assert "TELEMETRY_STALE" not in [e.code for e in io.events()]
 
     on_board(board, body)
+
+
+class BoardSource:
+    """`QemuBoardSource` cho fixture `board`: bo khi QEMU còn chạy."""
+
+    def __init__(self, board):
+        self.board = board
+
+    def current_board(self):
+        return (self.board, "") if self.board.running() else (None, "QEMU đã tự thoát")
+
+
+def parking_run(board, scenario, cfg) -> tuple[Session, VehicleLink, float | None]:
+    """Một lần đỗ VEHICLE_IO qua bo ảo theo đồng hồ tường (nhịp 16 ms như giao diện, tối đa 20 s). Trả (phiên, liên kết,
+    số lõi CPU QEMU dùng trung bình trong lần chạy hoặc None)."""
+    session = Session(scenario, cfg)
+    assert session.plan_sync().ok
+    link = VehicleLink.qemu_board(DriveMode.VEHICLE_IO, BoardSource(board))
+    session.set_vehicle_link(link)
+    session.start_run()
+    cpu0, t0 = board.cpu_seconds(), time.perf_counter()
+    deadline = t0 + 20.0
+    while session.simulating and time.perf_counter() < deadline:
+        time.sleep(0.016)
+        session.advance(0.016)
+    cpu1, t1 = board.cpu_seconds(), time.perf_counter()
+    cores = (cpu1 - cpu0) / (t1 - t0) if cpu0 is not None and cpu1 is not None else None
+    return session, link, cores
+
+
+def test_parking_session_through_qemu_board(board, scenario, cfg, request):
+    """Phiên đỗ qua firmware THẬT trong QEMU (thêm 02/10/2026): Session → VehicleLink.qemu_board → QemuPlantVehicleIO →
+    SocketPort → bo ảo, theo thời gian thực, đường thẳng 0,6 m. Tốc độ, góc lái, tư thế từ XE MÔ PHỎNG phía laptop;
+    telemetry.csv giữ cờ của firmware (SPEED_VALID = 0). Chạy TRƯỚC test reset chip (reset đổi boot_id của chip ảo mà
+    `board.hello` không biết). Bo ảo chốt LOOP_OVERRUN (máy bận) hay QEMU tự thoát: cảnh báo, xóa lỗi hoặc khởi động lại,
+    chạy lại một lần (cùng luật bằng chứng với `on_board`)."""
+    scenario.obstacles = []
+    scenario.start, scenario.goal = Pose(0.5, 1.0, 0.0), ParkingGoal(Pose(1.1, 1.0, 0.0))
+    for attempt in (1, 2):
+        if not board.running():
+            warnings.warn(f"QEMU đã tự thoát (espressif/qemu#175) trước lần {attempt}; khởi động lại bo ảo")
+            board.start()
+        try:
+            session, link, cores = parking_run(board, scenario, cfg)
+        except SessionError as exc:
+            if attempt == 1 and ("LOOP_OVERRUN" in str(exc) or not board.running()):
+                warnings.warn(f"bo ảo trục trặc lúc START ({exc}); xóa lỗi hoặc khởi động lại rồi chạy lại một lần")
+                if board.running():
+                    VehicleLink.qemu_board(DriveMode.VEHICLE_IO, BoardSource(board)).clear_fault()
+                continue
+            raise
+        codes = [e.code for e in session.safety_events]
+        board_trouble = not board.running() or any("LOOP_OVERRUN" in e.message for e in session.safety_events)
+        if session.state != SessionState.COMPLETED and attempt == 1 and board_trouble:
+            warnings.warn(f"bo ảo trục trặc giữa lần chạy ({session.stop_reason}); chạy lại một lần")
+            if board.running():
+                link.clear_fault()
+            session.close()
+            continue
+        break
+    try:
+        assert session.state == SessionState.COMPLETED, f"{session.state}: {session.stop_reason}; sự kiện {codes}"
+        assert "NO_MEASURED_STATE" not in codes
+        rows = link.telemetry_rows
+        assert rows and all(not int(r["flags"]) & TelemetryFlag.SPEED_VALID and r["speed_mps"] != "" for r in rows)
+        assert link.io.stats.device_messages_missed == 0
+        assert link.io.transport is None                          # đóng kết nối sau lần chạy (QEMU chỉ một client)
+        assert link.describe()["board"]["hello"]["boot_id"] == f"0x{board.hello.boot_id:08x}"
+        if cores is not None:
+            print(f"QEMU dùng trung bình {cores:.2f} lõi CPU trong lần đỗ")
+            if request.config.pluginmanager.hasplugin("junitxml"):
+                # thuộc tính testsuite như `ecoqos` của conftest (record_property cảnh báo với JUnit xunit2)
+                request.getfixturevalue("record_testsuite_property")("qemu_cpu_cores", f"{cores:.3f}")
+    finally:
+        session.close()
 
 
 def test_chip_reset_is_seen_as_firmware_reset(board):

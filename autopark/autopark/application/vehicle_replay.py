@@ -100,6 +100,8 @@ NOT_COMPARED = (
     "trạng thái bo sau lệnh DISARM cuối (board_state của kết quả)",
     "cột t_perf, cột t_io của dòng session_stop, dòng DISARM_FAILED, END_RUN_SEND_FAILED và SYNC_MARK",
     "bản thân xe, bo, cảm biến và định vị",
+    "localization.csv (định vị từng vòng; tái hiện bằng lidar.pose_estimator --same-scans-as khi có bản ghi LiDAR "
+    "của lần chạy, T3)",
 )
 MAX_REPORTED_MISMATCHES = 20
 # `ReplayVehicleIO.telemetry_fresh()` khi không được truyền max_age_s (VehicleLink luôn truyền): như mặc định
@@ -174,7 +176,9 @@ def _pose_from_row(_i: int, row: dict[str, str]) -> tuple[float, PoseSample | No
     if row["available"] != "1":
         raise ValueError(f"available phải là 0 hoặc 1, có {row['available']!r}")
     pose = Pose(float(row["x"]), float(row["y"]), float(row["yaw_rad"]))
-    return t_io, PoseSample(pose, float(row["sample_t_io"]), row["source_id"], row["simulated"] == "1")
+    # status, reason (T2, 02/10/2026): băng cũ không có hai cột này → mẫu OK, như lúc ghi
+    return t_io, PoseSample(pose, float(row["sample_t_io"]), row["source_id"], row["simulated"] == "1",
+                            row.get("status") or "OK", row.get("reason") or "")
 
 
 def _io_event_from_row(_i: int, row: dict[str, str]) -> tuple[int, SafetyEvent] | None:

@@ -1,0 +1,402 @@
+{
+ "duration_s": 60.01,
+ "clock": {
+  "name": "perf_counter",
+  "implementation": "QueryPerformanceCounter()",
+  "resolution_s": 1e-07,
+  "monotonic": true
+ },
+ "stamps": "camera: lúc read() trả khung (gồm giải mã); LiDAR: lúc gói chứa điểm cuối của vòng tới máy",
+ "config": {
+  "width": 640,
+  "height": 480,
+  "fps": 30.0,
+  "fourcc": "MJPG",
+  "exposure": null,
+  "max_skew_s": 0.06,
+  "max_wait_s": 0.06,
+  "display_width": 640,
+  "ai": true,
+  "checkpoint": "runs\\ai_woodscape_rtx4000_v1\\best.pt",
+  "lidar_port": "COM3",
+  "notes": {
+   "name": "ld1_thu_ghi",
+   "note": ""
+  }
+ },
+ "camera_specs": [
+  {
+   "port": 1,
+   "index": 0,
+   "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&2C402FB5&0&0000"
+  },
+  {
+   "port": 2,
+   "index": 2,
+   "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&19867F10&0&0000"
+  },
+  {
+   "port": 3,
+   "index": 1,
+   "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&6CCCE6B&0&0000"
+  },
+  {
+   "port": 4,
+   "index": 3,
+   "instance_id": "USB\\VID_1BCF&PID_0B09&MI_00\\7&2FADE7CD&0&0000"
+  }
+ ],
+ "cameras": [
+  {
+   "port": 1,
+   "index": 0,
+   "frames": 1431,
+   "duplicates": 0,
+   "truncated": 0,
+   "torn": 0,
+   "read_failures": 0,
+   "gap_max_ms": 59.7,
+   "gap_closed_max_ms": 59.7,
+   "gap_end_ms": 23.2,
+   "open_error": null,
+   "last_error": null,
+   "fps_last2s": 23.76,
+   "period_ms": 42.2,
+   "age_ms": 23.2,
+   "stale": false,
+   "fps_mean": 23.84
+  },
+  {
+   "port": 2,
+   "index": 2,
+   "frames": 1572,
+   "duplicates": 0,
+   "truncated": 0,
+   "torn": 0,
+   "read_failures": 0,
+   "gap_max_ms": 68.8,
+   "gap_closed_max_ms": 68.8,
+   "gap_end_ms": 14.0,
+   "open_error": null,
+   "last_error": null,
+   "fps_last2s": 29.47,
+   "period_ms": 33.9,
+   "age_ms": 14.0,
+   "stale": false,
+   "fps_mean": 26.19
+  },
+  {
+   "port": 3,
+   "index": 1,
+   "frames": 1431,
+   "duplicates": 0,
+   "truncated": 0,
+   "torn": 0,
+   "read_failures": 0,
+   "gap_max_ms": 55.2,
+   "gap_closed_max_ms": 55.2,
+   "gap_end_ms": 16.4,
+   "open_error": null,
+   "last_error": null,
+   "fps_last2s": 23.73,
+   "period_ms": 42.3,
+   "age_ms": 16.4,
+   "stale": false,
+   "fps_mean": 23.84
+  },
+  {
+   "port": 4,
+   "index": 3,
+   "frames": 1431,
+   "duplicates": 0,
+   "truncated": 0,
+   "torn": 0,
+   "read_failures": 0,
+   "gap_max_ms": 56.4,
+   "gap_closed_max_ms": 56.4,
+   "gap_end_ms": 18.7,
+   "open_error": null,
+   "last_error": null,
+   "fps_last2s": 23.75,
+   "period_ms": 42.2,
+   "age_ms": 18.7,
+   "stale": false,
+   "fps_mean": 23.84
+  }
+ ],
+ "policy": {
+  "max_skew_ms": 60.0,
+  "max_wait_ms": 60.0,
+  "wait_rule": "own_cadence",
+  "wait_periods_of_own": 1.5,
+  "wait_periods_of_fastest": 1.5,
+  "stale_after_ms": 500.0
+ },
+ "sets": {
+  "sets_built": 1432,
+  "sets_rejected_skew": 0,
+  "sets_partial": 0,
+  "sets_blocked_not_new": 2917,
+  "sets_partial_wait": 1,
+  "lagging_per_port": {
+   "1": 0,
+   "2": 1,
+   "3": 0,
+   "4": 0
+  },
+  "partial_wait_ms": {
+   "median": 44.0,
+   "p95": 44.0,
+   "min": 44.0,
+   "max": 44.0,
+   "n": 1
+  },
+  "wait_limit_ms": {
+   "median": 63.4,
+   "p95": 63.5,
+   "min": 62.0,
+   "max": 64.1,
+   "n": 1432
+  },
+  "sets_regrouped": 1,
+  "frames_skipped": {
+   "1": 0,
+   "2": 140,
+   "3": 0,
+   "4": 0
+  },
+  "skew_ms": {
+   "median": 12.1,
+   "p95": 28.7,
+   "min": 0.0,
+   "max": 47.0,
+   "n": 1432
+  }
+ },
+ "lidar": {
+  "scans": 601,
+  "hz_mean": 10.014,
+  "hz_last3s": 10.0,
+  "errors": 0,
+  "open_error": null,
+  "last_error": null,
+  "gap_max_ms": 109.4,
+  "age_ms": 19.3,
+  "beams_valid_last": 405,
+  "driver_since_reset": {
+   "revolutions_returned": 601,
+   "resets": 0,
+   "nodes": 306086,
+   "resync_bytes": 0,
+   "revolutions": 601,
+   "dropped_revolutions": 0,
+   "discarded_nodes": 0,
+   "wrap_splits": 0
+  },
+  "vs_set": {
+   "last_minus_anchor_ms": {
+    "median": -36.7,
+    "p95": 8.6,
+    "min": -94.6,
+    "max": 28.0,
+    "n": 1432
+   },
+   "mid_minus_anchor_ms": {
+    "median": -86.2,
+    "p95": -40.8,
+    "min": -144.1,
+    "max": -22.1,
+    "n": 1432
+   },
+   "sweep_ms": {
+    "median": 100.3,
+    "p95": 100.6,
+    "min": 90.6,
+    "max": 109.4,
+    "n": 1432
+   }
+  }
+ },
+ "ai": {
+  "model": "ai_woodscape_rtx4000_v1",
+  "checkpoint": "runs\\ai_woodscape_rtx4000_v1\\best.pt",
+  "requested": "runs\\ai_woodscape_rtx4000_v1\\best.pt",
+  "device": "cuda",
+  "amp": true,
+  "enabled": true,
+  "load_error": null,
+  "load_ms": 2083.8,
+  "first_batch_ms": 3297.9,
+  "warm_up_ms": [
+   3297.9,
+   2520.1,
+   2483.2,
+   2303.0
+  ],
+  "batches": 1432,
+  "images": 5724,
+  "batches_partial_wait": 1,
+  "max_wait_ms": 60.0,
+  "sets_per_s_mean": 23.861,
+  "sets_per_s_last3s": 23.9,
+  "errors": 0,
+  "last_error": null,
+  "last_result_age_ms": 37.8,
+  "window": "cả phiên",
+  "total_ms": {
+   "median": 23.2,
+   "p95": 34.3,
+   "min": 11.1,
+   "max": 53.1,
+   "n": 1432
+  },
+  "model_ms": {
+   "median": 15.0,
+   "p95": 25.6,
+   "min": 7.0,
+   "max": 45.8,
+   "n": 1432
+  },
+  "pre_ms": {
+   "median": 5.3,
+   "p95": 7.5,
+   "min": 2.1,
+   "max": 17.5,
+   "n": 1432
+  },
+  "post_ms": {
+   "median": 2.2,
+   "p95": 4.1,
+   "min": 0.6,
+   "max": 11.6,
+   "n": 1432
+  },
+  "result_age_oldest_frame_ms": {
+   "median": 42.3,
+   "p95": 62.8,
+   "min": 22.0,
+   "max": 89.8,
+   "n": 1432
+  },
+  "result_age_newest_frame_ms": {
+   "median": 25.8,
+   "p95": 37.6,
+   "min": 12.9,
+   "max": 65.2,
+   "n": 1432
+  }
+ },
+ "resources": {
+  "n": 59,
+  "gpu_name": "NVIDIA RTX 4000 Ada Generation",
+  "errors": [],
+  "cpu_temperature": "không đo (Windows không cho đọc nhiệt độ CPU khi không có quyền admin)",
+  "proc_cpu_cores": {
+   "mean": 1.237,
+   "max": 1.65,
+   "first": 1.17,
+   "last": 1.05
+  },
+  "sys_cpu_pct": {
+   "mean": 10.91,
+   "max": 15.0,
+   "first": 9.0,
+   "last": 11.0
+  },
+  "proc_rss_mb": {
+   "mean": 1568.234,
+   "max": 1583.3,
+   "first": 1582.8,
+   "last": 1561.8
+  },
+  "gpu_util_pct": {
+   "mean": 31.288,
+   "max": 100.0,
+   "first": 12.0,
+   "last": 100.0
+  },
+  "gpu_mem_used_mb": {
+   "mean": 6452.78,
+   "max": 6479.0,
+   "first": 6418.0,
+   "last": 6469.0
+  },
+  "gpu_temp_c": {
+   "mean": 60.644,
+   "max": 64.0,
+   "first": 62.0,
+   "last": 64.0
+  },
+  "gpu_power_w": {
+   "mean": 52.146,
+   "max": 86.6,
+   "first": 48.0,
+   "last": 55.3
+  }
+ },
+ "stop_alive": [],
+ "recording": {
+  "folder": "runs\\rig_recordings\\20261002_ld1_thu_ghi",
+  "state": "xong",
+  "error": null,
+  "errors": [],
+  "image_format": "jpg",
+  "jpeg_quality": 95,
+  "elapsed_s": 60.01,
+  "frames": {
+   "1": 1431,
+   "2": 1572,
+   "3": 1431,
+   "4": 1431
+  },
+  "frames_seen": {
+   "1": 1431,
+   "2": 1572,
+   "3": 1431,
+   "4": 1431
+  },
+  "dropped": {
+   "1": 0,
+   "2": 0,
+   "3": 0,
+   "4": 0
+  },
+  "events": {
+   "1": {},
+   "2": {},
+   "3": {},
+   "4": {}
+  },
+  "frames_total": 5865,
+  "dropped_total": 0,
+  "lidar_scans": 601,
+  "lidar_parts": 2,
+  "lidar_events": 0,
+  "pending_frames": 0,
+  "pending_mb": 0.0,
+  "mb_written": 318.49,
+  "mb_per_s": 5.31
+ },
+ "replay": null,
+ "python_switch_interval_s": 0.005,
+ "name": "ld1_thu_ghi",
+ "created_utc": "2026-10-02T07:11:13+00:00",
+ "warmup_s": 5.0,
+ "argv": [
+  "--ports",
+  "1",
+  "2",
+  "3",
+  "4",
+  "--lidar",
+  "--seconds",
+  "60",
+  "--name",
+  "ld1_thu_ghi",
+  "--out",
+  "runs/rig_bench/20261002",
+  "--record",
+  "runs/rig_recordings/20261002_ld1_thu_ghi"
+ ],
+ "_ghi_chu": "rút từ runs\\rig_bench\\20261002\\ld1_thu_ghi.rig.json (bỏ khóa 'series' và các mảng dài); 02/10/2026"
+}

@@ -52,7 +52,7 @@ flowchart TD
     VAL --> TST["evaluate test --final-test: 2 lần, ghi test_evaluations.jsonl"]
     CK --> EXT["evaluate_external: ACDC, RoadObstacle21, RoadAnomaly21"]
     CK --> ONX["export_onnx: opset 17, 12,9 MB, khớp PyTorch, chưa dùng khi chạy"]
-    CK --> RE["29/09/2026 máy bàn hiện tại: chấm lại val 0,9700, train thử 1 epoch"]
+    CK --> RE["29/09/2026 máy bàn hiện tại: chấm lại val mIoU 0,9700, train thử 1 epoch"]
     CK -.-> SAB["Chấm trên ảnh sa bàn tô tay"]
     CK -.-> LAP["Đo AI trên laptop RTX 3050 Ti"]
     classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b

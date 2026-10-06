@@ -169,6 +169,22 @@ def test_board_pdf_has_exact_physical_scale_and_valid_xref(tmp_path):
     assert spec_json["inner_corners"] == {"cols": 9, "rows": 6} and spec_json["measure_hint"]["span_mm_nominal"] == 160
 
 
+def test_board_pdf_bytes_unchanged_after_refactor():
+    # 02/10/2026: pdf_bytes thành lớp bọc của pdf_page_bytes (bộ ghi chung với tờ ArUco của T4). Từng byte phải như cũ:
+    # SHA-256 ghim từ mã trước khi sửa, và bằng đúng các tệp PDF đã commit trong calibration/bang_in/.
+    import hashlib
+    from tests.conftest import PROJECT_ROOT
+
+    pinned = {("A4", 20.0): "003c12a25e810eee937e36c6a306d27d386cd6947829846ff80093d611bc73a4",
+              ("A3", 30.0): "27aec8073ad035ceef5c2293365c5041e390ae6f793f373d7575c81a8b18e92b"}
+    for (paper, square), digest in pinned.items():
+        spec = BoardSpec(9, 6, square)
+        data = cb.pdf_bytes(cb.layout(spec, paper), cb.instruction_text(spec, paper))
+        assert hashlib.sha256(data).hexdigest() == digest
+        committed = PROJECT_ROOT / "calibration" / "bang_in" / f"{cb.board_basename(spec, paper)}.pdf"
+        assert committed.read_bytes() == data
+
+
 def test_board_pdf_rendered_by_pdfium_is_a_detectable_board_at_the_printed_scale(tmp_path):
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     pytest.importorskip("PySide6")

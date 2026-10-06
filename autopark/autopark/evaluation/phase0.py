@@ -16,6 +16,7 @@ from autopark.application.session import Session, SessionState
 from autopark.domain.types import Bounds, Obstacle, ParkingGoal, Pose, Scenario
 from autopark.evaluation.sensitivity import vehicle_config_arg
 from autopark.geometry.footprint import body_corners
+from autopark.power_throttling import apply_ecoqos_policy
 from autopark.simulation.feedback import FeedbackConfig
 from autopark.storage.run_store import export_run, replay_run, write_json
 from autopark.storage.scenario_store import load_scenario
@@ -82,11 +83,13 @@ def render_video(session, directory: Path):
 
 
 def main(argv=None):
+    ecoqos = apply_ecoqos_policy("evaluation.phase0")  # trước mọi việc khác; trạng thái vào manifest (environment)
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--vehicle-config", type=vehicle_config_arg, default=str(DEFAULT_VEHICLE_CONFIG),
                         help="cấu hình xe (JSON như configs/vehicle_default.json); mặc định vehicle_default.json")
     args = parser.parse_args(argv)
+    print(ecoqos.cli_line(), flush=True)
     root = PROJECT_ROOT
     vehicle = args.vehicle_config
     cfg = vehicle.cfg

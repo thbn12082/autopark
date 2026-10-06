@@ -1,0 +1,33 @@
+# Rút gọn từ runs/thiet_bi_20261002/ld1_lan2.txt: 361 dòng trạng thái (mỗi 5 s), giữ 6 dòng đầu và 6 dòng cuối; mọi dòng khác giữ nguyên.
+camera: [(1, 0), (2, 2), (3, 1), (4, 3)] (cổng, index)  LiDAR: COM3  AI: runs\ai_woodscape_rtx4000_v1\best.pt
+đang ghi phiên vào runs\rig_recordings\20261002_ld1_lan2
+
+  t=   5.0s  ·  p1 23.7fps cũ0 cắt0 xé0 chậm0 | p2 23.9fps cũ0 cắt0 xé0 chậm0 | p3 23.9fps cũ0 cắt0 xé0 chậm0 | p4 23.9fps cũ0 cắt0 xé0 chậm0  ·  bộ thiếu cam chậm 0 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 16.4 bộ/s 58.5 ms  ·  CPU 1.968 lõi GPU 100% 77°C  ·  ghi đang ghi 478 khung, bỏ 0, chờ ghi 0
+  t=  10.0s  ·  p1 23.9fps cũ0 cắt0 xé0 chậm0 | p2 23.9fps cũ0 cắt0 xé0 chậm0 | p3 23.9fps cũ0 cắt0 xé0 chậm0 | p4 23.9fps cũ0 cắt0 xé0 chậm0  ·  bộ thiếu cam chậm 0 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 16.0 bộ/s 57.8 ms  ·  CPU 1.834 lõi GPU 100% 77°C  ·  ghi đang ghi 954 khung, bỏ 0, chờ ghi 0
+  t=  15.0s  ·  p1 23.9fps cũ0 cắt0 xé0 chậm0 | p2 23.9fps cũ0 cắt0 xé0 chậm0 | p3 24.1fps cũ0 cắt0 xé0 chậm0 | p4 23.9fps cũ0 cắt0 xé0 chậm0  ·  bộ thiếu cam chậm 0 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 15.7 bộ/s 57.6 ms  ·  CPU 1.576 lõi GPU 100% 77°C  ·  ghi đang ghi 1431 khung, bỏ 0, chờ ghi 0
+  t=  20.0s  ·  p1 24.0fps cũ0 cắt0 xé0 chậm0 | p2 23.8fps cũ0 cắt0 xé0 chậm0 | p3 23.9fps cũ0 cắt0 xé0 chậm0 | p4 23.8fps cũ0 cắt0 xé0 chậm0  ·  bộ thiếu cam chậm 0 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 20.7 bộ/s 54.0 ms  ·  CPU 1.908 lõi GPU 100% 76°C  ·  ghi đang ghi 1907 khung, bỏ 0, chờ ghi 0
+  t=  25.0s  ·  p1 23.9fps cũ0 cắt0 xé0 chậm0 | p2 24.0fps cũ0 cắt0 xé0 chậm0 | p3 23.9fps cũ0 cắt0 xé0 chậm0 | p4 23.9fps cũ0 cắt0 xé0 chậm0  ·  bộ thiếu cam chậm 0 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 23.8 bộ/s 50.2 ms  ·  CPU 1.955 lõi GPU 100% 76°C  ·  ghi đang ghi 2385 khung, bỏ 0, chờ ghi 1
+  t=  30.0s  ·  p1 23.7fps cũ0 cắt0 xé0 chậm0 | p2 23.9fps cũ0 cắt0 xé0 chậm0 | p3 23.9fps cũ0 cắt0 xé0 chậm0 | p4 23.9fps cũ0 cắt0 xé0 chậm0  ·  bộ thiếu cam chậm 0 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 23.9 bộ/s 45.8 ms  ·  CPU 1.401 lõi GPU 100% 76°C  ·  ghi đang ghi 2862 khung, bỏ 0, chờ ghi 0
+  …
+  t=1780.1s  ·  p1 24.3fps cũ0 cắt0 xé0 chậm28 | p2 23.9fps cũ0 cắt0 xé0 chậm47 | p3 24.2fps cũ0 cắt0 xé0 chậm17 | p4 29.7fps cũ0 cắt0 xé0 chậm26  ·  bộ thiếu cam chậm 99 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 11.8 bộ/s 23.5 ms  ·  CPU 1.073 lõi GPU 18% 45°C  ·  ghi đang ghi 173830 khung, bỏ 0, chờ ghi 9
+  t=1785.0s  ·  p1 22.3fps cũ0 cắt0 xé0 chậm28 | p2 22.4fps cũ0 cắt0 xé0 chậm47 | p3 22.6fps cũ0 cắt0 xé0 chậm17 | p4 25.9fps cũ0 cắt0 xé0 chậm26  ·  bộ thiếu cam chậm 99 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 5.1 bộ/s 23.5 ms  ·  CPU 0.635 lõi GPU 27% 44°C  ·  ghi đang ghi 174308 khung, bỏ 0, chờ ghi 6
+  t=1790.0s  ·  p1 23.6fps cũ0 cắt0 xé0 chậm28 | p2 23.6fps cũ0 cắt0 xé0 chậm47 | p3 23.6fps cũ0 cắt0 xé0 chậm17 | p4 28.9fps cũ0 cắt0 xé0 chậm26  ·  bộ thiếu cam chậm 99 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 5.7 bộ/s 23.6 ms  ·  CPU 0.84 lõi GPU 49% 44°C  ·  ghi đang ghi 174800 khung, bỏ 0, chờ ghi 4
+  t=1795.0s  ·  p1 23.5fps cũ0 cắt0 xé0 chậm29 | p2 23.6fps cũ0 cắt0 xé0 chậm47 | p3 24.2fps cũ0 cắt0 xé0 chậm18 | p4 28.6fps cũ0 cắt0 xé0 chậm27  ·  bộ thiếu cam chậm 101 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 8.7 bộ/s 23.6 ms  ·  CPU 0.845 lõi GPU 9% 43°C  ·  ghi đang ghi 175296 khung, bỏ 0, chờ ghi 0
+  t=1800.0s  ·  p1 23.9fps cũ0 cắt0 xé0 chậm29 | p2 23.9fps cũ0 cắt0 xé0 chậm47 | p3 23.9fps cũ0 cắt0 xé0 chậm18 | p4 29.2fps cũ0 cắt0 xé0 chậm27  ·  bộ thiếu cam chậm 101 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 23.8 bộ/s 23.6 ms  ·  CPU 1.25 lõi GPU 75% 44°C  ·  ghi đang ghi 175800 khung, bỏ 0, chờ ghi 0
+  t=1800.0s  ·  p1 23.9fps cũ0 cắt0 xé0 chậm29 | p2 23.9fps cũ0 cắt0 xé0 chậm47 | p3 23.9fps cũ0 cắt0 xé0 chậm18 | p4 29.2fps cũ0 cắt0 xé0 chậm27  ·  bộ thiếu cam chậm 101 (ngưỡng chờ 63.4 ms)  ·  LiDAR 0.0Hz  ·  AI 23.8 bộ/s 23.6 ms  ·  CPU 1.25 lõi GPU 75% 44°C  ·  ghi xong 175800 khung, bỏ 0, chờ ghi 0
+== ld1_lan2: 1800.03 s (đồng hồ perf_counter, phân giải 1e-07 s) ==
+  cổng 1 (index 0): 23.77 fps TB (khung tốt), khung cũ 0, khung bị cắt 0, khung xé giữa ảnh 0, đọc hỏng 0, khoảng cách max 634.3 ms (hở cuối phiên 26.5 ms)
+  cổng 2 (index 2): 24.32 fps TB (khung tốt), khung cũ 0, khung bị cắt 0, khung xé giữa ảnh 0, đọc hỏng 0, khoảng cách max 608.6 ms (hở cuối phiên 23.5 ms)
+  cổng 3 (index 1): 23.78 fps TB (khung tốt), khung cũ 0, khung bị cắt 0, khung xé giữa ảnh 0, đọc hỏng 0, khoảng cách max 649.4 ms (hở cuối phiên 39.7 ms)
+  cổng 4 (index 3): 25.79 fps TB (khung tốt), khung cũ 0, khung bị cắt 0, khung xé giữa ảnh 0, đọc hỏng 0, khoảng cách max 634.3 ms (hở cuối phiên 9.1 ms)
+  bộ ảnh: 32431 dùng, 8 bỏ vì lệch, 2 thiếu camera, 53417 bị chặn vì chưa đủ khung mới; khung không vào bộ nào {1: 10409, 2: 11391, 3: 10405, 4: 14041}
+  chờ camera chậm tối đa max(60.0 ms; 1.5 × chu kỳ của CHÍNH từng camera), ngưỡng lớn nhất trong bộ trung vị 63.4 ms [60.0; 64.7]: 101 bộ dùng thiếu camera chậm, số bộ theo cổng bị bỏ {1: 29, 2: 47, 3: 18, 4: 27}; khung mới đã chờ trung vị 24.4 ms, max 243.1 ms; 30 bộ để dành camera lệch pha cho bộ sau
+  độ lệch bộ ảnh: trung vị 18.8 ms, p95 32.5 ms, max 293.7 ms (n 32439)
+  LiDAR: 0 vòng, 0.0 Hz TB, lỗi 8151, khoảng cách max 0.0 ms
+     cuối vòng − mốc bộ ảnh (lúc ghép bộ): trung vị None ms, min None, max None (n 0)
+  AI ai_woodscape_rtx4000_v1 (cuda, amp True): 32431 lô = 129529 ảnh, 18.017 bộ/s TB; 101 lô thiếu camera chậm; lô đầu 5447.4 ms (khởi tạo, không tính); làm nóng theo cỡ lô [5447.4, 4830.1, 3712.8, 2887.0] ms
+     một lô: trung vị 23.3 ms (tiền xử lý 5.4, mạng 15.3, hậu xử lý 2.5), p95 44.4 ms, max 1026.0 ms; lỗi 0
+     tuổi kết quả so với khung cũ nhất: trung vị 45.1 ms, p95 82.2 ms; so với khung mới nhất: trung vị 25.7 ms
+  tài nguyên: CPU tiến trình 1.302 lõi (max 2.62), máy 24.805 %, RAM 1571.573 MB, GPU 42.979 %, VRAM 3394.937 MB, nhiệt GPU 78.0→44.0 °C (max 80.0), 51.569 W
+  ghi phiên → runs\rig_recordings\20261002_ld1_lan2: xong, 175800 khung jpg {1: 42794, 2: 43776, 3: 42801, 4: 46429}, bỏ 0, LiDAR 0 vòng, 8344.3 MB (4.64 MB/s)
+đã ghi runs\rig_bench\20261002\ld1_lan2.rig.json

@@ -373,7 +373,11 @@ Chỉ ghi điều hai lượt cùng cho thấy. Tất cả là mô phỏng, quan
   0,99 s và 1,05 s khi tắt EcoQoS, 3,39 s và 2,06 s khi để Windows tự quyết; [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md)
   mục 8). `tests/conftest.py` chỉ tắt EcoQoS cho tiến trình pytest; lệnh `sensitivity` và các tiến trình con
   `--workers` của nó không tự tắt. Khi chạy lại phải ghi cả trạng thái EcoQoS; chạy từ một cửa sổ terminal đang hiện có
-  tránh được việc hạ tốc hay không: CHƯA THỬ.)*
+  tránh được việc hạ tốc hay không: CHƯA THỬ.)* *(Cập nhật 02/10/2026: lệnh `sensitivity` nay tự tắt EcoQoS cho tiến
+  trình chính và mỗi tiến trình con `--workers` (qua `initializer` của `ProcessPoolExecutor`), trừ khi
+  `AUTOPARK_KEEP_ECOQOS=1`. `ket_qua.json` ghi `manifest.ecoqos`, `manifest.ecoqos_rows` (số ca theo trạng thái) và
+  `ecoqos` của từng dòng; dòng tóm tắt đầu `bang_do_nhay.md` in "EcoQoS …". Các lượt trước ngày này không ghi trạng
+  thái.)*
 - **Mức thô.** Chỉ có 5/10/20 %; "mức lật đầu tiên" chỉ khoanh ngưỡng trong khoảng giữa hai mức, không phải ngưỡng
   chính xác.
 - **Hết giờ ≠ vô nghiệm; giải được ≠ an toàn trên xe thật.** Khoảng hở nhỏ nhất vài mm trong mô phỏng (mục 7) không còn
@@ -388,6 +392,6 @@ Chỉ ghi điều hai lượt cùng cho thấy. Tất cả là mô phỏng, quan
 1. Khi có số đo B1/B2 của MN300 (GIAI_DOAN_4_CHUAN_BI.md mục 3): lập `configs/vehicle_measured.json` rồi chạy lệnh
    `--plan-config` ở mục 3, ngân sách 20 s, khi máy rảnh. Đặt kết quả cạnh bảng ở đây.
 2. Chạy lại một lượt khi máy rảnh, `--workers 1`, để có số thời gian sạch cho khóa luận. *(Cập nhật 30/09/2026: ghi
-   cả trạng thái EcoQoS của tiến trình, mục 8.)*
+   cả trạng thái EcoQoS của tiến trình, mục 8.)* *(02/10/2026: lệnh tự ghi, mục 8.)*
 3. Nếu cần ngưỡng mịn hơn cho một ca (ví dụ `parallel_135`): `--scenes parallel_135 --params length --levels 1,2,3,4,5`.
 4. Sa bàn thật của đồ án chưa dựng; khi dựng, thêm nó vào `scenarios/` để công cụ tự chạy trên nó.

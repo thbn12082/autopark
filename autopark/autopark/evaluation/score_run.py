@@ -20,6 +20,13 @@ Nguyên tắc (NGUONG mục 0, quy tắc đề xuất):
   kiện THÀNH CÔNG của NGUONG mục 1 đạt, kể cả điều kiện danh sách của kịch bản không có) và THAT_BAI (có kiểm không đạt;
   chạm hay can thiệp ghi tay luôn là THAT_BAI vì N-D4, N-D9 tuyệt đối). Mọi trường hợp khác để trống cho người chấm;
   không bao giờ tự ghi DUNG_DUNG hay KHONG_TINH. `--result` của người luôn thắng, khác đề xuất thì ghi vào ghi_chu.
+- N-V1 (cập nhật 02/10/2026; người dùng giao quyết định 02/10/2026 ('làm hết'), ngưỡng vẫn ĐỀ XUẤT – CHỜ CHỐT): ngoài
+  tốc độ đo, khi tệp ngưỡng có `target_mps` thì kiểm cả vế "tốc độ mục tiêu ≤ 0,10 m/s ở đợt đầu" bằng lệnh đã gửi
+  (target_speed_mps của commands.csv, target_speed của RunLog gói SIM); vượt thì N-V1 không đạt (chạy với
+  configs/vehicle_nghiem_thu.json). Ô v_max_do_mps vẫn chỉ ghi tốc độ đo. Xe mô phỏng bị kẹp ở max_speed_mps của cấu
+  hình xe nên ở MP tốc độ đo không vượt mức đó (ghi chú tự thêm). Ghi chú thêm (không đổi kết luận) khi kịch bản không
+  phải lần đỗ chạy nhanh hơn vế mục tiêu (ngưỡng phản ứng NGUONG mục 3 giả định tốc độ ≤ N-V1), và khi xe của lần chạy
+  (run.json) khác kích thước xe dùng để chấm.
 
 Log đọc được: thư mục `<tên>_vehicle_io/` của `VehicleLink.write_logs` (RunLog `<tên>.csv` ở bên cạnh), gói
 `<tên>_<giờ>/` của `export_run` cho lần chạy qua VehicleIO (T9: chấm từ `vehicle_io/` của gói như log VehicleIO, RunLog
@@ -55,7 +62,7 @@ import sys
 
 from shapely.geometry import Point, Polygon
 
-from autopark.application.vehicle_link import SimTruthPose
+from autopark.application.vehicle_link import QemuPlantPose, SimTruthPose
 from autopark.domain.types import Obstacle, ParkingSlot, Pose, Scenario, VehicleConfig, wrap_angle
 from autopark.evaluation.reference_pose import (ReferenceAccuracy, ReferenceTrack, SyncPair, read_reference,
                                                 reference_from_sim_rows, static_reference)
@@ -64,6 +71,7 @@ from autopark.lidar import recording as lidar_recording
 from autopark.perception.paths import PROJECT, atomic_write_json, utc_now
 from autopark.storage.run_store import is_vehicle_io_package
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config
+from autopark.transport.qemu_plant import QEMU_EVIDENCE
 
 TOOL = "autopark.evaluation.score_run"
 DETAIL_SCHEMA_VERSION = 1
@@ -91,6 +99,9 @@ LIMIT_PARAMS = {"N-D1": ("max_cm",), "N-D2": ("max_deg",), "N-D5": ("min_cm",), 
                 "N-D7": ("max_run_s",), "N-V1": ("max_mps",), "N-P1": ("max_s",), "N-P2": ("max_cm",),
                 "N-P3": ("min_cm",), "N-P5c": ("max_cm", "max_s"), "N-P6": ("max_cm",), "N-P7": ("max_cm",),
                 "N-P8": ("max_cm",)}
+# Khóa tùy chọn (02/10/2026): N-V1.target_mps = vế "tốc độ mục tiêu ≤ 0,10 m/s" (lệnh đã gửi); tệp không có thì bỏ vế đó
+LIMIT_OPTIONAL = {"N-V1": ("target_mps",)}
+VEHICLE_GEOMETRY_KEYS = ("wheelbase_m", "width_m", "front_overhang_m", "rear_overhang_m", "max_steer_deg")
 STOP_DISTANCE_CHECKS = ("N-P2", "N-P5c", "N-P6", "N-P7", "N-P8")
 GEOMETRY_CHECKS = ("N-D1", "N-D2", "N-D3", "N-D5")
 PARKING_RESULT_KEYS = ("VC-5do",)          # phần đỗ của VC-5 cũng là một lần đỗ (KICH_BAN mục 1.4)
@@ -106,6 +117,11 @@ USER_STOP_CODES = ("USER_STOP", "USER_RESET")   # mã T13 của dừng/đặt l�
 USER_STOP_REASON = "Người dùng yêu cầu dừng"    # lý do mặc định của Session.request_stop (log cũ, gói SIM)
 SIM_TRUTH_POSE = SimTruthPose.source_id
 EMULATED_PORT_PREFIXES = ("socket://", "loop://")
+# Bo ảo QEMU với xe mô phỏng phía laptop (02/10/2026; người dùng giao quyết định 02/10/2026, ĐỀ XUẤT): log là mô phỏng
+# (mức MP, XT từ chối), và tư thế qemu_plant_pose là tư thế thật của xe mô phỏng nên --sim-truth dùng được, chỉ ở MP.
+QEMU_PLANT_POSE = QemuPlantPose.source_id
+EMULATED_EVIDENCE = frozenset({"simulation_only", QEMU_EVIDENCE})
+SIM_TRUTH_SOURCES = frozenset({("simulation_only", SIM_TRUTH_POSE), (QEMU_EVIDENCE, QEMU_PLANT_POSE)})
 VEHICLE_IO_SUFFIX = "_vehicle_io"
 SIM_BUNDLE_SUFFIX_RE = re.compile(r"_\d{8}_\d{6}_\d{6}$")   # <tên>_<YYYYmmdd_HHMMSS_micro> của "Xuất log CSV…"
 PACKAGE_LOG_DIR = "vehicle_io"             # thư mục log VehicleLink trong gói export_run của lần chạy VehicleIO (T9)
@@ -212,6 +228,11 @@ class Thresholds:
     def limit(self, check: str, name: str) -> float:
         return float(self.limits[check][name])
 
+    def limit_or_none(self, check: str, name: str) -> float | None:
+        """Giới hạn tùy chọn (LIMIT_OPTIONAL): None khi tệp ngưỡng không có khóa đó."""
+        value = self.limits.get(check, {}).get(name)
+        return float(value) if value is not None else None
+
     def rule(self, scenario: str, variant: str = "") -> ScenarioRule:
         """Khóa là mã + biến thể khi có khóa đó (DO-3a, VC-5dung), không thì mã. Mã phải đúng dạng của KICH_BAN mục 4
         (DO-1, VC-5): biến thể đưa vào --variant, để khóa dòng biên bản (mã, biến thể, lần, mức) nhất quán."""
@@ -262,8 +283,10 @@ def load_thresholds(path=DEFAULT_THRESHOLDS) -> Thresholds:
     for check, values in data["limits"].items():
         if check not in LIMIT_PARAMS:
             raise ValueError(f"{where}: limits có mã kiểm lạ {check!r}")
-        if not isinstance(values, dict) or set(values) != set(LIMIT_PARAMS[check]):
-            raise ValueError(f"{where}: limits.{check} phải có đúng các khóa {LIMIT_PARAMS[check]}")
+        required, optional = set(LIMIT_PARAMS[check]), set(LIMIT_OPTIONAL.get(check, ()))
+        if not isinstance(values, dict) or not required <= set(values) <= required | optional:
+            raise ValueError(f"{where}: limits.{check} phải có đúng các khóa {LIMIT_PARAMS[check]}"
+                             + (f" (tùy chọn {LIMIT_OPTIONAL[check]})" if check in LIMIT_OPTIONAL else ""))
         limits[check] = {k: _positive(v, f"limits.{check}.{k}", where) for k, v in values.items()}
     scenarios = {}
     for key, entry in data["scenarios"].items():
@@ -351,15 +374,21 @@ class RunLogData:
     max_run_time: float | None = None
     injected_obstacles: list[Obstacle] = field(default_factory=list)
     package: Path | None = None    # gói export_run (T9) chứa thư mục log VehicleLink này (`<gói>/vehicle_io`)
+    # N-V1 vế mục tiêu (02/10/2026): |tốc độ mục tiêu| lớn nhất của lệnh (lệnh đã gửi, NGUONG quy tắc 2) và nguồn; xe
+    # của lần chạy (tên, max_speed_mps, nguồn, kích thước khi có run.json)
+    max_target_mps: float | None = None
+    target_source: str = ""
+    run_vehicle: dict | None = None
 
     @property
     def sim_truth(self) -> bool:
         """Tư thế trong RunLog là tư thế THẬT của mô phỏng: gói SIM (evidence simulation_only), hoặc VehicleIO mô phỏng
         với SimTruthPose. Gói của lần chạy qua VehicleIO luôn được đọc thành kind vehicle_io (RunLog của nó là thế giới
-        gương, tư thế lấy từ nguồn định vị), nên chỉ qua nhánh thứ hai."""
+        gương, tư thế lấy từ nguồn định vị), nên chỉ qua nhánh thứ hai. Thêm 02/10/2026: bo ảo QEMU với qemu_plant_pose
+        (tư thế thật của xe mô phỏng phía laptop; `_check_log` chỉ nhận ở mức MP)."""
         if self.kind == "sim_bundle":
             return self.evidence == "simulation_only"
-        return self.evidence == "simulation_only" and self.pose_source == SIM_TRUTH_POSE
+        return (self.evidence, self.pose_source) in SIM_TRUTH_SOURCES
 
     @property
     def ended(self) -> bool:
@@ -391,7 +420,9 @@ class RunLogData:
                 "plan_note": self.plan_note, "max_run_time": self.max_run_time,
                 "runlog": str(self.runlog_path) if self.runlog_path else None, "runlog_note": self.runlog_note,
                 "events": [asdict(e) for e in self.events],
-                "injected_obstacles": [o.to_dict() for o in self.injected_obstacles], "notes": list(self.notes)}
+                "injected_obstacles": [o.to_dict() for o in self.injected_obstacles], "notes": list(self.notes),
+                "max_target_mps": self.max_target_mps, "target_source": self.target_source,
+                "run_vehicle": self.run_vehicle}
 
 
 def load_run_log(directory, runlog=None) -> RunLogData:
@@ -502,6 +533,53 @@ def _snapshot_cusps(directory: Path, files: dict[str, str],
     return None, None, ""
 
 
+def _number(value) -> float | None:
+    """Số hữu hạn của JSON (không nhận bool hay chuỗi), không thì None."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return None
+    return float(value)
+
+
+def _max_abs(rows: list[dict], column: str, kind: str | None = None) -> float | None:
+    """|giá trị| lớn nhất của một cột số (ô trống bỏ qua); `kind`: chỉ các dòng có cột kind bằng giá trị đó."""
+    best = None
+    for row in rows:
+        if kind is not None and row.get("kind") != kind:
+            continue
+        value = _cell(row.get(column))
+        if value is not None and (best is None or abs(value) > best):
+            best = abs(value)
+    return best
+
+
+def _run_vehicle(directory: Path, files: dict[str, str], package: Path | None = None,
+                 limits_check=None) -> dict | None:
+    """Xe của lần chạy (N-V1, ghi chú kích thước; 02/10/2026): khóa "vehicle" của run.json (gói SIM, gói T9; có kích
+    thước), không thì tên xe và max_speed phía planner trong limits_check của link.json (thư mục _vehicle_io của
+    'Xuất log CSV…', không có kích thước). None khi không có cả hai."""
+    candidates = [(directory / "run.json", "run.json"),
+                  (directory / "config_snapshot" / "run.json", "config_snapshot/run.json")]
+    if package is not None:
+        candidates.append((package / "config_snapshot" / "run.json", "config_snapshot/run.json của gói"))
+    for candidate, label in candidates:
+        if candidate.exists():
+            snap = _read_json(candidate, files)
+            vehicle = snap.get("vehicle") if isinstance(snap, dict) else None
+            if isinstance(vehicle, dict):
+                out = {"name": str(vehicle.get("name", "?")), "max_speed_mps": _number(vehicle.get("max_speed_mps")),
+                       "source": label}
+                out.update({k: _number(vehicle[k]) for k in VEHICLE_GEOMETRY_KEYS
+                            if _number(vehicle.get(k)) is not None})
+                return out
+            break
+    if isinstance(limits_check, dict):
+        speed = next((_number(row[2]) for row in limits_check.get("compared") or []
+                      if isinstance(row, (list, tuple)) and len(row) == 3 and row[0] == "max_speed_mps"), None)
+        return {"name": str(limits_check.get("vehicle_name") or "?"), "max_speed_mps": speed,
+                "source": "link.json limits_check"}
+    return None
+
+
 def _load_vehicle_io(directory: Path, runlog, package: Path | None = None) -> RunLogData:
     files: dict[str, str] = {}
     info = _read_json(directory / "link.json", files)
@@ -577,9 +655,10 @@ def _load_vehicle_io(directory: Path, runlog, package: Path | None = None) -> Ru
         name = runlog_path.name if runlog_path is not None else "<tên>.csv (tên thư mục không có hậu tố _vehicle_io)"
         runlog_note = f"không thấy RunLog {name} cạnh thư mục log: dùng --runlog"
         runlog_path = None
+    max_target = _max_abs(cmd_rows, "target_speed_mps", "TRACK")          # N-V1 vế mục tiêu: lệnh bám đường
     return RunLogData(
         directory=directory, kind="vehicle_io", mode=str(info.get("mode", "?")), evidence=evidence,
-        emulated=evidence == "simulation_only" or (isinstance(port, str) and port.startswith(EMULATED_PORT_PREFIXES)),
+        emulated=evidence in EMULATED_EVIDENCE or (isinstance(port, str) and port.startswith(EMULATED_PORT_PREFIXES)),
         outcome=str(result["outcome"]) if result else None, reason=reason,
         t_end=float(result["t_session"]) if result else None, events=events,
         detection=_first_detection(events, t_stop_step, t_first_stop, t13, reason, t0_real), speed_series=speed_series,
@@ -590,7 +669,9 @@ def _load_vehicle_io(directory: Path, runlog, package: Path | None = None) -> Ru
         commands_sent=sum(1 for r in cmd_rows if r.get("sent") == "1"),
         link_commands_sent=int(result["commands_sent"]) if result and result.get("commands_sent") is not None
         else None,
-        t0_io=t0_io, t0_source=t0_source, clock=clock, t13=t13, max_run_time=max_run, package=package)
+        t0_io=t0_io, t0_source=t0_source, clock=clock, t13=t13, max_run_time=max_run, package=package,
+        max_target_mps=max_target, target_source="commands.csv (kind TRACK)" if max_target is not None else "",
+        run_vehicle=_run_vehicle(directory, files, package, info.get("limits_check")))
 
 
 def _load_sim_bundle(directory: Path, runlog) -> RunLogData:
@@ -641,13 +722,16 @@ def _load_sim_bundle(directory: Path, runlog) -> RunLogData:
         enable_after = sum(1 for r in rows if float(r["t"]) > detection.t_session + STOP_ROW_ERROR_S
                            and abs(float(r["target_speed"])) > 1e-9)
     planned, max_run, plan_source = _snapshot_cusps(directory, files)
+    max_target = _max_abs(rows, "target_speed")                           # N-V1 vế mục tiêu: cột của RunLog
     return RunLogData(                          # nhánh SIM không có bo: luôn là giả lập (không bao giờ đủ cho mức XT)
         directory=directory, kind="sim_bundle", mode="SIM", evidence=evidence, emulated=True,
         outcome=str(result["state"]), reason=str(result.get("reason") or ""),
         t_end=int(result["steps"]) * float(snap["physics_dt"]), events=events, detection=detection,
         speed_series=speed_series, planned_cusps=planned, plan_source=plan_source, runlog_path=runlog_path,
         runlog_rows=rows, files=files, notes=notes, enable_after_stop=enable_after, max_run_time=max_run,
-        injected_obstacles=injected)
+        injected_obstacles=injected, max_target_mps=max_target,
+        target_source=f"{runlog_path.name} (target_speed)" if max_target is not None else "",
+        run_vehicle=_run_vehicle(directory, files))
 
 
 # ====================================================================== dấu đồng bộ T14 và đồng hồ perf_counter
@@ -1179,6 +1263,18 @@ def _resolve_pair(pair: SyncPair, log: RunLogData | None, perf: PerfMap | None,
     return ResolvedPair(pair.t_ref, t_session, spec, pair.side, error)
 
 
+NOMINAL_VIDEO_NOTE = "đồng hồ video theo số khung/s danh định"     # = overhead_ref.NOMINAL_NOTE (không nhập vòng)
+
+
+def _nominal_video_clock(meta) -> bool:
+    """Tham chiếu theo đồng hồ video mà thời điểm khung chỉ là số khung/s danh định (T4 `track --allow-nominal-fps`:
+    ghi chú NOMINAL_VIDEO_NOTE, source.allow có 'nominal_fps')."""
+    if meta.clock != "video":
+        return False
+    allow = (meta.source or {}).get("allow") or ()
+    return NOMINAL_VIDEO_NOTE in (meta.notes or "") or "nominal_fps" in allow
+
+
 def _fit_pairs(pairs: list[ResolvedPair], source: str, expected: float = 1.0) -> ClockMap:
     """Khớp t_session = scale·t_ref + offset. `expected`: hệ số phải có (giây phiên mỗi giây của đồng hồ tham chiếu;
     k của PerfMap khi cặp đi qua perf_counter, đồng hồ video coi là giây thật); một cặp thì dùng đúng hệ số đó."""
@@ -1217,6 +1313,11 @@ def clock_map(track: ReferenceTrack, cli_pairs: list[SyncPair], *, log: RunLogDa
             raise ScoreError("tham chiếu theo đồng hồ t_io cần --log có telemetry.csv hoặc link.json clock để biết t0")
         return ClockMap(1.0, -log.t0_io, f"t_io − t0, t0 = {log.t0_io:.4f} s ({log.t0_source})"), 0.0, [], notes
     pairs = list(cli_pairs) or list(meta.sync)
+    if pairs and len(pairs) < 2 and _nominal_video_clock(meta):
+        # một cặp chỉ cho độ lệch, lấy hệ số 1: sai tốc độ của số khung/s danh định (vd. 30 khung/s ghi cho camera
+        # chạy 25,5) sẽ đổi im lặng sang t_session; hai cặp trở lên thì _fit_pairs kiểm lệch hệ số 1 % (02/10/2026)
+        raise ScoreError(f"{NOMINAL_VIDEO_NOTE} (--allow-nominal-fps): cần ≥ 2 cặp đồng bộ (--sync hay dấu nháy T14) "
+                         f"để kiểm tốc độ đồng hồ, đang có 1")
     if pairs:
         resolved = [_resolve_pair(p, log, perf, marks, perf_why) for p in pairs]
         via_perf = perf is not None and any(p.side in ("perf", "mark") for p in resolved)
@@ -1231,7 +1332,10 @@ def clock_map(track: ReferenceTrack, cli_pairs: list[SyncPair], *, log: RunLogDa
             return cmap, None, resolved, notes
         return cmap, base + max(p.error_s for p in resolved) + cmap.residual_s, resolved, notes
     if meta.clock == "perf_counter" and perf is not None and perf.exact:
-        return ClockMap(1.0, -perf.offset, perf.source, time_scale=1.0), 0.0, [], notes
+        # T4 (02/10/2026): stamp perf_counter của camera trễ hơn lúc chụp; sai số = --time-error, không thì
+        # sync_error_s của tệp mô tả, tệp không ghi thì 0 như trước
+        base = time_error if time_error is not None else meta.sync_error_s
+        return ClockMap(1.0, -perf.offset, perf.source, time_scale=1.0), base or 0.0, [], notes
     notes.append(f"đồng hồ tham chiếu {meta.clock}: chưa có cặp đồng bộ R7 (--sync), không đổi được sang t_session")
     return None, None, [], notes
 
@@ -1692,6 +1796,9 @@ def check_nd9(ctx: _Context) -> CheckResult:
 
 
 def check_nv1(ctx: _Context) -> CheckResult:
+    """N-V1 (NGUONG mục 2): tốc độ đo trung bình trên đoạn `speed_window_m` ≤ max_mps (tham chiếu R1/MP, hay R3 qua
+    --v-max-mps) và, khi tệp ngưỡng có target_mps (02/10/2026), vế mục tiêu (`_nv1_target`). Vế nào không đạt thì N-V1
+    không đạt; ô v_max_do_mps chỉ ghi tốc độ đo."""
     limit = ctx.thresholds.limit("N-V1", "max_mps")
     window = ctx.params.speed_window_m
     out = CheckResult("N-V1", f"tốc độ đo lớn nhất (đoạn {window:g} m)", KHONG_KIEM_DUOC, unit="m/s", limit=limit,
@@ -1704,19 +1811,56 @@ def check_nv1(ctx: _Context) -> CheckResult:
         best = max_speed(ctx.analysis, window)
         if best is None:
             out.note = f"quãng chạy theo tham chiếu ngắn hơn {window:g} m"
-            return out
-        v, dt, t0 = best
-        pos_e = ctx.track.meta.accuracy.pos_max_m
-        out.value, out.error = v, (math.sqrt(2) * pos_e / dt if pos_e is not None else None)
-        out.verdict, out.note = judge(v, limit, out.error, ctx.ratio, "max", "m/s")
-        out.detail = {"t_start_ref": t0, "dt_s": dt}
-        if ctx.analysis.moving_gap is not None:
-            out.verdict, out.note = KHONG_KIEM_DUOC, "tham chiếu có khoảng trống dữ liệu khi xe chạy"
+        else:
+            v, dt, t0 = best
+            pos_e = ctx.track.meta.accuracy.pos_max_m
+            out.value, out.error = v, (math.sqrt(2) * pos_e / dt if pos_e is not None else None)
+            out.verdict, out.note = judge(v, limit, out.error, ctx.ratio, "max", "m/s")
+            out.detail = {"t_start_ref": t0, "dt_s": dt}
+            if ctx.analysis.moving_gap is not None:
+                out.verdict, out.note = KHONG_KIEM_DUOC, "tham chiếu có khoảng trống dữ liệu khi xe chạy"
     else:
         out.note = "chưa có quỹ đạo tham chiếu: đo R3 rồi dùng --v-max-mps"
-        return out
-    out.cells = {"v_max_do_mps": f"{out.value:.3f}"}
+    if out.value is not None:
+        out.cells = {"v_max_do_mps": f"{out.value:.3f}"}
+    _nv1_target(ctx, out)
     return out
+
+
+def _vehicle_text(vehicle: dict | None) -> str:
+    if not vehicle:
+        return "xe của lần chạy không rõ"
+    cap = vehicle.get("max_speed_mps")
+    return f"xe của lần chạy {vehicle.get('name', '?')}" + (f", tối đa {cap:g} m/s" if cap is not None else "")
+
+
+def _nv1_target(ctx: _Context, out: CheckResult) -> None:
+    """Vế mục tiêu của N-V1 (thêm 02/10/2026; người dùng giao quyết định 02/10/2026 ('làm hết'), ngưỡng ĐỀ XUẤT – CHỜ
+    CHỐT): |tốc độ mục tiêu| lớn nhất của lệnh bám đường trong log ≤ target_mps ('tốc độ mục tiêu ≤ 0,10 m/s ở đợt
+    đầu'; lệnh đã gửi lấy từ log được, NGUONG quy tắc 2). Log không có tốc độ mục tiêu hay tệp ngưỡng không có
+    target_mps: 'không áp dụng', chỉ ghi ở tệp chi tiết. Không đạt thì N-V1 không đạt. Xe mô phỏng bị kẹp ở
+    max_speed_mps của cấu hình xe: khi mức đó ≤ max_mps, ghi chú rằng N-V1 không kiểm vọt lố (không đổi kết luận)."""
+    log = ctx.log
+    limit = ctx.thresholds.limit_or_none("N-V1", "target_mps")
+    target = log.max_target_mps if log is not None else None
+    vehicle = log.run_vehicle if log is not None else None
+    cap = vehicle.get("max_speed_mps") if vehicle else None
+    notes = [out.note] if out.note else []
+    if limit is None or target is None:
+        verdict = KHONG_AP_DUNG
+    elif target > limit + 1e-9:
+        verdict = out.verdict = KHONG_DAT
+        notes.append(f"tốc độ mục tiêu lớn nhất {target:.3f} m/s > {limit:g} m/s (vế mục tiêu của N-V1, đợt đầu; "
+                     f"{_vehicle_text(vehicle)}): chạy với configs/vehicle_nghiem_thu.json")
+    else:
+        verdict = DAT
+    simulated = log is not None and (log.kind == "sim_bundle" or log.io_simulated is True)
+    if simulated and cap is not None and cap <= ctx.thresholds.limit("N-V1", "max_mps") + 1e-12:
+        notes.append(f"xe mô phỏng bị kẹp ở max_speed_mps của cấu hình xe ({cap:g} m/s) nên tốc độ đo không vượt mức "
+                     f"đó: N-V1 ở mức này không kiểm vọt lố của vòng tốc độ")
+    out.note = "; ".join(notes)
+    out.detail["target"] = {"limit_mps": limit, "max_target_mps": target, "verdict": verdict,
+                            "source": log.target_source if log is not None else "", "vehicle": vehicle}
 
 
 def check_np1(ctx: _Context) -> CheckResult:
@@ -2132,7 +2276,8 @@ def build_parser() -> argparse.ArgumentParser:
                                  "(SIM, hay lần chạy qua VehicleIO có vehicle_io/), hoặc <gói>/vehicle_io")
     g.add_argument("--runlog", help="RunLog <tên>.csv khi không nằm cạnh thư mục _vehicle_io")
     g.add_argument("--layout", help="bố trí tham chiếu đo bằng thước (JSON cùng dạng scenarios/*.json)")
-    g.add_argument("--vehicle", help="cấu hình xe; mặc định theo vehicle_config của bố trí")
+    g.add_argument("--vehicle", help="cấu hình xe; mặc định theo vehicle_config của bố trí (bố trí nghiệm thu trong "
+                                     "docs/evidence/nghiem_thu/ trỏ ../../../configs/vehicle_nghiem_thu.json)")
     g = p.add_argument_group("tham chiếu độc lập (R1, R2 hoặc tư thế thật của mô phỏng)")
     g.add_argument("--reference", help="tệp tư thế tham chiếu <tên>.csv (+ <tên>.json), evaluation/reference_pose.py")
     g.add_argument("--sim-truth", action="store_true",
@@ -2222,9 +2367,13 @@ def _check_log(args, rule: ScenarioRule, level: str, log: RunLogData) -> None:
         raise ScoreError(f"mức MP cần log mô phỏng; log này có evidence {log.evidence}, cổng {log.port}")
     if args.sim_truth and not log.sim_truth:
         raise ScoreError(f"--sim-truth chỉ dùng với log mô phỏng có tư thế thật (gói SIM, hoặc log VehicleIO: thư mục "
-                         f"_vehicle_io hay gói T9, có evidence simulation_only và pose_source {SIM_TRUTH_POSE}); log "
+                         f"_vehicle_io hay gói T9, có evidence simulation_only và pose_source {SIM_TRUTH_POSE}, hoặc bo "
+                         f"ảo QEMU với evidence {QEMU_EVIDENCE} và pose_source {QEMU_PLANT_POSE}, chỉ ở mức MP); log "
                          f"này có evidence {log.evidence}, pose_source {log.pose_source}. Log của hệ thống không tự "
                          f"xác nhận nó (NGUONG quy tắc 2)")
+    if args.sim_truth and log.evidence == QEMU_EVIDENCE and level != "MP":
+        raise ScoreError(f"--sim-truth với log bo ảo QEMU (evidence {QEMU_EVIDENCE}) chỉ dùng ở mức MP: xe mô phỏng phía "
+                         f"laptop không phải tham chiếu của mức {level} (NGUONG quy tắc 2, ĐỀ XUẤT 02/10/2026)")
     if "0-COMMAND" in rule.checks and log.mode != "OBSERVE":
         raise ScoreError(f"{rule.key} (0-COMMAND) cần log chế độ quan sát OBSERVE; log này là {log.mode}")
 
@@ -2255,6 +2404,31 @@ def _layout_and_vehicle(args, rule: ScenarioRule, log: RunLogData | None,
                          f"cấu hình xe")
     goal = layout.sync_goal(cfg) if layout is not None and cfg is not None else None
     return layout, cfg, goal
+
+
+def _run_notes(rule: ScenarioRule, thresholds: Thresholds, log: RunLogData | None,
+               cfg: VehicleConfig | None) -> list[str]:
+    """Ghi chú về tốc độ và xe của lần chạy (thêm 02/10/2026), không đổi kết luận nào: kịch bản không phải lần đỗ mà tốc
+    độ mục tiêu vượt vế mục tiêu của N-V1 (các ngưỡng phản ứng của NGUONG mục 3 giả định tốc độ ≤ N-V1); xe của lần chạy
+    (run.json) khác kích thước xe dùng để chấm (--vehicle, vehicle_config của bố trí)."""
+    notes: list[str] = []
+    if log is None:
+        return notes
+    limit = thresholds.limit_or_none("N-V1", "target_mps")
+    target = log.max_target_mps
+    if not rule.parking and limit is not None and target is not None and target > limit + 1e-9:
+        notes.append(f"tốc độ mục tiêu lớn nhất {target:.3f} m/s > {limit:g} m/s: các ngưỡng phản ứng (NGUONG mục 3) "
+                     f"giả định tốc độ ≤ N-V1")
+    run = log.run_vehicle or {}
+    if cfg is not None:
+        scored = {"wheelbase_m": cfg.wheelbase, "width_m": cfg.width, "front_overhang_m": cfg.front_overhang,
+                  "rear_overhang_m": cfg.rear_overhang, "max_steer_deg": math.degrees(cfg.max_steer)}
+        differ = [f"{k} {run[k]:g} ≠ {scored[k]:g}" for k in VEHICLE_GEOMETRY_KEYS
+                  if run.get(k) is not None and abs(run[k] - scored[k]) > 1e-6]
+        if differ:
+            notes.append(f"xe của lần chạy {run.get('name', '?')} khác kích thước xe dùng để chấm {cfg.name} "
+                         f"({', '.join(differ)}): kiểm --vehicle/--layout")
+    return notes
 
 
 def _r2_track(args, cfg: VehicleConfig | None) -> tuple[ReferenceTrack, list[str]]:
@@ -2341,6 +2515,8 @@ def _references(args, log: RunLogData | None, cfg: VehicleConfig | None, level: 
             files[str(path)] = _sha256(path)
         if refs.track.meta.method == "MP" and level == "XT":
             raise ScoreError("mức XT không dùng tệp tham chiếu phương pháp MP (tư thế mô phỏng)")
+        if refs.track.meta.source.get("synthetic") is True and level in ("BT", "XT"):
+            raise ScoreError("tham chiếu TỔNG HỢP chỉ dùng ở mức MP")      # T4: bộ thử overhead_synth
     if args.r2_points is not None:
         refs.r2, r2_notes = _r2_track(args, cfg)
         notes += r2_notes
@@ -2455,6 +2631,7 @@ def score(args) -> Report:
         _check_log(args, rule, level, log)
         notes += log.notes
     layout, cfg, goal = _layout_and_vehicle(args, rule, log, files)
+    notes += _run_notes(rule, thresholds, log, cfg)            # tốc độ mục tiêu, xe của lần chạy (02/10/2026)
     refs = _references(args, log, cfg, level, thresholds.analysis, files, notes)
     marks = _sync_marks(args, log, files, notes)
     perf, perf_notes = build_perf_map(log, marks, thresholds.analysis)

@@ -1,0 +1,52 @@
+Chẩn đoán LiDAR 0 Hz ở LD-1 lần 2 — 02/10/2026, máy bàn, RPLIDAR C1 trên COM3 (Silicon Labs CP210x, VID:PID 10C4:EA60)
+Thiết bị đã chạm: LiDAR C1 thật (không người ở cạnh). Script: thu_purge.py, thu_lidar_ket.py, thu_flush.py (thư mục này).
+
+1) Triệu chứng (LD-1 lần 2, 16:29–17:00): LiDAR 0 vòng, 8151 lỗi, lỗi cuối
+   "ProtocolError: bad response descriptor 0112f57ffc8bc6". Bảy byte đó là giữa phần thân trả lời GET_INFO đã ghi được
+   ngày 22/09/2026 (a55a1400000004 | 41 02 01 12 f5 7f fc 8b c6 ...): driver đọc lệch vào một câu trả lời cũ.
+   Trước đó LD-1 lần 1 chết ở t ≈ 1050 s (exit 127, không traceback) khi C1 đang quét, không gửi STOP.
+
+2) Gọi riêng sau khi LD-1 lần 2 đóng cổng: `rplidar_c1 info` và `stream --seconds 5` đều đạt (31 vòng trong 5 s).
+
+3) Làm lại lỗi: giết (Stop-Process -Force) một tiến trình `rplidar_c1 stream` đang quét, rồi chạy `stream` ngay:
+   "ProtocolError: bad response descriptor 1d02b303000082" (exit 1). Lần thử thứ hai trở đi đạt (tiến trình hỏng đã đóng
+   cổng; mở cổng mới thì sạch).
+
+4) reset_input_buffer() (PurgeComm) KHÔNG xóa gì trên cổng này (thu_purge.py):
+   sau STOP, in_waiting: 0
+   3 x GET_INFO chưa đọc, in_waiting: 81
+   ngay sau reset_input_buffer: 81
+   50 ms sau: 81
+   đọc ra: a55a140000000441020112f57ffc8bc6e598d1b59598f976dd5762a55a14
+   quét 3 s, in_waiting: 23303
+   ngay sau reset_input_buffer: 23303
+   STOP + 50 ms + reset: 23347
+   200 ms sau: 23347
+
+5) Thử lại trong CÙNG một cổng không bao giờ hồi phục (thu_lidar_ket.py retry, sau khi giết tiến trình đang quét):
+   settle_s = 0.01
+   lần 0: ProtocolError: bad response descriptor 925d67400396b7 (in_waiting 53)
+   lần 1: ProtocolError: bad response descriptor 6751039613685b (in_waiting 73)
+   ... mỗi lần +20 byte (GET_INFO trả 27 byte, driver chỉ đọc 7) ...
+   lần 9: ProtocolError: bad response descriptor 00000004410201 (in_waiting 233)
+   -> đóng rồi mở lại cổng: start() đạt, một vòng 368 tia
+   RESET sau lần hỏng đầu (thu_lidar_ket.py reset): banner đọc ra (cũng xả hết byte ứ), lần 1: start() đạt, 396 tia.
+   Đây đúng là LD-1 lần 2: luồng LiDAR của rig.bench thử lại mỗi 0,2 s trên cùng cổng trong 30 phút.
+
+6) Sửa driver (autopark/lidar/rplidar_c1.py, cây gộp đợt 2): `_discard_input` đọc bỏ byte cũ (sau STOP: tới khi cổng
+   im 0,05 s, tối đa 1,5 s; trước mỗi lệnh hỏi, trước SCAN và trong flush(): phần đang chờ lúc gọi); lệnh hỏi info/health
+   hỏng thì RESET một lần rồi hỏi lại; bỏ vòng đầu sau flush(). Thử trên C1 thật với driver đã sửa:
+   lan 1 (sau khi giet tien trinh dang quet) exit=0 :: {"revolutions_returned": 20, "resets": 0, "discarded_bytes": 58, ...}
+   lan 2 (sau khi giet tien trinh dang quet) exit=0 :: {"revolutions_returned": 21, "resets": 0, "discarded_bytes": 60, ...}
+   flush() (thu_flush.py, driver đã sửa):
+   ngưng đọc 0.5 s: chờ 12736 byte -> flush 0.1 ms -> còn 0 byte; vòng kế: 452 tia
+   ngưng đọc 1.0 s: chờ 25536 byte -> flush 0.2 ms -> còn 0 byte; vòng kế: 516 tia
+   (Trước khi bỏ vòng đầu sau flush, một lần đo cho "vòng kế: 4 tia": mẩu giả do cắt giữa một nút.)
+   Hệ quả với mã cũ: `flush()` mà fusion.demo gọi sau khi lập đường KHÔNG xả được phần ứ trên máy này (vòng cũ mang
+   stamp mới); với bản sửa thì xả được.
+
+7) LD-1 lần 3 (17:23–17:54) chạy bằng driver đã sửa: LiDAR 18015 vòng, 10,008 Hz, 0 lỗi (ld1_lan3_rut_gon.txt).
+
+Chưa rõ: vì sao LD-1 lần 1 chết ở t ≈ 1050 s với exit 127 (không có sự kiện nào trong Application/System log 14:15–14:40;
+RAM tiến trình ở lần 2 và 3 ổn định ≈ 1,57 GB; lần 2 và 3 chạy đủ 30 phút). Giả thuyết STATUS_DISK_FULL (0xC000007F, byte
+thấp 127) CHƯA KIỂM; theo dõi bộ nhớ/ổ đĩa (theo_doi.ps1) đã sẵn cho lần sau.

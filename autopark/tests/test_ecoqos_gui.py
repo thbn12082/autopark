@@ -625,6 +625,22 @@ def test_tom_tat_dong_cu_khong_doi_va_thuong_khong_o_truoc_bi_loai():
     assert eg.ly_do_loai(_dong("gui_system", "thu_nho", 3.6, cua_so_truoc="trung_tinh")) is None
 
 
+def test_ly_do_moi_khong_doi_cach_loai_dong_cu():
+    """Hai lý do thêm 02/10/2026 (`doi_trang_thai_trong_chay` của chế độ chạy, `khong_giu_duoc_ecoqos` của gui_system)
+    không đổi cách loại dòng lập đường cũ: dòng đó không có khóa `mau_sai`, ghi chú cũ không có lý do mới."""
+    dong = [r for bt in ("gui_system", "gui_off") for tt in eg.TRANG_THAI for r in _ba(bt, tt, 3.6)]
+    dong += [_dong("gui_system", "thuong", 4.5, lan=0),
+             _dong("gui_off", "thu_nho", 3.6, ghi_chu="khong_tat_duoc_ecoqos")]
+    assert all("mau_sai" not in d for d in dong)
+    assert [eg.ly_do_loai(d) for d in dong[-2:]] == ["khoi_dong", "khong_tat_duoc_ecoqos"]
+    assert all(eg.ly_do_loai(d) is None for d in dong[:-2])
+    assert eg.ly_do_loai(_dong("gui_system", "thuong", 3.6, mau_sai=0)) is None
+    giu = _dong("gui_system", "bi_che", 3.6, ghi_chu="khong_giu_duoc_ecoqos")
+    assert eg.ly_do_loai(giu) == "khong_giu_duoc_ecoqos"
+    assert "khoi_dong 1, khong_tat_duoc_ecoqos 1, khong_giu_duoc_ecoqos 1" in \
+        _dong_ket_luan(eg.tom_tat(dong + [giu], _MAY), "Lượt bị loại")
+
+
 @windows_only
 def test_ham_win32_cap_quyen_va_dat_truoc_dung_tham_so(monkeypatch):
     """AllowSetForegroundWindow nhận ASFW_ANY = (DWORD)-1; SetForegroundWindow rồi đọc lại GetForegroundWindow. Hàm
@@ -860,6 +876,127 @@ def test_do_tu_choi_tham_so_sai_truoc_khi_mo_gi(tmp_path, monkeypatch, capsys):
     assert "chọn thư mục mới" in capsys.readouterr().err
     monkeypatch.setattr(sys, "platform", "linux")
     assert eg.main(["do", "--ra", str(moi)]) == 2
+
+
+def test_moi_truong_con_giu_ecoqos():
+    """AUTOPARK_KEEP_ECOQOS (thêm 02/10/2026): mặc định đặt "1" (chế độ lập đường và gui_system giữ mặc định của
+    Windows kể cả khi ứng dụng tự tắt EcoQoS), giu_ecoqos=False thì bỏ; cờ báo trong dict thứ hai; dict gốc không đổi."""
+    goc = {"QT_QPA_PLATFORM": "offscreen", "AUTOPARK_RRT_SEED": "3", "AUTOPARK_KEEP_ECOQOS": "0", "PATH": "x"}
+    env, co = eg.moi_truong_con(goc)
+    assert env == {"PATH": "x", "AUTOPARK_KEEP_ECOQOS": "1"}
+    assert co == {"QT_QPA_PLATFORM_da_bo": True, "AUTOPARK_RRT_SEED_da_bo": True, "AUTOPARK_KEEP_ECOQOS_dat": True}
+    env, co = eg.moi_truong_con(goc, giu_ecoqos=False)
+    assert env == {"PATH": "x"} and co["AUTOPARK_KEEP_ECOQOS_dat"] is False
+    assert goc["AUTOPARK_KEEP_ECOQOS"] == "0" and goc["QT_QPA_PLATFORM"] == "offscreen"
+    env, co = eg.moi_truong_con({"PATH": "x"})
+    assert env["AUTOPARK_KEEP_ECOQOS"] == "1" and co["QT_QPA_PLATFORM_da_bo"] is False
+    assert _env_offscreen()["AUTOPARK_KEEP_ECOQOS"] == "1"            # tiến trình con của các test ở đây cũng vậy
+
+
+class FakeTienTrinh:
+    """TienTrinhCon giả cho `chay_do`: `con` báo san_sang với EcoQoS `ecoqos`, lập đường OK ngay; giữ env đã nhận."""
+
+    def __init__(self, tham_so, ten, *, ghi=None, env=None, ecoqos="system"):
+        from types import SimpleNamespace
+
+        self.tham_so, self.ten, self.env = list(tham_so), ten, env
+        self.pid, self.proc, self.con_song = FakeCon.pid, SimpleNamespace(pid=FakeCon.pid - 1), True
+        self._tin = [{"loai": "san_sang", "pid": FakeCon.pid, "hwnd": FakeCuaSo.hwnd, "nen_tang": "windows",
+                      "ecoqos": ecoqos}]
+
+    def gui(self, lenh: str) -> bool:
+        ten, yeu_cau = eg._tach_lenh(lenh)
+        if ten == "plan":
+            self._tin.append(_ket_qua_gia(yeu_cau))
+        elif ten in ("cap_quyen", "len_truoc"):
+            self._tin.append({"loai": ten, "yeu_cau": yeu_cau, "ok": True, "loi": 0, "truoc_hwnd": FakeCuaSo.hwnd})
+        return True
+
+    def doc(self, het_han, loai, yeu_cau=None):
+        muon = {loai} if isinstance(loai, str) else set(loai)
+        for i, tin in enumerate(self._tin):
+            if tin["loai"] in muon:
+                return self._tin.pop(i)
+        return None
+
+    def dong(self, cho: float = 10.0) -> int:
+        self.con_song = False
+        return 0
+
+
+@pytest.mark.parametrize("ecoqos, ly_do", [("system", None), ("off", "khong_giu_duoc_ecoqos"), (None, None)])
+def test_do_gui_system_phai_o_mac_dinh_cua_windows(tmp_path, monkeypatch, capsys, ecoqos, ly_do):
+    """Chế độ lập đường, biến thể gui_system (thêm 02/10/2026): tiến trình con nhận AUTOPARK_KEEP_ECOQOS=1, và EcoQoS lúc
+    sẵn sàng phải là "system" (mặc định của Windows), không thì mọi dòng của khối bị loại `khong_giu_duoc_ecoqos` kèm
+    cảnh báo. Không đọc được (None: Windows trước bản 22000) là KHÔNG BIẾT, không phải khác mặc định: dòng vẫn hợp lệ
+    như trước khi có phép kiểm, chỉ có cảnh báo "không đọc được EcoQoS" (sửa sau rà soát 02/10/2026). Tiến trình con,
+    cửa sổ và lớp Win32 là đồ giả: không mở cửa sổ, không chạm thiết lập máy."""
+    import functools
+
+    tao: list[FakeTienTrinh] = []
+
+    def tien_trinh(tham_so, ten, **kw):
+        tao.append(FakeTienTrinh(tham_so, ten, ecoqos=ecoqos, **kw))
+        return tao[-1]
+
+    class CuaSo(FakeCuaSo):
+        ton_tai = True
+
+    may = TrangThaiMay("mo", "active", "Default", "bat", 100.0, FakeCon.pid, FakeCuaSo.hwnd, "python.exe")
+    monkeypatch.setattr(eg, "TienTrinhCon", tien_trinh)
+    monkeypatch.setattr(eg, "CuaSoWin32", lambda hwnd: CuaSo([]))
+    monkeypatch.setattr(eg, "doc_trang_thai_may", lambda *a, **k: may)
+    for ten, gia_tri in (("doc_git", {}), ("dat_dpi_vat_ly", True), ("doc_windows", {}), ("doc_nguon", {}),
+                         ("lop_cpu", None), ("_chay_powercfg", None)):
+        monkeypatch.setattr(eg, ten, lambda *a, _g=gia_tri, **k: _g)
+    monkeypatch.setattr(eg, "NguCanhDo", functools.partial(
+        NguCanhDo, doc_may=lambda: may, doc_truoc=lambda: (FakeCon.pid, FakeCuaSo.hwnd, "python.exe"),
+        chup_cpu=lambda: _chup(0.0, [0.0, 0.0]), ecoqos_cua=lambda pid: ecoqos, uu_tien_cua=lambda pid: "normal",
+        cpu_cua=lambda pid: 1.0, ngu=lambda s: None))
+    ra = tmp_path / "ra"
+    assert eg.main(["do", "--ra", str(ra), "--ca", "pillar_at_slot_mouth", "--khoi", "1", "--lap", "1", "--cho", "2",
+                    "--trang-thai", "thuong", "--bien-the", "gui_system"]) == 0
+    assert [(p.tham_so[0], p.env.get("AUTOPARK_KEEP_ECOQOS")) for p in tao] == [("con", "1")]
+    dong = eg._doc_jsonl(ra / "ket_qua.jsonl")
+    doc = ecoqos or "khong_doc_duoc"
+    assert [(d["lan"], d["ket_qua"], d["ecoqos"]) for d in dong] == [(0, "OK", doc), (1, "OK", doc)]
+    assert eg.ly_do_loai(dong[1]) == ly_do and dong[1]["ghi_chu"] == (ly_do or "")
+    ra_man_hinh = capsys.readouterr().out
+    assert ("CẢNH BÁO: EcoQoS của giao diện" in ra_man_hinh) == (ly_do is not None)
+    assert ("không phải mặc định của Windows" in ra_man_hinh) == (ly_do is not None)
+    assert ("không đọc được EcoQoS" in ra_man_hinh and "vẫn được giữ" in ra_man_hinh) == (ecoqos is None)
+    assert json.loads((ra / "may.json").read_text(encoding="utf-8"))["moi_truong"]["AUTOPARK_KEEP_ECOQOS_dat"] is True
+    tom_tat = (ra / "tom_tat.txt").read_text(encoding="utf-8")
+    assert ("khong_giu_duoc_ecoqos" in tom_tat) == (ly_do is not None)
+
+
+def test_kiem_gui_system_khong_doc_duoc_khong_phai_khac_mac_dinh():
+    """Luật chung của hai chế độ (sửa 02/10/2026): chỉ giá trị đọc được và khác "system" mới loại khối gui_system."""
+    assert eg.kiem_gui_system("system") == "ok"
+    assert eg.kiem_gui_system(None) == "khong_doc_duoc"
+    assert eg.kiem_gui_system("off") == eg.kiem_gui_system("on") == "khong_giu_duoc_ecoqos"
+    assert "22000" in eg.ECOQOS_KHONG_DOC_DUOC
+
+
+def test_bien_the_noi_nghia_moi_cua_gui_system_va_gui_off():
+    """Docstring của BIEN_THE định nghĩa nghĩa của số đo. Từ 02/10/2026 ứng dụng tự tắt EcoQoS (`ui.app.main`), nên
+    "gui_system như người dùng mở app" sai: gui_system là mặc định của Windows (ứng dụng trước ngày đó hay chạy với
+    AUTOPARK_KEEP_ECOQOS=1, tiến trình con dựng cửa sổ qua build_window), gui_off là ứng dụng hiện nay (sửa sau rà soát
+    02/10/2026)."""
+    import ast
+    import inspect
+
+    cay = ast.parse(inspect.getsource(eg))
+    than = cay.body
+    i = next(k for k, nut in enumerate(than) if isinstance(nut, ast.Assign)
+             and any(isinstance(t, ast.Name) and t.id == "BIEN_THE" for t in nut.targets))
+    chu = " ".join(than[i + 1].value.value.split())                 # chuỗi ngay sau phép gán, bỏ xuống dòng
+    assert "như người dùng mở app" not in chu
+    assert "như ứng dụng trước 02/10/2026, hay ứng dụng chạy với AUTOPARK_KEEP_ECOQOS=1" in chu
+    assert "`ui.app.build_window`, không qua `main()`" in chu
+    assert "đúng lời gọi mà ứng dụng từ 02/10/2026 tự làm cho mình (power_throttling.apply_ecoqos_policy)" in chu
+    dau = " ".join((eg.__doc__ or "").split())
+    assert "`gui_off` là ứng dụng hiện nay" in dau
 
 
 def test_tom_tat_dong_lenh_viet_lai_tu_tep(tmp_path, capsys):

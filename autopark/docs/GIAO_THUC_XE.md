@@ -29,7 +29,12 @@ mục 12 hay "mục 10 bước 6" ở mục 5, theo bản `9d68257`.)*
   mục 7, T15). *(Cập nhật 02/10/2026: nay có nút "Xóa lỗi bo (CLEAR_FAULT)" (T15, mục 10); log của phiên có thêm sự
   kiện dừng của phiên (T13), băng phát lại log (T9) và `board_actions.csv` (mục 12;
   [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5). Chỉ thử với bo mô phỏng và cổng serial GIẢ; giao diện vẫn chưa chọn
-  được bo ảo.)*
+  được bo ảo.)* *(Cập nhật 02/10/2026, đợt 2: thẻ "Bo điều khiển" nay chọn được "Bo ảo QEMU" và cả phiên đỗ chạy qua bo
+  ảo, với tốc độ, góc lái, tư thế từ xe mô phỏng phía laptop (`QemuPlantVehicleIO`, mục 10;
+  [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1.1): chỉ mô phỏng, không phải bo thật. Với cổng COM, nguồn tư thế
+  "LiDAR thật" (T2, chỉ `ui.lidar_app`) làm Bắt đầu đỗ ở `VEHICLE_IO` bị từ chối trước khi mở cổng
+  (`START_POSE_UNVERIFIED`); ở Quan sát, khi nguồn LiDAR dùng được, cổng được mở lúc START, HELLO, rồi `START_CHECK` vẫn
+  từ chối vì firmware chưa đo tốc độ, góc lái (mục 12). CHƯA THỬ với ESP32-S3.)*
 - Số test (đếm bằng `pytest --collect-only` ngày 30/09/2026, tệp test như ở `ff4a018`): `test_transport_protocol.py` 52,
   `test_transport_firmware_model.py` 73, `test_transport_vehicle_io.py` 71, `test_transport_firmware_source.py` 11,
   `test_transport_firmware_host.py` 2, `test_firmware_qemu.py` 13; `test_session_vehicle.py` 60,
@@ -62,8 +67,9 @@ Không số nào dưới đây là số đo trên xe hay trên bo.
 | `SocketPort` cho URL `socket://` *(thêm 30/09/2026)* | `autopark/transport/socket_port.py` | `tests/test_transport_vehicle_io.py` |
 | Bo ảo QEMU: firmware thật, env `esp32s3_qemu` *(thêm 30/09/2026, chỉ giả lập)* | `autopark/transport/qemu_board.py`, `firmware/esp32_vehicle/qemu/tao_anh_flash.py` | `tests/test_firmware_qemu.py` (13 test, 6 trong đó chạy firmware thật trong QEMU) |
 | Firmware C++ (lõi portable + lớp Arduino) | `firmware/esp32_vehicle/src/` (hướng dẫn biên dịch, test host, đo trên bo: [README firmware](../firmware/esp32_vehicle/README.md)) | lõi `src/core`: biên dịch và qua `test/host` trên máy tính (29/09/2026; trong bộ test Python: `tests/test_transport_firmware_host.py`, bỏ qua khi không có cmake/g++); cả firmware: biên dịch cho ESP32-S3 bằng PlatformIO (29/09/2026), **chưa nạp bo**; bản build thật chạy trong bo ảo QEMU (30/09/2026, env `esp32s3_qemu`: UART0, DIO, PWM tắt): `tests/test_firmware_qemu.py` qua `autopark/transport/qemu_board.py`, bỏ qua khi máy không có QEMU; kiểm tĩnh mã nguồn (không chạy): `tests/test_transport_firmware_source.py` |
-| Cấu hình mô phỏng | `configs/vehicle_io_sim.json` | test nạp file |
+| Cấu hình mô phỏng | `configs/vehicle_io_sim.json`; *(02/10/2026)* `configs/vehicle_io_sim_nghiem_thu.json` đi cùng xe nghiệm thu (mục 7) | test nạp file; `tests/test_vehicle_acceptance.py` |
 | Nối `VehicleIO` vào phiên đỗ xe, chế độ quan sát *(thêm tối 24/09/2026)* | `autopark/application/vehicle_link.py`, `session.py` ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md)) | `tests/test_session_vehicle.py` (bo mô phỏng + cổng serial GIẢ) |
+| Bo ảo QEMU trong phiên đỗ: `QemuPlantVehicleIO`, xe mô phỏng phía laptop *(thêm 02/10/2026, chỉ mô phỏng)* | `autopark/transport/qemu_plant.py`, `autopark/ui/qemu_runner.py` ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1.1) | `tests/test_qemu_plant.py`, `test_qemu_plant_timing.py`, `test_qemu_runner.py`, `test_qemu_board_ui.py` (bo ảo GIẢ); `tests/test_firmware_qemu.py::test_parking_session_through_qemu_board` (QEMU thật) |
 
 ## 0. Đã quyết định và CHƯA CHỐT
 
@@ -266,7 +272,9 @@ Máy trạng thái này đã kiểm ở bản tham chiếu Python và ở lõi C
 chung), trừ vài chuyển tiếp vào/ra FAULT: vector chung (nên cả test host C++) chỉ có RUNNING → FAULT và FAULT →
 DISARMED; test Python có thêm BOOT → FAULT và DISARMED → FAULT; ARMED → FAULT và FAULT → BOOT mới chỉ có trong mã, chưa
 có test (đối chiếu 30/09/2026). Trong bo ảo QEMU mới kiểm một phần: ARM rồi COMMAND enable=1 → RUNNING, hết hạn
-lệnh, mất liên lạc, COMMAND khi DISARMED, reset chip. Chưa kiểm trên bo thật.
+lệnh, mất liên lạc, COMMAND khi DISARMED, reset chip. Chưa kiểm trên bo thật. *(Cập nhật 02/10/2026: phiên đỗ qua bo
+ảo, với xe mô phỏng phía laptop, đi thêm trọn một lần chạy: ARM, COMMAND enable=1 → RUNNING, enable=0 rồi DISARM khi
+xong (`test_parking_session_through_qemu_board`; [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1.1). Chỉ mô phỏng.)*
 
 | Trạng thái | Đầu ra | Nhận |
 |---|---|---|
@@ -340,6 +348,14 @@ Tất cả là số nguyên: mục tiêu tốc độ lưu bằng µm/s, góc b�
   xem đường cụ thể có thật sự dùng tới góc đó hay không.
   Test: `tests/test_transport_vehicle_io.py` (so từng trường, sai số làm tròn, sự kiện) và
   `tests/test_vehicle_board_ui.py` (START bị từ chối, cảnh báo, quan sát, giao diện).
+- *(Cập nhật 02/10/2026)* **Cặp nghiệm thu.** Xe `configs/vehicle_nghiem_thu.json` (0,10 m/s; người dùng giao quyết định
+  02/10/2026 ('làm hết'), theo đề xuất; N-V1 vẫn ĐỀ XUẤT – CHỜ CHỐT) đi cùng bo mô phỏng
+  `configs/vehicle_io_sim_nghiem_thu.json` (`max_speed_mm_s` = 100, mọi giới hạn khác như `vehicle_io_sim.json`), nên giới
+  hạn khớp lúc START; giao diện tự chọn tệp bo mô phỏng có `vehicle_config` trỏ đúng tệp xe
+  (`transport/vehicle_io.choose_sim_io_config`). Firmware C++ (bo ảo QEMU, ESP32-S3) biên dịch cứng `max_speed_mm_s` = 300
+  (`vehicle_core.h`; `ap::Config` không có cờ build). Vì vậy với xe nghiệm thu, START ở `VEHICLE_IO` bị từ chối
+  (LIMITS_MISMATCH: bo cho chạy nhanh hơn xe) cho tới khi có bản firmware 100 mm/s (cờ build hay env PlatformIO riêng):
+  CHƯA LÀM. Chế độ Quan sát vẫn chạy, chỉ ghi lệch. Với bo ảo: suy ra từ mã, chưa chạy thử.
 
 ## 8. Telemetry
 
@@ -350,7 +366,9 @@ Tất cả là số nguyên: mục tiêu tốc độ lưu bằng µm/s, góc b�
 - Ngưỡng `TELEMETRY_STALE` của laptop (mặc định 0,3 s) phải ≥ 3 lần chu kỳ telemetry (so bằng ms nguyên), để một khung
   mất cộng dao động thời gian không bị coi là mất liên lạc. Mặc định 0,3 s vì vậy cho phép chu kỳ tới 100 ms; chu kỳ
   dài hơn thì phải tăng `telemetry_timeout_s` tương ứng, nếu không hàm dựng `VehicleIO` (chu kỳ xin) hoặc `connect()`
-  (chu kỳ bo thật sự chọn, kể cả mặc định của bo khi xin 0) từ chối.
+  (chu kỳ bo thật sự chọn, kể cả mặc định của bo khi xin 0) từ chối. *(Thêm 02/10/2026: liên kết bo ảo QEMU trong phiên
+  đỗ xin 20 ms (`configs/bo_ao_qemu.json`); tệp đó chỉ nhận 20..100 ms theo đúng quy tắc này với ngưỡng 0,3 s. Liên kết
+  tới bo thật vẫn dùng mặc định 50 ms của firmware.)*
 - Mỗi số đo có cờ hợp lệ riêng; số đo không hợp lệ gửi 0 và laptop đổi thành `None` (`VehicleTelemetry`). Mảng ToF
   dùng mặt nạ bit. Đúng yêu cầu mục 7: "lỗi sensor không bị biến thành giá trị khoảng cách an toàn".
 - Hợp đồng tối thiểu của kế hoạch mục 9 → trường: `sample_time` → `sample_time_ms`; `sequence` → phần đầu;
@@ -394,6 +412,17 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
   Trước đó, qua `socket://` của pyserial (`in_waiting` chỉ 0/1), vòng 50 Hz `poll(block=False)` nhận 2/≈ 40 khung trong
   2 s kèm TELEMETRY_STALE ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 5). Cổng COM báo đúng số byte, nên theo mã thì hành vi với bo
   thật không đổi; với bo thật CHƯA THỬ.
+- *(Thêm 02/10/2026; người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất; chỉ mô phỏng.)*
+  `QemuPlantVehicleIO` (`autopark/transport/qemu_plant.py`) là `SerialVehicleIO` tới UART0 của MỘT bo ảo QEMU do ứng dụng
+  mở, để chạy cả phiên đỗ qua firmware thật khi firmware chưa đọc cảm biến. Chỉ nhận `socket://127.0.0.1:<1..65535>`;
+  dựng ở trạng thái chưa mở (như `deferred`), socket mở lúc START và đóng sau mỗi lần chạy (QEMU chỉ phục vụ một client).
+  `connect()` đòi boot_id của HELLO_ACK bằng boot_id bo ảo báo lúc khởi động; khác thì `connected` = False và
+  `VehicleIOError`, không ARM, không COMMAND nào. Sau khi đặt xe, mỗi khung telemetry làm một xe mô phỏng phía laptop
+  (`LaptopPlant`) tiến tới thời điểm của khung, bám `speed_ref`, `steer_ref` của chính khung đó; `speed_mps`, `steer_rad`
+  của khung được thay bằng số của xe đó (làm tròn 1 mm/s, 1 mrad), cờ của firmware giữ nguyên (SPEED_VALID = STEER_VALID
+  = 0), `stamp.t` vẫn là lúc nhận. Không thông điệp, không byte mới nào tới firmware: giao thức không đổi. `source_id` là
+  `qemu_board` (bo thật: `esp32_vehicle`). Chi tiết, phương án đã loại và giới hạn:
+  [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1.1.
 - **Không mặc định cùng độ trễ.** Độ trễ mô phỏng là tham số trong `configs/vehicle_io_sim.json` (giả định: 4 ms mỗi
   chiều, cơ cấu chấp hành 30 ms, encoder 20 ms, góc lái 10 ms). Cả hai nhánh đo cùng hai đại lượng theo cùng cách:
   `stats.ack_rtt_s` (REQUEST → ACK) và `stats.cmd_echo_s` (COMMAND → telemetry đầu tiên báo đã nhận; cận trên, gồm
@@ -433,11 +462,19 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
   None tới `reopen()`); `connect()` trước đó báo "Cổng chưa mở". Giao diện dùng dạng này khi người dùng mới chọn cổng.
   Việc chọn cổng vì vậy không mở cổng và không gửi byte nào. Mở cổng có thể làm ESP32-S3 khởi động lại qua DTR/RTS:
   cần tra theo bo thật, CHƯA THỬ. `SerialVehicleIO.port` giữ tên cổng để hiển thị và ghi vào `link.json`.
+  *(Cập nhật 02/10/2026, T2: liên kết có nguồn tư thế dùng được mở cổng deferred ở bước 0c của `VehicleLink._open_run`,
+  tức lần Bắt đầu đỗ đầu tiên qua được bước 0a, 0b, rồi giữ cổng mở giữa các lần chạy; đổi bo, nhánh chạy, nguồn tư thế
+  hay đóng cửa sổ thì đóng. Với nguồn "Mô phỏng" (`NoPoseSource`) cổng COM vẫn không bao giờ được mở lúc START.
+  [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 3. Chỉ kiểm với cổng serial GIẢ.)*
 - *(Thêm muộn tối 24/09/2026.)* "Kiểm kết nối bo" (`application/vehicle_link.probe_board`, nút trong thẻ "Bo điều
   khiển" của giao diện): `connect()` (HELLO) → `check_limits` → đọc tới 5 khung telemetry trong 1 s → đóng cổng. Hàm
   này không gọi `arm()`, `send()` hay `stop()`: không COMMAND nào, kể cả enable=0. REQUEST duy nhất có thể lọt ra là
   DISARM mà `VehicleIO` tự gửi khi mất liên lạc. HELLO đưa bo đang ARMED/RUNNING về DISARMED (`NEW_SESSION`), đúng hướng
   an toàn. Test trên cổng serial GIẢ: byte laptop ghi ra chỉ gồm đúng một HELLO. Với ESP32-S3: CHƯA THỬ.
+  *(Sửa sau review 02/10/2026: nhánh chạy đang giữ chính cổng đó mở (bước 0c, ý trên) thì sau khi người dùng xác nhận,
+  giao diện đóng cổng của liên kết (`VehicleLink.release_port`) rồi mới mở để kiểm, vì trên Windows một cổng COM chỉ mở
+  được một lần; lần Bắt đầu đỗ sau mở lại cổng. Với bo ảo QEMU nút không hỏi xác nhận và kiểm bằng `SerialVehicleIO`
+  thường, không có xe mô phỏng, nên tốc độ, góc lái báo "—".)*
 - *(Thêm 02/10/2026, T15.)* "Xóa lỗi bo (CLEAR_FAULT)" (`application/vehicle_link.VehicleLink.clear_fault`, nút trong thẻ
   "Bo điều khiển"): dùng `VehicleIO` của chính liên kết, ngoài lần chạy (cổng chưa mở thì mở rồi đóng lại). Trên dây:
   phiên mới (chưa có phiên, hoặc laptop đã chốt `TELEMETRY_STALE`) thì một HELLO; dùng lại phiên đang có thì một REQUEST
@@ -449,6 +486,9 @@ Mã `fault` 5 (STALL) được thêm ngày 24/09/2026 mà KHÔNG tăng `PROTOCOL
   lỗi), NOT_NEEDED, ESTOP_PRESSED, REFUSED (mã ACK), NOT_CONFIRMED (ACK OK nhưng khung sau vẫn FAULT hoặc không tới),
   NO_ACK, NO_LINK. Mỗi lần bấm một dòng `board_actions.csv` ([CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5, 6). Test
   trên `SimVehicleIO` và cổng serial GIẢ (`tests/test_vehicle_board_ui.py -k clear_fault`); với ESP32-S3: CHƯA THỬ.
+  *(Cập nhật 02/10/2026, đợt 2: cổng COM mà liên kết giữ mở từ bước 0c thì nút dùng lại cổng và phiên đó (nhánh PING).
+  Nút cũng dùng được với bo ảo QEMU đang chạy, không hỏi xác nhận; target là "bo ảo QEMU socket://…". Bo ảo chỉ thử với
+  bo ảo GIẢ trong test.)*
 - `telemetry_timeout_s` phải ≥ 3 × chu kỳ telemetry (mục 8): kiểm ở hàm dựng với chu kỳ xin và ở `connect()` với chu kỳ
   bo trả trong HELLO_ACK; không thỏa thì `connect()` ném lỗi và KHÔNG nhận phiên (`connected` giữ False).
 - `configs/vehicle_io_sim.json`: khóa lạ hoặc gõ sai ở mọi mục (gốc, `link`, `actuator`, `sensors`, `firmware`) bị từ
@@ -492,6 +532,10 @@ của firmware nên thấp hơn gia tốc xe làm được. `kp = 500 ‰/(m/s)`
 trên chính mô hình này (kp lớn hơn gây dao động giới hạn ±0,02 m/s do trễ); không có giá trị gì với xe thật.
 Dừng khi ứng dụng ngừng gửi lệnh (đang 0,15 m/s): xe mô phỏng đứng yên sau 0,39 s, trôi thêm 3,9 cm — chỉ là
 con số của mô hình, không phải quãng dừng xe thật (kế hoạch mục 16.2 "Điều khiển", "Phản ứng lỗi": cần chốt trên xe).
+*(Cập nhật 02/10/2026: bảng trên dùng xe mô phỏng `vehicle_default.json` (tối đa 0,3 m/s). `SimVehicle` kẹp tốc độ thật ở
+`max_speed` của cấu hình xe (`simulation/vehicle.py`), nên với xe nghiệm thu 0,10 m/s xe mô phỏng không bao giờ vượt
+0,10 m/s và vọt lố 0,150–0,154 m/s của bậc 0,10 m/s không hiện ra. Vì thế chấm N-V1 ở mức MP với xe đó không kiểm vọt
+lố; T5 tự ghi chú.)*
 
 ## 11. Kiểm chứng
 
@@ -509,6 +553,10 @@ ký tự ngoài bảng mã ANSI. `tests/test_firmware_qemu.py` (13 test, 6 trong
 không tồn tại; cả tệp chạy 9–10 s mỗi lượt trong các lượt chạy lặp ngày 30/09/2026
 ([chay_lap_test_bo_ao_ebbec83.txt](evidence/mo_phong_20260930/bo_ao_30092026/chay_lap_test_bo_ao_ebbec83.txt)), chưa tính
 lần build đầu của env. Số test hiện tại của sáu tệp theo thứ tự trong lệnh: 52 / 73 / 71 / 11 / 2 / 13.)*
+*(Thêm 02/10/2026: `tests/test_firmware_qemu.py` có thêm `test_parking_session_through_qemu_board`, phiên đỗ qua bo ảo
+với xe mô phỏng phía laptop. Bo ảo trong phiên đỗ còn có test chạy ở mọi máy với bo ảo GIẢ: `tests/test_qemu_plant.py`,
+`test_qemu_plant_timing.py`, `test_qemu_runner.py`, `test_qemu_board_ui.py`;
+[MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1, 1.1.)*
 
 Nội dung test (đều không mở cổng nối tiếp thật nào; từ 30/09/2026 `test_transport_vehicle_io.py` có test mở cổng TCP cục
 bộ 127.0.0.1 cho `socket://`):
@@ -669,7 +717,12 @@ hoạt, USB-CDC nối ra ngoài, nên không thay được bất kỳ phép đo 
   `LinkParams.command_validity_s` (mặc định `None` = 0,15 s của `VehicleIO`); `DriveCommand.valid_for` vẫn chưa được
   dùng (mục 5). *(Cập nhật 02/10/2026: `write_logs` nay ghi tám tệp: thêm `board_actions.csv` (T15), `poses.csv` và
   `clock.csv` (T9); `events.csv` có dòng `session_stop` và cột `t_perf` (T13); vẫn chỉ bo mô phỏng và cổng serial GIẢ;
-  [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5.)*
+  [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 5.)* *(Cập nhật 02/10/2026, đợt 2: phiên nay chạy được qua bo ảo QEMU, tốc
+  độ, góc lái, tư thế từ xe mô phỏng phía laptop (bo ảo GIẢ trong test, một test và một lần chạy ứng dụng với QEMU thật;
+  chỉ mô phỏng), và có nguồn tư thế LiDAR (T2: LiDAR mô phỏng với bo mô phỏng; C1 thật hay bản ghi trong `ui.lidar_app`
+  với bo COM, CHƯA THỬ với bo thật). `write_logs` ghi thêm `localization.csv` (nguồn LiDAR) và
+  `tu_the_that_mo_phong.csv` + `.json` (LiDAR mô phỏng); `link.json` thêm `board`, `plant`, `pose_source_info`,
+  `virtual_board` (trong `describe()`) và `ecoqos` (ngoài `describe()`). Vẫn chưa có ESP32-S3 thật.)*
 - *(Thêm tối 24/09/2026, khoảng trống an toàn, chỉ trên mô phỏng. Cập nhật muộn hơn cùng tối: **ĐÃ SỬA** phía laptop,
   xem đoạn "Bản sửa" cuối gạch đầu dòng này; phần mô tả dưới đây giữ nguyên làm lịch sử, các câu về `xfail`,
   `test_resume_burst_*` và "CHƯA LÀM" là trạng thái lúc tìm thấy.)* Vòng điều khiển treo lâu hơn thời hạn lệnh trong khi
@@ -798,7 +851,17 @@ hoạt, USB-CDC nối ra ngoài, nên không thay được bất kỳ phép đo 
   (trước bản sửa báo "Không nhận được HELLO_ACK."). Chi tiết: [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 6, 8. Mới
   kiểm với cổng serial GIẢ, `comports` giả và `serial.Serial` bị chặn trong test; chưa mở cổng thật nào. *(Cập nhật
   02/10/2026: thẻ có thêm nút "Xóa lỗi bo (CLEAR_FAULT)", mục 10; chỉ thử với bo mô phỏng và cổng serial GIẢ. Với cổng
-  COM, chỉ nút này và "Kiểm kết nối bo" mở cổng; START vẫn bị từ chối trước khi mở cổng.)*
+  COM, chỉ nút này và "Kiểm kết nối bo" mở cổng; START vẫn bị từ chối trước khi mở cổng.)* *(Cập nhật 02/10/2026, đợt 2:
+  ô chọn bo luôn có "Bo mô phỏng (mặc định)", "Bo ảo QEMU (firmware xe trong giả lập)", rồi các cổng COM; thẻ có thêm ô
+  "Nguồn tư thế" (Mô phỏng / LiDAR mô phỏng / LiDAR thật, mục cuối chỉ có trong `ui.lidar_app`). Ở nhánh VehicleIO và
+  Quan sát: bo ảo chỉ đi với "Mô phỏng" (tư thế của xe mô phỏng phía laptop); LiDAR mô phỏng chỉ với bo mô phỏng; LiDAR
+  thật chỉ với bo COM; trong `ui.lidar_app`, cổng đang ghi ở ô cổng của ngăn LiDAR không được nhận làm cổng bo; tổ hợp
+  bị cấm thì hộp thoại từ chối và các ô trở về liên kết đang dùng. Bo COM + "Mô phỏng" vẫn từ chối START trước khi mở cổng
+  (`START_NO_POSE_SOURCE`). Bo COM + "LiDAR thật": VehicleIO bị từ chối trước khi mở cổng (`START_POSE_UNVERIFIED`) tới
+  khi gá LiDAR đã đo và đủ điều kiện tiên quyết; Quan sát (nguồn dùng được, vòng quét của LiDAR thật) mở cổng ở bước 0c,
+  HELLO, đọc 3 khung, rồi `START_CHECK` vẫn từ chối vì telemetry không có tốc độ, góc lái đo; cổng giữ mở sau đó. Câu
+  "chỉ nút này và Kiểm kết nối bo mở cổng" vì vậy không còn đúng cho tổ hợp này. Chỉ kiểm bằng test với cổng serial GIẢ;
+  CHƯA THỬ với ESP32-S3. [CHE_DO_QUAN_SAT.md](CHE_DO_QUAN_SAT.md) mục 3, 6.)*
 - *(Thêm muộn tối 24/09/2026.)* Khoảng hở còn lại của mục "Bản sửa" trên: bo vừa về ARMED (`COMMAND_TIMEOUT`) mà khung
   báo điều đó chưa tới laptop. Một cách đóng là chốt phía firmware: sau `COMMAND_TIMEOUT`, bo không nhận enable=1 nữa
   tới khi có ARM mới. Đây là ĐỀ XUẤT – CHỜ CHỐT: đổi hành vi firmware nên cần người dùng duyệt, **CHƯA LÀM**.

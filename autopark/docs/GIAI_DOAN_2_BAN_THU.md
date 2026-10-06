@@ -14,7 +14,7 @@ Camera nằm trên bàn, chưa gá, chưa hiệu chuẩn. Kế hoạch v3.1 [b�
 |---|---|---|
 | `MultiCameraManager` mà kế hoạch giai đoạn 2 yêu cầu: mỗi camera một luồng, vòng đệm có giới hạn (3 khung), chọn camera theo **cổng hub** (index OpenCV đổi sau khởi động lại), ghép bộ ảnh theo thời gian (mốc = khung mới nhất của camera chậm nhất, mỗi camera chọn khung gần mốc nhất), **bỏ bộ ảnh lệch quá ngưỡng** (mặc định 60 ms), bộ chỉ "mới" khi mọi camera có khung mới, hoặc sau giới hạn chờ camera chậm (từ 24/09, mục 10) | `video/multicam.py` | test với camera giả, gồm phép thử tất định cho quy tắc bỏ bộ lệch |
 | Suy luận theo lô cho nhiều camera, cùng tiền xử lý với `predict.py`, đo thời gian từng khâu (tiền xử lý / mạng / hậu xử lý, có đồng bộ CUDA) | `perception/live.py` | test: kết quả theo lô trùng `predict_image` tới 1e−5 |
-| Điều phối: luồng LiDAR, luồng AI (lấy bộ mới nhất, không xếp hàng, đổi mô hình lúc chạy), luồng tài nguyên 1 Hz (CPU tiến trình và máy, RAM, GPU tải/VRAM/nhiệt độ/công suất qua NVML), chuỗi số đo theo giây | `rig/core.py` | test chạy trọn với camera, LiDAR, AI giả |
+| Điều phối: luồng LiDAR, luồng AI (lấy bộ mới nhất, không xếp hàng, đổi mô hình lúc chạy), luồng tài nguyên 1 Hz (CPU tiến trình và máy, RAM, GPU tải/VRAM/nhiệt độ/công suất qua NVML; từ 02/10/2026 cả trạng thái EcoQoS của tiến trình: `.rig.json` → `resources.ecoqos` lúc chốt số và `series[].resources.ecoqos` mỗi giây; `meta.json` của bản ghi `--record` có khóa `ecoqos`, [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 3), chuỗi số đo theo giây | `rig/core.py` | test chạy trọn với camera, LiDAR, AI giả |
 | Lệnh đo không giao diện: khởi động, bỏ phần làm nóng, đo T giây, ghi `<tên>.rig.json` | `rig/bench.py` | test ghi json |
 | Giao diện trực tiếp: bốn ô camera có lớp tô AI (xanh FREE, đỏ BLOCKED), bản đồ LiDAR, bảng số đo, chọn mô hình, kéo ngưỡng (nút 0,15 an toàn / 0,50), bật tắt AI và lớp tô, **chụp bộ ảnh** (ảnh gốc bốn camera + xác suất + ảnh tô + vòng LiDAR + siêu dữ liệu) | `ui/rig_app.py` | test offscreen với nguồn giả |
 | `UsbCameraSource` đếm riêng khung cũ và đọc hỏng; **loại khung MJPEG bị cắt cụt hoặc có dải xé** (bộ giải mã tô phần thiếu bằng vân khối 8×8 lặp lại, mục 2) và đếm riêng từng loại; `camera_bench` cũng đếm | `video/sources.py::truncated_rows`, `torn_bands`, `video/camera_bench.py` | test với ảnh hỏng tổng hợp; bộ dò chạy trên ảnh hỏng thật (bắt đúng hai ảnh) và ảnh sạch (không bắt nhầm); các khung bị bắt trong phiên chẩn đoán được xem bằng mắt (mục 2.2) |
@@ -215,6 +215,16 @@ Nhiệt độ CPU không đọc được: Windows không cho khi không có quy�
 | 7 | 23,9 / 23,9 / 23,9 / 23,9 | 1 | 23,1 | 15,6 ms | 47 °C | 0,81 |
 | 8 | 23,9 / 23,9 / 23,9 / 23,9 | 0 | 23,2 | 14,4 ms | 47 °C | 0,80 |
 | 9 | 23,9 / 23,9 / 23,9 / 23,8 | 1 | 23,2 | 13,9 ms | 47 °C | 0,80 |
+
+*(Cập nhật 02/10/2026: phép chạy dài LD-1 — 30 phút, bốn camera 480p + LiDAR + AI, có ghi phiên `--record` — đã chạy ba
+lần trên máy bàn hiện tại (LiDAR ở COM3), không người ở cạnh; đã đo trên thiết bị thật. Lần 3 (17:23–17:54, mã đợt 2 với
+driver C1 đã sửa) ĐẠT 1800 s: mỗi camera 23,85 khung/s, 0 khung hỏng, hở lớn nhất 87–118 ms; 42 751 bộ ảnh, lệch trong
+bộ trung vị 25,1 / p95 31,7 / max 54,1 ms; LiDAR 18 015 vòng, 10,008 Hz, 0 lỗi; AI 23,75 bộ/s, một lô trung vị 25,3 /
+p95 39,7 / max 202 ms; CPU tiến trình 1,21 lõi (max 2,56), RAM 1,57 GB; ghi 171 702 khung, 4,44 MB/s, bỏ 0; EcoQoS off
+(công cụ tự tắt). Lần 1 chết ở t ≈ 1050 s (exit 127, nguyên nhân CHƯA RÕ); lần 2 chạy đủ 1800 s nhưng LiDAR 0 vòng vì
+lỗi xả bộ đệm cổng, đã sửa driver ([GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 2). Đây là máy bàn, không phải
+laptop nộp đồ án; camera nhìn gì lúc đó không ai kiểm. Chi tiết: [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 12; bằng
+chứng [evidence/thiet_bi_20261002/](evidence/thiet_bi_20261002/).)*
 
 ## 4. Đọc kết quả
 

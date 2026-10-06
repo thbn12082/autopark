@@ -13,7 +13,7 @@ Máy nhận cầu USB–UART CP2102N (VID 10C4 / PID EA60) ở trạng thái Cod
 | Khối | Module | Kiểm chứng |
 |---|---|---|
 | Giao thức: gói lệnh + checksum, mô tả phản hồi, node 5 byte, dò lại khi lệch byte, gom vòng theo cờ bắt đầu **và theo điểm góc quay về 0** | `lidar/rplidar_protocol.py` | test với byte chụp từ thiết bị và byte tính tay |
-| Driver: pyserial 460800, info/health/scan-modes/reset, phiên đọc trả `LidarScan` theo quy ước yaw của dự án, ném `ScanReadError` khi hết thời gian chờ | `lidar/rplidar_c1.py` | test với cổng giả (kể cả health ERROR → reset); chạy thật trên COM4 |
+| Driver: pyserial 460800, info/health/scan-modes/reset, phiên đọc trả `LidarScan` theo quy ước yaw của dự án, ném `ScanReadError` khi hết thời gian chờ | `lidar/rplidar_c1.py` | test với cổng giả (kể cả health ERROR → reset); chạy thật trên COM4 *(cập nhật 02/10/2026: đọc bỏ byte cũ ở cổng vì PurgeComm không xóa gì trên cổng CP210x, RESET một lần khi lệnh hỏi hỏng, bỏ vòng đầu sau `flush()`; đã đo trên C1 thật, ghi chú cuối mục này)* |
 | Ghi/phát lại phiên: `.npz` + `.json` meta (thiết bị, cổng, commit, thống kê driver, tóm tắt) | `lidar/recording.py` | test vòng tròn ghi → đọc → phát lại |
 | Phiên đo tĩnh: ghi từng lần đặt vật, số đo, ngưỡng datasheet, hình, báo cáo | `lidar/bench.py` | test trên phòng tổng hợp có hộp; chạy thật một lần đặt |
 | Bản đồ lưới tĩnh bằng ray casting, xuất `Costmap` cùng bố cục với costmap camera | `lidar/occupancy.py` | test phòng vuông (FREE/OCCUPIED/UNKNOWN, tư thế, tia NaN) |
@@ -25,6 +25,29 @@ Máy nhận cầu USB–UART CP2102N (VID 10C4 / PID EA60) ở trạng thái Cod
 22 test mới (`tests/test_lidar_*.py`), chạy cùng 14 test giai đoạn 1 có sẵn: 36/36 đạt trong `.venv`. Phụ thuộc mới: `pyserial>=3.5` (nhóm `lidar` trong pyproject).
 
 Quy ước đã chốt trong mã: góc thiết bị tăng theo chiều kim đồng hồ (datasheet, và quan sát 99,8 % bước góc dương trong một vòng) nên driver **đổi dấu** để ra góc dương ngược chiều kim đồng hồ; cờ `--mirror` giữ dấu thiết bị nếu phép đo đặt hộp bên trái nói ngược. Khoảng cách 0 hoặc chất lượng 0 → NaN. Stamp = thời điểm gói byte chứa node cuối của vòng về tới máy, trên đồng hồ đơn điệu tính từ `start()` (mặc định `time.monotonic`, trên Python 3.12/Windows chỉ có bước 15,6 ms — xem ghi chú 24/09 ở mục 3).
+
+*Cập nhật 02/10/2026 — byte cũ ở cổng LiDAR và bản sửa driver.* Đã đo trên thiết bị thật: C1 trên COM3 của máy bàn
+hiện tại (cầu CP210x, VID:PID 10C4:EA60), không người ở cạnh; bằng chứng
+[chan_doan_lidar.txt](evidence/thiet_bi_20261002/chan_doan_lidar.txt) (cùng thư mục: script thử `thu_purge.py`,
+`thu_lidar_ket.py`, `thu_flush.py`).
+- Phát hiện: trên cổng này `reset_input_buffer()` (PurgeComm) KHÔNG xóa byte nào: 81 byte trước và sau khi gọi; khi
+  đang quét, 23 303 byte trước và sau.
+- Hệ quả 1: C1 bị một tiến trình chết bỏ lại đang quét (LD-1 lần 1 chết ở t ≈ 1050 s, không gửi STOP) làm mọi lần
+  `start()` sau trong CÙNG cổng hỏng mãi: mỗi lần chỉ đọc 7 byte của mô tả trả lời, phần ứ tăng 20 byte mỗi lần. Đó là
+  8151 lỗi "bad response descriptor" và 0 vòng LiDAR của LD-1 lần 2 (30 phút). Làm lại được lỗi bằng cách giết một tiến
+  trình đang quét rồi mở lại cổng.
+- Hệ quả 2: `flush()` của driver (`fusion.demo` gọi sau khi lập đường để bỏ phần ứ) trước nay không xả được gì trên máy
+  này: vòng cũ mang stamp mới.
+- Sửa (`lidar/rplidar_c1.py`): `_discard_input` đọc bỏ byte cũ — sau STOP thì đọc tới khi cổng im 0,05 s, tối đa
+  1,5 s; trước mỗi lệnh hỏi, trước SCAN và trong `flush()` thì đọc phần đang chờ lúc gọi. Lệnh hỏi info/health hỏng thì
+  RESET một lần rồi hỏi lại. Bỏ vòng đầu tiên sau `flush()` (cắt giữa một nút cho một "vòng" giả 4 tia trên C1 thật).
+  `stats()` có thêm `discarded_bytes`, `skipped_after_flush`. Test: `tests/test_lidar_protocol.py` (cổng giả mà
+  PurgeComm không xóa gì).
+- Thử trên C1 thật với driver đã sửa: giết tiến trình đang quét rồi mở lại, đạt 2/2 (đọc bỏ 58–60 byte, không cần
+  RESET); `flush()` bỏ 12,7 KB và 25,5 KB trong 0,1–0,2 ms, vòng kế đủ 452 và 516 tia; LD-1 lần 3 (30 phút): 18 015
+  vòng, 10,008 Hz, 0 lỗi LiDAR.
+- Chưa thử: cổng USB CDC của bo ESP32-S3 (`SerialVehicleIO` không gọi `reset_input_buffer`). Nguyên nhân exit 127 của
+  LD-1 lần 1: CHƯA RÕ. Chi tiết các lượt chạy: [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 12.
 
 ## 3. Số đo trên bàn
 
@@ -152,7 +175,7 @@ Driver đổi dấu góc thiết bị theo datasheet (góc tăng theo chiều ki
 
 - Chỉ dùng chế độ Standard; DenseBoost (định dạng gói khác) chưa cài đặt, chưa cần.
 - Chưa đo trên laptop RTX 3050 Ti (máy nộp đồ án); chưa đo nhiệt/độ trễ dài hạn; chưa thử cáp dài hay hub.
-- Bản đồ tĩnh không phải SLAM: không ước lượng tư thế, không nạp lại, không định vị. *Cập nhật 24/09/2026:* đã có nạp lại bản đồ và định vị từng vòng quét trên bản đồ cố định (mục 8). Vẫn không phải SLAM: bản đồ không được cập nhật, không có odometry. *Cập nhật 25/09/2026:* có thêm odometry khớp scan và bản đồ tăng dần (`lidar/scan_odometry.py`, commit `a7cec5e`), mới thử offline trên DROW v2 và sáu bản ghi C1 đứng yên; so sánh các phương án và đề xuất cho V1 (ĐỀ XUẤT – CHỜ CHỐT) ở [SO_SANH_DINH_VI_SLAM.md](SO_SANH_DINH_VI_SLAM.md). Trên C1 thật chưa có bản đồ nào dựng khi cảm biến di chuyển.
+- Bản đồ tĩnh không phải SLAM: không ước lượng tư thế, không nạp lại, không định vị. *Cập nhật 24/09/2026:* đã có nạp lại bản đồ và định vị từng vòng quét trên bản đồ cố định (mục 8). Vẫn không phải SLAM: bản đồ không được cập nhật, không có odometry. *Cập nhật 25/09/2026:* có thêm odometry khớp scan và bản đồ tăng dần (`lidar/scan_odometry.py`, commit `a7cec5e`), mới thử offline trên DROW v2 và sáu bản ghi C1 đứng yên; so sánh các phương án và đề xuất cho V1 (ĐỀ XUẤT – CHỜ CHỐT) ở [SO_SANH_DINH_VI_SLAM.md](SO_SANH_DINH_VI_SLAM.md). Trên C1 thật chưa có bản đồ nào dựng khi cảm biến di chuyển. *(Cập nhật 02/10/2026: người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất đó; nguồn tư thế LiDAR (a) + (b) và công cụ dựng bản đồ nhiều chỗ đặt nối vào phiên đỗ xe, mới kiểm ở mức MP và trên bản ghi C1 đứng yên: [NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md). Vẫn không phải SLAM.)*
 - Phiên p07 chưa làm nóng và không có vật tham chiếu; số tia/tần số coi là ổn định, sai số khoảng cách thì chưa. *Cập nhật 24/09/2026:* ở trạng thái ổn định, số tia và tần số lặp lại ở k01 (mục 3b); sai số khoảng cách vẫn chưa đo.
 - *Cập nhật 24/09/2026:* sau phiên p07, LiDAR đã chạy chung bốn camera + AI trên bàn thử ở máy bàn ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md)): ba phiên 10 phút s07, t09, u04 được 6006 / 6005 / 6006 vòng, 0 lỗi đọc, 0 vòng mất (t09 và u04 trung bình 10,01 Hz; s07 thuộc loạt đầu, đồng hồ thô, không lấy số thời gian), và năm phiên 60–120 s ngày 24/09 (w01–w05, 10,01–10,02 Hz, 0 lỗi đọc, 0 vòng mất). Độ lệch lúc về máy giữa vòng LiDAR và bộ ảnh ở mục 3.2 của tài liệu đó. LiDAR thật đứng yên làm nền để xe ảo lập đường và đỗ xong quanh đồ vật thật ở [GIAI_DOAN_3_CHUAN_BI.md](GIAI_DOAN_3_CHUAN_BI.md) mục 3; chưa thử đưa vật vào để xe ảo dừng. Vẫn chưa đo: nhiệt của LiDAR, độ trễ từ sự kiện thật tới lúc vòng quét về máy, cáp dài hay hub, và mọi số trên laptop RTX 3050 Ti (máy nộp đồ án).
 

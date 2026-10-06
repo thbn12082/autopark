@@ -24,6 +24,7 @@ import numpy as np
 
 from autopark.image_io import imwrite
 from autopark.perception.paths import atomic_write_json, utc_now
+from autopark.power_throttling import apply_ecoqos_policy
 
 from .recording import Recording, ScanRecorder, default_meta, read_recording, summarize
 from .render import render_scan
@@ -205,6 +206,7 @@ def report(directory) -> str:
 
 
 def main(argv=None) -> int:
+    apply_ecoqos_policy("lidar.bench")                 # trước mọi việc khác; trạng thái vào meta (default_meta)
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     r = sub.add_parser("record", help="record one placement from the device and analyse it")

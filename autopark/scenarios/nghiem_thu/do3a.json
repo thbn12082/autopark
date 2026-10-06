@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "name": "DO-3a perp_aisle_170",
+  "notes": "Lùi vào ô vuông góc, lối đi rộng 53 cm (1.70× thân xe), ô rộng 23 cm. Tệp nghiệm thu DO-3a (mức MP) sinh bằng autopark.evaluation.acceptance_scenarios từ ca khó perp_aisle_170 của evaluation/hard_cases.py, xe configs/vehicle_nghiem_thu.json: kích thước theo xe GIẢ ĐỊNH; xe đo khác thì sinh lại. Giới hạn đổi chiều lúc Bắt đầu đỗ theo trường acceptance (khóa DO-3a của configs/nguong_nghiem_thu.json, N-D6 (b), ĐỀ XUẤT – CHỜ CHỐT).",
+  "vehicle_config": "../../configs/vehicle_nghiem_thu.json",
+  "bounds": {
+    "xmin": 0.0,
+    "ymin": 0.0,
+    "xmax": 1.9,
+    "ymax": 0.877
+  },
+  "start": {
+    "x": 0.3,
+    "y": 0.6134999999999999,
+    "yaw_deg": 0.0
+  },
+  "goal": {
+    "x": 1.0,
+    "y": 0.10500000000000001,
+    "yaw_deg": 90.0,
+    "tolerance_cm": 5.0,
+    "tolerance_deg": 5.0
+  },
+  "obstacles": [
+    {
+      "id": "xe_trai",
+      "cx": 0.815,
+      "cy": 0.195,
+      "width": 0.31,
+      "height": 0.14,
+      "yaw_deg": 90.0,
+      "kind": "car"
+    },
+    {
+      "id": "xe_phai",
+      "cx": 1.185,
+      "cy": 0.195,
+      "width": 0.31,
+      "height": 0.14,
+      "yaw_deg": 90.0,
+      "kind": "car"
+    },
+    {
+      "id": "xe_trai2",
+      "cx": 0.661,
+      "cy": 0.195,
+      "width": 0.31,
+      "height": 0.14,
+      "yaw_deg": 90.0,
+      "kind": "car"
+    },
+    {
+      "id": "xe_phai2",
+      "cx": 1.339,
+      "cy": 0.195,
+      "width": 0.31,
+      "height": 0.14,
+      "yaw_deg": 90.0,
+      "kind": "car"
+    }
+  ],
+  "seed": 0,
+  "slot": {
+    "cx": 1.0,
+    "cy": 0.2,
+    "yaw_deg": -90.0,
+    "length": 0.4,
+    "width": 0.23
+  },
+  "mode": "reverse_in",
+  "acceptance": {
+    "code": "DO-3",
+    "variant": "a"
+  }
+}

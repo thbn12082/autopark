@@ -6,8 +6,8 @@ import pytest
 np = pytest.importorskip("numpy")
 
 from autopark.domain.sensors import LidarScan, SourceStamp  # noqa: E402
-from autopark.lidar.recording import (RecordingReplaySource, ScanRecorder, default_meta, read_recording,  # noqa: E402
-                                      summarize)
+from autopark.lidar.recording import (RecordingReplaySource, ScanRecorder, default_meta, read_lidar_any,  # noqa: E402
+                                      read_recording, summarize)
 
 
 def make_scan(t: float, n: int, base: float = 1.0, source_id: str = "c1") -> LidarScan:
@@ -60,3 +60,44 @@ def test_recorder_validates_order_and_quality_length(tmp_path):
     with pytest.raises(RuntimeError):
         recorder.add(make_scan(2.0, 5))
     assert read_recording(recorder.path).meta["summary"]["rate_hz"] is None   # a single scan has no rate
+
+
+def test_a_recording_folder_replays_every_lidar_part_in_order(tmp_path):
+    """T3 (2026-10-02): a session recording folder (rig.recording, several lidar/part_*.npz) replays as ONE recording in
+    the LiDAR tools (`read_lidar_any`, `RecordingReplaySource`, `PacedReplay`); a single .npz reads as before."""
+    pytest.importorskip("cv2")
+    pytest.importorskip("PySide6")
+    from autopark.lidar.live_view import PacedReplay, ScanStreamEnded
+    from autopark.rig.recording import RigRecorder
+    from autopark.video.multicam import RIG_CLOCK
+
+    folder = tmp_path / "phiên"
+    t0 = RIG_CLOCK()
+    rec = RigRecorder(folder, ports=[], lidar=True, clock=lambda: t0, lidar_scans_per_part=3).start()
+    stamps = [t0 + 0.05 * k for k in range(8)]
+    for k, t in enumerate(stamps):
+        rec.add_scan(make_scan(t, 10 + k, base=1.0 + k), t, t - 0.04, quality=[k + 1] * (10 + k))
+    assert rec.stop(wait=True, timeout=5.0)["state"] == "xong"
+    parts = sorted((folder / "lidar").glob("part_*.npz"))
+    assert len(parts) == 3
+    recording = read_lidar_any(folder)
+    assert len(recording) == 8 and recording.n_beams.tolist() == list(range(10, 18))
+    assert recording.t.tolist() == pytest.approx(stamps) and recording.t_first.tolist() == pytest.approx(
+        [t - 0.04 for t in stamps])
+    replay = RecordingReplaySource(folder)
+    assert len(replay) == 8 and [len(s.ranges_m) for s in replay] == list(range(10, 18))
+    assert len(RecordingReplaySource(recording)) == 8                     # an already loaded Recording
+    paced = PacedReplay(folder, speed=8, clock=RIG_CLOCK)
+    got = []
+    with pytest.raises(ScanStreamEnded):
+        while len(got) < 20:
+            got.append(paced.read().stamp.t)
+    assert got == pytest.approx([t - stamps[0] for t in stamps])          # in order, every part, then the end
+    one = read_lidar_any(parts[0])                                         # a single part: as read_recording
+    assert len(one) == 3 and one.path == parts[0] and len(read_lidar_any(parts[0].with_suffix(""))) == 3
+    with pytest.raises(ValueError):
+        read_lidar_any(tmp_path)                                           # no meta.json: not a session recording
+    empty = RigRecorder(tmp_path / "rỗng", ports=[1], clock=lambda: 1.0).start()
+    empty.stop(wait=True, timeout=5.0)
+    with pytest.raises(ValueError, match="không có vòng LiDAR"):
+        read_lidar_any(tmp_path / "rỗng")

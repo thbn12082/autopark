@@ -220,6 +220,81 @@ def test_source_resets_once_when_health_reports_error():
         RplidarC1Source(stuck, clock=FakeClock()).start()
 
 
+class NoPurgeTransport(FakeTransport):
+    """Like the bench's CP210x port (measured 2026-10-02): `reset_input_buffer()` clears nothing. A C1 left streaming by
+    a session that died without STOP keeps adding old nodes on every look at the port until it gets STOP; a few bytes
+    still in flight arrive after STOP."""
+
+    def __init__(self, responses, stream=b"", *, stale=b"", in_flight=b"", streaming=True, **kwargs):
+        super().__init__(responses, stream, **kwargs)
+        self.buffer += stale
+        self.in_flight = bytearray(in_flight)
+        self.streaming = streaming
+        self.purges = 0
+
+    def _arrive(self):
+        if self.streaming:
+            self.buffer += revolution_bytes(8, distance_mm=700.0)
+        elif self.in_flight:
+            self.buffer += self.in_flight[:16]
+            del self.in_flight[:16]
+
+    @property
+    def in_waiting(self) -> int:
+        self._arrive()
+        return len(self.buffer)
+
+    def write(self, data: bytes) -> None:
+        if bytes(data) == proto.request(proto.CMD_STOP):
+            self.streaming = False
+        super().write(data)
+
+    def read(self, n: int) -> bytes:
+        self._arrive()
+        return super().read(n)
+
+    def reset_input_buffer(self) -> None:
+        self.purges += 1                                                # PurgeComm: no effect on this port
+
+
+def test_start_recovers_a_c1_left_streaming_when_the_purge_clears_nothing():
+    """LD-1 lần 2 (2026-10-02): the C1 was still streaming from a session that died, and PurgeComm cleared nothing, so
+    every query read 7 stale bytes (8151 "bad response descriptor" in 30 min). The driver now reads the backlog away."""
+    stream = b"".join(revolution_bytes(8, distance_mm=1000.0 + 100 * i) for i in range(3))
+    stale = CAPTURED_INFO[9:] + CAPTURED_INFO * 3 + revolution_bytes(8, distance_mm=500.0) * 4     # misaligned, as seen
+    transport = NoPurgeTransport({proto.request(proto.CMD_GET_INFO): [CAPTURED_INFO],
+                                  proto.request(proto.CMD_GET_HEALTH): [CAPTURED_HEALTH_OK]}, stream,
+                                 stale=stale, in_flight=revolution_bytes(8, distance_mm=600.0))
+    source = RplidarC1Source(transport, clock=FakeClock(), revolution_timeout_s=0.5)
+    first = source.read()
+    assert source.info.model == 0x41 and source.resets == 0 and transport.purges >= 3
+    assert first.ranges_m[0] == pytest.approx(1.0)                     # a fresh revolution, not an old 0.5/0.6/0.7 m one
+    assert source.stats()["discarded_bytes"] >= len(stale)
+    source.flush()                                                     # flush reads the backlog away too
+    transport.buffer += revolution_bytes(8, distance_mm=800.0)
+    source.flush()
+    assert transport.buffer == bytearray() and source.queue.stats()["nodes"] == 0
+    # the first revolution after a flush may be a few-beam fragment (cut mid-node): it is skipped
+    transport.buffer += (revolution_bytes(8, distance_mm=1500.0)[7:] + revolution_bytes(8, distance_mm=2000.0)
+                         + revolution_bytes(8, distance_mm=2500.0) + proto.encode_node(proto.Node(True, 15, 0.0, 999.0)))
+    after = source.read()
+    assert after.ranges_m[0] == pytest.approx(2.5) and source.stats()["skipped_after_flush"] == 1
+
+
+def test_start_resets_once_when_the_info_answer_is_garbled():
+    """A garbled answer to the info query (not cured by reading the backlog away) gets one RESET and a second try."""
+    bad = bytes.fromhex("0112f57ffc8bc6") + CAPTURED_INFO[7:]
+    transport = scripted_transport()
+    transport.responses[proto.request(proto.CMD_GET_INFO)] = [bad, CAPTURED_INFO]
+    source = RplidarC1Source(transport, clock=FakeClock())
+    source.start()
+    assert source.resets == 1 and source.info.model == 0x41 and proto.request(proto.CMD_RESET) in transport.writes
+    broken = scripted_transport()
+    broken.responses[proto.request(proto.CMD_GET_INFO)] = [bad, bad]
+    with pytest.raises(proto.ProtocolError, match="bad response descriptor"):
+        RplidarC1Source(broken, clock=FakeClock()).start()
+
+
 def test_scan_modes_from_captured_configuration_answers():
     responses = {
         proto.conf_request(proto.CONF_SCAN_MODE_COUNT): [conf_answer(bytes.fromhex("700000000200"))],

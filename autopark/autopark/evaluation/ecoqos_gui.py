@@ -11,7 +11,9 @@ thường (hiện, đưa lên trước), thu nhỏ, bị che kín bởi một c�
 nhập, màn hình, thời gian không ai thao tác, cửa sổ đang ở trước), tải CPU (toàn máy, theo lớp lõi P/E, CPU của chính
 tiến trình); rồi bảo đầu dò gọi `MainWindow.plan()` (hàm nút "Tìm đường đỗ" gọi) và ghi một dòng. Hai đối chứng:
 `gui_off` (cùng giao diện, tắt EcoQoS theo pid bằng `power_throttling.disable_power_throttling`) và `khong_cua_so`
-(tiến trình con không cửa sổ `nen`, lập đường qua cùng `Session.plan_async`: điều kiện của 30/09).
+(tiến trình con không cửa sổ `nen`, lập đường qua cùng `Session.plan_async`: điều kiện của 30/09). Từ 02/10/2026 ứng
+dụng tự tắt EcoQoS lúc khởi động (`ui.app.main` gọi `power_throttling.apply_ecoqos_policy`): `gui_system` là giao diện
+ở mặc định của Windows (ứng dụng trước ngày đó, hay chạy với AUTOPARK_KEEP_ECOQOS=1), `gui_off` là ứng dụng hiện nay.
 
 Cửa sổ ở trước (cập nhật 02/10/2026). Windows xếp QoS theo cửa sổ ở trước (foreground) và chỉ cho tiến trình đang ở
 trước (hoặc được nó cho phép) đổi cửa sổ ở trước. Tiến trình điều khiển chạy nền (mở từ shell), nên ở lượt đo 02/10/2026
@@ -42,6 +44,13 @@ COM, camera hay LiDAR (ca mô phỏng thuần). Màn che và cửa sổ trung t�
 `che` tự thoát khi tiến trình điều khiển chết (hết stdin). Quyền ASFW_ANY tự mất ở lần nhấn phím / chuột kế tiếp.
 Các ngưỡng của tóm tắt (`NGUONG_CHAM`, `NGUONG_NHIEU`, `TOI_THIEU_LUOT`, `TAI_NEN_CAO`) chỉ để mô tả, không phải ngưỡng
 nghiệm thu.
+
+Chế độ chạy (thêm 02/10/2026, lệnh `do-chay`, mã ở `evaluation/ecoqos_chay.py`): cùng cách đặt trạng thái cửa sổ, nhưng
+mỗi lượt bấm "Bắt đầu đỗ" (`MainWindow.run()`) và ghi vòng điều khiển 50 Hz của một lần chạy SIM hay VehicleIO với bo MÔ
+PHỎNG (nhịp giao diện, nhịp điều khiển, thời gian phiên so với đồng hồ thật); tiến trình con là `con --chay --nhanh N`.
+Không cổng COM, không camera, không LiDAR. Mặc định ≈ 16–30 phút cửa sổ thật:
+    .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.ecoqos_gui do-chay --ra docs\\evidence\\ecoqos_chay_<ngày>
+    .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.ecoqos_gui do-chay --ra runs\\thu_ecoqos_chay --nhanh SIM --bien-the gui_system --khoi 1 --lap 1 --cho 2
 """
 from __future__ import annotations
 
@@ -74,8 +83,11 @@ MODULE = "autopark.evaluation.ecoqos_gui"
 TRANG_THAI = ("thuong", "thu_nho", "bi_che")
 """Trạng thái cửa sổ lúc bấm: hiện và ở trước / thu nhỏ / bị một cửa sổ đục luôn-trên-cùng che kín."""
 BIEN_THE = ("gui_system", "gui_off", "khong_cua_so")
-"""gui_system: giao diện, EcoQoS để Windows tự quyết (như người dùng mở app); gui_off: giao diện, tắt EcoQoS theo pid
-(đối chứng nguyên nhân); khong_cua_so: tiến trình con không cửa sổ, cùng đường `Session.plan_async` (điều kiện 30/09)."""
+"""gui_system: giao diện, EcoQoS để Windows tự quyết — như ứng dụng trước 02/10/2026, hay ứng dụng chạy với
+AUTOPARK_KEEP_ECOQOS=1 (tiến trình con dựng cửa sổ qua `ui.app.build_window`, không qua `main()`, nên không tự tắt);
+gui_off: giao diện, tắt EcoQoS theo pid — đúng lời gọi mà ứng dụng từ 02/10/2026 tự làm cho mình
+(power_throttling.apply_ecoqos_policy); khong_cua_so: tiến trình con không cửa sổ, cùng đường `Session.plan_async`
+(điều kiện 30/09)."""
 
 COT = (
     "thoi_diem", "khoi", "bien_the", "pid", "lan", "khoi_dong", "trang_thai",
@@ -136,13 +148,31 @@ DICH_TRUOC = {"thuong": "giao_dien", "thu_nho": "trung_tinh", "bi_che": "man_che
 _TIEN_TRINH_CUA = {"giao_dien": "con", "trung_tinh": "che", "man_che": "che"}
 LY_DO = ("khoi_dong", "khong_tra_loi", "bo_qua", "phien_khoa", "phien_khong_ro", "ngat_ket_noi", "ban_lam_viec_khac",
          "man_hinh_tat", "nguoi_dung_thao_tac", "tai_nen_cao", "sai_trang_thai", "gui_van_o_truoc",
-         "gui_khong_o_truoc", "khong_tat_duoc_ecoqos")
+         "gui_khong_o_truoc", "doi_trang_thai_trong_chay", "khong_tat_duoc_ecoqos", "khong_giu_duoc_ecoqos")
 """Lý do loại một lượt khỏi phép so sánh, theo thứ tự ưu tiên của `ly_do_loai`. `gui_van_o_truoc`: lượt "thu nhỏ" /
 "bị che" mà cửa sổ ở trước (foreground) lúc bấm vẫn là giao diện, nên không phải điều kiện "người dùng đang làm việc
 khác" cần đo (Windows xếp QoS theo cửa sổ ở trước / có focus; thu nhỏ bằng SW_MINIMIZE có lúc để giao diện ở trước,
 gặp ở lượt thử 02/10/2026). `gui_khong_o_truoc` (thêm 02/10/2026): lượt "thường" mà giao diện không ở trước lúc bấm,
 nên không phải mốc "người dùng đang nhìn ứng dụng" (ví dụ Windows từ chối đưa giao diện về trước); nếu không loại,
-mốc có thể bị hạ tốc như lượt cần so và che mất khác biệt."""
+mốc có thể bị hạ tốc như lượt cần so và che mất khác biệt. Hai lý do thêm 02/10/2026 (dòng cũ không có, không đổi
+cách loại dòng cũ): `doi_trang_thai_trong_chay` (chế độ chạy: một mẫu trạng thái cửa sổ lấy mỗi giây trong lúc xe chạy
+không đúng trạng thái đang đo, khóa `mau_sai`); `khong_giu_duoc_ecoqos` (biến thể gui_system mà tiến trình giao diện
+không còn ở mặc định của Windows lúc sẵn sàng, ví dụ ứng dụng tự tắt EcoQoS bỏ qua AUTOPARK_KEEP_ECOQOS=1; chỉ khi
+EcoQoS đọc được, xem `kiem_gui_system`)."""
+
+ECOQOS_KHONG_DOC_DUOC = ("không đọc được EcoQoS (GetProcessInformation(ProcessPowerThrottling) không có trước Windows "
+                         "bản 22000, hoặc không mở được tiến trình)")
+
+
+def kiem_gui_system(ecoqos: str | None) -> str:
+    """Biến thể gui_system, EcoQoS mà tiến trình giao diện tự đọc lúc sẵn sàng (`execution_speed_throttling()`; chung
+    cho chế độ lập đường và chế độ chạy, sửa 02/10/2026). "system" → "ok". None (không đọc được) → "khong_doc_duoc":
+    trạng thái KHÔNG BIẾT chứ không phải khác mặc định, nên các dòng vẫn được giữ như trước khi có phép kiểm này và công
+    cụ chỉ cảnh báo (`ECOQOS_KHONG_DOC_DUOC`). Giá trị khác ("on", "off") → "khong_giu_duoc_ecoqos": mọi dòng của khối
+    bị loại."""
+    if ecoqos is None:
+        return "khong_doc_duoc"
+    return "ok" if ecoqos == "system" else "khong_giu_duoc_ecoqos"
 
 
 def han_lap_duong_s() -> float:
@@ -339,9 +369,15 @@ def _hang_lenh_stdin() -> queue.Queue:
     return hang
 
 
-def chay_con(kich_ban: Path, cho_phep_offscreen: bool = False) -> int:
+def chay_con(kich_ban: Path, cho_phep_offscreen: bool = False, *, chay: bool = False, nhanh: str = "SIM") -> int:
     """`con`: giao diện thật như `run_app.py <kich_ban>` (build_window, show, exec) cộng đầu dò. Từ chối nền tảng Qt
-    không phải "windows" (offscreen không phải cửa sổ thật) trừ khi `cho_phep_offscreen` (chỉ dùng cho test)."""
+    không phải "windows" (offscreen không phải cửa sổ thật) trừ khi `cho_phep_offscreen` (chỉ dùng cho test).
+
+    `chay` (thêm 02/10/2026, lệnh `do-chay`): thêm đầu dò vòng điều khiển `ecoqos_chay.DauDoChay` (lệnh chuan_bi | chay
+    | dung, chặn hộp thoại modal) và chọn nhánh `nhanh` như người dùng chọn ở ô "Nhánh chạy khi bấm Bắt đầu đỗ";
+    VEHICLE_IO chỉ với bo mô phỏng, không thì báo `loi` và thoát mã 2 (không mở cổng nào). Như `build_window`, không gọi
+    chính sách EcoQoS lúc khởi động của `ui.app.main()` (nếu có): EcoQoS của từng biến thể do tiến trình điều khiển đặt
+    và đọc lại."""
     from PySide6.QtCore import QTimer
     from PySide6.QtWidgets import QApplication
 
@@ -357,14 +393,28 @@ def chay_con(kich_ban: Path, cho_phep_offscreen: bool = False) -> int:
     except Exception as exc:  # noqa: BLE001 - kịch bản hỏng: báo rồi thoát
         _gui_tin({"loai": "loi", "thong_diep": f"không dựng được cửa sổ: {exc!r}"[:300]})
         return 2
+    dau_do_chay = None
+    if chay:
+        from autopark.evaluation.ecoqos_chay import DauDoChay, chon_nhanh
+
+        dau_do_chay = DauDoChay(window, _gui_tin)          # chặn hộp thoại trước mọi bước có thể mở hộp thoại
+        loi = chon_nhanh(window, nhanh)
+        if loi is not None:
+            _gui_tin({"loai": "loi", "thong_diep": loi})
+            dau_do_chay.go()
+            window.close()
+            return 2
     win32 = (cho_phep_dat_truoc, dat_cua_so_truoc) if nen_tang == "windows" else (_khong_cap_quyen, _khong_dat_truoc)
     dau_do = DauDoKeHoach(window, _gui_tin, *win32)
     go_nac = ghi_nac(dau_do.nhan_nac)
     window.setWindowTitle(window.windowTitle() + HAU_TO_TIEU_DE)
     window.show()
     app.processEvents()
-    _gui_tin({"loai": "san_sang", "pid": os.getpid(), "hwnd": int(window.winId()), "nen_tang": nen_tang,
-              "ecoqos": execution_speed_throttling()})
+    san_sang = {"loai": "san_sang", "pid": os.getpid(), "hwnd": int(window.winId()), "nen_tang": nen_tang,
+                "ecoqos": execution_speed_throttling()}
+    if dau_do_chay is not None:
+        san_sang.update(dau_do_chay.thong_tin(nhanh))
+    _gui_tin(san_sang)
     hang = _hang_lenh_stdin()
 
     def xu_ly_hang() -> None:
@@ -378,7 +428,8 @@ def chay_con(kich_ban: Path, cho_phep_offscreen: bool = False) -> int:
                 window.close()                            # closeEvent → Session.close()
                 app.quit()
                 return
-            dau_do.xu_ly(lenh)
+            if dau_do_chay is None or not dau_do_chay.xu_ly(lenh):
+                dau_do.xu_ly(lenh)
 
     nhip = QTimer()
     nhip.setInterval(50)
@@ -388,6 +439,8 @@ def chay_con(kich_ban: Path, cho_phep_offscreen: bool = False) -> int:
         return app.exec()
     finally:
         go_nac()
+        if dau_do_chay is not None:
+            dau_do_chay.go()
 
 
 def chay_mot_lan_nen(session, lan: int, nac: dict) -> dict:
@@ -1032,6 +1085,86 @@ def uu_tien(pid: int) -> str | None:
         _dong_handle(h)
 
 
+# Điều tiết nguồn của tiến trình (thêm 02/10/2026, chế độ chạy): ProcessPowerThrottling, PROCESS_POWER_THROTTLING_STATE
+# {Version = 1, ControlMask, StateMask}. Bit EXECUTION_SPEED = EcoQoS (autopark/power_throttling.py chỉ dùng bit này);
+# bit IGNORE_TIMER_RESOLUTION: Windows 11 có thể bỏ qua yêu cầu độ phân giải đồng hồ của tiến trình khi mọi cửa sổ của
+# nó bị che kín, thu nhỏ hay ẩn (QTimer 16 ms khi đó có thể thưa tới ≈ 15,6 ms một nấc).
+_DIEU_TIET = 4                    # PROCESS_INFORMATION_CLASS.ProcessPowerThrottling
+_BIT_ECOQOS = 0x1                 # PROCESS_POWER_THROTTLING_EXECUTION_SPEED
+_BIT_DONG_HO = 0x4                # PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION
+
+
+def _voi_tien_trinh(pid: int | None, quyen: int, goi: Callable[[object], bool]) -> bool:
+    """`goi(handle)` với tiến trình `pid` (None = chính tiến trình này: handle giả, không cần đóng); False khi không mở
+    được tiến trình."""
+    from ctypes import wintypes
+
+    if pid is None:
+        return goi(_ham("kernel32", "GetCurrentProcess", wintypes.HANDLE)())
+    h = _mo_tien_trinh(pid, quyen)
+    if h is None:
+        return False
+    try:
+        return goi(h)
+    finally:
+        _dong_handle(h)
+
+
+@_khong_nem(None)
+def phan_giai_dong_ho_ms() -> tuple[float, float, float] | None:
+    """Độ phân giải đồng hồ hệ thống (NtQueryTimerResolution, chỉ đọc): (thô nhất, mịn nhất, hiện tại), ms. Số TOÀN MÁY:
+    từ Windows 10 2004 mỗi tiến trình có độ phân giải riêng, số này không cho biết tiến trình giao diện được bao nhiêu
+    (chỉ báo)."""
+    import ctypes
+    from ctypes import wintypes
+
+    con_tro = ctypes.POINTER(wintypes.ULONG)
+    hoi = _ham("ntdll", "NtQueryTimerResolution", ctypes.c_long, con_tro, con_tro, con_tro)
+    tho, min_, hien = wintypes.ULONG(), wintypes.ULONG(), wintypes.ULONG()
+    if hoi(ctypes.byref(tho), ctypes.byref(min_), ctypes.byref(hien)) != 0:
+        return None
+    return tho.value / 1e4, min_.value / 1e4, hien.value / 1e4          # đơn vị 100 ns
+
+
+@_khong_nem(None)
+def doc_dieu_tiet(pid: int | None = None) -> dict[str, str] | None:
+    """Điều tiết nguồn của tiến trình `pid` (None = tiến trình này), GetProcessInformation(ProcessPowerThrottling), chỉ
+    đọc: {"ecoqos": system | on | off, "dong_ho": system | bo_qua | ton_trong} (Windows tự quyết / bật hay luôn bỏ qua
+    / tắt hay luôn tôn trọng yêu cầu độ phân giải đồng hồ). None khi không đọc được (Windows trước bản 22000, không mở
+    được tiến trình)."""
+    import ctypes
+    from ctypes import wintypes
+
+    doc = _ham("kernel32", "GetProcessInformation", wintypes.BOOL, wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p,
+               wintypes.DWORD)
+    trang_thai = (wintypes.ULONG * 3)(1, 0, 0)
+    if not _voi_tien_trinh(pid, 0x1000, lambda h: bool(doc(h, _DIEU_TIET, trang_thai, ctypes.sizeof(trang_thai)))):
+        return None
+    kiem, bat = trang_thai[1], trang_thai[2]
+
+    def chu(bit: int, khi_bat: str, khi_tat: str) -> str:
+        return "system" if not kiem & bit else (khi_bat if bat & bit else khi_tat)
+
+    return {"ecoqos": chu(_BIT_ECOQOS, "on", "off"), "dong_ho": chu(_BIT_DONG_HO, "bo_qua", "ton_trong")}
+
+
+@_khong_nem(False)
+def dat_ton_trong_dong_ho(pid: int) -> bool:
+    """Biến thể gui_off_dh của chế độ chạy: SetProcessInformation(ProcessPowerThrottling) lên tiến trình `pid` với
+    ControlMask = EXECUTION_SPEED | IGNORE_TIMER_RESOLUTION, StateMask = 0, tức tắt EcoQoS VÀ luôn tôn trọng yêu cầu độ
+    phân giải đồng hồ của tiến trình. Chỉ dùng cho tiến trình con của công cụ (cờ mất theo tiến trình); không bao giờ
+    cho chính tiến trình này (pid None → False). Không đổi thiết lập máy."""
+    import ctypes
+    from ctypes import wintypes
+
+    if pid is None:
+        return False
+    dat = _ham("kernel32", "SetProcessInformation", wintypes.BOOL, wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p,
+               wintypes.DWORD)
+    trang_thai = (wintypes.ULONG * 3)(1, _BIT_ECOQOS | _BIT_DONG_HO, 0)
+    return _voi_tien_trinh(int(pid), 0x0200, lambda h: bool(dat(h, _DIEU_TIET, trang_thai, ctypes.sizeof(trang_thai))))
+
+
 class CuaSoWin32:
     """Một cửa sổ cấp cao (HWND) của tiến trình khác. Không hàm nào ném lỗi. Tọa độ là điểm ảnh vật lý khi tiến trình
     điều khiển đã gọi `dat_dpi_vat_ly()` (lệnh `do` gọi lúc đầu)."""
@@ -1425,15 +1558,16 @@ def ban_ron_them(c_nen: ChupCpu | None, c0: ChupCpu | None, c1: ChupCpu | None,
     return {cap: trong[cap] - nen[cap] / t_nen * t_trong for cap in trong}
 
 
-def ty_le_e(them: dict[int, float] | None, tg_tinh: float | None) -> float | None:
+def ty_le_e(them: dict[int, float] | None, tg_tinh: float | None, toi_thieu: float = 0.3) -> float | None:
     """Phần CPU bận thêm rơi vào lõi E (lớp EfficiencyClass thấp nhất): E / (E + các lớp còn lại), phần âm tính là 0.
-    None khi chưa tới hai lớp, hoặc tổng bận thêm < 0,3·tg_tinh (quá ít để nói gì). Chỉ là chỉ báo: bộ đếm toàn máy."""
+    None khi chưa tới hai lớp, hoặc tổng bận thêm < toi_thieu·tg_tinh (quá ít để nói gì; 0,3 hợp với bộ lập kế hoạch
+    bận, chế độ chạy dùng 0,1 vì giao diện tải nhẹ). Chỉ là chỉ báo: bộ đếm toàn máy."""
     if not them or len(them) < 2 or not tg_tinh or tg_tinh <= 0:
         return None
     e = min(them)
     them_e = max(0.0, them[e])
     them_p = sum(max(0.0, v) for cap, v in them.items() if cap != e)
-    if them_e + them_p < 0.3 * tg_tinh:
+    if them_e + them_p < toi_thieu * tg_tinh:
         return None
     return them_e / (them_e + them_p)
 
@@ -1460,11 +1594,24 @@ def _xoay(ds: Sequence[str], k: int) -> list[str]:
     return list(ds[k:]) + list(ds[:k])
 
 
-def moi_truong_con(goc: dict[str, str] | None = None) -> tuple[dict[str, str], dict[str, bool]]:
+BIEN_GIU_ECOQOS = "AUTOPARK_KEEP_ECOQOS"
+"""Biến môi trường (cùng tests/conftest.py, thêm vào công cụ 02/10/2026): "1" = giữ EcoQoS mặc định của Windows ở
+tiến trình nào có tự tắt EcoQoS theo biến này."""
+
+
+def moi_truong_con(goc: dict[str, str] | None = None, *,
+                   giu_ecoqos: bool = True) -> tuple[dict[str, str], dict[str, bool]]:
     """Biến môi trường cho tiến trình con: bỏ QT_QPA_PLATFORM (shell của tác tử hay đặt offscreen) và AUTOPARK_RRT_SEED.
-    Trả (env, {"QT_QPA_PLATFORM_da_bo": bool, "AUTOPARK_RRT_SEED_da_bo": bool})."""
+    `giu_ecoqos` (thêm 02/10/2026): True đặt AUTOPARK_KEEP_ECOQOS=1, False bỏ biến đó. Mặc định True: chế độ lập đường
+    và biến thể gui_system đo mặc định của Windows như ngày 02/10/2026, kể cả khi ứng dụng đã tự tắt EcoQoS.
+    Trả (env, {"QT_QPA_PLATFORM_da_bo": bool, "AUTOPARK_RRT_SEED_da_bo": bool, "AUTOPARK_KEEP_ECOQOS_dat": bool})."""
     env = dict(os.environ if goc is None else goc)
     da_bo = {f"{khoa}_da_bo": env.pop(khoa, None) is not None for khoa in ("QT_QPA_PLATFORM", "AUTOPARK_RRT_SEED")}
+    if giu_ecoqos:
+        env[BIEN_GIU_ECOQOS] = "1"
+    else:
+        env.pop(BIEN_GIU_ECOQOS, None)
+    da_bo[f"{BIEN_GIU_ECOQOS}_dat"] = giu_ecoqos
     return env, da_bo
 
 
@@ -1898,6 +2045,20 @@ def viet_kich_ban(ca: str, ra: Path | str) -> tuple[Path, float]:
     return duong_dan, do_lech_kich_ban(goc, lai)
 
 
+def viet_kich_ban_tep(nguon: Path | str, ra: Path | str) -> tuple[Path, float]:
+    """Như `viet_kich_ban` cho một tệp kịch bản (thêm 02/10/2026, chế độ chạy): nạp `nguon` (đường dẫn cấu hình xe tương
+    đối theo tệp nguồn), ghi `ra/kich_ban_<tên tệp>.json` (đường dẫn cấu hình xe tính lại theo `ra`), nạp lại; trả
+    (đường dẫn, độ lệch lớn nhất). Hai bản đều `sync_goal` như `Session(scenario, cfg)` của giao diện."""
+    from autopark.storage.scenario_store import load_scenario, load_vehicle_config, save_scenario
+
+    goc = load_scenario(nguon)
+    goc.sync_goal(load_vehicle_config(goc.vehicle_config_path))
+    duong_dan = save_scenario(copy.deepcopy(goc), Path(ra) / f"kich_ban_{Path(nguon).stem}.json")
+    lai = load_scenario(duong_dan)
+    lai.sync_goal(load_vehicle_config(lai.vehicle_config_path))
+    return duong_dan, do_lech_kich_ban(goc, lai)
+
+
 def do_lech_kich_ban(a, b) -> float:
     """Độ lệch lớn nhất (m hoặc rad) giữa hai kịch bản; khác cấu trúc (số vật cản, có/không ô đỗ, kiểu đỗ) là vô cực."""
     from autopark.domain.types import wrap_angle
@@ -2071,6 +2232,14 @@ def chay_do(args, argv: Sequence[str]) -> int:
                 p, tin = khoi_dong(lenh, bt)
                 gui = CuaSoWin32(int(tin["hwnd"])) if bt != "khong_cua_so" and tin.get("hwnd") else None
                 ghi_chu = ""
+                kiem = kiem_gui_system(tin.get("ecoqos")) if bt == "gui_system" else "ok"   # thêm 02/10/2026
+                if kiem == "khong_giu_duoc_ecoqos":
+                    ghi_chu = "khong_giu_duoc_ecoqos"
+                    in_ra(f"CẢNH BÁO: EcoQoS của giao diện (pid {p.pid}) lúc sẵn sàng là {tin.get('ecoqos')}, không "
+                          f"phải mặc định của Windows (system); các dòng của khối này bị loại")
+                elif kiem == "khong_doc_duoc":
+                    in_ra(f"CẢNH BÁO: giao diện (pid {p.pid}) lúc sẵn sàng {ECOQOS_KHONG_DOC_DUOC}: không kiểm được "
+                          f"gui_system còn ở mặc định của Windows; các dòng của khối này vẫn được giữ")
                 if bt == "gui_off":
                     tat = disable_power_throttling(p.pid)
                     sau = execution_speed_throttling(p.pid)
@@ -2172,8 +2341,12 @@ def ly_do_loai(dong: dict) -> str | None:
         return "gui_van_o_truoc"
     if dong.get("trang_thai") == "thuong" and dong.get("cua_so_truoc") != "giao_dien":
         return "gui_khong_o_truoc"
+    if (dong.get("mau_sai") or 0) > 0:                     # chế độ chạy; dòng lập đường không có khóa này
+        return "doi_trang_thai_trong_chay"
     if "khong_tat_duoc_ecoqos" in ghi_chu:
         return "khong_tat_duoc_ecoqos"
+    if "khong_giu_duoc_ecoqos" in ghi_chu:
+        return "khong_giu_duoc_ecoqos"
     return None
 
 
@@ -2291,17 +2464,31 @@ def _dem(ds: list[dict], khoa: str) -> str:
 
 
 def _phan_dau(dong: list[dict], may: dict) -> list[str]:
-    git, nguon, win, cpu = (may.get(k) or {} for k in ("git", "nguon", "windows", "cpu"))
-    ke_hoach, lop_phu = nguon.get("ke_hoach") or {}, nguon.get("lop_phu") or {}
-    lop = cpu.get("lop") or {}
-    lop_chu = "; ".join(f"lớp {k}: LP {_khoang(v)}" for k, v in sorted(lop.items(), key=lambda kv: -int(kv[0])))
-    tai = [d["tai_nen_pct"] for d in dong if d.get("tai_nen_pct") is not None]
     ra = [
         f"Đo EcoQoS của ứng dụng giao diện (python -m {MODULE})",
         f"Ca: {may.get('ca', '?')}; hạn lập đường {_so(may.get('han_lap_duong_s'), 1)} s; kịch bản "
         f"{may.get('kich_ban', '?')} (lệch sau khi lưu và nạp lại: {_lech_chu(may.get('kich_ban_lech'))})",
         f"Thời gian: {may.get('bat_dau', '?')} → {may.get('ket_thuc', '?')}"
         + (f"; DỪNG GIỮA CHỪNG: {may['dung_giua_chung']}" if may.get("dung_giua_chung") else ""),
+    ] + _dong_may_chung(dong, may)
+    if may.get("kich_ban_lech"):
+        ra.append(f"CẢNH BÁO: kịch bản lệch {_lech_chu(may['kich_ban_lech'])} sau khi lưu và nạp lại.")
+    dau = may.get("trang_thai_may_dau") or {}
+    if dau and not dau.get("nhin_thay_duoc", True):
+        ra.append(f"CẢNH BÁO: lúc bắt đầu phiên={dau.get('phien')}, kết nối={dau.get('ket_noi')}, màn hình="
+                  f"{dau.get('man_hinh')}.")
+    return ra
+
+
+def _dong_may_chung(dong: list[dict], may: dict) -> list[str]:
+    """Các dòng điều kiện máy của phần đầu tóm tắt, chung cho chế độ lập đường và chế độ chạy (tách 02/10/2026): mã,
+    CPU, nguồn, Windows, số lượt theo phiên / màn hình lúc bấm và tải nền, lệnh."""
+    git, nguon, win, cpu = (may.get(k) or {} for k in ("git", "nguon", "windows", "cpu"))
+    ke_hoach, lop_phu = nguon.get("ke_hoach") or {}, nguon.get("lop_phu") or {}
+    lop = cpu.get("lop") or {}
+    lop_chu = "; ".join(f"lớp {k}: LP {_khoang(v)}" for k, v in sorted(lop.items(), key=lambda kv: -int(kv[0])))
+    tai = [d["tai_nen_pct"] for d in dong if d.get("tai_nen_pct") is not None]
+    return [
         f"Mã: commit {git.get('commit', '?')} (+ {git.get('so_tep_chua_commit', '?')} tệp chưa commit)",
         f"CPU: {cpu.get('logic', '?')} bộ xử lý logic; {lop_chu or 'không đọc được lớp lõi'} "
         f"(lớp thấp nhất là lõi E)",
@@ -2319,13 +2506,6 @@ def _phan_dau(dong: list[dict], may: dict) -> list[str]:
         f"{_so(min(tai), 1) if tai else '–'}–{_so(max(tai), 1) if tai else '–'} %",
         f"Lệnh: {may.get('lenh', '?')}",
     ]
-    if may.get("kich_ban_lech"):
-        ra.append(f"CẢNH BÁO: kịch bản lệch {_lech_chu(may['kich_ban_lech'])} sau khi lưu và nạp lại.")
-    dau = may.get("trang_thai_may_dau") or {}
-    if dau and not dau.get("nhin_thay_duoc", True):
-        ra.append(f"CẢNH BÁO: lúc bắt đầu phiên={dau.get('phien')}, kết nối={dau.get('ket_noi')}, màn hình="
-                  f"{dau.get('man_hinh')}.")
-    return ra
 
 
 def _bang(dong: list[dict], hop_le: list[dict]) -> list[str]:
@@ -2458,7 +2638,13 @@ def chay_tom_tat(args) -> int:
         return 2
     tep_may = ra / "may.json"
     may = json.loads(tep_may.read_text(encoding="utf-8")) if tep_may.exists() else {}
-    van_ban = tom_tat(_doc_jsonl(ra / "ket_qua.jsonl"), may)
+    dong = _doc_jsonl(ra / "ket_qua.jsonl")
+    if may.get("che_do") == "chay" or (not may and dong and "nhanh" in dong[0]):     # chế độ chạy (02/10/2026)
+        from autopark.evaluation.ecoqos_chay import tom_tat_chay
+
+        van_ban = tom_tat_chay(dong, may)
+    else:
+        van_ban = tom_tat(dong, may)
     (ra / "tom_tat.txt").write_text(van_ban, encoding="utf-8")
     print(van_ban, end="")
     return 0
@@ -2479,11 +2665,31 @@ def main(argv: list[str] | None = None) -> int:
     do.add_argument("--cho", type=float, default=5.0, help="giây chờ ổn định sau khi đổi trạng thái (≥ 2)")
     do.add_argument("--trang-thai", default=",".join(TRANG_THAI), help="danh sách, cách nhau bằng dấu phẩy")
     do.add_argument("--bien-the", default=",".join(BIEN_THE), help="danh sách, cách nhau bằng dấu phẩy")
+    dc = sub.add_parser("do-chay", help="đo vòng điều khiển 50 Hz của lần chạy (SIM, bo mô phỏng) khi cửa sổ thường / "
+                                        "thu nhỏ / bị che (thêm 02/10/2026)")
+    dc.add_argument("--ra", required=True, help="thư mục kết quả MỚI (ví dụ docs\\evidence\\ecoqos_chay_<ngày> hoặc "
+                                                "runs\\thu_ecoqos_chay)")
+    dc.add_argument("--kich-ban", default=None, help="tệp kịch bản (mặc định scenarios/bai_do_xe.json, ≈ 21 s mô phỏng)")
+    dc.add_argument("--ca", default=None, help="ca trong evaluation/hard_cases.py thay cho --kich-ban")
+    dc.add_argument("--nhanh", default="SIM,VEHICLE_IO", help="nhánh chạy, cách nhau bằng dấu phẩy: SIM, VEHICLE_IO "
+                                                            "(chỉ bo mô phỏng)")
+    dc.add_argument("--bien-the", default="gui_system,gui_off", help="gui_system, gui_off, gui_off_dh")
+    dc.add_argument("--trang-thai", default=",".join(TRANG_THAI), help="danh sách, cách nhau bằng dấu phẩy")
+    dc.add_argument("--khoi", type=int, default=2, help="số khối; mỗi khối chạy mọi (biến thể, nhánh), xoay vòng")
+    dc.add_argument("--lap", type=int, default=1, help="số vòng các trạng thái trong một khối (sau lượt khởi động)")
+    dc.add_argument("--cho", type=float, default=5.0, help="giây chờ ổn định sau khi đổi trạng thái (≥ 2)")
+    dc.add_argument("--toi-da-chay", type=float, default=300.0,
+                    help="giây thật tối đa một lần chạy (≥ 30); quá thì công cụ bấm Dừng (lượt KHONG_XONG)")
+    dc.add_argument("--khong-giu-chuoi", action="store_true", help="không ghi chuỗi nhịp thô nhip/*.json.gz")
     tt = sub.add_parser("tom-tat", help="viết lại tom_tat.txt từ ket_qua.jsonl và may.json")
     tt.add_argument("--ra", required=True)
     con = sub.add_parser("con", help="(nội bộ, lệnh `do` mở) giao diện thật cộng đầu dò")
     con.add_argument("--kich-ban", required=True)
     con.add_argument("--cho-phep-offscreen", action="store_true", help="chỉ cho test: chấp nhận Qt offscreen")
+    con.add_argument("--chay", action="store_true",
+                     help="(lệnh `do-chay`) đầu dò vòng điều khiển: chuan_bi | chay | dung")
+    con.add_argument("--nhanh", choices=("SIM", "VEHICLE_IO"), default="SIM",
+                     help="nhánh chạy với --chay (VEHICLE_IO: chỉ bo mô phỏng)")
     nen = sub.add_parser("nen", help="(nội bộ, lệnh `do` mở) đối chứng không cửa sổ")
     nen.add_argument("--kich-ban", required=True)
     che = sub.add_parser("che", help="(nội bộ, lệnh `do` mở) màn che")
@@ -2492,10 +2698,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.lenh == "do":
         return chay_do(args, argv)
+    if args.lenh == "do-chay":
+        from autopark.evaluation.ecoqos_chay import chay_do_chay
+
+        return chay_do_chay(args, argv)
     if args.lenh == "tom-tat":
         return chay_tom_tat(args)
     if args.lenh == "con":
-        return chay_con(Path(args.kich_ban), args.cho_phep_offscreen)
+        return chay_con(Path(args.kich_ban), args.cho_phep_offscreen, chay=args.chay, nhanh=args.nhanh)
     if args.lenh == "nen":
         return chay_nen(Path(args.kich_ban))
     return chay_che(args.toi_da, args.cho_phep_offscreen)

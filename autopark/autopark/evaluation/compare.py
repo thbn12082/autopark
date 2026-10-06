@@ -18,6 +18,7 @@ from dataclasses import asdict
 
 from autopark.evaluation.bench import CaseResult, load_planner, run_case
 from autopark.evaluation.hard_cases import build_cases
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
 from autopark.storage.scenario_store import load_vehicle_config
 
 KNOWN = {
@@ -41,6 +42,7 @@ def short(r: CaseResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ecoqos = apply_ecoqos_policy("evaluation.compare")     # trước mọi việc khác: các ca chạy theo hạn giờ đồng hồ thật
     ap = argparse.ArgumentParser(description="So sánh nhiều bộ lập đường")
     ap.add_argument("--planners", default="", help="ten=module:ham, phân cách bằng dấu phẩy")
     ap.add_argument("--all", action="store_true", help="dùng mọi bộ lập đường đã biết, bỏ qua cái nào chưa có")
@@ -73,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     if not loaded:
         raise SystemExit("không nạp được bộ lập đường nào")
 
+    print(ecoqos.cli_line(), flush=True)
     results: dict[str, dict[str, CaseResult]] = {label: {} for label in loaded}
     for label, func in loaded.items():
         for name in names:
@@ -107,8 +110,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.json:
         with open(args.json, "w", encoding="utf-8") as f:
-            json.dump({label: {n: asdict(r) for n, r in rows.items()} for label, rows in results.items()},
-                      f, ensure_ascii=False, indent=2)
+            # khóa tầng ngoài là tên bộ lập đường, cộng "ecoqos" (02/10/2026): EcoQoS của tiến trình đo lúc ghi
+            json.dump({**{label: {n: asdict(r) for n, r in rows.items()} for label, rows in results.items()},
+                       "ecoqos": ecoqos_state()}, f, ensure_ascii=False, indent=2)
         print(f"\nĐã ghi {args.json}")
     return 0
 

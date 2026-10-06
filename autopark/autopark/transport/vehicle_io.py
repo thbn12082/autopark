@@ -37,6 +37,7 @@ from collections import OrderedDict, deque
 from dataclasses import asdict, dataclass, field
 import json
 import math
+import os
 from pathlib import Path
 import random
 import threading
@@ -736,9 +737,14 @@ class VehicleIO:
             self._event("COMMAND_REJECTED", f"Bo từ chối {kind} #{ack.acked_sequence}: {name} "
                                             f"(trạng thái {ack.state})", "LOG", t)
 
+    def _telemetry_from_message(self, msg: TelemetryMsg, t: float) -> VehicleTelemetry:
+        """Khung telemetry → `VehicleTelemetry` (chỗ DUY NHẤT một khung thành telemetry; mã lạ → ValueError). Lớp con
+        thay được số đo ở đây: bo ảo QEMU lấy tốc độ, góc lái từ xe mô phỏng phía laptop (`qemu_plant`, 02/10/2026)."""
+        return VehicleTelemetry.from_message(msg, t, self.source_id)
+
     def _on_telemetry(self, msg: TelemetryMsg, t: float) -> None:
         try:
-            tel = VehicleTelemetry.from_message(msg, t, self.source_id)
+            tel = self._telemetry_from_message(msg, t)
         except ValueError:
             self.stats.bad_values += 1
             return
@@ -1124,6 +1130,75 @@ def load_sim_io_config(path) -> tuple[SimIOConfig, VehicleConfig]:
     vehicle_path = (path.parent / data.get("vehicle_config", "vehicle_default.json")).resolve()
     vehicle = VehicleConfig.from_dict(json.loads(vehicle_path.read_text(encoding="utf-8")))
     return SimIOConfig.from_dict(data), vehicle
+
+
+# Chọn tệp bo mô phỏng theo tệp xe (thêm 02/10/2026; người dùng giao quyết định 02/10/2026 ('làm hết'): xe nghiệm thu
+# configs/vehicle_nghiem_thu.json đi cùng bo configs/vehicle_io_sim_nghiem_thu.json, mặc định không đổi).
+SIM_IO_CONFIG_GLOB = "vehicle_io_sim*.json"
+DEFAULT_SIM_IO_NAME = "vehicle_io_sim.json"
+
+
+@dataclass(frozen=True)
+class SimIOChoice:
+    """Tệp bo mô phỏng đã chọn cho một tệp xe (`choose_sim_io_config`). `path` None: không nạp được tệp nào, dùng
+    `SimIOConfig()` của mã. `matched`: `vehicle_config` của tệp trỏ đúng tệp xe. `note`: tệp khớp khác, tệp hỏng, hay
+    vì sao không có tệp khớp; rỗng khi không có gì để báo."""
+
+    path: Path | None
+    config: SimIOConfig
+    matched: bool
+    note: str
+
+
+def _file_key(path) -> str:
+    """Khóa so hai đường dẫn tệp: tuyệt đối, đã chuẩn hóa hoa/thường và dấu gạch theo hệ điều hành."""
+    return os.path.normcase(str(Path(path).resolve()))
+
+
+def choose_sim_io_config(vehicle_path, configs_dir) -> SimIOChoice:
+    """Cấu hình bo mô phỏng cho tệp xe `vehicle_path`. Không bao giờ ném lỗi.
+
+    Duyệt `configs_dir`/vehicle_io_sim*.json theo tên: tệp đầu tiên có `vehicle_config` (tương đối so với tệp đó, mặc
+    định vehicle_default.json) trỏ đúng tệp xe và nạp được qua `load_sim_io_config` thì dùng (matched=True). Không có
+    tệp như thế (hay `vehicle_path` None) thì dùng vehicle_io_sim.json (matched=False); tệp đó cũng không nạp được thì
+    `SimIOConfig()` (path None). Việc chọn không nới kiểm tra nào: bo lệch xe theo hướng nguy hiểm vẫn bị
+    LIMITS_MISMATCH từ chối lúc START ở VEHICLE_IO."""
+    folder = Path(configs_dir)
+    vehicle_name = Path(vehicle_path).name if vehicle_path is not None else "(phiên không có tệp xe)"
+    try:
+        target = _file_key(vehicle_path) if vehicle_path is not None else None
+    except Exception:  # noqa: BLE001 - đường dẫn không chuẩn hóa được: coi như không có tệp xe
+        target = None
+    matches: list[tuple[Path, SimIOConfig]] = []
+    problems: list[str] = []
+    try:
+        candidates = sorted(folder.glob(SIM_IO_CONFIG_GLOB), key=lambda p: p.name)
+    except Exception as exc:  # noqa: BLE001
+        candidates, problems = [], [f"không liệt kê được {folder} ({exc})"]
+    for cand in candidates:
+        try:
+            data = json.loads(cand.read_text(encoding="utf-8-sig"))
+            ref = _file_key(cand.parent / data.get("vehicle_config", "vehicle_default.json"))
+        except Exception as exc:  # noqa: BLE001 - tệp hỏng chỉ thành ghi chú
+            problems.append(f"{cand.name} hỏng ({exc})")
+            continue
+        if target is None or ref != target:
+            continue
+        try:
+            matches.append((cand, load_sim_io_config(cand)[0]))
+        except Exception as exc:  # noqa: BLE001
+            problems.append(f"{cand.name} trỏ {vehicle_name} nhưng không nạp được ({exc})")
+    if matches:
+        (path, config), others = matches[0], matches[1:]
+        notes = [f"cũng khớp {', '.join(p.name for p, _ in others)}: dùng tệp đầu theo tên"] if others else []
+        return SimIOChoice(path, config, True, "; ".join(notes + problems))
+    notes = [f"không có tệp {SIM_IO_CONFIG_GLOB} nào có vehicle_config trỏ {vehicle_name}"] + problems
+    default = folder / DEFAULT_SIM_IO_NAME
+    try:
+        return SimIOChoice(default, load_sim_io_config(default)[0], False, "; ".join(notes))
+    except Exception as exc:  # noqa: BLE001
+        notes.append(f"{DEFAULT_SIM_IO_NAME} không nạp được ({exc}): dùng cấu hình bo mô phỏng mặc định trong mã")
+        return SimIOChoice(None, SimIOConfig(), False, "; ".join(notes))
 
 
 class SimVehicleIO(VehicleIO):

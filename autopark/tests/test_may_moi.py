@@ -534,3 +534,43 @@ def test_find_reference_takes_last_file_by_name_and_summary_names_it(tmp_path):
     # `_file` đã có trong tệp thì giữ nguyên (setdefault)
     (folder / "tham_chieu_20260925.json").write_text(json.dumps(dict(new, _file="goc.json")), encoding="utf-8")
     assert may_moi.find_reference(tmp_path)["_file"] == "goc.json"
+
+
+# ---- EcoQoS của tiến trình đo (thêm 02/10/2026; người dùng giao quyết định 02/10/2026) ----
+
+ECOQOS_ROW = "EcoQoS của tiến trình đo (off = đã tắt)"
+
+
+def test_ecoqos_of_the_measuring_process_is_recorded_and_shown_without_new_warning(tmp_path, monkeypatch):
+    import sys
+
+    for name in ("torch", "pynvml"):
+        monkeypatch.setitem(sys.modules, name, None)            # không nạp torch/NVML: chỉ cần khóa ecoqos
+    monkeypatch.setattr(may_moi, "ecoqos_state", lambda pid=None: "off")
+    assert may_moi.env_report()["ecoqos"] == "off"
+    m01 = rig_json(640, 23.85, 0)
+    m01["resources"]["ecoqos"] = "off"                         # .rig.json từ 02/10/2026 (ResourceMonitor.summary)
+    assert may_moi.rig_digest(m01)["ecoqos"] == "off" and may_moi.rig_digest(rig_json(640, 23.85, 0))["ecoqos"] is None
+    digest = make_digest(tmp_path, m01, rig_json(1280, 23.85, 0, ai=False))
+    digest["env"]["ecoqos"] = "off"
+    # tham chiếu máy bàn ghi trước 02/10/2026 không có trạng thái này: '—', và không thêm CẢNH BÁO nào (cũ: 2 / 0 / 0)
+    for reference, warnings in ((old_shape_reference(), 2), (new_shape_reference(), 0), (None, 0)):
+        text = may_moi.summary_markdown(digest, reference)
+        rows = table(text)
+        assert rows[ECOQOS_ROW] == [("off", "—")] and next(iter(rows)) == ECOQOS_ROW      # dòng đầu của bảng
+        assert sum("CẢNH BÁO" in line for line in text.splitlines()) == warnings
+        assert "tệp tham chiếu máy bàn ghi trước ngày đó không có trạng thái này ('—')" in text
+    old = make_digest(tmp_path / "cu", rig_json(640, 23.85, 0))                # env.json của mã trước 02/10/2026
+    assert table(may_moi.summary_markdown(old, None))[ECOQOS_ROW] == [("—", "—")]
+
+
+def test_main_prints_the_ecoqos_line_after_the_steps(tmp_path, monkeypatch, capsys):
+    from autopark.power_throttling import EcoQoSPolicy
+
+    policy = EcoQoSPolicy("rig.may_moi", "keep", None, "system", True)
+    monkeypatch.setattr(may_moi, "apply_ecoqos_policy", lambda component: policy)
+    assert may_moi.main(["--dry-run", "--out", str(tmp_path / "kq")]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    step = next(i for i, line in enumerate(lines) if line.startswith("Các bước:"))
+    assert lines[step + 1] == policy.cli_line() and "AUTOPARK_KEEP_ECOQOS=1" in lines[step + 1]
+    assert not (tmp_path / "kq").exists()

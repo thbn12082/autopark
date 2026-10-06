@@ -99,6 +99,50 @@ class FakeLidar:
         self.closed = True
 
 
+class DockFakeLidar(FakeLidar):
+    """FakeLidar cho ngăn LiDAR của cửa sổ đỗ xe (ui/lidar_dock.py), như RplidarC1Source mở với đồng hồ bàn thử: có
+    `source_id`, `now()` (giờ phiên so với `t0`), `describe()`, `flush()`, `mirror`. Hình quét: không thấy gì (mọi tia
+    NaN) hay MỘT vật ở `obstacle` = (khoảng cách m, góc độ, nửa bề rộng độ); đổi `obstacle` lúc đang chạy được. `read()`
+    trả lỗi đọc khi đã đóng (luồng đọc của ngăn thoát được)."""
+
+    source_id = "dock_fake_lidar"
+
+    def __init__(self, period: float = 0.1, beams: int = 360, obstacle=None, clock=RIG_CLOCK, t0=None):
+        super().__init__(period=period, beams=beams, clock=clock)
+        if t0 is not None:
+            self.t0 = t0
+        self.obstacle = obstacle
+        self.mirror = False
+
+    def now(self) -> float:
+        return max(0.0, self.clock() - self.t0)
+
+    def read(self) -> LidarScan:
+        if self.closed:
+            time.sleep(0.05)
+            raise RuntimeError("giả lập: nguồn đã đóng")
+        t_start = self.clock() - self.t0
+        time.sleep(self.period)
+        self.n += 1
+        t_last = self.clock() - self.t0
+        self.last_revolution = FakeRevolution(t_start, t_last)
+        angles = [-math.pi + 2 * math.pi * k / self.beams for k in range(self.beams)]
+        ranges = [float("nan")] * self.beams
+        if self.obstacle is not None:
+            distance, angle_deg, half_deg = (tuple(self.obstacle) + (8.0,))[:3]
+            for k, a in enumerate(angles):
+                if abs(math.remainder(a - math.radians(angle_deg), 2 * math.pi)) <= math.radians(half_deg):
+                    ranges[k] = float(distance)
+        self.last_quality = np.array([0 if math.isnan(r) else 47 for r in ranges], np.uint8)
+        return LidarScan(SourceStamp(self.source_id, t_last, True, "lidar"), tuple(angles), tuple(ranges))
+
+    def describe(self) -> dict:
+        return {"driver": "tests.rig_fakes.DockFakeLidar", "source_id": self.source_id, "mirror": self.mirror}
+
+    def flush(self) -> None:
+        pass
+
+
 class FakeTiming:
     def __init__(self, batch):
         self.batch, self.pre_ms, self.model_ms, self.post_ms, self.total_ms = batch, 1.0, 2.0, 0.5, 3.5

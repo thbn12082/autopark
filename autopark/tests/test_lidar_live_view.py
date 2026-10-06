@@ -85,3 +85,73 @@ def test_paced_replay_uses_recording_time_and_ends(tmp_path):
         replay.read()
     with pytest.raises(ValueError):
         PacedReplay(recorder.path, speed=0.0)
+
+
+class ScriptedSource:
+    """Nguồn đọc được (cho ScanReader): mỗi vòng có dấu `now() − age_s` theo đồng hồ của nguồn, rồi hết bản ghi."""
+
+    source_id = "c1"
+
+    def __init__(self, count: int, age_s: float, speed: float = 1.0):
+        self.count, self.age_s, self.speed = count, age_s, speed
+        self.t = 10.0
+        self.last_quality = None
+        self.last_revolution = None
+
+    def now(self) -> float:
+        return self.t
+
+    def read(self):
+        if self.count == 0:
+            raise ScanStreamEnded("hết bản ghi")
+        self.count -= 1
+        self.t += 0.1
+        return scan(self.t - self.age_s)
+
+
+def test_reader_feeds_consumers_with_perf_time_and_survives_consumer_errors():
+    """T2 (02/10/2026): mỗi vòng tới mọi người tiêu thụ với t_perf = perf_counter lúc đọc − tuổi theo đồng hồ nguồn (chia
+    cho `speed` khi phát lại nhanh); người tiêu thụ ném lỗi thành ScanConsumerError trên hàng đợi, luồng đọc vẫn chạy."""
+    import queue as queue_module
+    import time
+
+    from autopark.lidar.live_view import ScanConsumerError, ScanReader
+
+    class Recorder:
+        def __init__(self):
+            self.calls = []
+
+        def on_scan(self, scan_, quality, t_first_perf, t_perf):
+            self.calls.append((scan_.stamp.t, quality, t_first_perf, t_perf, time.perf_counter()))
+
+    class Broken:
+        def on_scan(self, *args):
+            raise RuntimeError("hỏng")
+
+    for speed in (1.0, 2.0):
+        good = Recorder()
+        out = queue_module.Queue()
+        reader = ScanReader(ScriptedSource(3, age_s=0.05, speed=speed), out, [Broken(), good])
+        reader.start()
+        reader.join(timeout=5.0)
+        assert not reader.is_alive()
+        items = [out.get_nowait() for _ in range(out.qsize())]
+        scans = [item for item in items if isinstance(item, tuple)]
+        errors = [item for item in items if isinstance(item, ScanConsumerError)]
+        assert len(scans) == 3 and len(errors) == 3 and isinstance(items[-1], ScanStreamEnded)
+        assert all(len(item) == 4 for item in scans) and "Broken.on_scan" in str(errors[0])
+        assert len(good.calls) == 3
+        for (_stamp, quality, t_first_perf, t_perf, called_at), item in zip(good.calls, scans):
+            assert quality is None and t_first_perf is None and item[3] == t_perf
+            assert 0.05 / speed - 0.01 <= called_at - t_perf <= 0.05 / speed + 0.5
+
+
+def test_live_window_accepts_four_tuples(qapp):
+    source = FakeSource()
+    window = LiveWindow(source, start_thread=False)
+    window.timer.stop()
+    source.t = 0.1
+    window.queue.put((scan(0.1), None, None, 123.0))
+    window.tick()
+    assert window.view.scan is not None and window.monitor.status(0.1)["c1"]["count"] == 1
+    window.close()

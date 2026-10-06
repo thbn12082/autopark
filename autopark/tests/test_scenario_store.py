@@ -4,7 +4,7 @@ import math
 import pytest
 from pytest import approx
 
-from autopark.domain.types import Scenario, VehicleConfig
+from autopark.domain.types import AcceptanceTag, Scenario, VehicleConfig
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config, save_scenario, save_vehicle_config
 from tests.conftest import PROJECT_ROOT
 
@@ -28,6 +28,44 @@ def test_round_trip(tmp_path, scenario, cfg):
     assert loaded.vehicle_config == "../configs/xe.json"
     assert loaded.vehicle_config_path == cfg_path.resolve()
     assert load_vehicle_config(loaded.vehicle_config_path) == cfg
+
+
+SCENARIO_KEYS = ["schema_version", "name", "notes", "vehicle_config", "bounds", "start", "goal", "obstacles", "seed"]
+
+
+def test_acceptance_tag_round_trip_and_untagged_dict_unchanged(tmp_path, scenario, cfg):
+    """Trường acceptance (02/10/2026, T12 theo kịch bản): chỉ ghi khi có, ở khóa cuối; kịch bản không gắn giữ đúng các
+    khóa và thứ tự cũ (tệp kịch bản, scenario.json và run.json của gói lần chạy không đổi)."""
+    assert scenario.acceptance is None and list(scenario.to_dict()) == SCENARIO_KEYS
+    with_slot = load_scenario(PROJECT_ROOT / "scenarios" / "bai_do_xe.json")
+    assert with_slot.acceptance is None and list(with_slot.to_dict()) == [*SCENARIO_KEYS, "slot", "mode"]
+    scenario.acceptance = AcceptanceTag("DO-2", "p3")
+    assert list(scenario.to_dict()) == [*SCENARIO_KEYS, "acceptance"]
+    assert scenario.to_dict()["acceptance"] == {"code": "DO-2", "variant": "p3"}
+    assert scenario.acceptance.label == "DO-2p3"
+    scenario.vehicle_config_path = save_vehicle_config(cfg, tmp_path / "configs" / "xe.json")
+    loaded = load_scenario(save_scenario(scenario, tmp_path / "scenarios" / "kb.json"))
+    assert loaded.acceptance == AcceptanceTag("DO-2", "p3") and loaded.to_dict() == scenario.to_dict()
+    with_slot.acceptance = AcceptanceTag("DO-1")
+    assert list(with_slot.to_dict())[-3:] == ["slot", "mode", "acceptance"]
+    assert with_slot.to_dict()["acceptance"] == {"code": "DO-1"}                # biến thể rỗng thì không ghi
+    data = scenario.to_dict()
+    data["acceptance"] = None                                                   # null = không gắn
+    assert Scenario.from_dict(data).acceptance is None
+
+
+@pytest.mark.parametrize("value", ["DO-1", {"code": "do-1"}, {"code": "DO-3", "variant": "B"},
+                                   {"code": "DO-3", "variant": "a b"}, {"code": "DO-1", "lan": 1}, {"variant": "a"},
+                                   {"code": 1}, {}],
+                         ids=["chuoi", "ma_thuong", "bien_the_hoa", "bien_the_cach", "khoa_la", "thieu_ma", "ma_so",
+                              "rong"])
+def test_bad_acceptance_tag_is_refused(tmp_path, scenario, value):
+    data = scenario.to_dict()
+    data["acceptance"] = value
+    path = tmp_path / "kb.json"
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="acceptance"):
+        load_scenario(path)
 
 
 def test_rejects_unknown_schema(tmp_path):

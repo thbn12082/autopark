@@ -61,6 +61,7 @@ from autopark.application.session import Session
 from autopark.domain.sensors import SourceStamp
 from autopark.domain.types import Bounds, ParkingGoal, Pose, Scenario, VehicleConfig
 from autopark.perception.costmap import GridSpec
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
 
 from .bridge import ObstacleBridge
 from .fuse import fuse
@@ -269,6 +270,7 @@ def _close_quietly(source) -> str | None:
 
 
 def main(argv=None) -> int:
+    apply_ecoqos_policy("fusion.demo")                 # trước mọi việc khác; không in gì thêm (stdout: một dòng JSON)
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     where = parser.add_mutually_exclusive_group()
     where.add_argument("--port", help="COM port of the RPLIDAR C1 (or auto); default: lidar_port in configs/thiet_bi.json")
@@ -321,6 +323,7 @@ def main(argv=None) -> int:
         if problem:
             print(problem, file=sys.stderr)
     report["close_error"] = problem
+    report["ecoqos"] = ecoqos_state()                  # EcoQoS của tiến trình chạy demo (02/10/2026)
     print(json.dumps(report, ensure_ascii=False))
     return 0 if report["status"] is not None and not report["error"] and not report["transport_error"] else 1
 

@@ -19,6 +19,7 @@ import numpy as np
 
 from autopark.domain.sensors import LidarScan, SourceStamp
 from autopark.perception.paths import PROJECT, atomic_write_json, utc_now
+from autopark.power_throttling import ecoqos_state
 
 RECORDING_VERSION = 1
 
@@ -32,8 +33,10 @@ def git_commit() -> str | None:
 
 
 def default_meta(source_id: str, **extra) -> dict:
+    """`ecoqos` (02/10/2026): EcoQoS của tiến trình ghi lúc bắt đầu (off / system / on / unknown)."""
     return {"recording_version": RECORDING_VERSION, "source_id": source_id, "started_utc": utc_now(),
-            "host": platform.node(), "python": platform.python_version(), "git_commit": git_commit(), **extra}
+            "host": platform.node(), "python": platform.python_version(), "git_commit": git_commit(),
+            "ecoqos": ecoqos_state(), **extra}
 
 
 class ScanRecorder:
@@ -140,11 +143,29 @@ def read_recording(path) -> Recording:
     return Recording(path, **arrays, meta=meta)
 
 
+def read_lidar_any(path) -> Recording:
+    """Một `.npz` của `ScanRecorder` (như `read_recording`), hoặc một THƯ MỤC bản ghi phiên (`rig.recording`: bàn thử hay
+    bản ghi cảm biến trong phiên đỗ T3) — mọi `lidar/part_*.npz` nối lại theo thứ tự (`rig.replay.load_lidar`). Thư mục
+    không phải bản ghi phiên → `ReplayError` (ValueError); không có vòng nào → ValueError (thêm 02/10/2026)."""
+    path = Path(path)
+    if not path.is_dir():
+        return read_recording(path)
+    from autopark.rig.replay import load_lidar, read_meta   # nhập muộn: rig.replay nhập module này
+
+    read_meta(path)
+    recording, _ = load_lidar(path)
+    if recording is None:
+        raise ValueError(f"bản ghi không có vòng LiDAR nào: {path}")
+    return recording
+
+
 class RecordingReplaySource:
-    """Same interface as the DROW replay: `read()` returns scans in order, `None` when the recording is over."""
+    """Same interface as the DROW replay: `read()` returns scans in order, `None` when the recording is over.
+
+    `path`: a `.npz`, a session recording folder (every LiDAR part, `read_lidar_any`) or an already loaded `Recording`."""
 
     def __init__(self, path, *, source_id: str | None = None, t0: float = 0.0):
-        self.recording = read_recording(path)
+        self.recording = path if isinstance(path, Recording) else read_lidar_any(path)
         self.source_id = source_id or self.recording.meta.get("source_id", "lidar_replay")
         self.t0 = t0
         self.index = 0

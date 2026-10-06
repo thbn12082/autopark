@@ -25,6 +25,8 @@ import subprocess
 import sys
 import zipfile
 
+from autopark.power_throttling import ecoqos_state
+
 
 def write_json(path: Path, value) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
@@ -32,6 +34,7 @@ def write_json(path: Path, value) -> None:
 
 def environment() -> dict:
     info = {"os": platform.platform(), "python": sys.version, "cpu": platform.processor(),
+            "ecoqos": ecoqos_state(),          # EcoQoS của tiến trình lúc ghi (02/10/2026; power_throttling.py)
             "packages": {d.metadata["Name"]: d.version for d in distributions()}}
     if sys.platform == "win32":
         command = ("$c = Get-CimInstance Win32_Processor; $m = Get-CimInstance Win32_ComputerSystem; "

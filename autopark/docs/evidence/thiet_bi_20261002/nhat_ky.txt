@@ -1,0 +1,22 @@
+02/10/2026 14:08:17 bắt đầu; tải CPU 6 %; ổ D trống 62.1 GB
+02/10/2026 14:08:17 1) camera_bench list
+02/10/2026 14:08:20 exit=0
+02/10/2026 14:08:21 2) camera_bench measure 4 camera 640x480 60 s; tải CPU 10 %
+02/10/2026 14:09:24 exit=0
+02/10/2026 14:09:25 3) fusion.demo 30 s, LiDAR cổng của configs/thiet_bi.json, warmup 4,5 s; tải CPU 5 %
+02/10/2026 14:09:44 exit=0
+02/10/2026 14:09:46 4) rig.bench ghi thử 60 s (đo MB/s); tải CPU 5 %; ổ D trống 62.1 GB
+02/10/2026 14:11:14 exit=0
+02/10/2026 14:11:14 MB/s ghi thử = 5.31; LD-1 30 phút cần ≈ 11.7 GB (đã cộng 25 %); ổ D trống 61.8 GB
+02/10/2026 14:11:16 5) LD-1 chạy thử 30 phút --record runs/rig_recordings/20261002_ld1; tải CPU 12 %
+02/10/2026 14:29:14 exit=127
+02/10/2026 14:29:16 xong; tải CPU 24 %; ổ D trống 55.8 GB
+02/10/2026 16:29:16 LD-1 lần 2: 30 phút, ghi phiên; tải CPU 76 %
+02/10/2026 17:00:01 LD-1 lần 2 exit=1 (mã đầy đủ của Windows nếu khác 0 xem bằng PowerShell)
+02/10/2026 17:23:48 LD-1 lần 2 kết thúc đủ 1800 s (exit=1 vì LiDAR 0 vòng): LiDAR lỗi 8151 lần 'ProtocolError: bad response descriptor 0112f57ffc8bc6' — C1 bị LD-1 lần 1 (chết, không gửi STOP) bỏ lại đang quét và reset_input_buffer() của cổng CP210x COM3 không xóa gì (đo 81→81 byte, 23303→23303 byte), nên mỗi lần thử chỉ đọc 7 byte cũ; camera 23,8–25,8 fps, 0 khung hỏng; AI 18,0 bộ/s TB (GPU dùng chung với Omniverse lúc đầu, nhiệt tới 80 °C); ghi 175 800 khung, 8344 MB, 4,64 MB/s, bỏ 0; RAM tiến trình ổn định ≈ 1,57 GB. Tiến trình KHÔNG chết ở t ≈ 1050 s như lần 1.
+02/10/2026 17:23:48 Sửa driver C1 trong cây gộp (đọc bỏ byte cũ, RESET một lần khi câu hỏi hỏng, bỏ vòng đầu sau flush); thử trên C1 thật: giết tiến trình đang quét rồi mở lại: đạt 2/2 (bỏ 58–60 byte), flush bỏ 12,7/25,5 KB trong 0,1–0,2 ms.
+02/10/2026 17:23:53 LD-1 lần 3: mã D:\xetulai\_wt\gop\autopark\autopark; tải CPU 30 %; ổ D trống 46.9 GB
+02/10/2026 17:54:14 LD-1 lần 3 exit=0; tải CPU 12 %; ổ D trống 38.5 GB
+02/10/2026 17:54:28 LD-1 lần 3 (cây gộp đợt 2 + driver C1 đã sửa) ĐẠT 1800 s: 4 camera 23,85 fps, 0 khung hỏng, hở max 87–118 ms; bộ ảnh 42751, lệch trung vị 25,1 / p95 31,7 / max 54,1 ms; LiDAR 18015 vòng 10,008 Hz, 0 lỗi, hở max 176,5 ms; AI 23,75 bộ/s, lô trung vị 25,3 / p95 39,7 / max 202 ms; CPU tiến trình 1,21 lõi, RAM 1,57 GB, GPU 62,6 % (VRAM 7,26 GB, có tiến trình khác dùng GPU), nhiệt max 79 °C; ghi 171702 khung, 7995 MB, 4,44 MB/s, bỏ 0; EcoQoS off.
+02/10/2026 20:59:48 T2 kiểm tĩnh trên C1 thật (cây chính có mã đợt 2, chưa commit): bắt đầu
+02/10/2026 21:02:05 T2 kiểm tĩnh C1 thật: bản đồ một chỗ đặt (anchor 0 0 0, 20 s) + bản ghi kiểm 30 s cùng chỗ: 271 vòng, INIT 2, OK 269, 0 dừng; tư thế OK: x max−min 2,99 mm, y 2,64 mm, yaw 0,06°, std ≈ 0,5 mm / 0,01°; (a) 26 ms trung vị (máy đang chạy bộ test). Độ lặp lại tĩnh, không phải độ chính xác.

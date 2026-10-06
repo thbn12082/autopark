@@ -5,6 +5,10 @@
 mục 7. Số ở mục 5 là số đo trên ảnh đã lưu từ ngày 23/09, hoặc là ước lượng suy ra; mỗi số ghi rõ thuộc loại nào. Chưa
 có bản ghi nào có camera lỡ nhịp thật. Chưa chạy gì trên laptop.
 
+*(Cập nhật 02/10/2026, T3: ghi cùng định dạng nay có ngay TRONG phiên đỗ xe của `ui.lidar_app` (ngăn "Ghi cảm biến",
+mục 9), và mọi phần LiDAR của một thư mục bản ghi phát lại được trong các công cụ LiDAR (mục 2). Chỉ kiểm offscreen với
+nguồn giả; CHƯA THỬ với thiết bị thật.)*
+
 **Để làm gì.** Bàn thử (`rig.bench`, `ui/rig_app.py`) cần bốn camera, LiDAR và cổng COM. Ghi một phiên một lần, sau đó:
 
 - chạy lại cả bàn thử từ bản ghi (ghép bộ ảnh, chờ camera chậm, AI, LiDAR so với bộ ảnh, giao diện) mà không cắm gì;
@@ -46,7 +50,8 @@ PowerShell, cmd không hiểu). Dòng `#` là chú thích, đừng dán vào cmd
   khung bị cắt và khung xé. Mỗi lần đọc hỏng được ghi thành **sự kiện** có stamp và nguyên văn thông báo, không kèm ảnh.
   Ghi thêm mọi vòng LiDAR, lỗi đọc LiDAR và `meta.json`.
 - **Không ghi:** kết quả AI (phát lại sẽ chạy lại AI), bộ ảnh đã ghép, số đo tài nguyên. Những thứ đó nằm trong `.rig.json`
-  của phiên.
+  của phiên. *(02/10/2026, T3: bản ghi trong phiên đỗ có thêm bảng quyết định AI theo lô `session/ai_batches.csv`, vẫn
+  không có xác suất; mục 9.)*
 - Tắt ghi thì bộ ghi ngừng nhận ngay. Phần còn trong hàng đợi được ghi nốt ở nền, nên giao diện không bị đứng. Trên bảng số
   đo, mục "GHI PHIÊN" hiện trạng thái (`đang ghi`, `đang ghi nốt`, `xong` hoặc `LỖI`), số khung đã ghi, số khung bị bỏ,
   MB đã ghi, MB/s và số khung đang chờ ghi.
@@ -106,21 +111,34 @@ Mỗi `lidar/part_XXXX.npz` cũng là một bản ghi LiDAR đầy đủ theo đ
 [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) (`read_recording`, bản đồ lưới tĩnh…), nhưng stamp của nó là đồng hồ bàn thử
 (mục 4).
 
+*(Thêm 02/10/2026, T3.)* Mọi phần LiDAR của một thư mục bản ghi đọc được như MỘT bản ghi
+(`lidar.recording.read_lidar_any`, dùng `rig.replay.load_lidar`): `ui.lidar_app --recording <thư mục>`,
+`lidar.live_view --recording <thư mục>`, `lidar.localize --recording <thư mục>` (và
+`lidar.pose_estimator --recording <thư mục>`, [NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md) mục 3). Bản ghi không có
+camera (chỉ LiDAR) phát lại được bằng `rig.bench --replay <thư mục> --no-ai`; có AI thì bench từ chối ngay (mã 2, "bản
+ghi không có camera …: thêm --no-ai …"). Chỉ kiểm bằng test.
+
 ## 3. Định dạng thư mục (`format_version` 1)
 
 | Tệp | Nội dung |
 |---|---|
-| `meta.json` | `format`, `format_version`, `status` (`đang ghi` → `xong` / `lỗi`; bản ghi bị ngắt giữa chừng giữ `đang ghi`), `created_utc`/`created_local`, `t_start_s`/`t_stop_s`, `clock` (tên, độ phân giải), `git_commit`, `host`, `opencv`, `image` (định dạng, chất lượng), `config` và `policy` của Rig, `camera_mode`, `cameras` (cổng, index, instance_id, `source_rejects_damaged`, lỗi mở), `cameras_at_stop` (bộ đếm từng camera lúc dừng, gồm lỗi mở), `lidar_source` (cổng, `describe()` của driver), `lidar_at_stop`, `per_port` (khung thấy / đã ghi / bị bỏ, số sự kiện theo loại, stamp đầu/cuối), `lidar` (các phần, số vòng), `replay_of` (khi ghi trong lúc phát lại), `notes`, `error`, `errors` |
+| `meta.json` | `format`, `format_version`, `status` (`đang ghi` → `xong` / `lỗi`; bản ghi bị ngắt giữa chừng giữ `đang ghi`), `created_utc`/`created_local`, `t_start_s`/`t_stop_s`, `clock` (tên, độ phân giải), `git_commit`, `host`, `ecoqos` (trạng thái EcoQoS của tiến trình ghi lúc ghi meta, thêm 02/10/2026), `opencv`, `image` (định dạng, chất lượng), `config` và `policy` của Rig, `camera_mode`, `cameras` (cổng, index, instance_id, `source_rejects_damaged`, lỗi mở), `cameras_at_stop` (bộ đếm từng camera lúc dừng, gồm lỗi mở), `lidar_source` (cổng, `describe()` của driver), `lidar_at_stop`, `per_port` (khung thấy / đã ghi / bị bỏ, số sự kiện theo loại, stamp đầu/cuối), `lidar` (các phần, số vòng), `replay_of` (khi ghi trong lúc phát lại), `notes`, `error`, `errors` *(02/10/2026, T3: mọi bản ghi thêm `tables` (bảng phụ: cột, số dòng), `files` (tệp CSV trọn vẹn đã ghi), `warnings`, `lidar.out_of_order_dropped`; bản ghi trong phiên đỗ thêm khóa `session_recording`, mục 9)* |
 | `cam_p<cổng>/frames.csv` | `seq, t_s, width, height, file, bytes`: một dòng cho mỗi khung tốt **đã ghi xuống đĩa**. `seq` đếm mọi khung tốt đã thấy, từ 1; chỗ `seq` nhảy cóc là khung bị bỏ |
 | `cam_p<cổng>/events.csv` | `t_s, kind, after_seq, message`: `kind` ∈ `duplicate`, `truncated`, `torn`, `read_failed`, `exception` (như nguồn báo, phân loại giống `CameraWorker`) hoặc `record_dropped` (bộ ghi bỏ khung). `after_seq` = khung tốt cuối cùng trước sự kiện, dùng để giữ đúng thứ tự khi phát lại |
 | `cam_p<cổng>/0000001.jpg` | ảnh BGR mã hóa bằng `cv2.imencode` (JPEG q95, hoặc PNG nén mức 1); ghi bằng `write_bytes` vì `cv2.imwrite` không ghi được vào đường dẫn tiếng Việt |
 | `lidar/part_0000.npz` + `.json` | tối đa 600 vòng (≈ 60 s) mỗi phần, định dạng `ScanRecorder`: `t` (cuối vòng), `t_first` (đầu vòng), `n_beams`, `angles`, `ranges` (NaN = không phản hồi), `quality` |
 | `lidar/events.csv` | `t_s, message`: lỗi đọc LiDAR |
+| `session/clock.csv` | *(chỉ bản ghi trong phiên đỗ, T3, 02/10/2026)* mốc ghép `perf_counter` với thời gian phiên và đồng hồ `VehicleIO`, mục 9 |
+| `session/ai_batches.csv` | *(T3, khi ghi camera và bật "Kết quả AI theo lô")* một dòng cho mỗi lô AI ngăn AI camera đã xét, mục 9 |
+| `session/sync_marks.csv` | *(T3)* bản sao dấu đồng bộ của cửa sổ lúc dừng ghi, cột `SYNC_FIELDS` |
 
 Mọi `t_s` là đồng hồ bàn thử `time.perf_counter` tính bằng giây: camera là lúc `read()` trả khung (đã gồm giải mã),
 LiDAR là lúc byte cuối của vòng tới máy. Stamp LiDAR được đổi từ giờ phiên của driver sang đồng hồ bàn thử bằng `t0`, cùng
 phép đổi mà `LidarWorker` dùng. `created_utc` ứng với `t_start_s`, nên từ đó suy được giờ thật của từng stamp (sai số bằng
 độ lệch giữa hai lần đọc đồng hồ, cỡ micro giây).
+*(Cập nhật 02/10/2026, T3: vòng LiDAR có stamp sớm hơn vòng đã ghi trước nó bị bỏ và đếm (`lidar.out_of_order_dropped`,
+`warnings`; trạng thái vẫn `xong`); trước đó cả bản ghi thành `lỗi`. Lý do: nguồn LiDAR của ngăn LiDAR có thể được nối
+lại giữa lúc ghi.)*
 
 ## 4. Phát lại xử lý thời gian thế nào
 
@@ -236,8 +254,10 @@ phép đổi mà `LidarWorker` dùng. `created_utc` ứng với `t_start_s`, nê
 ## 6. Kiểm thử (24/09/2026)
 
 `tests/test_rig_replay.py`, 27 hàm (14 hàm ban đầu, 12 hàm thêm sau lượt xem xét 24/09, 1 hàm làm nóng AI thêm tối
-24/09 sau phiên thật, mục 7; *02/10/2026: nay 28, thêm test khoảng hở cuối khi phát lại của T10, mục 5 ý 12*), dùng
-nguồn giả trong
+24/09 sau phiên thật, mục 7; *02/10/2026: nay 28, thêm test khoảng hở cuối khi phát lại của T10, mục 5 ý 12*;
+*(02/10/2026, T3: nay 29, thêm `test_rig_never_stops_or_waits_for_an_external_recorder`: bộ ghi ngoài gắn vào Rig chỉ
+được gỡ, không bị dừng hay chờ; `stop_recording`/`stop()` gọi `on_detach` một lần; bộ ghi của Rig như cũ. Test của bản
+ghi trong phiên đỗ ở mục 9.)*), dùng nguồn giả trong
 `tests/rig_fakes.py` (camera có vân, giữ mọi khung đã trả; khung cũ mỗi 11 lần đọc, khung cắt mỗi 7 lần; LiDAR giả có chất
 lượng từng tia). Các test kiểm:
 
@@ -358,3 +378,136 @@ Bốn camera 640×480 ở cổng hub 1–4 và LiDAR COM4, AI bật, 60 s đo sa
 - Ghi một phiên nhìn sa bàn thật để biết MB/s ở cảnh có chi tiết.
 - Làm lại trên laptop RTX 3050 Ti (máy nộp đồ án): luồng ghi có theo kịp không, đĩa của laptop có đủ chỗ không, làm nóng AI
   mất bao lâu.
+- Ghi bằng ngăn "Ghi cảm biến" (T3) khoảng 60 s nhìn sa bàn với bốn camera và C1 thật, khi có người ở bàn: đo MB/s, số
+  khung bị bỏ, `ecoqos_start`/`ecoqos_stop` và ảnh hưởng lên vòng điều khiển 50 Hz (cửa sổ thường và thu nhỏ). Tới khi
+  đó T3 CHƯA THỬ với thiết bị thật.
+
+## 9. Ghi trong phiên đỗ xe (T3, thêm 02/10/2026)
+
+*(Chỉ kiểm offscreen với camera giả, LiDAR giả và bản ghi phát lại: `tests/test_session_recording.py` (18 hàm),
+`tests/test_record_dock_ui.py` (9), `tests/test_session_replay_ui.py` (3), cùng các test sửa sau review trong
+`tests/test_bench_window_feed_and_close.py`; CHƯA THỬ với camera, LiDAR và màn hình thật. Mặc định dưới đây theo mặc
+định an toàn của thiết kế, người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất; ngưỡng đĩa là ĐỀ XUẤT –
+CHỜ CHỐT.)*
+
+Ngăn **"Ghi cảm biến"** của `ui.lidar_app` (thẻ cạnh ngăn LiDAR) ghi mọi khung tốt của các camera ở ngăn AI camera và
+mọi vòng quét của ngăn LiDAR vào **một** thư mục, cùng đồng hồ `perf_counter` với log `VehicleIO` (T13) và dấu đồng bộ
+(T14). Không gửi gì tới bo, không yêu cầu dừng xe, không chặn Bắt đầu đỗ, không mở thiết bị nào: chỉ gắn vào nguồn mà
+hai ngăn đã mở. Mã: [`autopark/rig/session_recording.py`](../autopark/rig/session_recording.py) (không Qt),
+[`autopark/ui/record_dock.py`](../autopark/ui/record_dock.py).
+
+```powershell
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --cam-ports 1 2 3 4 --record-root runs/session_recordings --record-format jpg --jpeg-quality 95 --record-min-free-gb 5
+```
+
+- **Trình tự** ([KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 2.4): bật AI camera, kết nối LiDAR → điền **Tên**
+  (mã lần chạy, ví dụ `do1_l3`) → **Bắt đầu ghi** → F8 (dấu đầu) → Tìm đường đỗ, Bắt đầu đỗ → xe dừng → F8 (dấu cuối) →
+  **Dừng ghi** → chờ dòng trạng thái "XONG" → "Xuất log CSV…".
+- **Khóa:** "Bắt đầu ghi" khóa khi xe đang chạy (RUNNING/STOPPING: luồng giao diện là vòng điều khiển 50 Hz, mà bắt đầu
+  ghi phải ghi `meta.json` trên luồng đó), khi chưa có nguồn nào ("Bật AI camera hoặc kết nối LiDAR trước") và khi bản
+  ghi trước còn ghi nốt. "Dừng ghi" luôn dùng được và không chặn; luồng ghi ghi nốt rồi báo "XONG". Cài đặt khóa khi
+  đang ghi. Huy hiệu đỏ "● ĐANG GHI" ở thanh trên, cạnh nút dấu đồng bộ, chỉ hiện khi đang ghi. Đóng cửa sổ: dừng ghi
+  (không chờ), rồi dừng xe (enable=0 + DISARM qua liên kết VehicleIO, tắt bo ảo QEMU), rồi tắt các ngăn và chờ ghi nốt
+  tối đa 60 s (quá thì in cảnh báo ra stderr). *(Sửa 02/10/2026 sau review gộp đợt 2: trước đó lệnh dừng + DISARM đi SAU
+  lần chờ ghi nốt, trong lúc vòng 50 Hz đứng.)*
+- **Nguồn:** camera: bộ ghi gắn **ngoài** vào `Rig` của ngăn AI camera (`Rig.attach_recorder`). Rig chỉ đưa khung vào,
+  không bao giờ dừng hay chờ nó; `Rig.stop_recording()`/`Rig.stop()` chỉ gỡ nó. LiDAR: luồng đọc của ngăn bọc nguồn bằng
+  `LidarTap`; vòng quét chỉ vào bản ghi khi nguồn mở với `RIG_CLOCK` và có `t0` (driver C1 và phát lại `.npz` ×1 của
+  ngăn nay mở như vậy, thay `time.monotonic`), và chỉ từ luồng đọc hiện hành. Nguồn khác bị loại, lý do hiện ở chú thích
+  ô chọn.
+- **Nguồn tắt/bật giữa chừng:** tắt AI camera → camera rời bản ghi (mốc `camera_detached`), LiDAR vẫn ghi. LiDAR ngắt
+  rồi kết nối lại → vòng quét tiếp tục vào cùng bản ghi (`lidar_detached`, `lidar_attached`). Nguồn bật sau khi bắt đầu
+  ghi (kể cả Rig camera bật lại) không được thêm (báo một lần). Không còn nguồn nào → tự dừng (`no_sources`).
+- **Đĩa:** không bắt đầu khi ổ còn < 5 GB (`--record-min-free-gb`, phải > 2); tự dừng khi < 2 GB (`disk_guard`); cảnh
+  báo một lần khi chỉ còn < 10 phút ghi theo MB/s hiện tại (GB = 2^30 byte, như Windows Explorer). Không đọc được dung
+  lượng trống thì vẫn ghi, kèm cảnh báo. Lỗi ghi → tự dừng, dòng đỏ "LỖI GHI: …". Hàng đợi đầy → khung bị bỏ và đếm,
+  dòng vàng "GHI THIẾU". Có lỗi ghi thì không có dòng GHI THIẾU (bộ ghi đếm chung khung bỏ vì hàng đợi đầy và khung bỏ
+  sau lỗi ghi); số khung bị bỏ nằm cuối dòng LỖI GHI ("· N khung bị bỏ"). *(Sửa 02/10/2026 sau review gộp đợt 2.)* Thư
+  mục gốc trong kho git mà ngoài `autopark/runs/` → cảnh báo "ảnh camera có thể lọt vào git".
+- **Ghi lại từ nguồn phát lại** (`--cam-replay`, `--recording`) được phép nhưng có nhãn vàng "GHI LẠI TỪ BẢN GHI PHÁT
+  LẠI" (rig tổng hợp: "RIG TỔNG HỢP"). LiDAR của `--session-replay` không ghi được (chưa có `t0` lúc gắn).
+
+**Thư mục** `<gốc>/<yyyymmdd_hhmmss_mmm>[_<tên>]/` (gốc mặc định `runs/session_recordings`, git bỏ qua; đổi khi đã chốt
+chỗ lưu dữ liệu nghiệm thu, KICH_BAN_NGHIEM_THU.md mục 2.3) vẫn là `autopark.rig_recording` v1 (mục 3): `cam_p<cổng>/`
+của các camera của Rig lúc bắt đầu ghi, `lidar/` của ngăn LiDAR, và thêm:
+
+| Tệp | Nội dung |
+|---|---|
+| `session/clock.csv` | mốc `t_perf` (9 chữ số), `t_wall`, `trigger` ∈ `start`, `periodic` (mỗi 1 s), `state_change`, `window_state` (cửa sổ thu nhỏ/hiện lại), `camera_detached`, `lidar_detached`, `lidar_attached`, `disk_warning`, `disk_guard`, `stop`; `state`; `run` (số lần vào RUNNING kể từ lúc bắt đầu ghi); `t_session` (mỗi khi phiên có `world`); `t_io`, `io_clock`, `time_scale` (như dòng dấu đồng bộ T14); `window` (`normal`/`minimized`/`hidden`); `note` (nhánh chạy/cổng + bước chuyển và lý do dừng). Lỗi ghi không có mốc: sau lỗi ghi bộ ghi không ghi thêm dòng nào; lỗi nằm ở `meta.json` |
+| `session/ai_batches.csv` | khi ghi camera và bật "Kết quả AI theo lô": một dòng cho mỗi lô AI ngăn AI camera đã xét, ghi SAU mọi quyết định an toàn của lô: `t_perf, batch_id, t_done, anchor_t, skew_ms, frames, lagging, deferred, carried, checkpoint, usable, reasons, notes, cameras_used, occupied_batch, occupied_filtered, window_fill, bev_ms, ai_boxes, injected, state`. `frames` = `cổng:t_s;…`, cùng định dạng `%.9f` với `t_s` của `frames.csv` (nối bằng stamp). Khe hở của `batch_id` là lô timer 50 ms của ngăn không kịp xét (`ai.batches_skipped` trong meta). Không có bản đồ xác suất (phát lại chạy lại AI) |
+| `session/sync_marks.csv` | bản sao dấu đồng bộ của cửa sổ lúc dừng ghi (mọi dòng SYNC_MARK và CLOCK từ lúc mở cửa sổ), cột `SYNC_FIELDS`, ghi trước `meta.json` cuối. Bản ghi KHÔNG BAO GIỜ thêm dòng vào nhật ký dấu đồng bộ của cửa sổ (`score_run` tách lần chạy ở mỗi dòng CLOCK có state RUNNING) |
+
+`meta.json`:
+- như mục 3: khối camera lấy từ `Rig.recording_meta()`; không ghi camera thì `config`/`policy` null và `cameras` rỗng.
+  `lidar_source` = nguồn của ngăn LiDAR (`port`, `kind` live/replay/other, `recording`, `describe`, `clock` =
+  `perf_counter`). Có thêm `cameras_at_stop` và `lidar_at_stop`;
+- khóa `session_recording` lúc bắt đầu: `version` 1, `app`, `name`, `clock`, `sources` (camera/LiDAR có ghi không, loại
+  nguồn, cổng, lý do không ghi), `session` (kịch bản, tệp xe, nhánh chạy, bo: `sim` bo mô phỏng, `qemu` bo ảo QEMU hay
+  tên cổng COM; giới hạn đổi chiều CÓ HIỆU LỰC `cusp_policy` = `Session.cusp_limit().to_dict()`: `source`, `max_cusps`,
+  `warn_cusps`, `cli_max_cusps`, tệp sa bàn gắn nghiệm thu thêm `acceptance`, `key`, `rule_max_cusps`, `thresholds`
+  (đường dẫn, sha256, trạng thái); trạng thái lúc bắt đầu) *(sửa 02/10/2026 sau review gộp đợt 2: trước đó bo ảo QEMU
+  ghi `sim` và `cusp_policy` chỉ chép cờ dòng lệnh)*, `camera_ai` (cấu hình ngăn AI camera), `lidar_dock` (cấu hình ngăn
+  LiDAR), `sync_marks_live_file`, `ecoqos_start`, `window_start`, `disk` (gốc, GB trống lúc bắt đầu, hai ngưỡng),
+  `align` (quy tắc đổi đồng hồ dưới đây);
+- `session_recording` thêm lúc dừng: `stopped_by` (`user`, `disk_guard`, `write_error`, `no_sources`, `window_closed`),
+  `stopped_wall`, `ecoqos_stop`, `free_gb_stop`, `detached`, `ignored_late`, `runs`, `ai` (`rows`, `batches_skipped`),
+  `sync_rows`, `warnings`, `hook_errors`. Mỗi mục của `runs` là một lần chạy trong lúc ghi: `t_perf_start`, `t_perf_end`
+  (null nếu dừng ghi giữa lần chạy), `t_session_end`, `end_state`, `stop_reason`.
+
+**Đổi đồng hồ.** Mọi `t_s` và mọi `t_perf` của `session/*.csv` là `perf_counter` của máy ghi: chỉ so được trong cùng máy
+và cùng lần khởi động; `created_utc` ứng với `t_start_s`. Stamp là lúc dữ liệu tới máy, không phải lúc phơi sáng.
+- (a) `VehicleIO` thời gian thực: `t_io = t_perf − (t_perf − t_io)`, hiệu lấy từ bất kỳ mốc nào của liên kết đó hay từ
+  khóa `clock` của `link.json`.
+- (b) SIM hay bo mô phỏng: `t_session` nội suy giữa hai mốc của cùng lần chạy ở hai phía (cách ≤ 1 s, thêm một mốc mỗi
+  lần đổi trạng thái). Sai số ≤ một nhịp giao diện (≈ 16 ms, tới 100 ms khi khựng) × `time_scale`. Không cộng
+  `t_session` vào giờ START.
+- (c) Video R1/R3: qua dòng SYNC_MARK của `session/sync_marks.csv`.
+- (d) Dấu T13/T14 so thẳng.
+- Trong mã: `read_session_clock(thư_mục)` → `SessionClock` với `realtime_offset()`, `to_io(t_perf)` và
+  `to_session(t_perf)`; `to_session` trả None ngoài lần chạy.
+
+**Xuất log.** "Xuất log CSV…"/"Lưu phiên…" (vẫn khóa khi xe chạy) ghi thêm `<tên>_sensor_recordings.json` cạnh tệp CSV,
+và `sensor_recordings.json` trong gói phát lại nếu có gói. Mỗi bản ghi của cửa sổ là một mục: `folder`, `status`,
+`t_start_s`, `t_stop_s`, `overlap_s` và `covers_run` so với lần chạy gần nhất, số khung, số vòng LiDAR, `meta_sha256`
+(khi đã xong). Bản ghi KHÔNG được chép vào gói T9. Xuất lúc còn đang ghi vẫn được: `status` là `đang ghi`, không có SHA.
+Với nguồn tư thế LiDAR thật, bản ghi này còn dùng để tái hiện từng vòng định vị của lần chạy
+(`lidar.pose_estimator --recording <thư mục> --same-scans-as localization.csv`,
+[NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md) mục 3): bắt đầu ghi trước khi bấm Bắt đầu đỗ.
+
+**Phát lại** (không mở thiết bị):
+
+```powershell
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --replay runs/session_recordings/<thư mục> --name t3_phat_lai --out runs/rig_bench/phat_lai
+.\.venv\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --replay runs/session_recordings/<thư mục> --no-ai
+.\.venv\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --recording runs/session_recordings/<thư mục>
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --session-replay runs/session_recordings/<thư mục>
+```
+
+`rig.bench --replay` và phát lại phiên đã kiểm bằng test với thư mục T3; `ui.rig_app --replay` (lệnh 2) và
+`ui.lidar_app --camera-ai --cam-replay` chưa chạy với thư mục T3 nào (cùng định dạng, CHƯA THỬ). Lệnh cuối (T3b) cho cả
+ngăn LiDAR lẫn ngăn AI camera MỘT `ReplaySession`, một đồng hồ phát lại, nên khung và vòng quét giữ đúng độ lệch như lúc
+ghi:
+- đồng hồ bắt đầu khi AI nạp xong; không có `--camera-ai` thì ngay khi gắn LiDAR;
+- không dùng cùng `--recording`, `--cam-replay`, `--port`;
+- luôn tự bật cả hai ngăn;
+- phát lại một lần: tắt AI camera là dừng phát lại cho cả hai ngăn.
+
+`--cam-replay <thư mục>` vẫn chỉ cấp ảnh, `--recording <thư mục>` chỉ cấp LiDAR, mỗi cái một đồng hồ riêng.
+
+**Số đo offscreen** (02/10/2026, máy bàn đang có việc khác chạy; nguồn giả: bốn camera 640×480 ở 25 khung/s, LiDAR
+10 Hz; script tạm, không lưu trong repo):
+- nhịp 1 s của ngăn (kiểm + làm mới): trung vị 0,56 ms, lớn nhất 0,80 ms;
+- một mốc đổi trạng thái: 0,05 ms;
+- "Bắt đầu ghi": 33–40 ms;
+- "Dừng ghi": 1,4–4,5 ms.
+
+Với thiết bị và màn hình thật: CHƯA ĐO. MB/s của cảnh sa bàn: CHƯA ĐO.
+
+**Giới hạn.**
+- CHƯA THỬ với thiết bị thật.
+- Ảnh hưởng của việc ghi lên vòng điều khiển 50 Hz (cửa sổ thường và thu nhỏ): CHƯA ĐO.
+- Cửa sổ thu nhỏ có thể bị EcoQoS làm chậm ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 10); từ 02/10/2026 ứng dụng tự
+  tắt EcoQoS cho chính nó, trừ khi đặt `AUTOPARK_KEEP_ECOQOS=1`. Ghi khi cửa sổ thu nhỏ chưa đo, nên giữ cửa sổ phóng to
+  khi đang ghi và chạy. Cột `window` và `ecoqos_start`/`ecoqos_stop` ghi lại điều kiện này.
+- Ảnh camera có thể có người và phòng: giữ trong `runs/`, không commit.
+- Rig camera bật lại giữa chừng không được gắn lại.

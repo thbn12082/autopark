@@ -35,6 +35,7 @@ from autopark.domain.types import VehicleConfig
 from autopark.evaluation.hard_cases import HardCase, build_cases
 from autopark.geometry.footprint import check_motion
 from autopark.planning.hybrid_astar import PlannerParams
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
 from autopark.simulation.rollout import rollout
 from autopark.storage.scenario_store import load_vehicle_config
 
@@ -146,6 +147,7 @@ def format_table(results: list[CaseResult]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ecoqos = apply_ecoqos_policy("evaluation.bench")   # trước mọi việc khác: các ca chạy theo hạn giờ đồng hồ thật
     ap = argparse.ArgumentParser(description="Đo bộ lập đường trên bộ ca khó")
     ap.add_argument("--planner", default=DEFAULT_PLANNER)
     ap.add_argument("--config", default=DEFAULT_CONFIG)
@@ -175,6 +177,7 @@ def main(argv: list[str] | None = None) -> int:
         selected = [c for c in selected if c.difficulty == args.difficulty]
 
     print(f"Bộ lập đường: {args.planner}   giới hạn {args.time_limit:.0f} s/ca   xe: {cfg.name}")
+    print(ecoqos.cli_line())
     results = []
     for case in selected:
         r = run_case(func, case, cfg, args.time_limit, do_rollout=not args.no_rollout)
@@ -186,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
     print(format_table(results))
     if args.json:
         with open(args.json, "w", encoding="utf-8") as f:
-            json.dump({"planner": args.planner, "results": [asdict(r) for r in results]}, f,
+            json.dump({"planner": args.planner, "ecoqos": ecoqos_state(), "results": [asdict(r) for r in results]}, f,
                       ensure_ascii=False, indent=2)
         print(f"\nĐã ghi {args.json}")
     return 0

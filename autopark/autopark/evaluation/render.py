@@ -23,6 +23,7 @@ from autopark.domain.types import Pose, Scenario, VehicleConfig  # noqa: E402
 from autopark.evaluation.hard_cases import HardCase, build_cases  # noqa: E402
 from autopark.geometry.footprint import body_polygon  # noqa: E402
 from autopark.planning.trajectory import Trajectory  # noqa: E402
+from autopark.power_throttling import apply_ecoqos_policy  # noqa: E402
 from autopark.storage.scenario_store import load_vehicle_config  # noqa: E402
 from autopark.ui.items import (  # noqa: E402
     COLOR_EGO_BODY,
@@ -195,6 +196,7 @@ def render_case(case: HardCase, cfg: VehicleConfig, trajectory: Trajectory | Non
 
 
 def main(argv: list[str] | None = None) -> int:
+    ecoqos = apply_ecoqos_policy("evaluation.render")  # trước mọi việc khác: --planner chạy theo hạn giờ đồng hồ thật
     ap = argparse.ArgumentParser(description="Vẽ ca đo ra PNG")
     ap.add_argument("--planner", default="", help="module:ham; bỏ trống thì chỉ vẽ ca, không lập đường")
     ap.add_argument("--config", default="configs/vehicle_default.json")
@@ -202,6 +204,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--time-limit", type=float, default=20.0)
     ap.add_argument("--out", required=True)
     args = ap.parse_args(argv)
+    print(ecoqos.cli_line())
 
     cfg = load_vehicle_config(args.config)
     cases = build_cases(cfg)

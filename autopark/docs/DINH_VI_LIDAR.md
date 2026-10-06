@@ -27,7 +27,7 @@ Mã: [`autopark/lidar/localize.py`](../autopark/lidar/localize.py). Test:
 | Kết quả | Công cụ | Trạng thái 24/09/2026 |
 |---|---|---|
 | Đọc scan được | `lidar/rplidar_c1.py`, `lidar/recording.py` | Có, trên máy bàn, 22/09 và 24/09 ([GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 3, 3b) |
-| Tạo map được | `lidar/occupancy.py` → `costmap.json` | MỘT PHẦN (như [gate_01.md](gate_01.md)): `map_p07` là bản đồ lưới tĩnh từ bản ghi p07 (22/09) ở một vị trí cố định, không phải SLAM, chưa đo sai số bản đồ. Dựng lại ngày 24/09 bằng mã hiện tại (tầm 8 m và 12 m) cho lưới giống hệt từng ô. *(Sửa tối 24/09/2026: trước ghi "Có".)* |
+| Tạo map được | `lidar/occupancy.py` → `costmap.json` | MỘT PHẦN (như [gate_01.md](gate_01.md)): `map_p07` là bản đồ lưới tĩnh từ bản ghi p07 (22/09) ở một vị trí cố định, không phải SLAM, chưa đo sai số bản đồ. Dựng lại ngày 24/09 bằng mã hiện tại (tầm 8 m và 12 m) cho lưới giống hệt từng ô. *(Sửa tối 24/09/2026: trước ghi "Có".)* *(02/10/2026: thêm `lidar/map_builder.py`: bản đồ từ nhiều chỗ đặt, neo vào hệ sa bàn, kiểm bỏ-ra-một; [NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md) mục 2. Chưa dựng bản đồ sa bàn thật nào.)* |
 | Định vị lại được | `lidar/localize.py` (tài liệu này) | Có công cụ. Trên bản ghi thật: nhất quán ở cùng chỗ, báo hỏng ở chỗ khác (mục 5). **Chưa đạt** theo nghĩa của kế hoạch vì chưa có vị trí tham chiếu độc lập (mục 7) |
 
 ## 2. Cách làm
@@ -321,3 +321,15 @@ trên laptop RTX 3050 Ti** (máy nộp đồ án).
    Cổng LiDAR lấy từ `configs/thiet_bi.json`; thêm `--port COMx` để ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
 3. Làm cùng buổi với 7 lần đặt hộp (mục 6 của tài liệu đó) để chốt dấu góc trái/phải.
 4. Sau đó chốt các ngưỡng ở mục 6 và ghi vào bảng 16.2 của kế hoạch (dòng "Định vị").
+
+## 8. Nguồn tư thế trong phiên (thêm 02/10/2026)
+
+Định vị ở tài liệu này nay là phần (a) của nguồn tư thế LiDAR của phiên đỗ xe, ghép với odometry khớp scan (b):
+[NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md). Người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất mục 7
+của [SO_SANH_DINH_VI_SLAM.md](SO_SANH_DINH_VI_SLAM.md); ngưỡng vẫn ĐỀ XUẤT – CHỜ CHỐT. Cách gọi `localize` trong phiên:
+cửa sổ bám ±0,15 m / ±10° quanh tư thế (b) dự đoán, khởi tạo ±0,5 m / ±30° quanh điểm xuất phát, tìm toàn cục chỉ ngoài
+lần chạy; hai vòng liên tiếp không OK thì phiên dừng POSE_LOST. Bản đồ của phiên dựng bằng `lidar/map_builder.py` (nhiều
+chỗ đặt, neo vào hệ sa bàn); bản đồ của `occupancy.py` như `map_p07` không có khối `map_build` nên nguồn tư thế của
+phiên không nhận. Vẫn chưa có tham chiếu độc lập (mục 7 của tài liệu này); số của nguồn tư thế là mức MP hoặc trên bản
+ghi C1 đứng yên. Hai giới hạn của `localize` thấy ở đợt này, CHƯA SỬA: luật `second_peak` báo AMBIGUOUS cả với vai của
+một đỉnh rộng trên sa bàn nhỏ, và tường nằm sát biên ô 5 cm làm tinh chỉnh mất gradient (NGUON_TU_THE_LIDAR.md mục 10).

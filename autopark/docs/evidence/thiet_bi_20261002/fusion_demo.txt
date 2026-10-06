@@ -1,0 +1,5 @@
+bỏ 23 vòng khởi động mô-tơ (vòng nền đầu ở t=4.55 s trên đồng hồ nguồn; ngưỡng ≥ 22 vòng và ≥ 4.5 s); nền dựng từ 10 vòng, 500–512 tia/vòng
+vật cản có sẵn quanh LiDAR (trong sa bàn): 18
+xe ảo bắt đầu chạy; đưa vật vào trước LiDAR để thử dừng
+kết thúc: COMPLETED, sự kiện [], va chạm False, vật mới ngoài đường (không dừng): 4
+{"status": "COMPLETED", "initial_obstacles": 18, "new_obstacles": 0, "events": [], "stop_reason": "Đỗ xong", "collided": false, "scans": 166, "read_errors": 0, "transport_error": null, "stream_ended": false, "error": null, "warmup": {"skipped": 23, "min_revolutions": 22, "until_s": 4.5, "first_map_scan_s": 4.547000000005937, "map_beams_min": 500, "map_beams_max": 512}, "bridge_stops": 0, "off_path_obstacles": 4, "close_error": null}

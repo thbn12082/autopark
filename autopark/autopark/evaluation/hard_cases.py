@@ -588,8 +588,10 @@ def main(argv: list[str] | None = None) -> int:
     from pathlib import Path
 
     from autopark.planning import portfolio
+    from autopark.power_throttling import apply_ecoqos_policy
     from autopark.storage.scenario_store import load_vehicle_config
 
+    ecoqos = apply_ecoqos_policy("evaluation.hard_cases")     # trước mọi việc khác: planner chạy theo hạn giờ
     ap = argparse.ArgumentParser(description="Sinh đường chứng (witness) cho bộ ca khó bằng planner")
     ap.add_argument("--witness-out", required=True, help="tệp JSON ghi ra, cùng dạng witness_20260924.json")
     ap.add_argument("--config", default="configs/vehicle_default.json")
@@ -639,6 +641,7 @@ def main(argv: list[str] | None = None) -> int:
     seed_text = env_seed or (str(args.seed) if args.seed is not None else "mặc định")
     missing: list[str] = []
     print(f"Nấc: {args.rung}   giới hạn {args.time_limit:.0f} s/ca   xe: {cfg.name}")
+    print(ecoqos.cli_line())
     for name in names:
         sc = cases[name].scenario
         goal = sc.goal.pose

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "xe_nghiem_thu_gia_dinh",
+  "wheelbase_m": 0.19,
+  "width_m": 0.14,
+  "front_overhang_m": 0.06,
+  "rear_overhang_m": 0.06,
+  "max_steer_deg": 30.0,
+  "max_speed_mps": 0.1,
+  "max_accel_mps2": 0.3,
+  "max_decel_mps2": 0.6,
+  "max_steer_rate_deg_s": 90.0,
+  "notes": "Cấu hình xe cho NGHIỆM THU (thêm 02/10/2026; người dùng giao quyết định 02/10/2026 ('làm hết'): cấu hình xe riêng, không đổi mặc định). Giống hệt vehicle_default.json (mọi kích thước, giới hạn GIẢ ĐỊNH – CHƯA ĐO MN300) trừ max_speed_mps = 0,10 m/s = tốc độ mục tiêu đợt đầu của N-V1 (ĐỀ XUẤT – CHỜ CHỐT). Planner giữ cruise_speed 0,15 m/s; quỹ đạo và bộ bám kẹp mục tiêu ở max_speed_mps. Bo mô phỏng đi cùng: vehicle_io_sim_nghiem_thu.json. Có vehicle_measured.json thì lập lại tệp này từ đó, chỉ đổi max_speed_mps."
+}

@@ -43,13 +43,17 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from autopark.application.cusp_policy import SOURCE_ACCEPTANCE, SOURCE_CLI   # T12 theo kịch bản nghiệm thu
 from autopark.application.session import EDITABLE_STATES, Session, SessionError, SessionState
-from autopark.application.vehicle_link import (BoardFaultClear, BoardProbe, DriveMode, SimHumanDriver, VehicleLink,
-                                               VehicleLinkError, probe_board)
+from autopark.application.vehicle_link import (BoardFaultClear, BoardProbe, DriveMode, LinkParams,
+                                               PlantHumanDriver, SimHumanDriver, VehicleLink, VehicleLinkError,
+                                               probe_board)
 from autopark.domain.types import Bounds, Obstacle, ParkingMode, ParkingSlot, Pose, wrap_angle
 from autopark.evaluation.sync_marks import DEFAULT_SYNC_DIR, SyncMarkLog, sync_file_path
 from autopark.planning.hybrid_astar import PlanResult
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config, save_scenario
+from autopark.storage.scenario_store import (CONFIGS_DIR, VehicleConfigError, VehicleConfigFile,  # ô "Cấu hình xe"
+                                            list_vehicle_configs, load_vehicle_config_file, path_key)
 from autopark.ui import theme
 from autopark.ui.items import (
     COLOR_EGO_BODY,
@@ -68,6 +72,7 @@ from autopark.ui.items import (
 )
 from autopark.ui.theme import Card, StatusPill, WrapLabel
 from autopark.ui.cockpit import CockpitStage, DrivingReadout, StepRail
+from autopark.ui.qemu_runner import BUSY_STATES as QEMU_BUSY_STATES, QemuBoardRunner, QemuRunnerState
 from autopark.ui.sync_flash import SyncFlash, SyncMarker
 
 SCENE_MARGIN = 0.12
@@ -105,11 +110,42 @@ DRIVE_MODE_CHOICES = (
      "(commands.csv); bo giữ DISARMED, không nhận COMMAND nào. Tư thế lấy từ mô phỏng."),
 )
 SIM_BOARD_LABEL = "Bo mô phỏng (mặc định)"
+# Nguồn tư thế của nhánh VehicleIO/Quan sát (T2, 02/10/2026; application/lidar_pose_source.py). "lidar_real" chỉ có trong
+# ui.lidar_app (cần ngăn LiDAR và bản đồ); bo mô phỏng chỉ đi với sim_truth / lidar_sim, bo COM với sim_truth / lidar_real.
+POSE_SOURCE_CHOICES = (
+    ("sim_truth", "Mô phỏng: định vị lý tưởng (mặc định)"),
+    ("lidar_sim", "LiDAR mô phỏng: định vị trên vòng quét dựng từ sa bàn"),
+    ("lidar_real", "LiDAR thật: định vị trên bản đồ tĩnh"),
+)
+LIDAR_REAL_ONLY_TIP = "Chỉ có trong python -m autopark.ui.lidar_app (cần ngăn LiDAR)"
 ESPRESSIF_VID = 0x303A        # VID USB của Espressif (USB CDC/JTAG gắn liền ESP32-S3); chỉ để gợi ý, không để lọc
 # Nút "Xóa lỗi bo (CLEAR_FAULT)" (thêm 02/10/2026, T15): `VehicleLink.clear_fault` trên liên kết đang chọn.
 CLEAR_FAULT_TIP = ("Đọc trạng thái bo của nhánh chạy (VehicleIO hoặc Quan sát). Chỉ khi bo đang FAULT và telemetry báo "
                    "nút dừng khẩn đã nhả mới gửi CLEAR_FAULT; bo về DISARMED. Không ARM, không gửi lệnh chuyển động. "
                    "Chỉ dùng khi chưa chạy.")
+# Thẻ "Xe" (thêm 02/10/2026; người dùng giao quyết định 02/10/2026 ('làm hết'): xe nghiệm thu riêng 0,10 m/s, mặc định
+# không đổi): ô "Cấu hình xe" chọn tệp configs/vehicle_*.json; bo mô phỏng tự chọn theo tệp xe (choose_sim_io_config).
+VEHICLE_CHOICE_TIP = ("Tệp cấu hình xe mà planner, bộ bám và bo mô phỏng dùng. Chỉ đổi khi đang chỉnh hoặc sẵn sàng; "
+                      "đổi xe hủy đường đã lập. Xe chọn ở đây (hay bằng --vehicle-config) được giữ khi mở kịch bản "
+                      "khác; Lưu ghi tệp xe này vào kịch bản.")
+VEHICLE_ACCEPTANCE_HINT = ("Nghiệm thu: vehicle_nghiem_thu.json — tốc độ mục tiêu ≤ 0,10 m/s (N-V1, ĐỀ XUẤT – CHỜ "
+                           "CHỐT). vehicle_default.json: planner chạy 0,15 m/s, vượt N-V1.")
+# Bo ảo QEMU trong phiên đỗ (thêm 02/10/2026; người dùng giao quyết định 02/10/2026): firmware THẬT trong QEMU, tốc độ,
+# góc lái và tư thế từ xe mô phỏng phía laptop (transport/qemu_plant.py, ui/qemu_runner.py). KHÔNG phải bo thật.
+QEMU_BOARD_KEY = "qemu"
+QEMU_BOARD_LABEL = "Bo ảo QEMU (firmware xe trong giả lập)"
+QEMU_COCKPIT_TAG = "BO ẢO QEMU · XE MÔ PHỎNG"
+QEMU_START_TIP = ("Build firmware env esp32s3_qemu nếu ảnh thiếu hoặc cũ hơn mã nguồn (lần đầu vài phút), rồi chạy QEMU ở "
+                  "một cổng TCP tự chọn trên 127.0.0.1. QEMU dùng khoảng một lõi CPU tới khi tắt; tự tắt khi chọn bo khác "
+                  "hoặc đóng cửa sổ.")
+QEMU_BOARD_HINT = ("Bo ảo QEMU: firmware THẬT của xe (bản esp32s3_qemu: Serial qua UART0, flash DIO) chạy trong QEMU trên "
+                   "máy này — KHÔNG phải bo thật, không có xe thật. Firmware chưa đọc cảm biến nào, nên tốc độ, góc lái và "
+                   "tư thế lấy từ XE MÔ PHỎNG phía laptop bám tham chiếu speed_ref, steer_ref mà firmware gửi trong "
+                   "telemetry. Mỗi lần Bắt đầu đỗ: đặt xe mô phỏng ở điểm xuất phát, mở socket://, HELLO, kiểm START, "
+                   "ARM; xong lần chạy thì DISARM và đóng kết nối. Bo ảo không có xung ESC/servo, E-stop, cảm biến hay "
+                   "watchdog phần cứng; đây chỉ là mức MP, không chứng minh gì về bo thật.")
+QEMU_PROBE_NOTE = ("Tốc độ, góc lái '—': firmware chưa đọc cảm biến; trong phiên đỗ số đo lấy từ xe mô phỏng phía "
+                   "laptop.")
 
 # Lần chạy đang mở (xe đang chạy hoặc đang dừng; 02/10/2026). Luồng giao diện cũng là luồng của vòng điều khiển 50 Hz,
 # nên khi đó giao diện không ghi đĩa lâu: "Xuất log CSV…"/"Lưu phiên…" bị khóa và gói phát lại (export_run: PowerShell,
@@ -152,6 +188,13 @@ def _open_serial_io(port: str):
     """Mở cổng thật cho "Kiểm kết nối bo" (test thay hàm này bằng cổng serial giả)."""
     from autopark.transport.vehicle_io import SerialVehicleIO
     return SerialVehicleIO.open(port)
+
+
+def _open_qemu_probe_io(board):
+    """Kết nối thường (`SerialVehicleIO`, KHÔNG có xe mô phỏng) tới UART0 của bo ảo cho "Kiểm kết nối bo" (02/10/2026):
+    báo đúng telemetry của firmware. Đồng hồ của bo nếu có (bo giả trong test), không thì perf_counter."""
+    from autopark.transport.vehicle_io import SerialVehicleIO
+    return SerialVehicleIO(board.transport_opener()(), port=board.url, clock=board.clock)
 
 
 class PortCombo(QComboBox):
@@ -282,10 +325,14 @@ class MainWindow(QMainWindow):
     PREVIEW_DT = 0.02   # s mô phỏng giữa hai mẫu xem trước (nhịp điều khiển 50 Hz)
     SYNC_SOURCE = "ui.app"   # cột source của dấu đồng bộ (T14); BenchWindow của ui.lidar_app đặt "ui.lidar_app"
 
-    def __init__(self, session: Session, scenario_path: Path | None = None):
+    def __init__(self, session: Session, scenario_path: Path | None = None, *,
+                 vehicle_override: VehicleConfigFile | None = None):
         super().__init__()
         self.session = session
         self.scenario_path = scenario_path
+        # Xe đã chọn (--vehicle-config hay ô "Cấu hình xe"): giữ khi "Mở…" kịch bản khác; None = theo tệp xe kịch bản.
+        self.vehicle_override = vehicle_override
+        self.sim_board_choice = None           # SimIOChoice của lần chọn bo mô phỏng gần nhất (_sim_io_config)
         self._syncing = False
         self._selection_sync = False
         self._rebuilding_scene = False
@@ -316,6 +363,8 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1100, 720)
         self.resize(1440, 900)
         self._refresh_all()
+        if session.acceptance_rule is not None:        # tệp sa bàn gắn nghiệm thu: giới hạn đổi chiều của kịch bản
+            self.statusBar().showMessage(session.cusp_limit().summary(), 10000)
 
     def _build_controls(self) -> None:
         self.primary_action = QPushButton("Tìm đường đỗ")
@@ -381,6 +430,9 @@ class MainWindow(QMainWindow):
         self.btn_save.clicked.connect(self._save_scenario)
         self.btn_save_as.clicked.connect(self._save_scenario_as)
         self.box_file.add(self.lbl_file)
+        self.lbl_cusp_limit = WrapLabel("")              # T12: giới hạn đổi chiều (theo trường acceptance của tệp)
+        self.lbl_cusp_limit.setObjectName("hint")
+        self.box_file.add(self.lbl_cusp_limit)
         self.box_file.add_layout(theme.row(self.btn_open, self.btn_save, self.btn_save_as))
         layout.addWidget(self.box_file)
 
@@ -483,6 +535,7 @@ class MainWindow(QMainWindow):
         self.box_board = Card("Bo điều khiển")
         self.combo_port = PortCombo(self._refresh_ports)
         self.combo_port.addItem(SIM_BOARD_LABEL, "")
+        self.combo_port.addItem(QEMU_BOARD_LABEL, QEMU_BOARD_KEY)     # bo ảo QEMU (02/10/2026): chọn không chạy gì
         self.combo_port.setToolTip("Mở danh sách để quét lại cổng COM. Chọn cổng không mở cổng và không gửi gì.")
         self.combo_port.currentIndexChanged.connect(self._on_port_changed)
         self.btn_ports = QPushButton("Quét cổng")
@@ -502,20 +555,31 @@ class MainWindow(QMainWindow):
         self.lbl_board_report.setObjectName("hint")
         self.lbl_board_report.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.box_board.add(self.combo_port)
+        self.box_board.add(self._build_qemu_row())
         self.box_board.add_layout(theme.row(self.btn_ports, self.btn_probe))
         self.box_board.add(self.btn_clear_fault)
         self.box_board.add(self.lbl_board_hint, self.lbl_board_report)
+        self._build_pose_source_widgets()
         layout.addWidget(self.box_board)
         self.serial_io_factory: Callable[[str], object] = _open_serial_io
         self.last_board_probe: BoardProbe | None = None
         self.last_board_clear: BoardFaultClear | None = None
-        self._link_port: str | None = None     # cổng của liên kết đang chọn (None: bo mô phỏng)
-        self._refresh_board_hint()
+        # mục của liên kết đang chọn: None bo mô phỏng, QEMU_BOARD_KEY bo ảo (02/10/2026), hoặc cổng COM
+        self._link_port: str | None = None
+        self._sync_sim_board()                 # chọn tệp bo mô phỏng theo tệp xe, rồi viết gợi ý của thẻ
 
         card = Card("Xe")
+        # Ô "Cấu hình xe" (02/10/2026): danh sách configs/vehicle_*.json, đổi được khi đang chỉnh hoặc sẵn sàng.
+        self.combo_vehicle = QComboBox()
+        self.combo_vehicle.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.combo_vehicle.setMinimumContentsLength(16)      # tên tệp dài không nới ngăn sa bàn (346 px)
+        self.combo_vehicle.setToolTip(VEHICLE_CHOICE_TIP)
+        self.combo_vehicle.currentIndexChanged.connect(self._on_vehicle_chosen)
+        vehicle_hint = WrapLabel(escape(VEHICLE_ACCEPTANCE_HINT))
+        vehicle_hint.setObjectName("hint")
         self.lbl_vehicle = WrapLabel("")
         self.lbl_vehicle.setObjectName("hint")
-        card.add(self.lbl_vehicle)
+        card.add(QLabel("Cấu hình xe"), self.combo_vehicle, vehicle_hint, self.lbl_vehicle)
         layout.addWidget(card)
         layout.addStretch(1)
 
@@ -533,6 +597,13 @@ class MainWindow(QMainWindow):
         version = QLabel("PARKING ASSIST")
         version.setObjectName("eyebrow")
         row.addWidget(version)
+        # Bo ảo QEMU (02/10/2026): nhãn màu cảnh báo, thấy được trong video màn hình (T14); hiện khi chọn bo ảo và nhánh
+        # chạy không phải SIM.
+        self.board_tag = QLabel(QEMU_COCKPIT_TAG)
+        self.board_tag.setObjectName("eyebrow")
+        self.board_tag.setStyleSheet(f"color: {theme.WARN};")
+        self.board_tag.hide()
+        row.addWidget(self.board_tag)
         row.addStretch(1)
         self.pill = StatusPill()
         self.lbl_state = self.pill
@@ -899,10 +970,18 @@ class MainWindow(QMainWindow):
             self.lbl_file.setToolTip(str(self.scenario_path))
         else:
             self.lbl_file.setText("(chưa lưu)")
+        self._refresh_cusp_limit()
+        vehicle_file = sc.vehicle_config_path
         self.lbl_vehicle.setText(
-            f"<b>{cfg.name}</b> — dài {cfg.length * 100:.0f} cm, rộng {cfg.width * 100:.0f} cm, "
+            f"<b>{escape(cfg.name)}</b>"
+            + (f" ({escape(Path(vehicle_file).name)})" if vehicle_file is not None else "")
+            + f" — dài {cfg.length * 100:.0f} cm, rộng {cfg.width * 100:.0f} cm, "
             f"chiều dài cơ sở {cfg.wheelbase * 100:.0f} cm, lái ±{math.degrees(cfg.max_steer):.0f}°, "
-            f"bán kính quay nhỏ nhất {cfg.min_turn_radius * 100:.0f} cm.<br>{cfg.notes}")
+            f"bán kính quay nhỏ nhất {cfg.min_turn_radius * 100:.0f} cm, "
+            f"tốc độ tối đa {cfg.max_speed:.2f} m/s.<br>{escape(cfg.notes)}")
+        self.lbl_vehicle.setToolTip(str(vehicle_file) if vehicle_file is not None else "")
+        self._refresh_vehicle_combo()
+        self.instrument.full_scale_mps = cfg.max_speed      # cung tốc độ của đồng hồ lái đầy ở tốc độ tối đa của xe
         self._syncing = True
         try:
             self.start_editor.set_pose(sc.start)
@@ -920,6 +999,27 @@ class MainWindow(QMainWindow):
         self._refresh_validity()
         self._refresh_mode_widgets()
         self._refresh_status()
+
+    def _refresh_cusp_limit(self) -> None:
+        """Nhãn giới hạn đổi chiều trong thẻ Kịch bản (T12; 02/10/2026: theo trường acceptance của tệp sa bàn, chỉ đọc).
+        Màu cảnh báo khi cờ --max-cusps không dùng được (lớn hơn số của kịch bản) hay siết hơn số của kịch bản."""
+        limit = self.session.cusp_limit()
+        rule = limit.rule
+        text = escape(limit.summary())
+        if limit.cli_ignored or (limit.source == SOURCE_CLI and rule is not None):
+            text = f"<span style='color:{theme.WARN}'>{text}</span>"
+        self.lbl_cusp_limit.setText(text)
+        if rule is None:
+            tip = "Giới hạn số lần đổi chiều trước Bắt đầu đỗ (T12): --max-cusps, --warn-cusps"
+        else:
+            mapping = f"acceptance {rule.tag.label} → khóa {rule.key} · " if rule.tag.label != rule.key else ""
+            tip = (f"{mapping}Tệp ngưỡng {rule.path} · {rule.status} · sha256 {rule.sha256[:12]} · sửa tệp ngưỡng thì "
+                   "mở lại kịch bản")
+        self.lbl_cusp_limit.setToolTip(tip)
+
+    def _acceptance_note(self) -> str:
+        """' · ' + tóm tắt giới hạn đổi chiều khi tệp đang mở gắn kịch bản nghiệm thu (T12), không thì rỗng."""
+        return f" · {self.session.cusp_limit().summary()}" if self.session.acceptance_rule is not None else ""
 
     def _refresh_validity(self) -> None:
         start = self.session.start_check()
@@ -1023,10 +1123,13 @@ class MainWindow(QMainWindow):
         # Hồ sơ phản hồi giả chỉ có tác dụng ở nhánh SIM; nhánh chạy chỉ đổi được khi chưa chạy.
         self.combo_feedback.setEnabled(editable and self.session.vehicle_link is None)
         self.combo_drive.setEnabled(editable)
+        self.combo_vehicle.setEnabled(editable)          # đổi xe hủy đường: chỉ khi đang chỉnh hoặc sẵn sàng
         # Cổng và "Kiểm kết nối bo" chỉ dùng khi chưa chạy (không mở cổng song song với một lần chạy).
         for widget in (self.combo_port, self.btn_ports, self.btn_probe):
             widget.setEnabled(editable)
         self._refresh_clear_fault_button()
+        self._refresh_qemu_widgets()
+        self._refresh_pose_widgets(editable)
         self.btn_inject.setVisible(st == SessionState.RUNNING)
         self.btn_loss.setVisible(st == SessionState.RUNNING)
         self.btn_loss.setEnabled(st == SessionState.RUNNING and self.session.feedback is not None
@@ -1106,14 +1209,20 @@ class MainWindow(QMainWindow):
         elif pr.ok and s.trajectory is not None:
             text, tip = f"{s.trajectory.length:.2f} m  ·  {s.trajectory.n_cusps} lần đổi chiều", pr.message
             cusps = s.cusp_check()                # T12: chỉ báo; chặn ở Session.start_run khi có --max-cusps
+            limit = s.cusp_limit()                # hay khi tệp sa bàn gắn nghiệm thu (02/10/2026)
             if cusps.refused:
+                of = f" của {limit.rule.key}" if limit.source == SOURCE_ACCEPTANCE else ""
                 text += (f"  ·  <span style='color:{theme.DANGER}'>"
-                         f"{escape(f'vượt giới hạn {cusps.max_cusps}: không chạy')}</span>")
+                         f"{escape(f'vượt giới hạn {cusps.max_cusps}{of}: không chạy')}</span>")
             elif cusps.warned:
                 text += (f"  ·  <span style='color:{theme.WARN}'>"
                          f"{escape(f'nhiều đổi chiều (> {cusps.warn_cusps})')}</span>")
+            elif limit.short():
+                text += "  ·  " + escape(limit.short())
             if cusps.refused or cusps.warned:
                 tip += "\n" + cusps.describe()
+            if limit.rule is not None:
+                tip += "\n" + limit.summary()
             self.lbl_plan.setText(text)
             self.lbl_plan.setToolTip(tip)
         else:
@@ -1375,12 +1484,20 @@ class MainWindow(QMainWindow):
         return self.scenario_path.parent if self.scenario_path is not None else Path.cwd()
 
     def _open_scenario(self) -> None:
+        """Mở kịch bản. Đã chọn xe (--vehicle-config hay ô "Cấu hình xe", `vehicle_override`) thì kịch bản dùng xe đó và
+        tệp xe của kịch bản không được đọc (tệp đó thiếu hay hỏng cũng không hiện hộp lỗi); không thì dùng tệp xe của
+        kịch bản. 02/10/2026: gộp BenchWindow._open_scenario của ui.lidar_app vào đây."""
         path, _ = QFileDialog.getOpenFileName(self, "Mở kịch bản", str(self._scenario_dir()), "JSON (*.json)")
         if not path:
             return
+        override = self.vehicle_override
         try:
             scenario = load_scenario(path)
-            cfg = load_vehicle_config(scenario.vehicle_config_path)
+            if override is not None:
+                scenario.vehicle_config_path = override.path     # lưu lại thì trỏ đúng tệp xe đang dùng
+                cfg = override.cfg
+            else:
+                cfg = load_vehicle_config(scenario.vehicle_config_path)
             self.session.replace_scenario(scenario, cfg)
         except Exception as exc:  # noqa: BLE001 - báo lỗi cho người dùng
             QMessageBox.critical(self, "Không mở được kịch bản", str(exc))
@@ -1388,7 +1505,13 @@ class MainWindow(QMainWindow):
         self.scenario_path = Path(path)
         self._rebuild_scene()
         self._refresh_all()
-        self.statusBar().showMessage(f"Đã mở {path}", 4000)
+        self._sync_sim_board()
+        if override is None:
+            self.statusBar().showMessage(f"Đã mở {path}{self._acceptance_note()}", 4000)
+        else:
+            self.statusBar().showMessage(f"Đã mở {path}; xe theo {override.path.name} (đã chọn bằng --vehicle-config "
+                                         f"hay ô Cấu hình xe; không dùng tệp xe của kịch bản){self._acceptance_note()}",
+                                         8000)
 
     def _save_scenario(self) -> None:
         if self.scenario_path is None:
@@ -1399,7 +1522,9 @@ class MainWindow(QMainWindow):
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "Không lưu được", str(exc))
             return
-        self.statusBar().showMessage(f"Đã lưu {self.scenario_path}", 4000)
+        vehicle_file = self.session.scenario.vehicle_config_path      # Lưu ghi tệp xe đang dùng vào kịch bản
+        self.statusBar().showMessage(f"Đã lưu {self.scenario_path}"
+                                     + (f" (xe: {Path(vehicle_file).name})" if vehicle_file is not None else ""), 4000)
 
     def _save_scenario_as(self) -> None:
         path, _ = QFileDialog.getSaveFileName(self, "Lưu kịch bản", str(self._scenario_dir()), "JSON (*.json)")
@@ -1468,6 +1593,7 @@ class MainWindow(QMainWindow):
                     except ReplayNotSupported as exc:
                         refused = str(exc)
             sync_file = self._export_sync_marks(Path(path))
+            extras = self._export_extras(Path(path), bundle)
         except OSError as exc:
             QMessageBox.critical(self, "Không ghi được", str(exc))
             return
@@ -1480,18 +1606,24 @@ class MainWindow(QMainWindow):
             extra += (f" (+ thư mục _vehicle_io của liên kết đang chọn, chưa chạy lần nào: {refusal_link.refused_starts} "
                       f"lần START bị từ chối, {len(refusal_link.board_actions)} lần Xóa lỗi bo)")
         extra += " (+ dấu đồng bộ)" if sync_file is not None else ""
+        extra += extras
         self.statusBar().showMessage(f"Đã ghi {len(self.session.log)} dòng vào {path}{extra}", 5000)
+
+    def _export_extras(self, csv_path: Path, bundle: Path | None) -> str:
+        """Tệp thêm của lớp con khi xuất log, sau dấu đồng bộ (T3, 02/10/2026: tệp trỏ tới bản ghi cảm biến của
+        `ui.lidar_app`). Trả phần chữ thêm vào lời báo; lỗi đĩa (OSError) ném ra như các tệp khác."""
+        return ""
 
     def _set_drive_mode(self, index: int) -> None:
         mode = DriveMode(self.combo_drive.itemData(index))
         port = self.board_port()
-        if mode == DriveMode.SIM:
-            link = None
-        elif port is None:
-            link = VehicleLink.simulated(mode, self._sim_io_config())
-        else:
-            # Bo thật (24/09/2026): cổng CHƯA mở; chưa có nguồn tư thế thật nên START sẽ bị từ chối rõ ràng.
-            link = VehicleLink.serial_port(mode, port)
+        try:
+            # T2: (nhánh, bo, nguồn tư thế); tổ hợp bị cấm → ValueError tiếng Việt, trả cả ba ô về liên kết đang dùng
+            link = self._build_link(mode, port, self.pose_choice())
+        except ValueError as exc:
+            self._revert_link_widgets()
+            QMessageBox.warning(self, "Không đổi được nhánh chạy", str(exc))
+            return
         try:
             self.session.set_vehicle_link(link)
         except SessionError as exc:
@@ -1503,45 +1635,75 @@ class MainWindow(QMainWindow):
                 self.combo_port.setCurrentIndex(max(0, self.combo_port.findData(self._link_port or "")))
             QMessageBox.warning(self, "Không đổi được nhánh chạy", str(exc))
             return
-        self._link_port = port
+        self._link_port = self.board_key() or None
+        self._link_pose_choice = self.pose_choice()
         self.lbl_drive_hint.setText(escape(DRIVE_MODE_CHOICES[index][2]))
         self._refresh_board_hint()
         self._refresh_mode_widgets()
         self._refresh_status()
 
     # ------------------------------------------------------------------ bo điều khiển (24/09/2026)
-    def board_port(self) -> str | None:
-        """Cổng serial đang chọn ở thẻ "Bo điều khiển"; None = bo mô phỏng (mặc định)."""
+    def board_key(self) -> str:
+        """Mục đang chọn ở thẻ "Bo điều khiển": "" bo mô phỏng, QEMU_BOARD_KEY bo ảo QEMU (02/10/2026), hoặc cổng COM."""
         data = self.combo_port.currentData()
-        return str(data) if data else None
+        return str(data) if data else ""
+
+    def board_is_qemu(self) -> bool:
+        return self.board_key() == QEMU_BOARD_KEY
+
+    def board_port(self) -> str | None:
+        """Cổng serial đang chọn ở thẻ "Bo điều khiển"; None = bo mô phỏng (mặc định) hoặc bo ảo QEMU."""
+        key = self.board_key()
+        return key if key and key != QEMU_BOARD_KEY else None
 
     def _refresh_ports(self) -> None:
         """Liệt kê lại cổng COM (không mở cổng). Cổng đang chọn mà không còn thấy vẫn được giữ, ghi "(không thấy)":
-        không tự đổi sang bo khác."""
-        current = self.board_port()
+        không tự đổi sang bo khác. Bo mô phỏng và bo ảo QEMU luôn là hai mục đầu."""
+        current = self.board_key()
         ports = list_serial_ports()
         with QSignalBlocker(self.combo_port):
             self.combo_port.clear()
             self.combo_port.addItem(SIM_BOARD_LABEL, "")
+            self.combo_port.addItem(QEMU_BOARD_LABEL, QEMU_BOARD_KEY)
             for device, desc in ports:
                 self.combo_port.addItem(f"{device} — {desc}" if desc else device, device)
-            if current is not None and self.combo_port.findData(current) < 0:
+            if current and self.combo_port.findData(current) < 0:
                 self.combo_port.addItem(f"{current} (không thấy — đã rút?)", current)
-            self.combo_port.setCurrentIndex(max(0, self.combo_port.findData(current or "")))
+            self.combo_port.setCurrentIndex(max(0, self.combo_port.findData(current)))
         self.statusBar().showMessage(f"Thấy {len(ports)} cổng COM" if ports else
                                      "Không thấy cổng COM nào (hoặc pyserial không liệt kê được)", 5000)
 
     def _on_port_changed(self, _index: int = -1) -> None:
-        if self.board_port() == self._link_port:
+        if (self.board_key() or None) == self._link_port:
             self._refresh_board_hint()
             return
         self.lbl_board_report.setText("")
         self._set_drive_mode(self.combo_drive.currentIndex())
+        self._after_board_choice()
+
+    def _sim_board_note(self) -> str:
+        """Câu đầu của gợi ý bo mô phỏng: tệp vehicle_io_sim*.json đã chọn theo tệp xe (02/10/2026); '' khi chưa
+        chọn."""
+        choice = self.sim_board_choice
+        if choice is None:
+            return ""
+        vehicle_file = self.session.scenario.vehicle_config_path
+        source = choice.path.name if choice.path is not None else "cấu hình mặc định trong mã"
+        if choice.matched:
+            text = f"Bo mô phỏng theo {source} (khớp tệp xe {Path(vehicle_file).name})"
+            return text + (f"; {choice.note}" if choice.note else "")
+        return (f"Bo mô phỏng theo {source}: {choice.note}. Giới hạn bo lệch cấu hình xe theo hướng nguy hiểm (bo cho "
+                f"chạy nhanh hơn xe…) thì Bắt đầu đỗ ở VehicleIO bị TỪ CHỐI (LIMITS_MISMATCH); bo chặt hơn chỉ "
+                f"cảnh báo")
 
     def _refresh_board_hint(self) -> None:
         port = self.board_port()
-        if port is None:
-            text = ("Bo mô phỏng: VehicleIO và Quan sát đi qua SimVehicleIO + FirmwareModel, tư thế lấy từ mô phỏng. "
+        if self.board_is_qemu():
+            text = QEMU_BOARD_HINT
+        elif port is None:
+            head = self._sim_board_note()
+            text = ((f"{head}. " if head else "Bo mô phỏng: ")
+                    + "VehicleIO và Quan sát đi qua SimVehicleIO + FirmwareModel, tư thế lấy từ mô phỏng. "
                     "Kiểm kết nối bo ở đây dùng bo mô phỏng. Xóa lỗi bo (CLEAR_FAULT) không dùng với bo mô phỏng: mỗi "
                     "lần Bắt đầu đỗ tạo bo mới ở DISARMED.")
         else:
@@ -1551,7 +1713,233 @@ class MainWindow(QMainWindow):
                     f"không gửi lệnh chuyển động. Xóa lỗi bo (CLEAR_FAULT, ở nhánh VehicleIO hoặc Quan sát) dùng chính "
                     f"cổng này: mở, HELLO, đọc trạng thái, chỉ gửi CLEAR_FAULT khi bo đang FAULT và nút dừng khẩn đã "
                     f"nhả, rồi đóng cổng.")
+        text = self._pose_board_hint(port, text)
         self.lbl_board_hint.setText(escape(text))
+
+    # ------------------------------------------------------------------ nguồn tư thế (T2, 02/10/2026)
+    def _build_pose_source_widgets(self) -> None:
+        """"Nguồn tư thế" trong thẻ Bo điều khiển: ô chọn, bản đồ LiDAR, "Đặt xuất phát theo LiDAR", nhãn trạng thái
+        (làm mới 5 Hz). Không đổi gì của liên kết cho tới khi người dùng chọn."""
+        self.lidar_pose_source = None              # LidarPoseSource của ui.lidar_app (BenchWindow); None ở ui.app
+        self._link_pose_choice = "sim_truth"
+        self._hinted_start: Pose | None = None
+        self.lidar_pose_item: CarItem | None = None
+        self._pose_config = None
+        title = QLabel("Nguồn tư thế")
+        self.combo_pose = QComboBox()
+        for key, label in POSE_SOURCE_CHOICES:
+            self.combo_pose.addItem(label, key)
+        if not self._lidar_real_supported():
+            item = self.combo_pose.model().item(self.combo_pose.findData("lidar_real"))
+            item.setEnabled(False)
+            item.setToolTip(LIDAR_REAL_ONLY_TIP)
+        self.combo_pose.setToolTip("Chỉ đổi được khi chưa chạy. LiDAR thật chỉ đi với bo COM, LiDAR mô phỏng chỉ đi "
+                                   "với bo mô phỏng.")
+        self.combo_pose.currentIndexChanged.connect(self._on_pose_choice_changed)
+        self.btn_lidar_map = QPushButton("Chọn bản đồ LiDAR…")
+        self.btn_lidar_map.setToolTip("Thư mục bản đồ của autopark.lidar.map_builder (costmap.json, hệ sa bàn)"
+                                      if self._lidar_real_supported() else LIDAR_REAL_ONLY_TIP)
+        self.btn_lidar_map.clicked.connect(self._choose_lidar_map)
+        self.btn_start_from_lidar = QPushButton("Đặt xuất phát theo LiDAR")
+        self.btn_start_from_lidar.setToolTip("Lấy tư thế OK hiện tại của định vị LiDAR làm điểm xuất phát. Khi đó kiểm "
+                                             "START với điểm xuất phát không còn là kiểm độc lập.")
+        self.btn_start_from_lidar.clicked.connect(self._start_from_lidar)
+        self.lbl_lidar_map = WrapLabel("")
+        self.lbl_lidar_map.setObjectName("hint")
+        self.lbl_pose_status = WrapLabel("")
+        self.lbl_pose_status.setObjectName("hint")
+        self.lbl_pose_status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.box_board.add(title, self.combo_pose)
+        self.box_board.add_layout(theme.row(self.btn_lidar_map, self.btn_start_from_lidar))
+        self.box_board.add(self.lbl_lidar_map, self.lbl_pose_status)
+        self._pose_timer = QTimer(self)
+        self._pose_timer.setInterval(200)
+        self._pose_timer.timeout.connect(self._refresh_pose_status)
+        self._pose_timer.start()
+
+    def pose_choice(self) -> str:
+        """Nguồn tư thế đang chọn: "sim_truth", "lidar_sim" hoặc "lidar_real"."""
+        return str(self.combo_pose.currentData() or "sim_truth")
+
+    def _lidar_real_supported(self) -> bool:
+        """LiDAR thật cần ngăn LiDAR và bản đồ: chỉ cửa sổ của ui.lidar_app (BenchWindow) trả True."""
+        return False
+
+    def _dock_lidar_port(self) -> str | None:
+        """Cổng LiDAR của ngăn LiDAR (BenchWindow); None ở ui.app."""
+        return None
+
+    def _choose_lidar_map(self) -> None:
+        self.statusBar().showMessage(LIDAR_REAL_ONLY_TIP, 5000)
+
+    def _lidar_pose_config(self):
+        """Cấu hình định vị LiDAR (configs/dinh_vi_lidar_v0.json), nạp một lần."""
+        if self._pose_config is None:
+            from autopark.lidar.pose_config import load_lidar_pose_config
+            self._pose_config = load_lidar_pose_config()
+        return self._pose_config
+
+    def _on_pose_choice_changed(self, _index: int = -1) -> None:
+        if self.pose_choice() != self._link_pose_choice:
+            self._set_drive_mode(self.combo_drive.currentIndex())
+        self._after_pose_choice()
+        self._refresh_board_hint()
+
+    def _build_link(self, mode: DriveMode, port: str | None, choice: str) -> VehicleLink | None:
+        """Liên kết cho (nhánh, bo, nguồn tư thế). Tổ hợp bị cấm → ValueError (lời tiếng Việt cho hộp thoại)."""
+        if mode == DriveMode.SIM:
+            return None
+        if self.board_is_qemu():
+            if choice != "sim_truth":
+                raise ValueError("Bo ảo QEMU chỉ đi với tư thế của xe mô phỏng phía laptop; LiDAR mô phỏng chỉ dùng "
+                                 "với bo mô phỏng, LiDAR thật chỉ với bo COM")
+            # Bo ảo QEMU (02/10/2026): chưa mở gì; mỗi START lấy bo đang chạy từ runner của thẻ Bo điều khiển.
+            return VehicleLink.qemu_board(mode, self.qemu_runner, plant_config=self._qemu_plant_config())
+        lidar_port = self._dock_lidar_port()
+        if port is not None and lidar_port and port.strip().upper() == lidar_port.strip().upper():
+            raise ValueError(f"{port} là cổng của LiDAR ở ngăn LiDAR, không phải bo ESP32-S3")
+        if port is None:
+            if choice == "lidar_real":
+                raise ValueError("LiDAR thật không đi cùng bo mô phỏng: xe mô phỏng chạy còn LiDAR đứng trên bàn, tư "
+                                 "thế đo được không phải của xe đang chạy")
+            if choice == "lidar_sim":
+                from autopark.application.lidar_pose_source import LidarSimPoseFactory
+                config = self._lidar_pose_config()
+                # Tuổi tư thế tối đa riêng + dự đoán tư thế tới io.now() (LinkParams.for_lidar, sửa sau review 02/10)
+                return VehicleLink.simulated(mode, self._sim_io_config(),
+                                             params=LinkParams.for_lidar(config.max_pose_age_s),
+                                             pose_factory=LidarSimPoseFactory(config))
+            return VehicleLink.simulated(mode, self._sim_io_config())
+        if choice == "lidar_sim":
+            raise ValueError("LiDAR mô phỏng chỉ dùng với bo mô phỏng")
+        if choice == "lidar_real":
+            source = self.lidar_pose_source
+            if source is None:
+                raise ValueError("Chưa nạp bản đồ LiDAR: bấm 'Chọn bản đồ LiDAR…' trước")
+            # CHƯA THỬ với bo thật: VehicleIO bị từ chối (START_POSE_UNVERIFIED) tới khi gá đo và đủ điều kiện tiên quyết
+            # Dự đoán tư thế (for_lidar) chỉ chạy khi telemetry có tốc độ, góc lái đo (bo thật chưa có: T8).
+            return VehicleLink.serial_port(mode, port, pose_source=source,
+                                           params=LinkParams.for_lidar(source.config.max_pose_age_s))
+        # Bo thật (24/09/2026): cổng CHƯA mở; chưa có nguồn tư thế thật nên START sẽ bị từ chối rõ ràng.
+        return VehicleLink.serial_port(mode, port)
+
+    def _revert_link_widgets(self) -> None:
+        """Trả ô nhánh chạy, ô cổng và ô nguồn tư thế về liên kết đang dùng."""
+        with QSignalBlocker(self.combo_drive):
+            self.combo_drive.setCurrentIndex(self.combo_drive.findData(self.session.drive_mode.value))
+        with QSignalBlocker(self.combo_port):
+            self.combo_port.setCurrentIndex(max(0, self.combo_port.findData(self._link_port or "")))
+        with QSignalBlocker(self.combo_pose):
+            self.combo_pose.setCurrentIndex(max(0, self.combo_pose.findData(self._link_pose_choice)))
+        self._after_pose_choice()
+
+    def _after_pose_choice(self) -> None:
+        """Móc cho BenchWindow (nối nguồn LiDAR thật với ngăn LiDAR theo lựa chọn)."""
+
+    def _pose_board_hint(self, port: str | None, text: str) -> str:
+        if self.board_is_qemu():              # bo ảo QEMU: giữ gợi ý của bo ảo (chỉ tư thế xe mô phỏng)
+            return text
+        choice = self.pose_choice()
+        if port is None and choice == "lidar_sim":
+            return ("Bo mô phỏng + LiDAR MÔ PHỎNG: mỗi lần Bắt đầu đỗ tạo bo mới; LiDAR mô phỏng quét sa bàn từ tư thế "
+                    "THẬT của xe mô phỏng, định vị (a) + (b) trên bản đồ dựng từ sa bàn, tuổi tư thế tối đa 0,25 s "
+                    "(kiểm trên tuổi thô của vòng quét); tư thế được dời tới hiện tại bằng tốc độ, góc lái đo trước "
+                    "khi vào bộ bám. Dừng khi định vị lạc (POSE_LOST), lệch (POSE_DISAGREE), không kiểm chéo được "
+                    "(POSE_UNCHECKED) hay tư thế cũ (STALE_POSE). Bằng chứng: simulation_only.")
+        if port is not None and choice == "lidar_real":
+            return (f"Bo THẬT qua {port} + LiDAR thật (định vị trên bản đồ tĩnh). VehicleIO: Bắt đầu đỗ bị TỪ CHỐI "
+                    f"trước khi mở cổng (START_POSE_UNVERIFIED) tới khi configs/dinh_vi_lidar_v0.json ghi gá LiDAR đã "
+                    f"đo và đạt p04, DV-2, DV-1. Quan sát: ghi POSE_SOURCE_WARNING, mở cổng ở lần Bắt đầu đỗ đầu tiên và "
+                    f"giữ mở giữa các lần chạy ('Kiểm kết nối bo' đóng cổng đó trước khi kiểm, lần Bắt đầu đỗ sau mở "
+                    f"lại); START_CHECK vẫn từ chối khi telemetry không có tốc độ/góc lái đo (T8). CHƯA THỬ với bo "
+                    f"thật.")
+        return text
+
+    def _refresh_pose_widgets(self, editable: bool) -> None:
+        choice = self.pose_choice()
+        self.combo_pose.setEnabled(editable)
+        self.btn_lidar_map.setEnabled(editable and self._lidar_real_supported())
+        status = self._pose_status()
+        self.btn_start_from_lidar.setEnabled(editable and choice != "sim_truth" and status is not None
+                                             and status.available and status.vehicle_pose is not None)
+
+    def _pose_status(self):
+        """Trạng thái nguồn LiDAR đang chọn (None khi không có): LiDAR thật của cửa sổ, hoặc LiDAR mô phỏng của liên
+        kết đang dùng (chỉ có sau lần Bắt đầu đỗ đầu tiên)."""
+        choice = self.pose_choice()
+        if choice == "lidar_real" and self.lidar_pose_source is not None:
+            return self.lidar_pose_source.status()
+        if choice == "lidar_sim":
+            link = self.session.run_link or self.session.vehicle_link
+            source = getattr(link, "pose_source", None)
+            if source is not None and hasattr(source, "status"):
+                return source.status()
+        return None
+
+    def _refresh_pose_status(self) -> None:
+        """5 Hz: nhãn trạng thái định vị, gợi ý điểm xuất phát cho nguồn LiDAR thật, xe định vị trên sa bàn."""
+        choice = self.pose_choice()
+        source = self.lidar_pose_source
+        start = self.session.scenario.start
+        if source is not None and start != self._hinted_start and self.session.state in EDITABLE_STATES:
+            source.set_hint(start)
+            self._hinted_start = start
+        status = self._pose_status()
+        if choice == "sim_truth":
+            text = "Mô phỏng: tư thế thật của xe mô phỏng (định vị lý tưởng)."
+        elif status is not None:
+            text = status.text
+        elif choice == "lidar_sim":
+            text = "LiDAR mô phỏng: nguồn tạo mới ở mỗi lần Bắt đầu đỗ (bản đồ dựng từ sa bàn)."
+        else:
+            text = "LiDAR thật: chưa nạp bản đồ."
+        self.lbl_pose_status.setText(escape(text))
+        st = self.session.state
+        editable = st in EDITABLE_STATES
+        self.btn_start_from_lidar.setEnabled(editable and choice != "sim_truth" and status is not None
+                                             and status.available and status.vehicle_pose is not None)
+        show = (choice != "sim_truth" and st not in RUN_STATES and status is not None
+                and status.vehicle_pose is not None and math.isfinite(status.vehicle_pose.x))
+        if show:
+            item = self._ensure_lidar_pose_item()
+            item.set_pose(status.vehicle_pose)
+            item.setVisible(True)
+        elif self.lidar_pose_item is not None:
+            try:
+                self.lidar_pose_item.setVisible(False)
+            except RuntimeError:                  # cảnh đã dựng lại
+                self.lidar_pose_item = None
+
+    def _ensure_lidar_pose_item(self) -> CarItem:
+        """Xe theo định vị LiDAR trên sa bàn (viền màu nhấn), dựng lại khi cảnh được dựng lại."""
+        item = self.lidar_pose_item
+        try:
+            alive = item is not None and item.scene() is self.scene
+        except RuntimeError:                      # cảnh đã dựng lại: đối tượng C++ đã mất
+            alive = False
+        if not alive:
+            item = CarItem(self.session.cfg, QColor(0, 0, 0, 0), QColor(0, 0, 0, 0), QColor(theme.ACCENT), dashed=True,
+                           opacity=0.9)
+            item.setZValue(6)
+            item.setVisible(False)
+            self.scene.addItem(item)
+            self.lidar_pose_item = item
+        return item
+
+    def _start_from_lidar(self) -> None:
+        """"Đặt xuất phát theo LiDAR": tư thế OK hiện tại → điểm xuất phát (nguồn "lidar_localize")."""
+        status = self._pose_status()
+        if self.session.state not in EDITABLE_STATES or status is None or not status.available \
+                or status.vehicle_pose is None:
+            self.statusBar().showMessage("Chưa có tư thế OK từ định vị LiDAR", 5000)
+            return
+        pose = status.vehicle_pose
+        self._edit(lambda: self.session.set_start(pose, source="lidar_localize"))
+        self.start_item.set_pose(self.session.scenario.start)
+        self.start_editor.set_pose(self.session.scenario.start)
+        self.statusBar().showMessage(
+            f"Đặt xuất phát theo LiDAR: ({pose.x:.3f}; {pose.y:.3f}) m, {math.degrees(pose.yaw):.1f}°. Kiểm START với "
+            f"điểm xuất phát không còn là kiểm độc lập", 10000)
 
     def _probe_board(self) -> BoardProbe | None:
         """"Kiểm kết nối bo": HELLO, vài khung telemetry, so giới hạn với cấu hình xe, đóng cổng.
@@ -1559,8 +1947,11 @@ class MainWindow(QMainWindow):
         Không ARM, không COMMAND."""
         if self.session.state not in EDITABLE_STATES:
             return None
+        if self.board_is_qemu():
+            return self._probe_qemu_board()
         port = self.board_port()
         cfg = self.session.cfg
+        released, note = None, ""
         if port is None:
             from autopark.transport.vehicle_io import SimVehicleIO
             io = SimVehicleIO(cfg, self._sim_io_config())
@@ -1573,11 +1964,14 @@ class MainWindow(QMainWindow):
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
             if answer != QMessageBox.StandardButton.Yes:
                 return None
+            released = self._release_link_port(port)
+            note = (f" (đã đóng {released} mà nhánh chạy giữ mở từ lần Bắt đầu đỗ trước; lần Bắt đầu đỗ sau mở lại)"
+                    if released else "")
             try:
                 io = self.serial_io_factory(port)
             except Exception as exc:          # SerialException (OSError), ValueError, ImportError...
-                self.lbl_board_report.setText(escape(f"Không mở được {port}: {exc}"))
-                self.statusBar().showMessage(f"Không mở được {port}", 6000)
+                self.lbl_board_report.setText(escape(f"Không mở được {port}: {exc}{note}"))
+                self.statusBar().showMessage(f"Không mở được {port}{note}", 8000)
                 return None
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
@@ -1586,10 +1980,26 @@ class MainWindow(QMainWindow):
             QApplication.restoreOverrideCursor()
         self.last_board_probe = report
         color = theme.OK if report.ok and (report.limits is None or not report.limits.risky) else theme.WARN
-        body = "<br>".join(escape(line) for line in report.lines())
+        lines = report.lines()
+        if released:
+            lines.append(f"Trước khi kiểm đã đóng {released} mà nhánh chạy giữ mở từ lần Bắt đầu đỗ trước (bước 0c); "
+                         f"lần Bắt đầu đỗ sau mở lại cổng.")
+        body = "<br>".join(escape(line) for line in lines)
         self.lbl_board_report.setText(f"<span style='color:{color}'>{body}</span>")
-        self.statusBar().showMessage(f"Kiểm kết nối {report.target}: " + ("đạt" if report.ok else "có lỗi"), 6000)
+        self.statusBar().showMessage(f"Kiểm kết nối {report.target}: " + ("đạt" if report.ok else "có lỗi") + note,
+                                     8000 if released else 6000)
         return report
+
+    def _release_link_port(self, port: str) -> str | None:
+        """Sửa sau review 02/10/2026: nhánh chạy đang chọn giữ `port` mở giữa các lần chạy (bước 0c của VehicleLink, T2:
+        sau một lần Bắt đầu đỗ, kể cả lần bị từ chối ở START_CHECK) thì đóng cổng đó (`VehicleLink.release_port`) trước
+        khi "Kiểm kết nối bo" mở nó: trên Windows một cổng COM chỉ mở được một lần ("Access is denied"). Lần Bắt đầu đỗ
+        sau mở lại cổng. Trả tên cổng đã đóng; None khi không đóng gì."""
+        link = self.session.vehicle_link
+        held = getattr(getattr(link, "io", None), "port", None)
+        if link is None or not held or held.strip().upper() != port.strip().upper():
+            return None
+        return link.release_port()
 
     def _clear_fault_blocker(self) -> str | None:
         """Lý do nút "Xóa lỗi bo" bị khóa; None = dùng được (T15, thêm 02/10/2026)."""
@@ -1616,7 +2026,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Không xóa lỗi bo: {blocker}", 6000)
             return None
         link = self.session.vehicle_link
-        if link.realtime:
+        if link.realtime and not link.is_qemu:          # bo ảo QEMU: không có ESP32, DTR hay LiDAR để nhầm
             port = getattr(link.io, "port", None) or "cổng serial"
             answer = QMessageBox.question(
                 self, "Xóa lỗi bo (CLEAR_FAULT)",
@@ -1645,18 +2055,221 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"CLEAR_FAULT {report.target}: {report.summary()}", 8000)
         return report
 
-    @staticmethod
-    def _sim_io_config():
-        """Cấu hình bo mô phỏng từ configs/vehicle_io_sim.json (toàn số GIẢ ĐỊNH); lỗi thì dùng mặc định."""
-        from autopark.transport.vehicle_io import SimIOConfig, load_sim_io_config
-        path = Path(__file__).resolve().parents[2] / "configs" / "vehicle_io_sim.json"
-        try:
-            return load_sim_io_config(path)[0]
-        except (OSError, ValueError, KeyError):
-            return SimIOConfig()
+    # ------------------------------------------------------------------ bo ảo QEMU (02/10/2026)
+    def _build_qemu_row(self) -> QWidget:
+        """Hàng "Khởi động bo ảo" và dòng trạng thái của thẻ Bo điều khiển; chỉ hiện khi chọn bo ảo QEMU. Runner rảnh: không
+        hẹn giờ, không đọc tệp nào tới khi chọn mục bo ảo."""
+        self.qemu_row = QWidget()
+        layout = QVBoxLayout(self.qemu_row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        self.btn_qemu = QPushButton("Khởi động bo ảo")
+        self.btn_qemu.setToolTip(QEMU_START_TIP)
+        self.btn_qemu.clicked.connect(self._toggle_qemu)
+        self.lbl_qemu = WrapLabel("")
+        self.lbl_qemu.setObjectName("hint")
+        self.lbl_qemu.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.btn_qemu)
+        layout.addWidget(self.lbl_qemu)
+        self.qemu_row.hide()
+        self.qemu_probe_io_factory: Callable[[object], object] = _open_qemu_probe_io
+        self.qemu_runner: QemuBoardRunner | None = None
+        self.attach_qemu_runner(QemuBoardRunner(self))
+        return self.qemu_row
 
-    def _observe_human(self) -> SimHumanDriver | None:
-        """Người lái mô phỏng của lần quan sát đang chạy (None nếu không ở chế độ quan sát)."""
+    def attach_qemu_runner(self, runner: QemuBoardRunner) -> None:
+        """Dùng `runner` làm bo ảo của cửa sổ (test: runner với bo giả; gọi trước khi chọn mục bo ảo). Runner cũ bị tắt."""
+        old = self.qemu_runner
+        if old is not None and old is not runner:
+            try:
+                old.changed.disconnect(self._on_qemu_changed)
+            except (RuntimeError, TypeError):
+                pass
+            old.shutdown()
+        self.qemu_runner = runner
+        runner.changed.connect(self._on_qemu_changed)
+        if hasattr(self, "board_tag"):           # cửa sổ đã dựng xong
+            self._on_qemu_changed()
+
+    def _on_qemu_changed(self) -> None:
+        self._refresh_qemu_widgets()
+        self._refresh_clear_fault_button()       # "Xóa lỗi bo" của liên kết bo ảo cần bo đang chạy
+
+    def _refresh_qemu_widgets(self) -> None:
+        """Hàng bo ảo (chỉ khi chọn bo ảo), nút "Khởi động"/"Tắt bo ảo" (chỉ khi đang chỉnh hoặc sẵn sàng; khóa khi đang
+        tắt hay máy chưa cấu hình), "Kiểm kết nối bo" (bo ảo phải đang chạy) và nhãn BO ẢO QEMU của cockpit."""
+        runner = self.qemu_runner
+        qemu = self.board_is_qemu()
+        st = runner.state
+        editable = self.session.state in EDITABLE_STATES
+        self.qemu_row.setVisible(qemu)
+        self.btn_qemu.setText("Tắt bo ảo" if st in QEMU_BUSY_STATES else "Khởi động bo ảo")
+        self.btn_qemu.setEnabled(qemu and editable and st not in (QemuRunnerState.STOPPING, QemuRunnerState.UNAVAILABLE))
+        tone = {QemuRunnerState.RUNNING: theme.OK, QemuRunnerState.FAILED: theme.DANGER,
+                QemuRunnerState.STOPPED: theme.TEXT_DIM}.get(st, theme.WARN)
+        text = escape(runner.status_text()).replace("\n", "<br>")      # lỗi build kèm 25 dòng cuối của PlatformIO
+        self.lbl_qemu.setText(f"<span style='color:{tone}'>{text}</span>")
+        if qemu:
+            self.btn_probe.setEnabled(editable and st == QemuRunnerState.RUNNING)
+        self.board_tag.setVisible(qemu and self.session.drive_mode != DriveMode.SIM)
+
+    def _after_board_choice(self) -> None:
+        """Sau khi đổi mục ở thẻ Bo điều khiển: chọn bo ảo chỉ kiểm cấu hình máy (không khởi động gì); rời bo ảo khi nó
+        đang chạy, build hay khởi động thì tắt nó."""
+        runner = self.qemu_runner
+        if self.board_is_qemu():
+            runner.availability()
+        elif runner.state in QEMU_BUSY_STATES:
+            runner.stop("deselect")
+            self.statusBar().showMessage("Đã tắt bo ảo QEMU (đã chọn bo khác)", 6000)
+        self._on_qemu_changed()
+
+    def _toggle_qemu(self) -> None:
+        """Nút "Khởi động bo ảo" / "Tắt bo ảo"."""
+        runner = self.qemu_runner
+        if runner.state in QEMU_BUSY_STATES:
+            runner.stop("user")
+        elif self.session.state in EDITABLE_STATES and self.board_is_qemu():
+            runner.start()
+        self._on_qemu_changed()
+
+    def _qemu_plant_config(self):
+        """Tham số xe mô phỏng phía laptop từ configs/bo_ao_qemu.json; lỗi thì mặc định và cảnh báo ở thanh trạng thái."""
+        from autopark.transport.qemu_plant import PlantConfig, load_plant_config
+        try:
+            return load_plant_config()
+        except (OSError, ValueError) as exc:
+            self.statusBar().showMessage(f"Không đọc được configs/bo_ao_qemu.json ({exc}): dùng tham số mặc định của xe "
+                                         f"mô phỏng phía laptop", 8000)
+            return PlantConfig()
+
+    def _probe_qemu_board(self) -> BoardProbe | None:
+        """"Kiểm kết nối bo" với bo ảo QEMU: không hỏi xác nhận (không có ESP32, DTR hay LiDAR để nhầm), HELLO và vài khung
+        telemetry của firmware trong giả lập, so giới hạn, rồi đóng kết nối. Không ARM, không COMMAND."""
+        board, reason = self.qemu_runner.current_board()
+        if board is None:
+            self.lbl_board_report.setText(escape(f"Bo ảo chưa chạy ({reason}): bấm 'Khởi động bo ảo'"))
+            self.statusBar().showMessage("Bo ảo chưa chạy: bấm 'Khởi động bo ảo'", 6000)
+            return None
+        target = f"bo ảo QEMU {board.url}"
+        try:
+            io = self.qemu_probe_io_factory(board)
+        except Exception as exc:          # ConnectionRefusedError (OSError), ValueError...
+            self.lbl_board_report.setText(escape(f"Không mở được {target}: {exc}"))
+            self.statusBar().showMessage(f"Không mở được {target}", 6000)
+            return None
+        from autopark.transport.qemu_plant import QEMU_KIND
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            report = probe_board(io, self.session.cfg, target=target, kind=QEMU_KIND)
+        finally:
+            QApplication.restoreOverrideCursor()
+        self.last_board_probe = report
+        color = theme.OK if report.ok and (report.limits is None or not report.limits.risky) else theme.WARN
+        body = "<br>".join(escape(line) for line in report.lines() + [QEMU_PROBE_NOTE])
+        self.lbl_board_report.setText(f"<span style='color:{color}'>{body}</span>")
+        self.statusBar().showMessage(f"Kiểm kết nối {report.target}: " + ("đạt" if report.ok else "có lỗi"), 6000)
+        return report
+
+    def _qemu_url(self, link: VehicleLink) -> str | None:
+        """URL bo ảo của liên kết: của io lần chạy gần nhất, không thì của bo đang chạy (nếu có)."""
+        port = getattr(link.io, "port", None)
+        if port:
+            return port
+        board = self.qemu_runner.board if self.qemu_runner.state == QemuRunnerState.RUNNING else None
+        return getattr(board, "url", None)
+
+    def _qemu_run_text(self, link: VehicleLink) -> str:
+        branch = "VehicleIO" if link.mode == DriveMode.VEHICLE_IO else "Quan sát"
+        return (f"Nhánh chạy: {branch} qua BO ẢO QEMU ({self._qemu_url(link)}) — tốc độ, góc lái, tư thế từ XE MÔ PHỎNG "
+                f"phía laptop; không phải bo hay xe thật")
+
+    def _sim_io_config(self):
+        """Cấu hình bo mô phỏng theo tệp xe đang dùng (toàn số GIẢ ĐỊNH; 02/10/2026): tệp configs/vehicle_io_sim*.json
+        có vehicle_config trỏ đúng tệp xe, không có thì vehicle_io_sim.json, tệp đó lỗi thì mặc định trong mã
+        (`choose_sim_io_config`). Lần chọn ghi ở `sim_board_choice` cho gợi ý của thẻ Bo điều khiển. Không tham số:
+        test thay hàm này bằng lambda trả SimIOConfig."""
+        from autopark.transport.vehicle_io import choose_sim_io_config
+        choice = choose_sim_io_config(self.session.scenario.vehicle_config_path, CONFIGS_DIR)
+        self.sim_board_choice = choice
+        return choice.config
+
+    def _sync_sim_board(self) -> None:
+        """Chọn lại bo mô phỏng theo tệp xe đang dùng rồi viết lại gợi ý của thẻ Bo điều khiển (02/10/2026). Gọi lúc
+        dựng thẻ, ngay trước Bắt đầu đỗ, sau khi đổi xe và sau khi mở kịch bản. Liên kết bo mô phỏng đang chọn
+        (`sim_config` khác None; liên kết cổng serial hay QEMU không có) nhận cấu hình mới khi chưa có lần chạy đang mở:
+        giữ nguyên đối tượng liên kết cùng bằng chứng start_refusals / board_actions, và mỗi lần Bắt đầu đỗ dùng bo khớp
+        xe. Không nới kiểm tra nào: bo lệch xe vẫn bị LIMITS_MISMATCH từ chối lúc START ở VehicleIO."""
+        config = self._sim_io_config()
+        link = self.session.vehicle_link
+        if link is not None and link.sim_config is not None and self.session.state not in RUN_OPEN_STATES:
+            link.sim_config = config
+        self._refresh_board_hint()
+
+    def _refresh_vehicle_combo(self) -> None:
+        """Ô "Cấu hình xe": các tệp configs/vehicle_*.json dùng được (`list_vehicle_configs`; tệp hỏng chỉ ghi ở chú
+        thích), cộng tệp xe của phiên khi nằm ngoài configs/; chọn đúng tệp xe của phiên (không có tệp xe: không chọn
+        mục nào)."""
+        files, problems = list_vehicle_configs(CONFIGS_DIR)
+        current = self.session.scenario.vehicle_config_path
+        key = path_key(current) if current is not None else None
+        with QSignalBlocker(self.combo_vehicle):
+            self.combo_vehicle.clear()
+            for item in files:
+                self.combo_vehicle.addItem(f"{item.path.name} — tối đa {item.cfg.max_speed:.2f} m/s",
+                                           path_key(item.path))
+            if key is not None and self.combo_vehicle.findData(key) < 0:
+                self.combo_vehicle.addItem(f"{Path(current).name} (ngoài configs/) — tối đa "
+                                           f"{self.session.cfg.max_speed:.2f} m/s", key)
+            self.combo_vehicle.setCurrentIndex(self.combo_vehicle.findData(key) if key is not None else -1)
+        self.combo_vehicle.setToolTip(VEHICLE_CHOICE_TIP + (f"\n\nTệp không dùng được: {'; '.join(problems)}"
+                                                            if problems else ""))
+
+    def _on_vehicle_chosen(self, index: int) -> None:
+        """Đổi xe ở ô "Cấu hình xe" (02/10/2026). Chỉ khi đang chỉnh hoặc sẵn sàng; đường đã lập bị hủy; phiên còn log
+        (lần chạy hay lái tay, chưa xuất thì mất) thì hỏi trước, mặc định Không. Xe chọn được giữ khi "Mở…" kịch bản
+        khác (như --vehicle-config); bo mô phỏng chọn lại theo tệp xe. Không đổi được thì ô trở về xe đang dùng."""
+        key = self.combo_vehicle.itemData(index)
+        current = self.session.scenario.vehicle_config_path
+        if not key or (current is not None and key == path_key(current)):
+            return
+        st = self.session.state
+        if st not in EDITABLE_STATES:
+            self._refresh_vehicle_combo()
+            self.statusBar().showMessage(f"Chỉ đổi xe khi đang chỉnh hoặc sẵn sàng (đang {st.label})", 6000)
+            return
+        try:
+            chosen = load_vehicle_config_file(key)
+        except VehicleConfigError as exc:
+            self._refresh_vehicle_combo()
+            QMessageBox.warning(self, "Không đổi được xe", str(exc))
+            return
+        if len(self.session.log) > 0:
+            answer = QMessageBox.question(
+                self, "Đổi cấu hình xe",
+                f"Đổi sang {chosen.path.name} xóa log của lần chạy hay lái tay trước; chưa Xuất log thì mất. Tiếp tục?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if answer != QMessageBox.StandardButton.Yes:
+                self._refresh_vehicle_combo()
+                return
+        try:
+            self.session.set_vehicle(chosen.cfg, chosen.path)
+        except SessionError as exc:
+            self._refresh_vehicle_combo()
+            QMessageBox.warning(self, "Không đổi được xe", str(exc))
+            return
+        self.vehicle_override = chosen                  # giữ khi Mở… kịch bản khác
+        self._rebuild_scene()
+        self._refresh_all()
+        self._sync_sim_board()
+        cfg = chosen.cfg
+        self.statusBar().showMessage(f"Đã chọn xe {cfg.name} ({chosen.path.name}), tốc độ tối đa {cfg.max_speed:.2f} "
+                                     "m/s; đường cũ bị hủy: bấm Tìm đường đỗ. Xe này được giữ khi mở kịch bản khác.",
+                                     8000)
+
+    def _observe_human(self) -> SimHumanDriver | PlantHumanDriver | None:
+        """Người lái mô phỏng của lần quan sát đang chạy (None nếu không ở chế độ quan sát); bo ảo QEMU: người lái xe mô
+        phỏng phía laptop."""
         link = self.session.run_link
         if self.session.state != SessionState.RUNNING or link is None or not link.observe_only:
             return None
@@ -1746,6 +2359,7 @@ class MainWindow(QMainWindow):
         try:
             if self.session.state == SessionState.COMPLETED:
                 self.session.reset()
+            self._sync_sim_board()               # bo mô phỏng khớp tệp xe đang dùng (02/10/2026)
             self.session.start_run()
         except SessionError as exc:
             self._refresh_export_buttons()         # START bị từ chối qua VehicleIO: có dòng start_refusals để xuất
@@ -1763,6 +2377,8 @@ class MainWindow(QMainWindow):
             if limits is not None and not limits.ok:
                 # START đã qua nên lệch chỉ là bo chặt hơn (hoặc quan sát): cảnh báo, chi tiết trong events.csv.
                 self.statusBar().showMessage(f"LIMITS_MISMATCH (cảnh báo): {limits.describe()}", 15000)
+            elif link.is_qemu:
+                self.statusBar().showMessage(self._qemu_run_text(link), 8000)
             else:
                 self.statusBar().showMessage(f"Nhánh chạy: {self.combo_drive.currentText()}", 8000)
         self.view.setFocus()
@@ -1883,7 +2499,8 @@ class MainWindow(QMainWindow):
         link = self._sync_link()
         if link is not None:
             port = getattr(link.io, "port", None)
-            ctx["note"] = f"{link.mode.value}, " + (f"cổng {port}" if port else "bo mô phỏng")
+            ctx["note"] = f"{link.mode.value}, " + (f"bo ảo QEMU {self._qemu_url(link) or '(chưa chạy)'}" if link.is_qemu
+                                                    else f"cổng {port}" if port else "bo mô phỏng")
             if link.io is not None:
                 ctx["t_io"] = round(link.io.now(), 6)
                 ctx["io_clock"] = "realtime" if link.realtime else "sim"
@@ -2045,6 +2662,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         self._timer.stop()
+        self._pose_timer.stop()                  # T2: nhãn trạng thái định vị LiDAR
         log = self.sync_marks                    # thử lần cuối ghi đủ tệp dấu đồng bộ (02/10/2026)
         if log.path is not None:
             lost = 0 if log.flush() else log.unwritten
@@ -2054,4 +2672,5 @@ class MainWindow(QMainWindow):
             print(f"CẢNH BÁO: {lost} dòng dấu đồng bộ chưa ghi được ra đĩa ({log.error}); mất khi đóng cửa sổ nếu chưa "
                   f"Xuất log CSV", file=sys.stderr)
         self.session.close()
+        self.qemu_runner.shutdown()              # SAU session.close(): enable=0 + DISARM qua liên kết trước khi tắt QEMU
         super().closeEvent(event)

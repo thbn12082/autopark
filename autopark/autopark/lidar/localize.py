@@ -52,6 +52,7 @@ from autopark.domain.sensors import Costmap, LidarScan
 from autopark.domain.types import Pose
 from autopark.perception.costmap import FREE, OCCUPIED, GridSpec, render
 from autopark.perception.paths import atomic_write_json, utc_now
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
 
 OK, AMBIGUOUS, FAILED = "OK", "AMBIGUOUS", "FAILED"
 _OUTSIDE_M = 1e3          # khoảng cách gán cho điểm ngoài lưới (không khớp, không mâu thuẫn)
@@ -743,12 +744,12 @@ def render_overlay(lmap: LocalizationMap, rows: list[dict], points_by_index: dic
 def run(map_path, recording_path, out: Path, config: LocalizeConfig, *, initial=(0.0, 0.0, 0.0), window=None,
         global_search: bool = False, track: bool = False, skip_seconds: float = 0.0, every: int = 1,
         limit: int | None = None) -> dict:
-    from .recording import git_commit, read_recording
+    from .recording import git_commit, read_lidar_any
 
     if window is not None and not global_search:
         window = _check_window(window)          # trước khi nạp gì và trước khi tạo thư mục kết quả
     lmap = load_map(map_path, config)
-    recording = read_recording(recording_path)
+    recording = read_lidar_any(recording_path)  # .npz, hay thư mục bản ghi phiên (T3: mọi phần LiDAR, 02/10/2026)
     rows: list[dict] = []
     points_by_index: dict[int, np.ndarray] = {}
     center = tuple(float(v) for v in initial)
@@ -778,7 +779,8 @@ def run(map_path, recording_path, out: Path, config: LocalizeConfig, *, initial=
                              "" if row["std_theta_deg"] is None else f"{row['std_theta_deg']:.4f}",
                              f"{row['time_ms']:.1f}"])
     mode = "global" if global_search else ("track" if track else "independent")
-    report = {"created_utc": utc_now(), "git_commit": git_commit(), "map": str(map_path), "recording": str(recording_path),
+    report = {"created_utc": utc_now(), "git_commit": git_commit(), "ecoqos": ecoqos_state(),     # time_ms phụ thuộc nó
+              "map": str(map_path), "recording": str(recording_path),
               "recording_meta": {key: recording.meta.get(key) for key in ("source_id", "started_utc", "name", "note", "placement")},
               "mode": mode, "initial": {"x_m": float(initial[0]), "y_m": float(initial[1]),
                                         "theta_deg": math.degrees(float(initial[2]))},
@@ -800,9 +802,11 @@ def run(map_path, recording_path, out: Path, config: LocalizeConfig, *, initial=
 
 
 def main(argv=None) -> int:
+    apply_ecoqos_policy("lidar.localize")              # trước mọi việc khác (power_throttling.py)
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--map", type=Path, required=True, help="costmap.json của lidar/occupancy.py hoặc thư mục chứa nó")
-    parser.add_argument("--recording", type=Path, required=True, help=".npz của autopark.lidar.recording")
+    parser.add_argument("--recording", type=Path, required=True,
+                        help=".npz của autopark.lidar.recording, hay thư mục bản ghi phiên (mọi phần lidar/part_*.npz)")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--initial", type=float, nargs=3, metavar=("X", "Y", "THETA_DEG"), default=(0.0, 0.0, 0.0))
     group = parser.add_mutually_exclusive_group()

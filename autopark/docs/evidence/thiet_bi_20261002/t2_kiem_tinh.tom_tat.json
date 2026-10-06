@@ -1,0 +1,84 @@
+{
+ "_ghi_chu": "Kiểm tĩnh nguồn tư thế LiDAR (T2) trên C1 THẬT đứng yên trên bàn (cảnh phòng, không phải sa bàn), 02/10/2026 21:00, mã đợt 2 (cây chính chưa commit, driver C1 đã sửa). Bản đồ một chỗ đặt (--anchor 0 0 0) từ bản ghi 20 s; bản ghi kiểm 30 s ghi ngay sau, CÙNG chỗ đặt: đây là độ LẶP LẠI tĩnh, không phải độ chính xác so với thước. Đơn vị: mm cho x, y, check_dx, check_dy; độ cho yaw. Chạy cùng lúc với bộ test đầy đủ (máy bận).",
+ "lenh": [
+  "python -X utf8 -m autopark.lidar.bench record --out runs/lidar_bench/20261002 --name t2_tinh_ban_do --seconds 20 --warmup 5",
+  "python -X utf8 -m autopark.lidar.bench record --out runs/lidar_bench/20261002 --name t2_tinh_kiem --seconds 30 --warmup 5",
+  "python -X utf8 -m autopark.lidar.map_builder --placement runs/lidar_bench/20261002/t2_tinh_ban_do.npz --anchor 0 0 0 --out runs/lidar_maps/20261002_t2_tinh --overwrite",
+  "python -X utf8 -m autopark.lidar.pose_estimator --map runs/lidar_maps/20261002_t2_tinh --recording runs/lidar_bench/20261002/t2_tinh_kiem.npz --out runs/lidar_pose/20261002_t2_tinh --sensor-frame --initial 0 0 0"
+ ],
+ "ban_do": {
+  "ok": true,
+  "frame": "sa_ban",
+  "session_ready": true,
+  "reasons": [],
+  "warnings": []
+ },
+ "tom_tat_pose_estimator": {
+  "scans": 271,
+  "decisions": {
+   "INIT": 2,
+   "OK": 269
+  },
+  "first_stop": null,
+  "check_used": 268,
+  "latency_s": null,
+  "a_ms": {
+   "p50": 26.35170001303777,
+   "p95": 31.79604999604635,
+   "max": 35.74950000620447
+  },
+  "b_ms": {
+   "p50": 17.0769999967888,
+   "p95": 22.20395000767894,
+   "max": 26.037200004793704
+  },
+  "same_scans": null
+ },
+ "map_sha256": "04cfa4ca3f1e7b59786826b91dd1e8d9e6868e1d850aefdafc32ed5203b1a5d3",
+ "recording_sha256": "a19fbeb95534cadd4da37486120b37edcb638e8389f8a8c06102d6b84930b109",
+ "config_sha256": "206f2c3ac923c9814b0b328b1d940fb807f0b38c0569900625b557589492db34",
+ "quyet_dinh": {
+  "INIT": 2,
+  "OK": 269
+ },
+ "tu_the_cam_bien_vong_OK": {
+  "x_mm": {
+   "n": 269,
+   "trung_vi": 1.227,
+   "max_tru_min": 2.985,
+   "std": 0.517
+  },
+  "y_mm": {
+   "n": 269,
+   "trung_vi": -0.992,
+   "max_tru_min": 2.644,
+   "std": 0.464
+  },
+  "yaw_deg": {
+   "n": 269,
+   "trung_vi": -0.093,
+   "max_tru_min": 0.062,
+   "std": 0.012
+  }
+ },
+ "kiem_cheo_b_tru_a": {
+  "dx_mm": {
+   "n": 268,
+   "trung_vi": -0.004,
+   "max_tru_min": 13.852,
+   "std": 2.644
+  },
+  "dy_mm": {
+   "n": 268,
+   "trung_vi": -0.167,
+   "max_tru_min": 20.528,
+   "std": 3.054
+  },
+  "dyaw_deg": {
+   "n": 268,
+   "trung_vi": -0.003,
+   "max_tru_min": 0.813,
+   "std": 0.161
+  }
+ }
+}

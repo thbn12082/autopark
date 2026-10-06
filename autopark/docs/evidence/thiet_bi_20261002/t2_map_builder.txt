@@ -1,0 +1,1 @@
+{"ok": true, "frame": "sa_ban", "session_ready": true, "out": "runs\\lidar_maps\\20261002_t2_tinh\\costmap.json", "reasons": [], "warnings": [], "placements": [{"index": 1, "pose": {"x_m": 0.0, "y_m": 0.0, "yaw_deg": 0.0}, "pose_source": "anchor", "guess": ""}]}

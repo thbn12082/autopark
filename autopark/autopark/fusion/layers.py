@@ -106,6 +106,23 @@ def sensor_pose_in_map(vehicle_pose: Pose, mount: tuple[float, float, float]) ->
     return x, y, vehicle_pose.yaw + mount[2]
 
 
+def body_mask(angles, ranges, mount: tuple[float, float, float], cfg, margin: float) -> np.ndarray:
+    """Beams whose hit point lies inside the vehicle body (`VehicleConfig` `cfg`) grown by `margin`, for a sensor
+    mounted at `mount` = (x, y, yaw) in the vehicle frame. Factored out of `LiveLidarLayer.filter_scan` on 2026-10-02
+    (T2) so the LiDAR pose estimator masks the car body the same way."""
+    angles = np.asarray(angles, np.float64)
+    ranges = np.asarray(ranges, np.float64)
+    mx, my, myaw = mount
+    c, s = math.cos(myaw), math.sin(myaw)
+    hx = ranges * np.cos(angles)                      # hit points in the sensor frame ...
+    hy = ranges * np.sin(angles)
+    vx = mx + c * hx - s * hy                         # ... then in the vehicle frame
+    vy = my + s * hx + c * hy
+    inside = ((vx >= -cfg.rear_overhang - margin) & (vx <= cfg.wheelbase + cfg.front_overhang + margin)
+              & (np.abs(vy) <= cfg.width / 2 + margin))
+    return np.isfinite(ranges) & inside
+
+
 # ---------------------------------------------------------------- layers
 class MapLayer:
     """A costmap in the map frame plus the rule that says whether it may be used at time `now`."""
@@ -196,16 +213,7 @@ class LiveLidarLayer(MapLayer):
         ranges = np.asarray(scan.ranges_m, np.float64).copy()
         drop = np.isfinite(ranges) & (ranges < self.min_range)
         if self.self_mask is not None:
-            mx, my, myaw = self.mount
-            c, s = math.cos(myaw), math.sin(myaw)
-            hx = ranges * np.cos(angles)                      # hit points in the sensor frame ...
-            hy = ranges * np.sin(angles)
-            vx = mx + c * hx - s * hy                         # ... then in the vehicle frame
-            vy = my + s * hx + c * hy
-            cfg, m = self.self_mask, self.mask_margin
-            inside = ((vx >= -cfg.rear_overhang - m) & (vx <= cfg.wheelbase + cfg.front_overhang + m)
-                      & (np.abs(vy) <= cfg.width / 2 + m))
-            drop |= np.isfinite(ranges) & inside
+            drop |= body_mask(angles, ranges, self.mount, self.self_mask, self.mask_margin)
         if not drop.any():
             return scan
         self.masked_beams += int(drop.sum())

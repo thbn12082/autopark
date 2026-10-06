@@ -169,7 +169,9 @@ Vì thế `camera_ai` không dùng hàm đó (mục 10).
 - **"Camera cố định trên bàn"** (mặc định): hệ xe của BEV đặt ở tư thế xuất phát của sa bàn lúc còn chỉnh, rồi giữ nguyên
   khi chạy, như LiDAR đặt trên bàn. Xe ảo chạy đi nhưng camera không đi theo.
 - **"Camera gắn trên xe"**: khi xe chạy (hay đã dừng sau lần chạy), dùng tư thế xe của phiên: mô phỏng, hoặc thế giới
-  gương của VehicleIO (hiện chỉ với bo mô phỏng và `SimTruthPose`; trên xe thật CHƯA THỬ, cần nguồn tư thế thật). Tư
+  gương của VehicleIO (hiện chỉ với bo mô phỏng và `SimTruthPose`; trên xe thật CHƯA THỬ, cần nguồn tư thế thật;
+  *cập nhật 02/10/2026: nguồn tư thế LiDAR (T2, [NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md)) nay có, mới ở mức MP và
+  trên bản ghi C1 đứng yên; chế độ này chưa thử với nó*). Tư
   thế là tư thế **lúc ngăn xử lý lô**, không nội suy về lúc chụp. Sai số vị trí
   ≈ tốc độ xe × tuổi lô. Ví dụ tính: 0,3 m/s × 0,1 s = 3 cm; tuổi lô đo khi phát lại ở mục 8.2 có trung vị 75 ms,
   p95 97 ms. **CHƯA ĐO** trên xe.
@@ -182,6 +184,7 @@ Lệnh 1 mở LiDAR ở cổng ghi trong `configs/thiet_bi.json`; thêm `--port 
 .venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --cam-ports 1 2 3 4
 .venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --no-connect --camera-ai --cam-replay runs\rig_recordings\o03_20260924
 .venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --no-connect --camera-ai --cam-replay runs\rig_recordings\o03_20260924 --camera-ai-test-rig
+.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --session-replay runs\session_recordings\<thư mục>
 ```
 
 - Lệnh 1: bàn thử LiDAR và bốn camera thật. Ngăn "AI camera" nằm thành thẻ cạnh ngăn LiDAR. Chưa hiệu chuẩn thì ngăn chỉ
@@ -190,7 +193,10 @@ Lệnh 1 mở LiDAR ở cổng ghi trong `configs/thiet_bi.json`; thêm `--port 
   và hiện lý do chặn (mục 3), không mở camera nào: dùng để xem đã hiệu chuẩn đủ chưa trước khi bật.
 - Lệnh 2: AI từ một bản ghi phiên (`rig.bench --record` hay nút "Ghi phiên" của `rig_app`), không mở camera nào; tự bật
   kể cả khi có `--no-connect`. Bản ghi chỉ cấp ảnh camera. LiDAR của bản ghi không được phát lại, nên LiDAR (cổng COM
-  hay `--recording`) và AI từ bản ghi **không cùng một cảnh**.
+  hay `--recording`) và AI từ bản ghi **không cùng một cảnh**. *(Cập nhật 02/10/2026: `--recording <thư mục>` phát lại
+  LiDAR của cùng bản ghi nhưng trên đồng hồ riêng. Lệnh 4 (`--session-replay`, T3b) cho cả hai ngăn MỘT `ReplaySession`
+  và một đồng hồ, nên cùng một cảnh. Lệnh này luôn tự bật, không dùng cùng `--recording`, `--cam-replay`, `--port`, và
+  nhận cả `--camera-ai-test-rig`; chỉ kiểm offscreen.)*
 - Lệnh 3: như lệnh 2 với rig TỔNG HỢP. Vật cản có vị trí **vô nghĩa** với bản ghi thật (tư thế camera giả định); dùng
   để xem luồng và đo thời gian.
 - Cần `.venv-train`, vì AI dùng torch. Trong `.venv`, nút "Bật AI camera" báo "AI camera cần torch" và không làm gì.
@@ -198,6 +204,8 @@ Lệnh 1 mở LiDAR ở cổng ghi trong `configs/thiet_bi.json`; thêm `--port 
   trước khi mở cửa sổ.
 - Trình tự trên màn hình: bật AI → hộp AI hiện trên sa bàn khi BEV dùng được → "Tìm đường đỗ" → "Bắt đầu đỗ" → vật
   mới trên đường làm xe dừng (MAP_CHANGED).
+- Ghi lại phiên (T3, 02/10/2026): ngăn "Ghi cảm biến" ghi camera của ngăn này cùng LiDAR, cùng bảng quyết định AI theo
+  lô ([GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 9).
 
 ## 8. Mức bằng chứng
 
@@ -278,6 +286,11 @@ Lệnh 1 mở LiDAR ở cổng ghi trong `configs/thiet_bi.json`; thêm `--port 
 - `lidar_app` không có tùy chọn camera: không có ngăn camera, không nhập torch, `camera_dock` hay `camera_ai`. Dùng sai
   tùy chọn trả mã 2 trước khi mở cửa sổ;
 - tùy chọn camera: ngăn xếp thành thẻ cạnh ngăn LiDAR, tiêu đề ghi RIG TỔNG HỢP, đường dẫn mặc định đúng.
+- *(02/10/2026, T3)* `tests/test_camera_dock_ui.py` thêm
+  `test_on_batch_hook_runs_after_safety_decisions_and_its_errors_stay_in_the_dock` (nay 24 hàm, 31 mục, đếm bằng
+  `--collect-only`). Móc `on_batch` của bản ghi cảm biến chạy sau mọi quyết định an toàn, mỗi lô một lần; lỗi trong móc
+  chỉ để lại một dòng nhật ký, vật cản AI vẫn được chèn và xe vẫn dừng. Hai phép kiểm bố cục ngăn đổi có chủ đích, vì có
+  thêm ngăn "Ghi cảm biến" xếp thẻ cạnh ngăn LiDAR. Phát lại chung một đồng hồ: `tests/test_session_replay_ui.py`.
 
 Đột biến (chạy trên **bản sao** trong thư mục tạm bằng `.venv-train`, 25/09/2026, sau các bản sửa ở trên): **46/46**
 đột biến làm test hỏng. 20 đột biến cũ, chuỗi cập nhật theo mã mới: bỏ từng điều kiện chặn, cho rig tổng hợp chạy với
@@ -377,6 +390,9 @@ Chưa đo độ trễ từ lúc vật xuất hiện tới lúc xe dừng.
   đang chạy: ô của lô cũ trong cửa sổ lọc không bị che lại theo tư thế mới. Thử bằng rig tổng hợp (xoay 0,25 rad và
   tịnh tiến 4 cm mỗi lô, 10 tư thế): 0 hộp chạm thân xe. Che thêm theo tư thế hiện tại có thể giấu bằng chứng về một
   vật thật xe vừa chạm tới, nên để ĐỀ XUẤT – CHỜ CHỐT (mục 10).
+- *(02/10/2026, T3)* Bản ghi cảm biến lưu QUYẾT ĐỊNH của ngăn theo lô (`session/ai_batches.csv`: dùng được hay bị chặn,
+  lý do, số hộp AI, số vật đã chèn), không lưu bản đồ xác suất. Khe hở của `batch_id` là các lô mà timer 50 ms không kịp
+  xét. Phát lại chạy lại AI trên ảnh JPEG đã mã hóa lại, nên kết quả không trùng từng bit.
 
 ## 10. Đề xuất (CHỜ CHỐT)
 
@@ -389,4 +405,6 @@ Chưa đo độ trễ từ lúc vật xuất hiện tới lúc xe dừng.
 5. Trên xe: nội suy tư thế theo stamp khung khi có lịch sử tư thế; lọc 2/3 chịu lệch một ô.
 6. Xét mọi lô AI (hàng đợi, hay chạy BEV trong luồng AI) thay vì lô mới nhất mỗi 50 ms. Đo trên laptop trước.
 7. Ghép camera và LiDAR của cùng một bản ghi phiên khi phát lại (hiện LiDAR của bản ghi phiên không được dùng).
+   *(Cập nhật 02/10/2026: đã làm, `ui.lidar_app --session-replay` (T3b, mục 7, lệnh 4): một `ReplaySession`, một đồng
+   hồ cho cả hai ngăn; chỉ kiểm offscreen.)*
 8. Camera trên xe đang chạy: có che thêm cửa sổ lọc theo tư thế hiện tại của xe hay không (mục 9). Hiện không che.

@@ -58,6 +58,7 @@ from pathlib import Path
 import sys
 import time
 
+from autopark.power_throttling import apply_ecoqos_policy
 from autopark.rig.core import Rig, RigConfig
 from autopark.video.multicam import RIG_CLOCK, CameraSpec, MultiCameraManager, resolve_ports
 
@@ -93,6 +94,9 @@ def build_rig(args) -> Rig:
         if args.index is not None or args.lidar is not None:
             raise ValueError("--replay chạy từ bản ghi: không dùng cùng --index hay --lidar (--ports thì chọn cổng trong bản ghi)")
         replay = ReplaySession(args.replay, speed=args.replay_speed, ports=args.ports, clock=clock)
+        if not replay.ports and not args.no_ai:     # bản ghi cảm biến chỉ có LiDAR (T3): AI không có gì để chấm
+            raise ValueError(f"bản ghi không có camera ({args.replay}): thêm --no-ai để phát lại chỉ LiDAR, hoặc dùng "
+                             "ui.lidar_app --recording <thư mục>")
         mode = replay.camera_mode()
         width, height = int(mode.get("width") or args.width), int(mode.get("height") or args.height)
         fps, fourcc, exposure = mode.get("fps") or args.fps, mode.get("fourcc") or args.fourcc, mode.get("exposure")
@@ -392,6 +396,7 @@ def add_rig_args(p: argparse.ArgumentParser) -> None:
 
 
 def main(argv=None) -> int:
+    ecoqos = apply_ecoqos_policy("rig.bench")          # trước mọi việc khác (power_throttling.py)
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     add_rig_args(p)
     p.add_argument("--seconds", type=float, default=None,
@@ -444,7 +449,7 @@ def main(argv=None) -> int:
     else:
         seconds = LIVE_SECONDS
     print(f"camera: {[(s.port, s.index) for s in rig.cams.specs]} (cổng, index)  LiDAR: {rig.cfg.lidar_port}  "
-          f"AI: {rig.cfg.checkpoint}", flush=True)
+          f"AI: {rig.cfg.checkpoint}  EcoQoS: {ecoqos.state}", flush=True)
     if replay is not None:
         print(f"PHÁT LẠI {replay.folder} ×{replay.speed:g}: {len(replay.ports)} camera, LiDAR {'có' if replay.has_lidar else 'không'}, "
               f"dài {replay.duration_s:.1f} s (trạng thái lúc ghi: {replay.meta.get('status')})", flush=True)
@@ -573,7 +578,8 @@ def print_summary(s: dict) -> None:
     pick = lambda k, f="mean": (r.get(k) or {}).get(f)
     print(f"  tài nguyên: CPU tiến trình {pick('proc_cpu_cores')} lõi (max {pick('proc_cpu_cores', 'max')}), máy {pick('sys_cpu_pct')} %, "
           f"RAM {pick('proc_rss_mb')} MB, GPU {pick('gpu_util_pct')} %, VRAM {pick('gpu_mem_used_mb')} MB, "
-          f"nhiệt GPU {pick('gpu_temp_c', 'first')}→{pick('gpu_temp_c', 'last')} °C (max {pick('gpu_temp_c', 'max')}), {pick('gpu_power_w')} W")
+          f"nhiệt GPU {pick('gpu_temp_c', 'first')}→{pick('gpu_temp_c', 'last')} °C (max {pick('gpu_temp_c', 'max')}), {pick('gpu_power_w')} W"
+          f", EcoQoS {r.get('ecoqos', '—')}")
     rec = s.get("recording")
     if rec:
         print(f"  ghi phiên → {rec['folder']}: {rec['state']}, {rec['frames_total']} khung {rec['image_format']} "

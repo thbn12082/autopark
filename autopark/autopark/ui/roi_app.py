@@ -54,7 +54,9 @@ from autopark.perception import fisheye_calib as fc
 from autopark.perception import roi_tool as rt
 from autopark.perception.calib_board import BoardSpec
 from autopark.perception.paths import PROJECT
+from autopark.power_throttling import apply_ecoqos_policy
 from autopark.ui.calib_app import LiveCamera, to_qimage
+from autopark.ui.process_status import add_ecoqos_label
 
 PORTS = (1, 2, 3, 4)
 ORIENT_EVERY_S = 0.3            # camera sống: đánh số góc (cần PnP) tối đa ~3 lần/s
@@ -1086,6 +1088,7 @@ class ExtrinsicsRoiWindow(QMainWindow):
 
 
 def main(argv=None) -> int:
+    ecoqos = apply_ecoqos_policy("ui.roi_app")         # trước mọi việc khác (power_throttling.py)
     p = argparse.ArgumentParser(description="Ngoại tham và ROI cho camera dự án (docs/NGOAI_THAM_VA_ROI.md)")
     p.add_argument("--port", type=int, default=1, help="cổng hub của camera (1..4)")
     p.add_argument("--image", type=Path, help="mở sẵn một ảnh")
@@ -1113,6 +1116,7 @@ def main(argv=None) -> int:
     if args.live:
         window.chk_live.setChecked(True)
     window.show()
+    add_ecoqos_label(window, ecoqos)
     return app.exec()
 
 

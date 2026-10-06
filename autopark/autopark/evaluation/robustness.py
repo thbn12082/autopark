@@ -38,6 +38,7 @@ from autopark.geometry.footprint import check_motion, check_pose
 from autopark.geometry.fast_collision import FastCollisionChecker
 from autopark.planning.hybrid_astar import PlanResult, PlannerParams
 from autopark.planning.trajectory import build_trajectory
+from autopark.power_throttling import apply_ecoqos_policy
 from autopark.simulation.feedback import FeedbackConfig
 from autopark.storage.run_store import environment, write_json
 
@@ -282,6 +283,7 @@ def planner_case(base, index, seed):
 
 def main(argv=None):
     import argparse
+    apply_ecoqos_policy("evaluation.robustness")       # trước mọi việc khác; trạng thái vào manifest (environment)
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--vehicle-config", type=vehicle_config_arg, default=str(DEFAULT_VEHICLE_CONFIG),

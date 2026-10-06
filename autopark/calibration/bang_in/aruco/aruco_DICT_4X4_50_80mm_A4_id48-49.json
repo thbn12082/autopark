@@ -1,0 +1,74 @@
+{
+ "format": "autopark.aruco_sheet/1",
+ "dictionary": "DICT_4X4_50",
+ "marker_bits": 4,
+ "size_mm": 80.0,
+ "module_mm": 13.3333,
+ "quiet_zone_modules": 1.5,
+ "quiet_zone_mm": 20.0,
+ "tick": {
+  "length_mm": 8.0,
+  "width_mm": 0.3,
+  "where": "giữa mỗi cạnh, ngoài vùng trắng, sát mép nó: đánh dấu hai đường tâm"
+ },
+ "paper": "A4",
+ "orientation": "landscape",
+ "page_mm": [
+  297.0,
+  210.0
+ ],
+ "grid": [
+  2,
+  1
+ ],
+ "ids": [
+  48,
+  49
+ ],
+ "pages": [
+  {
+   "page": 1,
+   "ids": [
+    48,
+    49
+   ],
+   "markers": [
+    {
+     "id": 48,
+     "centre_mm": [
+      78.5,
+      101.5
+     ],
+     "top_left_mm": [
+      38.5,
+      61.5
+     ]
+    },
+    {
+     "id": 49,
+     "centre_mm": [
+      218.5,
+      101.5
+     ],
+     "top_left_mm": [
+      178.5,
+      61.5
+     ]
+    }
+   ]
+  }
+ ],
+ "pdf": {
+  "file": "aruco_DICT_4X4_50_80mm_A4_id48-49.pdf",
+  "size_pt": 226.7716535433071,
+  "print_scaling_none_hint": true
+ },
+ "png": null,
+ "how_to_measure": "Tâm marker = giao của hai đường nối các vạch đối diện. Đo tọa độ tâm bằng thước từ hai cạnh sa bàn đã kiểm vuông (KICH_BAN mục 3.3), ghi vào tệp mốc; đo lại cạnh marker bằng thước kẹp sau khi in.",
+ "roles": {
+  "48": "sau",
+  "49": "truoc"
+ },
+ "created_local": "2026-10-02T15:26:55",
+ "note": "Kích thước danh định. In 100 % (không co giãn), đo lại cạnh marker bằng thước kẹp. Chữ trên trang không dấu vì phông chuẩn PDF không có chữ tiếng Việt. Mặc định ĐỀ XUẤT – CHỜ CHỐT (người dùng giao quyết định 02/10/2026)."
+}

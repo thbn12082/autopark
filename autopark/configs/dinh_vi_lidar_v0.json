@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "GIA_DINH_VA_DE_XUAT",
+  "notes": "Nguồn tư thế LiDAR cho phiên đỗ xe: định vị (a) trên bản đồ tĩnh nhiều chỗ đặt + giám sát (b) odometry khớp scan (docs/SO_SANH_DINH_VI_SLAM.md mục 7). Người dùng giao quyết định 02/10/2026 ('làm hết'): làm theo ĐỀ XUẤT mục 7; mọi ngưỡng trong tệp này vẫn là ĐỀ XUẤT – CHỜ CHỐT, dùng cho nghiệm thu tới khi chốt. Gá LiDAR là GIẢ ĐỊNH – CHƯA ĐO (chưa có MN300 và gá). Khi gá LiDAR ĐO trên xe thật VÀ ba điều kiện tiên quyết đạt có bằng chứng thì mới được ghi measured=true / ok=true; trước đó Bắt đầu đỗ ở VehicleIO với bo thật luôn bị từ chối (START_POSE_UNVERIFIED), trước khi mở cổng. Số của khối sim là GIẢ ĐỊNH cho LiDAR mô phỏng.",
+  "vehicle_config": "vehicle_default.json",
+  "mount": {
+    "x_m": 0.095,
+    "y_m": 0.0,
+    "yaw_deg": 0.0,
+    "z_m": null,
+    "measured": false,
+    "measured_on": null,
+    "evidence": null,
+    "basis": "GIẢ ĐỊNH – CHƯA ĐO: tâm quay C1 giữa hai trục của xe giả định vehicle_default.json (trục cách 0,19 m), trên trục dọc, 0° = phía trước xe; chưa có MN300 và gá. Hệ xe: gốc tại tâm trục sau, x hướng tiến, y sang trái, yaw ngược chiều kim đồng hồ (như configs/tof_mounts_v0.json)."
+  },
+  "prerequisites": {
+    "dau_goc_p04": {"ok": false, "evidence": null, "note": "Dấu góc trái/phải của C1 chốt bằng lần đặt hộp bên trái (p04, docs/GIAI_DOAN_1_LIDAR.md mục 6). CHƯA LÀM."},
+    "huong_goc_dv2": {"ok": false, "evidence": null, "note": "Nguyên nhân lệch hướng +4,3° giữa hai lần bật đã rõ và có bước hiệu chuẩn hướng nếu gốc góc đổi theo lần khởi động mô-tơ (N-L4, DV-2). CHƯA LÀM."},
+    "dinh_vi_tinh_dv1": {"ok": false, "evidence": null, "note": "Định vị tĩnh trên sa bàn thật so với thước đạt N-L1..N-L3 (DV-1). CHƯA LÀM."}
+  },
+  "max_pose_age_s": 0.25,
+  "localizer": {
+    "track_window": [0.15, 0.15, 10.0],
+    "init_window": [0.5, 0.5, 30.0],
+    "retry_on_window_edge": true,
+    "allow_global_init": true,
+    "global_retry_s": 10.0,
+    "init_confirm_scans": 3,
+    "init_confirm_spread": [0.02, 1.0],
+    "max_consecutive_bad": 2,
+    "cross_check": {"base_m": 0.04, "per_m": 0.03, "base_deg": 2.0, "per_m_deg": 2.0},
+    "max_unchecked_scans": 5,
+    "relatch_s": 1.0,
+    "start_ok_scans": 5,
+    "min_rate_hz": 8.0,
+    "warn_latency_p95_s": 0.05,
+    "max_latency_p95_s": 0.10,
+    "self_mask_margin_m": 0.03,
+    "queue_size": 1
+  },
+  "localize": {},
+  "odometry": {"mode": "scan_to_map", "velocity_per": "second"},
+  "sim": {
+    "period_s": 0.1,
+    "beams": 510,
+    "fov_deg": 360.0,
+    "noise_m": 0.01,
+    "dropout": 0.1,
+    "max_range_m": 12.0,
+    "min_range_m": 0.05,
+    "latency_s": 0.04,
+    "warmup_max_s": 2.0,
+    "walls_from_bounds": true,
+    "room_margin_m": 1.0,
+    "map_placements": 5,
+    "map_scans_per_placement": 5,
+    "seed": 0
+  }
+}

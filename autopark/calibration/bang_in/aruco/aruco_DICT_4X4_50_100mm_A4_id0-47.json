@@ -1,0 +1,1001 @@
+{
+ "format": "autopark.aruco_sheet/1",
+ "dictionary": "DICT_4X4_50",
+ "marker_bits": 4,
+ "size_mm": 100.0,
+ "module_mm": 16.6667,
+ "quiet_zone_modules": 1.5,
+ "quiet_zone_mm": 25.0,
+ "tick": {
+  "length_mm": 8.0,
+  "width_mm": 0.3,
+  "where": "giữa mỗi cạnh, ngoài vùng trắng, sát mép nó: đánh dấu hai đường tâm"
+ },
+ "paper": "A4",
+ "orientation": "portrait",
+ "page_mm": [
+  210.0,
+  297.0
+ ],
+ "grid": [
+  1,
+  1
+ ],
+ "ids": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23,
+  24,
+  25,
+  26,
+  27,
+  28,
+  29,
+  30,
+  31,
+  32,
+  33,
+  34,
+  35,
+  36,
+  37,
+  38,
+  39,
+  40,
+  41,
+  42,
+  43,
+  44,
+  45,
+  46,
+  47
+ ],
+ "pages": [
+  {
+   "page": 1,
+   "ids": [
+    0
+   ],
+   "markers": [
+    {
+     "id": 0,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 2,
+   "ids": [
+    1
+   ],
+   "markers": [
+    {
+     "id": 1,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 3,
+   "ids": [
+    2
+   ],
+   "markers": [
+    {
+     "id": 2,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 4,
+   "ids": [
+    3
+   ],
+   "markers": [
+    {
+     "id": 3,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 5,
+   "ids": [
+    4
+   ],
+   "markers": [
+    {
+     "id": 4,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 6,
+   "ids": [
+    5
+   ],
+   "markers": [
+    {
+     "id": 5,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 7,
+   "ids": [
+    6
+   ],
+   "markers": [
+    {
+     "id": 6,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 8,
+   "ids": [
+    7
+   ],
+   "markers": [
+    {
+     "id": 7,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 9,
+   "ids": [
+    8
+   ],
+   "markers": [
+    {
+     "id": 8,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 10,
+   "ids": [
+    9
+   ],
+   "markers": [
+    {
+     "id": 9,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 11,
+   "ids": [
+    10
+   ],
+   "markers": [
+    {
+     "id": 10,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 12,
+   "ids": [
+    11
+   ],
+   "markers": [
+    {
+     "id": 11,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 13,
+   "ids": [
+    12
+   ],
+   "markers": [
+    {
+     "id": 12,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 14,
+   "ids": [
+    13
+   ],
+   "markers": [
+    {
+     "id": 13,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 15,
+   "ids": [
+    14
+   ],
+   "markers": [
+    {
+     "id": 14,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 16,
+   "ids": [
+    15
+   ],
+   "markers": [
+    {
+     "id": 15,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 17,
+   "ids": [
+    16
+   ],
+   "markers": [
+    {
+     "id": 16,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 18,
+   "ids": [
+    17
+   ],
+   "markers": [
+    {
+     "id": 17,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 19,
+   "ids": [
+    18
+   ],
+   "markers": [
+    {
+     "id": 18,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 20,
+   "ids": [
+    19
+   ],
+   "markers": [
+    {
+     "id": 19,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 21,
+   "ids": [
+    20
+   ],
+   "markers": [
+    {
+     "id": 20,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 22,
+   "ids": [
+    21
+   ],
+   "markers": [
+    {
+     "id": 21,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 23,
+   "ids": [
+    22
+   ],
+   "markers": [
+    {
+     "id": 22,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 24,
+   "ids": [
+    23
+   ],
+   "markers": [
+    {
+     "id": 23,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 25,
+   "ids": [
+    24
+   ],
+   "markers": [
+    {
+     "id": 24,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 26,
+   "ids": [
+    25
+   ],
+   "markers": [
+    {
+     "id": 25,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 27,
+   "ids": [
+    26
+   ],
+   "markers": [
+    {
+     "id": 26,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 28,
+   "ids": [
+    27
+   ],
+   "markers": [
+    {
+     "id": 27,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 29,
+   "ids": [
+    28
+   ],
+   "markers": [
+    {
+     "id": 28,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 30,
+   "ids": [
+    29
+   ],
+   "markers": [
+    {
+     "id": 29,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 31,
+   "ids": [
+    30
+   ],
+   "markers": [
+    {
+     "id": 30,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 32,
+   "ids": [
+    31
+   ],
+   "markers": [
+    {
+     "id": 31,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 33,
+   "ids": [
+    32
+   ],
+   "markers": [
+    {
+     "id": 32,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 34,
+   "ids": [
+    33
+   ],
+   "markers": [
+    {
+     "id": 33,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 35,
+   "ids": [
+    34
+   ],
+   "markers": [
+    {
+     "id": 34,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 36,
+   "ids": [
+    35
+   ],
+   "markers": [
+    {
+     "id": 35,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 37,
+   "ids": [
+    36
+   ],
+   "markers": [
+    {
+     "id": 36,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 38,
+   "ids": [
+    37
+   ],
+   "markers": [
+    {
+     "id": 37,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 39,
+   "ids": [
+    38
+   ],
+   "markers": [
+    {
+     "id": 38,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 40,
+   "ids": [
+    39
+   ],
+   "markers": [
+    {
+     "id": 39,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 41,
+   "ids": [
+    40
+   ],
+   "markers": [
+    {
+     "id": 40,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 42,
+   "ids": [
+    41
+   ],
+   "markers": [
+    {
+     "id": 41,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 43,
+   "ids": [
+    42
+   ],
+   "markers": [
+    {
+     "id": 42,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 44,
+   "ids": [
+    43
+   ],
+   "markers": [
+    {
+     "id": 43,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 45,
+   "ids": [
+    44
+   ],
+   "markers": [
+    {
+     "id": 44,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 46,
+   "ids": [
+    45
+   ],
+   "markers": [
+    {
+     "id": 45,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 47,
+   "ids": [
+    46
+   ],
+   "markers": [
+    {
+     "id": 46,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  },
+  {
+   "page": 48,
+   "ids": [
+    47
+   ],
+   "markers": [
+    {
+     "id": 47,
+     "centre_mm": [
+      105.0,
+      145.0
+     ],
+     "top_left_mm": [
+      55.0,
+      95.0
+     ]
+    }
+   ]
+  }
+ ],
+ "pdf": {
+  "file": "aruco_DICT_4X4_50_100mm_A4_id0-47.pdf",
+  "size_pt": 283.46456692913387,
+  "print_scaling_none_hint": true
+ },
+ "png": null,
+ "how_to_measure": "Tâm marker = giao của hai đường nối các vạch đối diện. Đo tọa độ tâm bằng thước từ hai cạnh sa bàn đã kiểm vuông (KICH_BAN mục 3.3), ghi vào tệp mốc; đo lại cạnh marker bằng thước kẹp sau khi in.",
+ "roles": {
+  "48": "sau",
+  "49": "truoc"
+ },
+ "created_local": "2026-10-02T15:26:54",
+ "note": "Kích thước danh định. In 100 % (không co giãn), đo lại cạnh marker bằng thước kẹp. Chữ trên trang không dấu vì phông chuẩn PDF không có chữ tiếng Việt. Mặc định ĐỀ XUẤT – CHỜ CHỐT (người dùng giao quyết định 02/10/2026)."
+}

@@ -1,11 +1,10 @@
 import math
-import os
 from pathlib import Path
 
 import pytest
 
 from autopark.domain.types import Bounds, Obstacle, ParkingGoal, Pose, Scenario, VehicleConfig
-from autopark.power_throttling import disable_power_throttling, execution_speed_throttling
+from autopark.power_throttling import KEEP_ECOQOS_ENV, apply_ecoqos_policy
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -13,15 +12,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # cửa sổ (mở từ shell chạy nền) có thể bị Windows 11 áp EcoQoS dù máy rảnh: đo 30/09/2026, nhóm `planner_budget` hỏng
 # 1–3 test và chậm tới ≈ 3 lần (docs/CHUYEN_MAY_BAN.md mục 8). Nên tắt EcoQoS cho tiến trình pytest (tiến trình con mà
 # test mở thì không). Đặt AUTOPARK_KEEP_ECOQOS=1 để giữ mặc định của Windows, ví dụ khi muốn đo đúng điều kiện đó.
-KEEP_ECOQOS_ENV = "AUTOPARK_KEEP_ECOQOS"
+# Từ 02/10/2026 dùng chung `apply_ecoqos_policy` với ứng dụng và công cụ đo (cùng biến, cùng quy tắc "đúng bằng 1").
 ECOQOS_KEY = pytest.StashKey[str]()
 
 
 def pytest_configure(config):
-    if os.environ.get(KEEP_ECOQOS_ENV) != "1":
-        disable_power_throttling()
-    # đọc lại trạng thái thật: "off" (đã tắt), "system" (Windows tự quyết), "on"; "unknown" ngoài Windows
-    config.stash[ECOQOS_KEY] = execution_speed_throttling() or "unknown"
+    # tắt (trừ khi AUTOPARK_KEEP_ECOQOS=1) rồi đọc lại trạng thái thật: "off" (đã tắt), "system" (Windows tự quyết),
+    # "on"; "unknown" ngoài Windows
+    config.stash[ECOQOS_KEY] = apply_ecoqos_policy("pytest").state
 
 
 def pytest_report_header(config):

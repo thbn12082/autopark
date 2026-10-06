@@ -1,0 +1,94 @@
+{
+ "tool": "chay_bo_ao_ui.py (02/10/2026)",
+ "package": "D:\\xetulai\\_wt\\gop\\autopark\\autopark",
+ "scenario": "scenarios\\bai_do_xe.json",
+ "evidence_note": "bo ảo QEMU + xe mô phỏng phía laptop; KHÔNG phải bo hay xe thật",
+ "runs": [
+  {
+   "plan_ok": true,
+   "plan_message": "Tìm được đường dài 2.55 m, 1 lần đổi chiều [nấc 'gộp-nhanh', 1 lần thử, 0.58 s]",
+   "finished": true,
+   "state": "COMPLETED",
+   "stop_reason": "Đỗ xong",
+   "wall_s": 20.98,
+   "evidence": "qemu_firmware_simulated_vehicle",
+   "io": "QemuPlantVehicleIO",
+   "pose_source": "qemu_plant_pose",
+   "virtual_board": true,
+   "board": {
+    "kind": "qemu",
+    "url": "socket://127.0.0.1:59069",
+    "monitor_port": 59070,
+    "image": "D:\\xetulai\\_wt\\gop\\autopark\\firmware\\esp32_vehicle\\.pio\\build\\esp32s3_qemu\\qemu_flash.bin",
+    "image_sha256": "91fbeba0f0afbc2a11e1f4e4124caa19b11c6235976696fbe534bd83b84aa81d",
+    "qemu": "D:\\xetulai\\_platformio\\qemu\\qemu\\bin\\qemu-system-xtensa.exe",
+    "pid": 36504,
+    "starts": 1,
+    "problems": [],
+    "workdir": "D:\\xetulai\\_wt\\gop\\autopark\\runs\\bo_ao_qemu\\20261002_185805",
+    "hello": {
+     "firmware": "1.0",
+     "boot_id": "0x38027a8c",
+     "reset_reason": "POWER_ON",
+     "telemetry_period_ms": 50
+    }
+   },
+   "start_refusals": 0,
+   "events": [
+    "START_CHECK"
+   ]
+  },
+  {
+   "plan_ok": true,
+   "plan_message": "Tìm được đường dài 2.55 m, 1 lần đổi chiều [nấc 'gộp-nhanh', 1 lần thử, 1.33 s]",
+   "finished": true,
+   "state": "COMPLETED",
+   "stop_reason": "Đỗ xong",
+   "wall_s": 20.78,
+   "evidence": "qemu_firmware_simulated_vehicle",
+   "io": "QemuPlantVehicleIO",
+   "pose_source": "qemu_plant_pose",
+   "virtual_board": true,
+   "board": {
+    "kind": "qemu",
+    "url": "socket://127.0.0.1:59069",
+    "monitor_port": 59070,
+    "image": "D:\\xetulai\\_wt\\gop\\autopark\\firmware\\esp32_vehicle\\.pio\\build\\esp32s3_qemu\\qemu_flash.bin",
+    "image_sha256": "91fbeba0f0afbc2a11e1f4e4124caa19b11c6235976696fbe534bd83b84aa81d",
+    "qemu": "D:\\xetulai\\_platformio\\qemu\\qemu\\bin\\qemu-system-xtensa.exe",
+    "pid": 36504,
+    "starts": 1,
+    "problems": [],
+    "workdir": "D:\\xetulai\\_wt\\gop\\autopark\\runs\\bo_ao_qemu\\20261002_185805",
+    "hello": {
+     "firmware": "1.0",
+     "boot_id": "0x38027a8c",
+     "reset_reason": "POWER_ON",
+     "telemetry_period_ms": 50
+    }
+   },
+   "start_refusals": 0,
+   "events": [
+    "START_CHECK"
+   ]
+  }
+ ],
+ "link_before_start": {
+  "is_qemu": true,
+  "virtual_board": true,
+  "hardware_actuators": false
+ },
+ "availability": null,
+ "runner": {
+  "start_called": true,
+  "state": "RUNNING",
+  "status": "Bo ảo đang chạy: socket://127.0.0.1:59069 · firmware 1.0 · QEMU khởi động 1 lần · log D:\\xetulai\\_wt\\gop\\autopark\\runs\\bo_ao_qemu\\20261002_185805",
+  "seconds_to_ready": 0.5
+ },
+ "dialogs": [],
+ "close": {
+  "runner_state": "STOPPED",
+  "seconds": 0.01
+ },
+ "total_s": 46.8
+}

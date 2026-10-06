@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "status": "DE_XUAT_CHO_CHOT",
-  "notes": "Bản sao các ngưỡng ĐỀ XUẤT – CHỜ CHỐT của docs/NGUONG_NGHIEM_THU_DE_XUAT.md và danh sách kiểm lấy từ dòng 'Ngưỡng' của docs/KICH_BAN_NGHIEM_THU.md mục 5, cho công cụ chấm autopark.evaluation.score_run (T5, thêm 02/10/2026). Chốt một số thì sửa tệp này cùng cả hai tài liệu, rồi đặt status CHOT. Khóa kịch bản là ma_kich_ban + bien_the khi có khóa đó (DO-3a, VC-5dung), không thì ma_kich_ban. Không chấm từng lần: N-D8 (thống kê cả loạt), N-P4 ở nhóm DO (dừng có thể đúng hay giả: người chấm xét), N-P9, N-P11, N-K*, N-T*, N-L*, N-A*, N-G*, N-C*. Tham số 'analysis' (làm trơn, đứng yên, bước quãng, mốc đồng hồ) mới chỉnh trên dữ liệu tổng hợp nhiễu 2–3 mm, chưa trên R1 thật vì chưa có TC-1. clock_anchor_error_s: sai số ghép perf_counter với t_session ở một dòng mốc khi thời gian phiên là thời gian mô phỏng (một nhịp giao diện, tới 0,1 s khi giao diện chậm, theo thiết kế T14); clock_drift: độ trôi lớn nhất giả định giữa thời gian mô phỏng và thời gian thực (đo tạm 3,9 % ngày 01/10/2026). Cập nhật 02/10/2026: (1) hai số đó tính theo giây thật; phiên chạy k× (cột time_scale của dấu đồng bộ T14, tệp cũ giả định 1×) thì sai số theo giây phiên nhân k, và hệ số khớp từ các mốc lệch k quá clock_drift + 2 × clock_anchor_error_s / khoảng mốc thì không đổi perf_counter sang t_session; (2) điều kiện THÀNH CÔNG của NGUONG mục 1 (N-D1, N-D2, N-D3 khi bố trí có ô, N-D4, N-D7, N-D9, N-V1) luôn được xét để đề xuất ket_qua của lần đỗ, kể cả khi 'checks' của kịch bản không có (ví dụ DO-6), và N-D4, N-D9 (tuyệt đối) được xét ở mọi kịch bản; ô biên bản của kiểm ngoài 'checks' vẫn để trống.",
+  "notes": "Bản sao các ngưỡng ĐỀ XUẤT – CHỜ CHỐT của docs/NGUONG_NGHIEM_THU_DE_XUAT.md và danh sách kiểm lấy từ dòng 'Ngưỡng' của docs/KICH_BAN_NGHIEM_THU.md mục 5, cho công cụ chấm autopark.evaluation.score_run (T5, thêm 02/10/2026). Chốt một số thì sửa tệp này cùng cả hai tài liệu, rồi đặt status CHOT. Khóa kịch bản là ma_kich_ban + bien_the khi có khóa đó (DO-3a, VC-5dung), không thì ma_kich_ban. Không chấm từng lần: N-D8 (thống kê cả loạt), N-P4 ở nhóm DO (dừng có thể đúng hay giả: người chấm xét), N-P9, N-P11, N-K*, N-T*, N-L*, N-A*, N-G*, N-C*. Tham số 'analysis' (làm trơn, đứng yên, bước quãng, mốc đồng hồ) mới chỉnh trên dữ liệu tổng hợp nhiễu 2–3 mm, chưa trên R1 thật vì chưa có TC-1. clock_anchor_error_s: sai số ghép perf_counter với t_session ở một dòng mốc khi thời gian phiên là thời gian mô phỏng (một nhịp giao diện, tới 0,1 s khi giao diện chậm, theo thiết kế T14); clock_drift: độ trôi lớn nhất giả định giữa thời gian mô phỏng và thời gian thực (đo tạm 3,9 % ngày 01/10/2026). Cập nhật 02/10/2026: (1) hai số đó tính theo giây thật; phiên chạy k× (cột time_scale của dấu đồng bộ T14, tệp cũ giả định 1×) thì sai số theo giây phiên nhân k, và hệ số khớp từ các mốc lệch k quá clock_drift + 2 × clock_anchor_error_s / khoảng mốc thì không đổi perf_counter sang t_session; (2) điều kiện THÀNH CÔNG của NGUONG mục 1 (N-D1, N-D2, N-D3 khi bố trí có ô, N-D4, N-D7, N-D9, N-V1) luôn được xét để đề xuất ket_qua của lần đỗ, kể cả khi 'checks' của kịch bản không có (ví dụ DO-6), và N-D4, N-D9 (tuyệt đối) được xét ở mọi kịch bản; ô biên bản của kiểm ngoài 'checks' vẫn để trống. Cập nhật 02/10/2026 (tốc độ nghiệm thu; người dùng giao quyết định 02/10/2026 ('làm hết')): N-V1.target_mps = 0,10 m/s là vế 'tốc độ mục tiêu ≤ 0,10 m/s ở đợt đầu' của NGUONG (ĐỀ XUẤT – CHỜ CHỐT), score_run đọc từ lệnh đã gửi (cột target_speed_mps của commands.csv, target_speed của RunLog gói SIM), tệp ngưỡng không có khóa này thì chỉ chấm vế tốc độ đo; chạy nghiệm thu với configs/vehicle_nghiem_thu.json (giao diện tự ghép bo mô phỏng vehicle_io_sim_nghiem_thu.json). Cập nhật 02/10/2026 (T12 theo kịch bản): max_cusps còn là giới hạn lúc Bắt đầu đỗ của giao diện cho tệp sa bàn có trường acceptance; --max-cusps chỉ siết thêm; null = chỉ báo số. Người dùng giao quyết định 02/10/2026 ('làm hết') theo đề xuất N-D6 (b); các số vẫn là ĐỀ XUẤT – CHỜ CHỐT.",
   "reference_ratio": 3.0,
   "analysis": {
     "final_window_s": 1.0,
@@ -23,7 +23,7 @@
     "N-D5": {"min_cm": 2.0},
     "N-D6": {"standstill_mps": 0.01},
     "N-D7": {"max_run_s": 180.0},
-    "N-V1": {"max_mps": 0.12},
+    "N-V1": {"max_mps": 0.12, "target_mps": 0.10},
     "N-P1": {"max_s": 0.4},
     "N-P2": {"max_cm": 10.0},
     "N-P3": {"min_cm": 10.0},
@@ -40,7 +40,7 @@
     "DO-3c": {"checks": ["N-D1", "N-D2", "N-D3", "N-D4", "N-D6", "N-D7", "N-D9", "N-V1"], "max_cusps": null},
     "DO-4a": {"checks": ["N-D1", "N-D2", "N-D3", "N-D4", "N-D5", "N-D6", "N-D7", "N-D9", "N-V1"], "max_cusps": 2},
     "DO-4b": {"checks": ["N-D1", "N-D2", "N-D3", "N-D4", "N-D6", "N-D7", "N-D9", "N-V1"], "max_cusps": 7},
-    "DO-5": {"checks": ["N-D1", "N-D2", "N-D4", "N-D7", "N-D9", "N-V1"]},
+    "DO-5": {"checks": ["N-D1", "N-D2", "N-D4", "N-D7", "N-D9", "N-V1"], "max_cusps": 7, "notes": "max_cusps chỉ dùng làm giới hạn lúc Bắt đầu đỗ (T12, N-D6 (b) xếp DO-5 vào kịch bản hẹp); N-D6 không có trong danh sách kiểm của DO-5 (KICH_BAN mục 5.1) nên công cụ chấm không xét (b) ở DO-5"},
     "DO-6": {"checks": ["N-D1", "N-D2", "N-D4", "N-D6"], "max_cusps": 7},
     "DI-1": {"checks": []},
     "DI-2": {"checks": []},

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "notes": "Bo ảo QEMU trong phiên đỗ (autopark/transport/qemu_plant.py, thêm 02/10/2026; người dùng giao quyết định 02/10/2026). Firmware trong QEMU chưa đọc cảm biến nào, nên tốc độ, góc lái và tư thế lấy từ XE MÔ PHỎNG phía laptop (mô hình xe đạp động học, giới hạn của cấu hình xe) bám tham chiếu speed_ref, steer_ref mà firmware báo trong telemetry. TOÀN BỘ số ở đây là GIẢ ĐỊNH của mô phỏng, không phải số đo: telemetry_period_ms là chu kỳ telemetry xin trong HELLO, chỉ nhận 20..100 ms (firmware kẹp vào 20..1000 ms, nhưng ngưỡng mất liên lạc 0,3 s của io phải phủ 3 chu kỳ; ngoài khoảng → lỗi khi nạp tệp, giao diện dùng tham số mặc định; liên kết tới bo thật vẫn dùng mặc định 50 ms của firmware); plant.step_ms là bước tích phân lớn nhất của xe mô phỏng; nhiễu tốc độ và góc lái mặc định 0. Chạy qua bo ảo chỉ là bằng chứng mức MP (evidence qemu_firmware_simulated_vehicle), KHÔNG nói gì về bo hay xe thật.",
+  "telemetry_period_ms": 20,
+  "plant": {
+    "step_ms": 5,
+    "speed_noise_std_mps": 0.0,
+    "steer_noise_std_deg": 0.0,
+    "seed": 0
+  }
+}

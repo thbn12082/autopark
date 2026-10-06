@@ -904,6 +904,62 @@ def test_bench_exits_1_when_the_recording_dropped_frames_without_a_write_error(t
     assert code == 1 and "không trọn" in capsys.readouterr().out
 
 
+def test_rig_never_stops_or_waits_for_an_external_recorder(tmp_path, monkeypatch):
+    """T3 (02/10/2026): bộ ghi NGOÀI (bản ghi cảm biến trong phiên đỗ) gắn vào Rig của ngăn AI camera. Rig chỉ đưa khung
+    vào; stop_recording()/stop() chỉ gỡ nó (on_detach một lần, kèm số camera), không dừng, không chờ; bộ ghi của chính
+    Rig vẫn như cũ."""
+    slow_writes(monkeypatch, 0.05)                                     # bộ ghi ngoài ghi chậm: Rig không được chờ nó
+    rig = Rig(fake_manager(ports=(1, 2), period=0.02, textured=True), RigConfig(ai=False))
+    ext = RigRecorder(tmp_path / "ngoài", ports=[1, 2], image_format="png")
+    detached = []
+    rig.attach_recorder(ext, on_detach=detached.append)
+    started = RigRecorder(tmp_path / "đã chạy", ports=[1]).start()
+    try:
+        with pytest.raises(RuntimeError, match="đang ghi vào"):
+            rig.attach_recorder(started)
+        rig.start()
+        ext.start()
+        time.sleep(0.4)
+        with pytest.raises(RuntimeError, match="đang ghi vào"):
+            rig.start_recording(tmp_path / "của rig")                  # một bộ ghi tại một thời điểm
+        assert not (tmp_path / "của rig").exists()
+        status = rig.stop_recording()                                  # chỉ gỡ: không dừng, không chờ
+        assert rig.recorder is None and ext.active and status["state"] == "đang ghi"
+        assert len(detached) == 1 and sorted(c["port"] for c in detached[0]["cameras_at_stop"]) == [1, 2]
+        assert rig.last_recorder is None and rig.recording_status() is None and rig.detach_recorder() is None
+        seen = dict(ext.status()["frames_seen"])
+        time.sleep(0.2)
+        assert ext.status()["frames_seen"] == seen and seen[1] > 5     # không khung nào vào sau khi gỡ
+        own = rig.start_recording(tmp_path / "của rig", image_format="png")   # bộ ghi của Rig: như trước
+        time.sleep(0.2)
+        rig.stop_recording(wait=False)
+        with pytest.raises(RuntimeError, match="còn đang ghi nốt"):
+            rig.attach_recorder(RigRecorder(tmp_path / "x", ports=[1]))
+        assert own.finished.wait(10.0)
+        with pytest.raises(RuntimeError, match="TRƯỚC khi bộ ghi start"):
+            rig.attach_recorder(started)
+    finally:
+        assert rig.stop() == []
+        started.stop(wait=True, timeout=5.0)
+    assert rig.last_recorder is own and own.state == "xong" and len(detached) == 1
+    assert ext.active                                                  # Rig không bao giờ dừng bộ ghi ngoài
+    ext.stop(wait=True, timeout=20.0)
+    assert ext.state == "xong" and ext.status()["frames"] == seen
+    # stop() khi bộ ghi ngoài còn gắn: gỡ (on_detach một lần) rồi dừng camera, không chờ hàng đợi của nó
+    rig2 = Rig(fake_manager(ports=(1,), period=0.01, textured=True), RigConfig(ai=False))
+    ext2 = RigRecorder(tmp_path / "ngoài 2", ports=[1], image_format="png")
+    detached2 = []
+    rig2.attach_recorder(ext2, on_detach=detached2.append)
+    rig2.start()
+    ext2.start()
+    time.sleep(0.4)
+    t = time.perf_counter()
+    assert rig2.stop() == [] and time.perf_counter() - t < 3.0
+    assert len(detached2) == 1 and ext2.active and ext2.status()["pending_frames"] > 0
+    ext2.stop(wait=True, timeout=20.0)
+    assert ext2.state == "xong"
+
+
 def test_csv_rows_reach_the_disk_while_the_recording_is_still_running(tmp_path):
     rec = RigRecorder(tmp_path / "đang ghi", ports=[1], image_format="png", clock=lambda: 1.0).start()
     try:

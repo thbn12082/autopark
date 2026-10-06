@@ -1,0 +1,6 @@
+  cam 0: 640×480 23.8 fps thật (trong đó bị cắt 0, xé 0) | khung cũ 0 | đọc hỏng 0 | khoảng cách 48/48/58 ms | read() 47 ms | sáng 79
+  cam 1: 640×480 23.8 fps thật (trong đó bị cắt 0, xé 0) | khung cũ 0 | đọc hỏng 0 | khoảng cách 48/49/60 ms | read() 47 ms | sáng 90
+  cam 2: 640×480 23.8 fps thật (trong đó bị cắt 0, xé 0) | khung cũ 0 | đọc hỏng 0 | khoảng cách 48/49/55 ms | read() 47 ms | sáng 87
+  cam 3: 640×480 23.8 fps thật (trong đó bị cắt 0, xé 0) | khung cũ 0 | đọc hỏng 0 | khoảng cách 48/48/62 ms | read() 47 ms | sáng 91
+  tổng 95.4 khung/s, CPU tiến trình 0.21 lõi
+đã ghi runs\camera_bench\20261002\m_4cam_480p_auto.measure.json

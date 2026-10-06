@@ -18,6 +18,14 @@ vòng quét là thời điểm gói byte chứa node cuối của vòng đó v�
 Nguồn trực tiếp không bao giờ trả `None`: hết thời gian chờ thì ném `ScanReadError`, cùng quy ước với
 `FrameReadError` của camera, để vòng lặp tiêu thụ không nhầm sự cố với hết dữ liệu.
 
+Byte cũ ở cổng (02/10/2026): trên cổng CP210x (COM3) của bàn thử, `reset_input_buffer()` (PurgeComm) KHÔNG xóa gì —
+đo 81 byte trước và sau khi gọi, 23 303 byte khi đang quét. Nên driver bỏ byte cũ bằng cách ĐỌC RA (`_discard_input`):
+sau STOP thì đọc tới khi cổng im `drain_quiet_s` (tối đa `drain_max_s`), trước mỗi lệnh hỏi và trước SCAN thì đọc hết
+phần đang chờ. Trước bản sửa này, C1 bị một tiến trình chết bỏ lại đang quét (LD-1 lần 1, 02/10/2026) làm lần mở sau
+hỏng mãi: mỗi lần thử chỉ đọc 7 byte của mô tả trả lời nên phần ứ tăng 20 byte mỗi lần (LD-1 lần 2: 8151 lỗi "bad
+response descriptor" trong 30 phút). Lệnh hỏi vẫn hỏng thì `start()` RESET một lần rồi hỏi lại. Đã thử trên C1 thật:
+giết tiến trình đang quét rồi mở lại.
+
 Lỗi của chính cổng nối tiếp trong `read()` (rút cáp USB: pyserial ném `SerialException`, là `OSError`, từ
 `in_waiting`/`read`) được ném lại thành `LidarTransportError` — lớp con của `ScanReadError`, giữ lỗi gốc ở
 `__cause__` — để nơi gọi chỉ bắt `ScanReadError` cũng không chết với traceback. Khác với hết thời gian chờ, thử đọc
@@ -36,6 +44,7 @@ import time
 import numpy as np
 
 from autopark.domain.sensors import LidarScan, SourceStamp
+from autopark.power_throttling import apply_ecoqos_policy
 
 from .rplidar_protocol import (ANS_DEVICE_HEALTH, ANS_DEVICE_INFO, ANS_LIDAR_CONF, CMD_GET_HEALTH, CMD_GET_INFO,
                                CMD_RESET, CMD_SCAN, CMD_STOP, CONF_SCAN_MODE_ANS_TYPE, CONF_SCAN_MODE_COUNT,
@@ -67,7 +76,8 @@ class RplidarC1Source:
 
     def __init__(self, transport, *, source_id: str = "rplidar_c1", clock: Callable[[], float] = time.monotonic,
                  mirror: bool = False, first_revolution_timeout_s: float = 8.0, revolution_timeout_s: float = 1.0,
-                 chunk_size: int = 4096, settle_s: float = 0.01):
+                 chunk_size: int = 4096, settle_s: float = 0.01, drain_quiet_s: float = 0.05,
+                 drain_max_s: float = 1.5):
         if first_revolution_timeout_s <= 0 or revolution_timeout_s <= 0 or chunk_size <= 0:
             raise ValueError("timeouts and chunk size must be > 0")
         self.transport = transport
@@ -78,6 +88,10 @@ class RplidarC1Source:
         self.revolution_timeout_s = revolution_timeout_s
         self.chunk_size = chunk_size
         self.settle_s = settle_s
+        self.drain_quiet_s, self.drain_max_s = drain_quiet_s, drain_max_s     # sau STOP: đọc bỏ tới khi cổng im
+        self.discarded_bytes = 0                     # byte cũ đã đọc bỏ (`_discard_input`), cả phiên
+        self.skip_next_revolution = False            # sau flush(): vòng đầu có thể là mẩu giả (cắt giữa luồng)
+        self.skipped_after_flush = 0
         self.queue = ScanQueue()
         self.t0: float | None = None
         self.info: DeviceInfo | None = None
@@ -111,8 +125,38 @@ class RplidarC1Source:
                 break
         return bytes(out)
 
-    def _query(self, packet: bytes, expected_type: int, timeout_s: float = 1.0) -> bytes:
+    def _discard_input(self, quiet_s: float = 0.0, max_s: float = 1.0) -> int:
+        """Bỏ byte cũ ở cổng: `reset_input_buffer()` (cổng nào PurgeComm có tác dụng thì xóa ngay), rồi ĐỌC RA phần còn
+        lại, vì với cổng CP210x của bàn thử PurgeComm không xóa gì. `quiet_s` = 0: chỉ phần ĐANG chờ lúc gọi (đang quét
+        thì không đuổi theo byte mới tới; `flush`, trước mỗi lệnh hỏi, trước SCAN). `quiet_s` > 0 (sau STOP): đọc tiếp
+        tới khi cổng im chừng ấy giây, không quá `max_s`. Lỗi cổng (`OSError`) ném ra như trước. Trả số byte đã bỏ."""
         self.transport.reset_input_buffer()
+        dropped = 0
+        if quiet_s <= 0:
+            waiting = int(getattr(self.transport, "in_waiting", 0))
+            while waiting > 0:
+                chunk = self.transport.read(waiting)
+                if not chunk:
+                    break
+                dropped += len(chunk)
+                waiting -= len(chunk)
+        else:
+            deadline = self.clock() + max_s
+            quiet_until = self.clock() + quiet_s
+            while self.clock() < deadline:
+                waiting = int(getattr(self.transport, "in_waiting", 0))
+                if waiting > 0:
+                    dropped += len(self.transport.read(waiting))
+                    quiet_until = self.clock() + quiet_s
+                elif self.clock() >= quiet_until:
+                    break
+                else:
+                    self._sleep(0.002)
+        self.discarded_bytes += dropped
+        return dropped
+
+    def _query(self, packet: bytes, expected_type: int, timeout_s: float = 1.0) -> bytes:
+        self._discard_input()
         self.transport.write(packet)
         raw = self._read_exact(DESCRIPTOR_LENGTH, timeout_s)
         if len(raw) != DESCRIPTOR_LENGTH:
@@ -126,10 +170,11 @@ class RplidarC1Source:
         return body
 
     def stop_output(self) -> None:
-        """STOP: the device stops sending measurements and the motor stops; wait as the protocol requires."""
+        """STOP: the device stops sending measurements and the motor stops; wait as the protocol requires, then read away
+        whatever was still in flight until the port has been quiet for `drain_quiet_s` (02/10/2026)."""
         self.transport.write(request(CMD_STOP))
         self._sleep(self.settle_s)
-        self.transport.reset_input_buffer()
+        self._discard_input(self.drain_quiet_s, self.drain_max_s)
         self.started = False
 
     # ---- queries ---------------------------------------------------------------------------------------------
@@ -156,7 +201,7 @@ class RplidarC1Source:
 
     def reset(self, settle_s: float = 1.0) -> bytes:
         """RESET reboots the scanner core; returns the boot banner it prints so a caller can log it."""
-        self.transport.reset_input_buffer()
+        self._discard_input()
         self.transport.write(request(CMD_RESET))
         self._sleep(settle_s)
         banner = bytearray()
@@ -165,24 +210,32 @@ class RplidarC1Source:
             if not chunk:
                 break
             banner += chunk
-        self.transport.reset_input_buffer()
+        self._discard_input()
         self.resets += 1
         self.started = False
         return bytes(banner)
 
     # ---- streaming -------------------------------------------------------------------------------------------
     def start(self) -> None:
-        """STOP, read info and health (reset once on health ERROR), then SCAN and check its descriptor."""
+        """STOP, read info and health (reset once on health ERROR), then SCAN and check its descriptor. A garbled
+        answer to the info/health queries (bytes left over from an earlier session) gets one RESET and a second try
+        (02/10/2026)."""
         self.stop_output()
-        self.device_info()
-        health = self.device_health()
+        try:
+            self.device_info()
+            health = self.device_health()
+        except ProtocolError:
+            self.reset()
+            self.stop_output()
+            self.device_info()
+            health = self.device_health()
         if health.status == 2:
             self.reset()
             health = self.device_health()
             if health.status == 2:
                 raise ProtocolError(f"device health ERROR (code {health.error_code}) persists after reset")
         self.t0 = self.clock()
-        self.transport.reset_input_buffer()
+        self._discard_input()
         self.transport.write(request(CMD_SCAN))
         raw = self._read_exact(DESCRIPTOR_LENGTH, 1.0)
         if len(raw) != DESCRIPTOR_LENGTH:
@@ -223,6 +276,12 @@ class RplidarC1Source:
                 if revolution is None and self.clock() >= deadline:   # cả khi byte vẫn tới mà không ghép được vòng
                     raise ScanReadError(f"{self.source_id}: no complete revolution within {timeout:.1f} s "
                                         f"(stats {self.queue.stats()})")
+        if self.skip_next_revolution:
+            # sau flush(): byte đầu tiên có thể nằm giữa một nút; lúc bộ giải mã dò lại nhịp, một nút giả có cờ bắt đầu
+            # làm ra một "vòng" vài tia (đo trên C1 thật 02/10/2026: 4 tia). Bỏ vòng đó, lấy vòng kế.
+            self.skip_next_revolution = False
+            self.skipped_after_flush += 1
+            return self._read()
         self.revolutions += 1
         stamp = SourceStamp(self.source_id, revolution.t_last, True, "lidar")
         scan, quality = revolution_to_scan(revolution, stamp, mirror=self.mirror)
@@ -234,13 +293,16 @@ class RplidarC1Source:
         """Drop everything buffered so far (OS buffer and assembled revolutions) after the caller was busy.
 
         Revolutions are stamped when their bytes ARRIVE at the host; after a long pause the backlog would be
-        returned with fresh stamps although it is old. Flushing makes the next revolution genuinely current.
+        returned with fresh stamps although it is old. Flushing makes the next revolution genuinely current. The
+        backlog is read away (`_discard_input`), since PurgeComm alone clears nothing on the bench's CP210x port.
         """
-        self.transport.reset_input_buffer()
+        self._discard_input()
         self.queue = ScanQueue()
+        self.skip_next_revolution = True
 
     def stats(self) -> dict:
-        return {"revolutions_returned": self.revolutions, "resets": self.resets, **self.queue.stats()}
+        return {"revolutions_returned": self.revolutions, "resets": self.resets, "discarded_bytes": self.discarded_bytes,
+                "skipped_after_flush": self.skipped_after_flush, **self.queue.stats()}
 
     def describe(self) -> dict:
         """Everything a recording's meta file should know about the device and this driver."""
@@ -267,6 +329,8 @@ class RplidarC1Source:
 
 
 def main(argv=None) -> int:
+    # trước mọi việc khác; không in gì thêm: rig.may_moi đọc stdout của `info` như JSON (power_throttling.py)
+    apply_ecoqos_policy("lidar.rplidar_c1")
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     info = sub.add_parser("info", help="device info, health and the scan modes the device announces")

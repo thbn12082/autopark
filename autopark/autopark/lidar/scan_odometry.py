@@ -60,6 +60,12 @@ offline trên dữ liệu lưu sẵn; chưa nối vào phiên đỗ xe, chưa ch
 Mọi ngưỡng (`min_matched_fraction`, `max_conflict_fraction`, `min_normal_ratio`, `max_std_*`, `prior_sigma_*`,
 khung khóa, cửa sổ, bộ lọc điểm) là giá trị tạm, CHƯA CHỐT (24/09/2026): mới chọn trên phòng tổng hợp của test và dữ
 liệu DROW/C1 lưu sẵn, chưa có xe, chưa có tham chiếu độc lập. Xem docs/SO_SANH_DINH_VI_SLAM.md.
+
+Cập nhật 02/10/2026 (T2): `OdometryConfig.velocity_per = "second"` tính vận tốc dự đoán theo thời gian t của `update`
+(vòng bị rơi trước `update` không còn làm dự đoán thiếu quãng đi, phát hiện 6 của SO_SANH mục 3.3); mặc định "scan" giữ
+mọi số cũ. `OdometryStep.axis_x`, `axis_y` ghi hướng suy biến u (hệ odometry) khi khóa trục; hai cột nối cuối CSV. Odometry
+này là phần (b) của nguồn tư thế LiDAR (lidar/pose_estimator.py, nối vào phiên qua application/lidar_pose_source.py), mới
+kiểm trên dữ liệu tổng hợp, C1 đứng yên và DROW; chưa chạy trên cảm biến gá trên xe chạy thật.
 """
 from __future__ import annotations
 
@@ -78,6 +84,7 @@ import numpy as np
 
 from autopark.perception.costmap import OCCUPIED, GridSpec, render
 from autopark.perception.paths import atomic_write_json, utc_now
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
 
 from .localize import AMBIGUOUS, FAILED, OK, LocalizationMap, LocalizeConfig, decimate, wrap
 from .occupancy import OccupancyCounts, states_from_counts
@@ -86,6 +93,7 @@ INIT = "INIT"
 SCAN_TO_MAP, SCAN_TO_SCAN = "scan_to_map", "scan_to_scan"
 MODES = (SCAN_TO_MAP, SCAN_TO_SCAN)
 MOTION_MODELS = ("constant_velocity", "zero")
+VELOCITY_BASES = ("scan", "second")
 EST_COLOR = (255, 60, 0)      # BGR: xanh dương = quỹ đạo khớp scan
 REF_COLOR = (255, 0, 255)     # tím = quỹ đạo tham chiếu (odometry DROW), KHÔNG phải ground truth
 FAIL_COLOR = (0, 0, 0)        # dấu X đen = vòng FAILED (tư thế lấy theo dự đoán)
@@ -181,10 +189,16 @@ class OdometryConfig:
     # (đêm 24/09/2026): 3 cm thay cho 2 mm (giữ cứng) của bản đầu 24/09/2026; mới chọn trên DROW và cảnh tổng hợp.
     lock_sigma_m: float = 0.03
     lost_after: int = 5
+    # Cơ sở của vận tốc dự đoán (thêm 02/10/2026, T2): "scan" = chuyển động mỗi vòng (mặc định, mọi số cũ giữ nguyên);
+    # "second" = chuyển động mỗi giây theo dấu thời gian t của `update`, nên vòng bị rơi trước `update` không làm dự
+    # đoán sai (SO_SANH_DINH_VI_SLAM mục 3.3, phát hiện 6). Nguồn tư thế LiDAR của phiên dùng "second".
+    velocity_per: str = "scan"
 
     def __post_init__(self):
         if self.mode not in MODES:
             raise ValueError(f"mode phải là một trong {MODES} (nhận {self.mode!r})")
+        if self.velocity_per not in VELOCITY_BASES:
+            raise ValueError(f"velocity_per phải là một trong {VELOCITY_BASES} (nhận {self.velocity_per!r})")
         if self.motion_model not in MOTION_MODELS:
             raise ValueError(f"motion_model phải là một trong {MOTION_MODELS} (nhận {self.motion_model!r})")
         if not self.resolution_m > 0 or not 0 <= self.min_range_m < self.max_range_m - self.match_margin_m:
@@ -240,6 +254,10 @@ class OdometryStep:
     keyframe: bool = False
     retried: bool = False
     time_ms: float = 0.0
+    # Hướng suy biến đơn vị u trong hệ odometry khi `locked` (thêm 02/10/2026, T2: kiểm chéo (a)/(b) bỏ thành phần dọc
+    # u); NaN khi không khóa.
+    axis_x: float = math.nan
+    axis_y: float = math.nan
 
     @property
     def pose(self) -> np.ndarray:
@@ -428,8 +446,11 @@ class ScanOdometry:
         self.steps: list[OdometryStep] = []
         self.pose: np.ndarray | None = None
         self.velocity = np.zeros(3)           # chuyển động mỗi vòng (hệ thân), từ hai vòng chấp nhận gần nhất
+        self.velocity_s = np.zeros(3)         # chuyển động mỗi GIÂY (hệ thân), chỉ dùng khi velocity_per = "second"
         self._accepted_pose: np.ndarray | None = None   # tư thế của vòng chấp nhận (INIT/OK/AMBIGUOUS) gần nhất
         self._accepted_index = 0
+        self._accepted_t = 0.0                # t của vòng chấp nhận gần nhất
+        self._last_t = 0.0                    # t của vòng gần nhất đã xử lý (mọi trạng thái)
         self.counts: OccupancyCounts | None = None
         self.keyframe_pose: np.ndarray | None = None
         self.keyframes = 0
@@ -534,6 +555,7 @@ class ScanOdometry:
         def record(step: OdometryStep) -> OdometryStep:
             step.time_ms = (time.perf_counter() - t0) * 1e3
             self.steps.append(step)
+            self._last_t = t
             return step
 
         if self.pose is None:
@@ -541,18 +563,24 @@ class ScanOdometry:
                 return record(OdometryStep(index, t, FAILED, ("too_few_beams", "not_initialised"), 0.0, 0.0, 0.0,
                                            (0.0, 0.0, 0.0), valid_beams=len(points)))
             self.pose = np.zeros(3)
-            self._accepted_pose, self._accepted_index = self.pose.copy(), index
+            self._accepted_pose, self._accepted_index, self._accepted_t = self.pose.copy(), index, t
             self._insert(angles, ranges, self.pose)
             return record(OdometryStep(index, t, INIT, (), 0.0, 0.0, 0.0, (0.0, 0.0, 0.0), valid_beams=len(points),
                                        matched=len(points), matched_fraction=1.0, keyframe=True))
 
-        predicted = compose(self.pose, self.velocity) if cfg.motion_model == "constant_velocity" else self.pose.copy()
+        if cfg.motion_model != "constant_velocity":
+            predicted = self.pose.copy()
+        elif cfg.velocity_per == "second":
+            predicted = compose(self.pose, scale_motion(self.velocity_s, max(0.0, t - self._last_t)))
+        else:
+            predicted = compose(self.pose, self.velocity)
 
         def fail(reasons: list[str], **extra) -> OdometryStep:
             self._failures += 1
             if self._failures >= cfg.lost_after:
                 reasons = reasons + ["lost"]
                 self.velocity = np.zeros(3)        # lạc: thôi ngoại suy (quay/chạy tiếp mãi theo vận tốc cũ còn tệ hơn)
+                self.velocity_s = np.zeros(3)
             self.pose = predicted                  # chạy theo dự đoán; không thêm khung khóa
             return record(OdometryStep(index, t, FAILED, tuple(reasons), float(predicted[0]), float(predicted[1]),
                                        float(predicted[2]), tuple(float(v) for v in predicted),
@@ -578,11 +606,13 @@ class ScanOdometry:
         discrete = np.array([found["x"], found["y"], found["theta"]])
         sigma = (cfg.prior_sigma_xy_m, cfg.prior_sigma_xy_m, math.radians(cfg.prior_sigma_theta_deg))
         lock = None
+        axis = (math.nan, math.nan)
         at_edge, edge_along_axis = bool(found["at_edge"]), False
         if geometric_degenerate:
             c, s = math.cos(predicted[2]), math.sin(predicted[2])
             u = np.array([c * weak_dir[0] - s * weak_dir[1], s * weak_dir[0] + c * weak_dir[1]])
             lock = (u, cfg.lock_sigma_m)
+            axis = (float(u[0]), float(u[1]))
             shift = discrete[:2] - predicted[:2]
             across = shift - (shift @ u) * u
             if at_edge:
@@ -610,7 +640,8 @@ class ScanOdometry:
         quality = dict(matched=matched, matched_fraction=matched_fraction, conflict_fraction=conflict_fraction,
                        std_x_m=float(std[0]), std_y_m=float(std[1]), std_theta_deg=math.degrees(float(std[2])),
                        conflicts_short=evaluation["short"], conflicts_through=evaluation["through"],
-                       normal_ratio=normal_ratio, normals=len(normals), locked=lock is not None, retried=retried)
+                       normal_ratio=normal_ratio, normals=len(normals), locked=lock is not None, retried=retried,
+                       axis_x=axis[0], axis_y=axis[1])
         failures = []
         if at_edge:
             failures.append("window_edge")
@@ -637,7 +668,9 @@ class ScanOdometry:
         # suy tiếp (tái hiện 24/09/2026 trên phòng tổng hợp: 0,35 m/vòng thay vì 0,03 m/vòng ngay sau khi bắt lại).
         gap = index - self._accepted_index
         self.velocity = scale_motion(between(self._accepted_pose, pose), 1.0 / gap)
-        self._accepted_pose, self._accepted_index = pose.copy(), index
+        if t - self._accepted_t > 1e-6:          # theo giây: cùng phép chia đều nhưng cho thời gian đã qua (T2)
+            self.velocity_s = scale_motion(between(self._accepted_pose, pose), 1.0 / (t - self._accepted_t))
+        self._accepted_pose, self._accepted_index, self._accepted_t = pose.copy(), index, t
         self.pose = pose
         keyframe = False
         if cfg.mode == SCAN_TO_SCAN:
@@ -862,7 +895,7 @@ CSV_FIELDS = ("index", "t_s", "status", "reasons", "x_m", "y_m", "theta_deg", "p
               "valid_beams", "matched", "matched_fraction", "conflict_fraction", "conflicts_short", "conflicts_through",
               "std_x_m", "std_y_m", "std_theta_deg", "normal_ratio", "normals", "locked", "keyframe", "time_ms",
               "ref_x_m", "ref_y_m",
-              "ref_theta_deg")
+              "ref_theta_deg", "axis_x", "axis_y")    # axis_x, axis_y nối cuối 02/10/2026 (T2): hướng suy biến khi khóa
 
 
 def _write_csv(path: Path, steps: list[OdometryStep], ref: np.ndarray | None) -> None:
@@ -882,7 +915,8 @@ def _write_csv(path: Path, steps: list[OdometryStep], ref: np.ndarray | None) ->
                              num(step.std_y_m, ".5f"), num(step.std_theta_deg, ".4f"), num(step.normal_ratio, ".4f"),
                              step.normals, int(step.locked),
                              int(step.keyframe), f"{step.time_ms:.1f}", num(r[0], ".4f"), num(r[1], ".4f"),
-                             "" if r[2] is None or not math.isfinite(r[2]) else f"{math.degrees(r[2]):.3f}"])
+                             "" if r[2] is None or not math.isfinite(r[2]) else f"{math.degrees(r[2]):.3f}",
+                             num(step.axis_x, ".4f"), num(step.axis_y, ".4f")])
 
 
 def _clean(value):
@@ -1044,19 +1078,24 @@ def expand_drow_inputs(paths) -> list[Path]:
 
 
 def _worker_init() -> None:
+    apply_ecoqos_policy("lidar.scan_odometry:worker")    # tiến trình con không thừa hưởng EcoQoS của tiến trình mẹ
     cv2.setNumThreads(1)          # nhiều tiến trình song song: tránh mỗi tiến trình lại mở nhiều luồng OpenCV
 
 
 def _run_job(job: tuple) -> dict:
     kind, path, config, out, options = job
     if kind == "c1":
-        return run_c1(path, out, config, **options)
-    return run_drow(path, out, config, **options)
+        result = run_c1(path, out, config, **options)
+    else:
+        result = run_drow(path, out, config, **options)
+    result["ecoqos"] = ecoqos_state()        # của tiến trình đã chạy việc này (tiến trình con khi --workers > 1)
+    return result
 
 
 def main(argv=None) -> int:
     from .recording import git_commit
 
+    apply_ecoqos_policy("lidar.scan_odometry")         # trước mọi việc khác (power_throttling.py)
     parser = argparse.ArgumentParser(description=(__doc__ or "").strip().splitlines()[0])
     parser.add_argument("--recording", type=Path, nargs="+", default=[], help=".npz của autopark.lidar.recording (C1)")
     parser.add_argument("--drow", type=Path, nargs="+", default=[],
@@ -1124,7 +1163,7 @@ def main(argv=None) -> int:
                         "keyframes "
                         "(scan_to_map) or previous scan (scan_to_scan); no loop closure, no wheel/IMU input; "
                         "thresholds provisional (CHƯA CHỐT)",
-              "workers": args.workers, "wall_time_s": time.perf_counter() - t0,
+              "workers": args.workers, "wall_time_s": time.perf_counter() - t0, "ecoqos": ecoqos_state(),
               "configs": {mode: asdict(config) for mode, config in configs.items()},
               "results": results}
     atomic_write_json(args.out / "odometry.json", _clean(report))

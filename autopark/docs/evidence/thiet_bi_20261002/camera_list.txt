@@ -1,0 +1,13 @@
+== Windows PnP (Camera/Image) ==
+  HD Camera | hub USB\VID_05E3&PID_0610\5&27bf20e7&0&8 cổng 1 | USB\VID_1BCF&PID_0B09&MI_00\7&2C402FB5&0&0000
+  HD Camera | hub USB\VID_05E3&PID_0610\5&27bf20e7&0&8 cổng 2 | USB\VID_1BCF&PID_0B09&MI_00\7&19867F10&0&0000
+  HD Camera | hub USB\VID_05E3&PID_0610\5&27bf20e7&0&8 cổng 3 | USB\VID_1BCF&PID_0B09&MI_00\7&6CCCE6B&0&0000
+  HD Camera | hub USB\VID_05E3&PID_0610\5&27bf20e7&0&8 cổng 4 | USB\VID_1BCF&PID_0B09&MI_00\7&2FADE7CD&0&0000
+== Hub USB (ngoài root hub) ==
+  Generic SuperSpeed USB Hub (USB3.1 Hub) | Port_#0018.Hub_#0001 | USB\VID_05E3&PID_0626\5&27BF20E7&0&18
+  Generic USB Hub (USB2.1 Hub) | Port_#0008.Hub_#0001 | USB\VID_05E3&PID_0610\5&27BF20E7&0&8
+== DirectShow (thứ tự = index OpenCV) → cổng hub ==
+  [0] HD Camera → cổng 1 | USB\VID_1BCF&PID_0B09&MI_00\7&2C402FB5&0&0000
+  [1] HD Camera → cổng 3 | USB\VID_1BCF&PID_0B09&MI_00\7&6CCCE6B&0&0000
+  [2] HD Camera → cổng 2 | USB\VID_1BCF&PID_0B09&MI_00\7&19867F10&0&0000
+  [3] HD Camera → cổng 4 | USB\VID_1BCF&PID_0B09&MI_00\7&2FADE7CD&0&0000

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "name": "DO-1 sa_ban_3x2_hai_hop",
+  "notes": "Sa bàn 3 x 2 m, ô đỗ vuông góc ở cạnh dưới giữa hai hộp. Đích: đầu xe hướng ra ngoài (+y), xe phải lùi vào ô. Kích thước chỉ là ví dụ (tài liệu mục 2.1). Tệp nghiệm thu DO-1 (mức MP) sinh bằng autopark.evaluation.acceptance_scenarios từ scenarios/sa_ban_3x2_hai_hop.json, xe configs/vehicle_nghiem_thu.json: kích thước theo xe GIẢ ĐỊNH; xe đo khác thì sinh lại. Giới hạn đổi chiều lúc Bắt đầu đỗ theo trường acceptance (khóa DO-1 của configs/nguong_nghiem_thu.json, N-D6 (b), ĐỀ XUẤT – CHỜ CHỐT).",
+  "vehicle_config": "../../configs/vehicle_nghiem_thu.json",
+  "bounds": {
+    "xmin": 0.0,
+    "ymin": 0.0,
+    "xmax": 3.0,
+    "ymax": 2.0
+  },
+  "start": {
+    "x": 0.5,
+    "y": 1.5,
+    "yaw_deg": 0.0
+  },
+  "goal": {
+    "x": 2.4,
+    "y": 0.4,
+    "yaw_deg": 90.0,
+    "tolerance_cm": 5.0,
+    "tolerance_deg": 5.0
+  },
+  "obstacles": [
+    {
+      "id": "hop_1",
+      "cx": 1.9,
+      "cy": 0.3,
+      "width": 0.3,
+      "height": 0.6,
+      "yaw_deg": 0.0,
+      "kind": "box"
+    },
+    {
+      "id": "hop_2",
+      "cx": 2.85,
+      "cy": 0.3,
+      "width": 0.3,
+      "height": 0.6,
+      "yaw_deg": 0.0,
+      "kind": "box"
+    }
+  ],
+  "seed": 0,
+  "acceptance": {
+    "code": "DO-1"
+  }
+}

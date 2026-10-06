@@ -5,7 +5,8 @@
 
 Các bước, mỗi bước chạy riêng, bước lỗi được ghi lại rồi chạy tiếp bước sau:
 
-1. `env`: cấu hình máy (CPU, RAM, Python, torch, CUDA, GPU, VRAM, driver NVIDIA, OpenCV) → `env.json`.
+1. `env`: cấu hình máy (CPU, RAM, Python, torch, CUDA, GPU, VRAM, driver NVIDIA, OpenCV) và trạng thái EcoQoS của tiến
+   trình đo (lệnh tự tắt EcoQoS từ 02/10/2026; AUTOPARK_KEEP_ECOQOS=1 giữ mặc định của Windows) → `env.json`.
 2. `usb`: sơ đồ camera và hub (`camera_bench list`) → `usb_topology.json`.
 3. `lidar`: tìm cổng COM của RPLIDAR C1 (bộ chuyển CP210x, VID 10C4 PID EA60), đọc thông tin/sức khỏe, ghi 15 s quét tĩnh
    có phân tích → `lidar_info.json`, `lidar/`.
@@ -47,6 +48,7 @@ import numpy as np
 
 from autopark.lidar.port import CP210X_PID, CP210X_VID  # noqa: F401 - giữ tên cũ của mô-đun này
 from autopark.lidar.port import find_cp210x_port as find_lidar_port
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
 
 STEPS =("env", "usb", "lidar", "ai", "rig480", "cam720")
 REFERENCE_GLOB = "docs/evidence/may_ban/tham_chieu_*.json"
@@ -61,7 +63,8 @@ REFERENCE_GLOB = "docs/evidence/may_ban/tham_chieu_*.json"
 def env_report() -> dict:
     info = {"created_local": datetime.now().isoformat(timespec="seconds"), "platform": platform.platform(),
             "machine": platform.machine(), "processor": platform.processor(), "cpu_count": os.cpu_count(),
-            "python": sys.version.split()[0]}
+            "python": sys.version.split()[0],
+            "ecoqos": ecoqos_state()}       # EcoQoS của tiến trình đo (main() tự tắt từ 02/10/2026)
     try:
         import psutil
         info["ram_gb"] = round(psutil.virtual_memory().total / 2 ** 30, 1)
@@ -265,7 +268,8 @@ def rig_digest(rig: dict | None) -> dict | None:
             "lagging_per_port": [((rig.get("sets") or {}).get("lagging_per_port") or {}).get(str(c["port"]),
                                  ((rig.get("sets") or {}).get("lagging_per_port") or {}).get(c["port"], 0)) for c in cams],
             "proc_cpu_cores": pick("proc_cpu_cores"), "gpu_util_pct": pick("gpu_util_pct"),
-            "gpu_temp_last": pick("gpu_temp_c", "last"), "stop_alive": rig.get("stop_alive")}
+            "gpu_temp_last": pick("gpu_temp_c", "last"), "stop_alive": rig.get("stop_alive"),
+            "ecoqos": res.get("ecoqos")}          # .rig.json từ 02/10/2026; tệp cũ không có → None
 
 
 def build_digest(out: Path, results: dict) -> dict:
@@ -420,6 +424,7 @@ def summary_markdown(digest: dict, reference: dict | None) -> str:
     skew3 = lambda s: [s.get("median"), s.get("p95"), s.get("max")]  # noqa: E731
     warm_total_s = lambda v: sum(v) / 1000.0 if v else None  # noqa: E731
 
+    row("EcoQoS của tiến trình đo (off = đã tắt)", ("env", "ecoqos"))
     row("Camera thấy qua DirectShow / có số cổng hub", ("usb", "cameras"))
     row("… trong đó có số cổng hub", ("usb", "with_hub_port"))
     row("LiDAR: cổng COM", ("lidar", "port"))
@@ -455,6 +460,8 @@ def summary_markdown(digest: dict, reference: dict | None) -> str:
               "đặt camera nhìn cùng một cảnh.",
               "- Ô '—': không có số (bước lỗi, hoặc tệp tham chiếu không lưu số đó — cả hai tệp tham chiếu "
               "24/09/2026 đều không lưu độ lệch bộ ảnh; tệp 15:25 không lưu cả quy tắc chờ lẫn làm nóng AI).",
+              "- EcoQoS: từ 02/10/2026 công cụ tự tắt EcoQoS cho tiến trình đo (AUTOPARK_KEEP_ECOQOS=1 giữ mặc định "
+              "của Windows); tệp tham chiếu máy bàn ghi trước ngày đó không có trạng thái này ('—').",
               "- Tham chiếu máy bàn" + (f" (`{ref_name}`)" if ref_name else "") + ": "
               + ((reference or {}).get("note") or "chưa có tệp tham chiếu").rstrip(". ") + ".",
               "- Chi tiết từng bước: `may_moi.json`, `*.rig.json`, `lidar/`, `ai_latency.json`, `usb_topology.json`."]
@@ -464,6 +471,7 @@ def summary_markdown(digest: dict, reference: dict | None) -> str:
 # ----------------------------------------------------------------------------------------------- CLI
 
 def main(argv=None) -> int:
+    ecoqos = apply_ecoqos_policy("rig.may_moi")        # trước mọi việc khác (power_throttling.py)
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("--out", type=Path, default=None, help="thư mục kết quả (mặc định runs/may_moi_<ngày giờ>)")
     p.add_argument("--lidar", default=None, help="cổng COM của LiDAR; mặc định tự tìm bộ chuyển CP210x")
@@ -483,6 +491,7 @@ def main(argv=None) -> int:
     root = Path(__file__).resolve().parents[2]
     steps_txt = ", ".join(args.steps) or "không bước nào — chỉ tóm tắt lại từ các tệp đã có trong thư mục kết quả"
     print(f"Kết quả vào: {out}\nCác bước: {steps_txt}", flush=True)
+    print(ecoqos.cli_line(), flush=True)
     if args.dry_run:
         return 0
     out.mkdir(parents=True, exist_ok=True)

@@ -174,36 +174,33 @@ def _num(x: float) -> str:
     return s if s not in ("-0", "") else "0"
 
 
-def pdf_bytes(lay: PageLayout, text: str | None = None) -> bytes:
-    """Một trang PDF 1.6: MediaBox đúng khổ giấy theo điểm (1/72 inch), mỗi ô đen là một hình chữ nhật vector.
+def pdf_document_bytes(pages) -> bytes:
+    """PDF 1.6 nhiều trang, mỗi trang `(page_mm, rects_mm, texts)`: hình chữ nhật đen vector `(x, y, rộng, cao)` mm đo từ
+    góc TRÊN-trái của trang, và dòng chữ `(x_mm, baseline_mm, size_pt, chuỗi)` (Helvetica, bỏ dấu bằng `ascii_fold`).
 
-    Gốc tọa độ PDF ở góc DƯỚI-trái nên y được lật. Nội dung không nén để kiểm lại được bằng mắt/regex."""
-    w_mm, h_mm = lay.page_mm
+    MediaBox đúng khổ giấy theo điểm (1/72 inch). Gốc tọa độ PDF ở góc DƯỚI-trái nên y được lật. Nội dung không nén để
+    kiểm lại được bằng mắt/regex. Đánh số đối tượng: 1 Catalog, 2 Pages, trang k (từ 0) là 3 + 2k và nội dung 4 + 2k,
+    phông 3 + 2·số trang (một trang thì đúng thứ tự cũ của `pdf_bytes`, thêm 02/10/2026 cho tờ ArUco của T4)."""
     k = PT_PER_MM
-    ops = ["0 g"]
-    sq = lay.square_mm
-    for ix, iy in lay.black_squares():
-        x = lay.origin_mm[0] + ix * sq
-        y_top = lay.origin_mm[1] + iy * sq
-        ops.append(f"{_num(x * k)} {_num((h_mm - y_top - sq) * k)} {_num(sq * k)} {_num(sq * k)} re")
-    ops.append("f")
-    if text and lay.text:
-        folded = ascii_fold(text)
-        x_pt = PRINT_MARGIN_MM * k + 4
-        # bề rộng Helvetica trung bình ≈ 0,5 em cho chữ thường; thu cỡ chữ để dòng không tràn lề phải
-        size_pt = max(4.0, min(8.0, (w_mm * k - 2 * x_pt) / (0.52 * max(1, len(folded)))))
-        baseline_mm = lay.origin_mm[1] - lay.quiet_mm - TEXT_BAND_MM / 2 + 1.0
-        ops.append(f"BT /F1 {_num(size_pt)} Tf {_num(x_pt)} {_num((h_mm - baseline_mm) * k)} Td "
-                   f"({_pdf_escape(folded)}) Tj ET")
-    content = ("\n".join(ops) + "\n").encode("ascii")
-    objects = [
-        b"<< /Type /Catalog /Pages 2 0 R /ViewerPreferences << /PrintScaling /None >> >>",
-        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        (f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {_num(w_mm * k)} {_num(h_mm * k)}] /Contents 4 0 R "
-         f"/Resources << /Font << /F1 5 0 R >> >> >>").encode("ascii"),
-        f"<< /Length {len(content)} >>\nstream\n".encode("ascii") + content + b"endstream",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
-    ]
+    font = 3 + 2 * len(pages)
+    objects = [b"<< /Type /Catalog /Pages 2 0 R /ViewerPreferences << /PrintScaling /None >> >>",
+               (f"<< /Type /Pages /Kids [{' '.join(f'{3 + 2 * i} 0 R' for i in range(len(pages)))}] "
+                f"/Count {len(pages)} >>").encode("ascii")]
+    for i, (page_mm, rects_mm, texts) in enumerate(pages):
+        w_mm, h_mm = page_mm
+        ops = ["0 g"]
+        for x, y, w, h in rects_mm:
+            ops.append(f"{_num(x * k)} {_num((h_mm - y - h) * k)} {_num(w * k)} {_num(h * k)} re")
+        if rects_mm:
+            ops.append("f")
+        for x_mm, baseline_mm, size_pt, text in texts or ():
+            ops.append(f"BT /F1 {_num(size_pt)} Tf {_num(x_mm * k)} {_num((h_mm - baseline_mm) * k)} Td "
+                       f"({_pdf_escape(ascii_fold(text))}) Tj ET")
+        content = ("\n".join(ops) + "\n").encode("ascii")
+        objects.append((f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {_num(w_mm * k)} {_num(h_mm * k)}] "
+                        f"/Contents {4 + 2 * i} 0 R /Resources << /Font << /F1 {font} 0 R >> >> >>").encode("ascii"))
+        objects.append(f"<< /Length {len(content)} >>\nstream\n".encode("ascii") + content + b"endstream")
+    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
     out = bytearray(b"%PDF-1.6\n%\xe2\xe3\xcf\xd3\n")
     offsets = []
     for n, body in enumerate(objects, start=1):
@@ -215,6 +212,29 @@ def pdf_bytes(lay: PageLayout, text: str | None = None) -> bytes:
         out += f"{off:010d} 00000 n\r\n".encode("ascii")
     out += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode("ascii")
     return bytes(out)
+
+
+def pdf_page_bytes(page_mm, rects_mm, texts=()) -> bytes:
+    """Một trang của `pdf_document_bytes`."""
+    return pdf_document_bytes([(page_mm, rects_mm, texts)])
+
+
+def pdf_bytes(lay: PageLayout, text: str | None = None) -> bytes:
+    """Một trang PDF 1.6 của bảng ô vuông: mỗi ô đen là một hình chữ nhật vector (`pdf_page_bytes`; từng byte như trước
+    02/10/2026, tests/test_fisheye_calib.py ghim SHA-256)."""
+    w_mm, h_mm = lay.page_mm
+    k = PT_PER_MM
+    sq = lay.square_mm
+    rects = [(lay.origin_mm[0] + ix * sq, lay.origin_mm[1] + iy * sq, sq, sq) for ix, iy in lay.black_squares()]
+    texts = []
+    if text and lay.text:
+        folded = ascii_fold(text)
+        x_pt = PRINT_MARGIN_MM * k + 4
+        # bề rộng Helvetica trung bình ≈ 0,5 em cho chữ thường; thu cỡ chữ để dòng không tràn lề phải
+        size_pt = max(4.0, min(8.0, (w_mm * k - 2 * x_pt) / (0.52 * max(1, len(folded)))))
+        baseline_mm = lay.origin_mm[1] - lay.quiet_mm - TEXT_BAND_MM / 2 + 1.0
+        texts.append((x_pt / k, baseline_mm, size_pt, folded))
+    return pdf_page_bytes(lay.page_mm, rects, texts)
 
 
 # ---- PNG ---------------------------------------------------------------------------------------------------------
@@ -246,6 +266,24 @@ def render_page(lay: PageLayout, dpi: float = 300.0, text: str | None = None) ->
     info = {"dpi": dpi, "size_px": [w_px, h_px], "square_px": sq_px, "square_mm_at_dpi": sq_px * MM_PER_INCH / dpi,
             "board_origin_px": [x0, y0]}
     return page, info
+
+
+def render_rects_png(page_mm, rects_mm, texts=(), dpi: float = 300.0) -> np.ndarray:
+    """Ảnh xám một trang của `pdf_document_bytes` ở `dpi`: mỗi hình chữ nhật tô đen từ điểm ảnh làm tròn của hai mép
+    (mép chung của hai ô kề nhau rơi đúng một chỗ, không hở, không chồng); chữ bằng phông Hershey, không dấu."""
+    import cv2
+
+    w_px, h_px = mm_to_px(page_mm[0], dpi), mm_to_px(page_mm[1], dpi)
+    page = np.full((h_px, w_px), 255, np.uint8)
+    for x, y, w, h in rects_mm:
+        page[mm_to_px(y, dpi):mm_to_px(y + h, dpi), mm_to_px(x, dpi):mm_to_px(x + w, dpi)] = 0
+    for x_mm, baseline_mm, size_pt, text in texts or ():
+        # cỡ Hershey SIMPLEX: chiều cao chữ hoa ≈ 22 đơn vị × scale điểm ảnh; cỡ chữ PDF ≈ 0,7 em cho chữ hoa
+        scale = size_pt / 72.0 * dpi * 0.7 / 22.0
+        thickness = max(1, round(scale * 1.5))
+        cv2.putText(page, ascii_fold(text), (mm_to_px(x_mm, dpi), mm_to_px(baseline_mm, dpi)), cv2.FONT_HERSHEY_SIMPLEX,
+                    scale, 0, thickness, cv2.LINE_AA)
+    return page
 
 
 def png_with_dpi(image: np.ndarray, dpi: float) -> bytes:

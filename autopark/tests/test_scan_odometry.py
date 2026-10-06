@@ -833,3 +833,61 @@ def test_drow_corridor_slowdown_does_not_fail_with_the_soft_lock():
     assert report["end"]["translation_pct_of_path"] < 6.0
     assert report["segments"]["5"]["translation_pct"]["median"] < 4.0
     assert report["step_ratio"] == pytest.approx(1.0, abs=0.05)
+
+
+# --- T2 (02/10/2026): vận tốc theo giây, trục suy biến trong OdometryStep ------------------------------------------
+
+def test_velocity_per_second_survives_dropped_scans():
+    """Vòng bị rơi TRƯỚC `update` (phát hiện 6 của SO_SANH mục 3.3): theo vòng, dự đoán sau một khoảng hở dài hơn thiếu
+    đúng phần quãng đi đó; theo giây (`velocity_per="second"`), dự đoán dùng thời gian thật. Đo 02/10/2026 (0,3 m/s,
+    30 % vòng rơi ngẫu nhiên): sai số dự đoán trung vị 2,6 mm theo giây, 4,6 mm theo vòng; lớn nhất 9,8 / 62 mm (sau
+    mỗi khoảng hở dài hơn khoảng trước)."""
+    truth = drive(CAR_START, [(0.3, 0.0, 60), (0.3, 0.5, 20)])
+    scans = simulate(truth, np.random.default_rng(61), n_movers=0)
+    rng = np.random.default_rng(62)
+    kept = [scan for k, scan in enumerate(scans) if k < 3 or rng.random() >= 0.3]
+    errors = {}
+    for basis in ("second", "scan"):
+        odometry = run_sequence(kept, OdometryConfig(velocity_per=basis))
+        assert all(step.status in (OK, AMBIGUOUS) for step in odometry.steps[1:]), basis
+        later = odometry.steps[3:]
+        errors[basis] = np.array([math.hypot(s.predicted[0] - s.x, s.predicted[1] - s.y) for s in later])
+    assert errors["second"].max() < 0.5 * errors["scan"].max(), {k: v.max() for k, v in errors.items()}
+    assert errors["second"].mean() < errors["scan"].mean() and errors["second"].max() < 0.03
+    with pytest.raises(ValueError, match="velocity_per"):
+        OdometryConfig(velocity_per="minute")
+
+
+def test_locked_step_records_the_weak_axis():
+    """Hành lang hai tường song song (trục x): vòng khóa ghi hướng suy biến u (đơn vị, hệ odometry) dọc hành lang; vòng
+    không khóa để NaN; CSV ghi hai cột cuối axis_x, axis_y."""
+    walls = np.array([(-30.0, -0.8, 30.0, -0.8), (-30.0, 0.8, 30.0, 0.8)], np.float64)
+    truth = drive((0.0, 0.1, 0.4), [(0.2, 0.0, 6)])
+    odometry = run_sequence(simulate(truth, np.random.default_rng(63), segments=walls, n_movers=0, noise=0.005),
+                            OdometryConfig())
+    locked = [step for step in odometry.steps if step.locked]
+    assert locked and all(math.isfinite(step.axis_x) and math.isfinite(step.axis_y) for step in locked)
+    for step in locked:
+        assert math.hypot(step.axis_x, step.axis_y) == pytest.approx(1.0, abs=1e-6)
+        # hệ odometry quay −0,4 rad so với hệ hành lang: trục hành lang trong hệ odometry là (cos 0,4, −sin 0,4)
+        assert abs(step.axis_x * math.cos(0.4) - step.axis_y * math.sin(0.4)) == pytest.approx(1.0, abs=0.01)
+    free = run_sequence(simulate(drive(CAR_START, [(0.2, 0.0, 3)]), np.random.default_rng(64), n_movers=0),
+                        OdometryConfig())
+    assert all(math.isnan(step.axis_x) and math.isnan(step.axis_y) for step in free.steps if not step.locked)
+
+
+def test_default_velocity_basis_unchanged_csv_columns_appended(tmp_path):
+    from autopark.lidar.scan_odometry import CSV_FIELDS, _write_csv
+
+    assert OdometryConfig().velocity_per == "scan"
+    assert CSV_FIELDS[-2:] == ("axis_x", "axis_y") and CSV_FIELDS[-5:-2] == ("ref_x_m", "ref_y_m", "ref_theta_deg")
+    truth = drive(CAR_START, [(0.3, 0.0, 12)])
+    scans = simulate(truth, np.random.default_rng(65), n_movers=0)
+    default = run_sequence(scans, OdometryConfig())
+    explicit = run_sequence(scans, OdometryConfig(velocity_per="scan"))
+    assert np.array_equal(default.poses(), explicit.poses())
+    assert [s.predicted for s in default.steps] == [s.predicted for s in explicit.steps]
+    _write_csv(tmp_path / "o.csv", default.steps, None)
+    with (tmp_path / "o.csv").open(encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    assert list(rows[0]) == list(CSV_FIELDS) and all(r["axis_x"] == "" for r in rows)

@@ -495,10 +495,11 @@ def test_window_port_choice_defaults_to_sim_and_lists_ports_on_demand(window, po
     from autopark.transport.vehicle_io import SerialVehicleIO as Serial
     combo = window.combo_port
     assert ports["calls"] == 0                                   # dựng cửa sổ không liệt kê cổng
-    assert combo.count() == 1 and window.board_port() is None and "Bo mô phỏng" in combo.itemText(0)
+    assert combo.count() == 2 and window.board_port() is None and "Bo mô phỏng" in combo.itemText(0)
+    assert combo.itemData(1) == "qemu"                           # bo ảo QEMU luôn là mục thứ hai (02/10/2026)
     combo.showPopup()                                            # mở danh sách = quét lại
     combo.hidePopup()
-    assert ports["calls"] == 1 and combo.count() == 3 and window.board_port() is None
+    assert ports["calls"] == 1 and combo.count() == 4 and window.board_port() is None
     assert "Espressif" in combo.itemText(combo.findData("COM10"))
 
     window.combo_drive.setCurrentIndex(window.combo_drive.findData(DriveMode.VEHICLE_IO.value))
@@ -575,6 +576,38 @@ def test_window_probe_cancelled_or_failing_open_sends_nothing(window, dialogs, n
     window.serial_io_factory = cannot_open
     assert window._probe_board() is None
     assert "Không mở được COM4" in window.lbl_board_report.text() and no_serial_open == []
+
+
+def test_window_probe_releases_the_port_the_link_holds_open(window, dialogs, no_serial_open):
+    """Sửa sau review 02/10/2026: bước 0c của VehicleLink mở cổng ở lần Bắt đầu đỗ đầu tiên và GIỮ mở giữa các lần chạy
+    (kể cả khi START bị từ chối ở START_CHECK). Cổng COM trên Windows chỉ mở được một lần, nên "Kiểm kết nối bo" đóng
+    cổng mà nhánh chạy đang giữ (`VehicleLink.release_port`) trước khi mở, và nói rõ ở thanh trạng thái và báo cáo. Trả
+    lời "Không" ở hộp xác nhận thì không đóng gì; cổng khác hay cổng chưa mở thì không có gì để đóng."""
+    from PySide6.QtWidgets import QMessageBox
+    window.combo_drive.setCurrentIndex(window.combo_drive.findData(DriveMode.OBSERVE.value))
+    select_port(window, "COM10")
+    link = window.session.vehicle_link
+    _held_io, held = serial_board(port="COM10")
+    link.io.transport = held                    # như sau bước 0c của một lần Bắt đầu đỗ: liên kết giữ COM10 mở
+    probe_io, probe_loop = serial_board(port="COM10")
+
+    def exclusive(port):
+        if not held.closed:
+            raise OSError(f"could not open port '{port}': PermissionError(13, 'Access is denied.', None, 5)")
+        return probe_io
+
+    window.serial_io_factory = exclusive
+    dialogs["answer"] = QMessageBox.StandardButton.No
+    assert window._probe_board() is None and not held.closed and link.io.transport is held
+    dialogs["answer"] = QMessageBox.StandardButton.Yes
+    report = window._probe_board()
+    assert report is not None and report.ok and report.commands_sent == 0
+    assert held.closed and link.io.transport is None and probe_loop.closed and window.session.vehicle_link is link
+    assert "đã đóng COM10" in window.statusBar().currentMessage()
+    assert "Trước khi kiểm đã đóng COM10" in window.lbl_board_report.text()
+    window.serial_io_factory = lambda port: serial_board(port=port)[0]
+    report = window._probe_board()                              # cổng không còn bị giữ: không ghi chú gì thêm
+    assert report.ok and "đã đóng" not in window.statusBar().currentMessage() and no_serial_open == []
 
 
 def test_window_probe_simulated_board_asks_nothing(window, dialogs, no_serial_open):

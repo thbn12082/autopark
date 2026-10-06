@@ -1,0 +1,15 @@
+{
+  "format": "autopark.overhead_vehicle_markers/1",
+  "name": "xe_gia",
+  "measured": false,
+  "dictionary": "DICT_4X4_50",
+  "point": "tam_truc_sau",
+  "markers": [
+    {"id": 48, "role": "sau", "x_m": 0.0, "y_m": 0.0, "z_m": 0.10, "side_m": 0.08, "yaw_deg": 0.0},
+    {"id": 49, "role": "truoc", "x_m": 0.30, "y_m": 0.0, "z_m": 0.10, "side_m": 0.08, "yaw_deg": 0.0}
+  ],
+  "r2_points_m": {"sau": [-0.15, 0.05], "truoc": [0.55, 0.05]},
+  "measured_by": "",
+  "date": "",
+  "notes": "MẪU 02/10/2026, mọi số là GIẢ ĐỊNH (measured: false), chưa đo: overhead_ref track và tc1 từ chối tệp này (track nhận khi có --cho-cau-hinh-chua-do, độ chính xác thành null). Xe giả của TC-1 (KICH_BAN_NGHIEM_THU.md mục 3.2, 3.7): tấm đế phẳng mang hai marker ArUco DICT_4X4_50 cạnh 80 mm (mã 48 = sau, 49 = trước, in bằng autopark.perception.aruco_sheet --ids 48,49 --size-mm 80), mặt marker cao z_m so với sàn, tâm marker cách nhau ≥ 0,25 m (sai số hướng ≈ √2·σ/d); một thước thẳng cứng ≥ 0,65 m gắn chặt song song trục xe, hai đầu thước (r2_points_m, hệ xe) là hai điểm đo bằng thước thép ở TC-1. Hệ xe: x trước, y trái, gốc = điểm 'tam_truc_sau' trên sàn. Sau khi dựng xe giả: đo bằng thước vị trí tâm hai marker (x_m, y_m), độ cao mặt marker (z_m, sai 5 mm lệch ≈ 4 mm ở 1,5 m), cạnh marker đã in bằng thước kẹp (side_m), vị trí hai đầu thước; ghi bản xe_gia_v1.json với measured: true, measured_by, date (dd/mm/yyyy). Mặc định ĐỀ XUẤT – CHỜ CHỐT, người dùng giao quyết định 02/10/2026."
+}

@@ -18,6 +18,8 @@ import numpy as np
 import torch
 from torch import nn
 
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
+
 from .augment import normalize, to_float
 from .checkpoint import atomic_write_json, load_checkpoint
 from .data import letterbox, read_image
@@ -63,6 +65,7 @@ def time_calls(fn, warmup: int, runs: int) -> dict:
 
 
 def main(argv=None) -> int:
+    apply_ecoqos_policy("perception.export_onnx")      # trước mọi việc khác: đo độ trễ CPU/GPU
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
@@ -152,6 +155,7 @@ def main(argv=None) -> int:
         latency["torch_cuda_fp16_end_to_end_1280x966_input"] = time_calls(end_to_end, 10, max(20, args.runs // 2))
     report["latency_single_image_ms"] = latency
     report["environment"] = environment_info()
+    report["ecoqos"] = ecoqos_state()                  # EcoQoS của tiến trình đo (02/10/2026)
     atomic_write_json(args.out / "export_report.json", report)
     print(json.dumps({"verification": report["verification"], "latency": {k: round(v["p50_ms"], 2) for k, v in latency.items()}},
                      indent=2), flush=True)

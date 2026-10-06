@@ -3,7 +3,9 @@
 **Trạng thái (30/09/2026):** lõi `src/core` khớp bản tham chiếu Python trên máy tính (test host 703 check, 0 lệch,
 29/09/2026); cả firmware biên dịch cho ESP32-S3 (Arduino-ESP32 2.0.17, 0 lỗi, 0 cảnh báo, 29/09/2026); bản env
 `esp32s3_qemu` chạy trong bo ảo QEMU (30/09/2026, chỉ là giả lập). **CHƯA NẠP, CHƯA CHẠY trên bo thật**; mọi bước
-"Cách kiểm trên bo" chưa làm. Chi tiết ở ba đoạn "Cập nhật" dưới và các mục tương ứng.
+"Cách kiểm trên bo" chưa làm. Chi tiết ở ba đoạn "Cập nhật" dưới và các mục tương ứng. *(Cập nhật 02/10/2026: giao diện
+chạy được bo ảo này và cả phiên đỗ qua nó, với tốc độ, góc lái, tư thế từ xe mô phỏng phía laptop; firmware không đổi.
+Bản 100 mm/s cho xe nghiệm thu: CHƯA LÀM. Xem mục "Chạy trong bo ảo" và mục "CHƯA CHỐT theo bo thực".)*
 
 *Trạng thái lúc viết mã (24/09/2026), giữ làm lịch sử:* mã nguồn viết trước khi có mạch. CHƯA BIÊN DỊCH, CHƯA NẠP, CHƯA
 CHẠY trên bo nào. Máy bàn dùng tới 25/09/2026 không có trình biên dịch C/C++ (không gcc/clang/MSVC) và không có
@@ -83,6 +85,12 @@ Hằng số phần cứng nằm ở đầu `src/main.cpp`; tham số lõi (trầ
 - Cảm biến: encoder/MT6701, AS5600, BNO085, VL53L1X, đo điện áp — **chưa có mã đọc**; `read_inputs()` trả
   `*_valid = false`, telemetry báo "không có số đo" (giá trị 0 kèm cờ hợp lệ 0, không bao giờ là "khoảng cách xa").
 - Hệ số vòng tốc độ (`kp/ki/ff/deadzone_comp`): chọn trên mô hình mô phỏng giả định, chưa chỉnh trên xe.
+- *(Thêm 02/10/2026.)* Giới hạn trong `ap::Config` (`max_speed_mm_s` = 300…) bằng `configs/vehicle_default.json` (GIẢ
+  ĐỊNH) và biên dịch cứng, không có cờ build. Xe nghiệm thu `configs/vehicle_nghiem_thu.json` chạy tối đa 0,10 m/s
+  (người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất; N-V1 vẫn ĐỀ XUẤT – CHỜ CHỐT). Với xe đó, Bắt đầu đỗ
+  ở `VEHICLE_IO` qua bo ảo QEMU hay ESP32-S3 bị từ chối vì `LIMITS_MISMATCH` (bo cho chạy nhanh hơn xe: hướng nguy hiểm,
+  [`docs/GIAO_THUC_XE.md`](../../docs/GIAO_THUC_XE.md) mục 7); Quan sát chỉ ghi dòng lệch. Đây là hướng an toàn; suy ra
+  từ mã, chưa chạy thử. Bản firmware 100 mm/s (cờ build hay env PlatformIO riêng): CHƯA LÀM.
 
 `AP_ENABLE_PWM_OUTPUTS=0` (mặc định): không chân nào bị điều khiển. Bật lên 1 khi các chân còn là -1 thì
 `static_assert` chặn biên dịch.
@@ -269,6 +277,12 @@ với đúng `SerialVehicleIO` của laptop. Nó KHÔNG có LEDC, GPIO vào (E-s
 mọi bước "Cách kiểm trên bo" ở trên vẫn phải làm trên bo. Chi tiết, các trình giả lập khác đã thử (esp32sim chạy được bản
 USB-CDC; a159x36/qemu có LEDC và tiêm chân, mới thử với sketch thử; esp-emulator có watchdog kích hoạt) và giới hạn:
 [MO_PHONG_FIRMWARE.md](../../docs/MO_PHONG_FIRMWARE.md).
+
+*(Cập nhật 02/10/2026: giao diện chạy được bo ảo này (thẻ "Bo điều khiển", nút "Khởi động bo ảo") và cả phiên đỗ qua nó;
+tốc độ, góc lái, tư thế lấy từ xe mô phỏng phía laptop (`autopark/transport/qemu_plant.py`). Firmware KHÔNG đổi: không mã
+mô phỏng hay thông điệp mới nào; bản esp32s3_qemu vẫn chạy mạch hở vì chưa đọc cảm biến. Một lần chạy ứng dụng với QEMU
+thật, các nút gọi bằng mã (không ai bấm tay), đỗ xong 2/2 lần; vẫn chỉ là mô phỏng, không phải bo thật. Xem
+[MO_PHONG_FIRMWARE.md](../../docs/MO_PHONG_FIRMWARE.md) mục 1.1.)*
 
 ## Trình tự thử trên bo (đề xuất, chưa làm)
 

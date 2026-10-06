@@ -1,0 +1,40 @@
+Đo vòng điều khiển của ứng dụng giao diện khi chạy (python -m autopark.evaluation.ecoqos_gui do-chay)
+Kịch bản: kich_ban_bai_do_xe.json (lệch sau khi lưu và nạp lại: 0); nhánh: SIM, VEHICLE_IO (bo mô phỏng); hệ số thời gian 1,0; nhịp QTimer 16 ms; chặn real_dt 0,1 s
+Thời gian: 02/10/2026 18:43:10 → 02/10/2026 18:57:27
+Mã: commit 63017a5 (+ 151 tệp chưa commit)
+CPU: 32 bộ xử lý logic; lớp 1: LP 0–15; lớp 0: LP 16–31 (lớp thấp nhất là lõi E)
+Nguồn: kế hoạch High performance (8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c); lớp phủ không có (Balanced); điện lưới có; tiết kiệm pin không; tắt màn hình sau: AC không bao giờ, DC 240 s
+Windows: Windows-11-10.0.26200-SP0 (UBR 9550); phiên 1, phiên console 1; nâng quyền có; tiến trình cha: python.exe ← python.exe ← bash.exe ← bash.exe ← bash.exe ← claude.exe ← Code.exe ← Code.exe; khóa cửa sổ ở trước (ForegroundLockTimeout) 0 ms
+Số lượt theo phiên lúc bấm: mo 32 (sau: mo 32); theo màn hình lúc bấm: bat 32 (sau: bat 32); tải nền 1,7–20,3 %
+Lệnh: python -X utf8 -m autopark.evaluation.ecoqos_gui do-chay --ra docs/evidence/ecoqos_chay_02102026
+EcoQoS từng khối (đọc lại sau khi đặt biến thể): gui_system: ecoqos system, đồng hồ system ×4 (AUTOPARK_KEEP_ECOQOS=1); gui_off: ecoqos off, đồng hồ system, cách tắt theo_pid ×4
+
+Bảng (chỉ lượt hợp lệ; GD = khoảng giữa hai nhịp giao diện, ms: trung vị các lượt của p50 / p95, lớn nhất của max; tính/bước = µs tính mỗi bước 5 ms, trung vị; ĐK = nhịp điều khiển 50 Hz: khoảng lớn nhất ms, số khoảng > 0,15 s, trễ p95 ms so với lịch lý tưởng; phiên/thật = thời gian phiên / (thời gian thật × rt), trung vị; mất chặn = giây phiên mất do chặn real_dt 0,1 s, lớn nhất; lagging = tổng số nhịp):
+nhánh      biến thể    trạng thái  hợp lệ  kết quả                 GD p50/p95/max     tính/bước  ĐK max  >0,15s  trễ p95 phiên/thật  mất chặn lagging
+SIM        gui_system  thuong         2/4  COMPLETED 2             16,0/16,5/17           240,5      32       0      461      0,977      0,00       0
+SIM        gui_system  thu_nho        2/2  COMPLETED 2             15,5/16,3/32           415,9      47       0      618      0,969      0,00       0
+SIM        gui_system  bi_che         2/2  COMPLETED 2             16,0/16,5/17           235,2      32       0      491      0,975      0,00       0
+SIM        gui_off     thuong         2/4  COMPLETED 2             16,0/16,6/17           234,2      32       0      465      0,977      0,00       0
+SIM        gui_off     thu_nho        2/2  COMPLETED 2             15,5/16,2/31           234,8      46       0      626      0,969      0,00       0
+SIM        gui_off     bi_che         2/2  COMPLETED 2             16,0/16,6/17           242,2      32       0      494      0,975      0,00       0
+VEHICLE_IO gui_system  thuong         2/4  COMPLETED 2             16,0/16,6/17           285,7      32       0      512      0,975      0,00       0
+VEHICLE_IO gui_system  thu_nho        2/2  COMPLETED 2             15,5/16,3/32           502,0      46       0      650      0,969      0,00       0
+VEHICLE_IO gui_system  bi_che         2/2  COMPLETED 2             16,0/16,6/17           297,0      33       0      539      0,974      0,00       0
+VEHICLE_IO gui_off     thuong         2/4  COMPLETED 2             16,0/16,5/17           288,8      33       0      480      0,977      0,00       0
+VEHICLE_IO gui_off     thu_nho        2/2  COMPLETED 2             15,5/16,2/36           276,3      47       0      654      0,969      0,00       0
+VEHICLE_IO gui_off     bi_che         2/2  COMPLETED 2             16,0/16,5/17           290,0      33       0      480      0,976      0,00       0
+
+Lượt bị loại khỏi phép so sánh: khoi_dong 8
+Đưa cửa sổ ra trước lúc đổi trạng thái (mọi lượt có cửa sổ, kể cả lượt bị loại; đọc lại cửa sổ ở trước ngay sau): giao_dien 16/16; trung_tinh 8/8; man_che 8/8. Cấp quyền trước đó (AllowSetForegroundWindow): giao_dien:ok 8, man_che:ok 4.
+Mẫu trạng thái cửa sổ trong lúc chạy (mỗi giây): 656 mẫu, 0 sai ở 0 lượt (lượt có mẫu sai bị loại: doi_trang_thai_trong_chay).
+
+Kết luận (chỉ lượt hợp lệ; ngưỡng mô tả, không phải ngưỡng nghiệm thu; mốc = gui_system/thuong cùng nhánh; tính/bước hệ số ≥ 1,30 hoặc nhịp giao diện p95 hệ số ≥ 1,5, hoặc có lượt mất > 0,05 s phiên do chặn 0,1 s / khoảng điều khiển > 0,15 s / KHONG_XONG mà mốc không có, là chậm rõ; tính/bước ≥ 1,15 hoặc nhịp p95 ≥ 1,2 là có thể chậm nhẹ; mỗi phép so cần ≥ 2 lượt hợp lệ mỗi bên):
+- SIM, thu_nho: chậm rõ (tính/bước hệ số 1,73; nhịp giao diện p95 hệ số 0,99; khoảng ĐK lớn nhất 47 ms; COMPLETED 2/2 lượt hợp lệ; mốc COMPLETED 2/2). Nguyên nhân — tính/bước: Windows hạ tốc tiến trình (tắt EcoQoS thì hết: gui_off tính/bước hệ số 1,00, 2 lượt hợp lệ).
+- SIM, bi_che: không thấy chậm (tính/bước hệ số 0,98; nhịp giao diện p95 hệ số 1,00; khoảng ĐK lớn nhất 32 ms; COMPLETED 2/2 lượt hợp lệ; mốc COMPLETED 2/2).
+- VEHICLE_IO, thu_nho: chậm rõ (tính/bước hệ số 1,76; nhịp giao diện p95 hệ số 0,98; khoảng ĐK lớn nhất 46 ms; COMPLETED 2/2 lượt hợp lệ; mốc COMPLETED 2/2). Nguyên nhân — tính/bước: Windows hạ tốc tiến trình (tắt EcoQoS thì hết: gui_off tính/bước hệ số 0,96, 2 lượt hợp lệ).
+- VEHICLE_IO, bi_che: không thấy chậm (tính/bước hệ số 1,04; nhịp giao diện p95 hệ số 1,00; khoảng ĐK lớn nhất 33 ms; COMPLETED 2/2 lượt hợp lệ; mốc COMPLETED 2/2).
+- Hệ quả (SUY RA): khoảng lớn nhất giữa hai nhịp điều khiển, gui_system: thường 32, thu nhỏ 47, bị che 33 ms. N-T10 (ĐỀ XUẤT): hạn COMMAND 0,15 s, watchdog liên lạc 0,5 s. Nhánh SIM và bo mô phỏng không theo đồng hồ tường nên lần chạy vẫn đúng; với bo theo đồng hồ tường (bo thật, bo ảo QEMU) khoảng > 0,15 s làm lệnh hết hạn (bo về ARMED, COMMAND_TIMEOUT), > 0,5 s bo về DISARMED: SUY RA, CHƯA ĐO với bo theo đồng hồ tường.
+- Thời gian phiên / đồng hồ thật × rt (trung vị, gui_system): thường 0,976, thu nhỏ 0,969, bị che 0,974; trôi do làm tròn ms của QElapsedTimer ≈ 2,52 % (trung vị mọi lượt hợp lệ); mất do chặn 0,1 s (lớn nhất, giây phiên): thường 0,00, thu nhỏ 0,00, bị che 0,00.
+- Kết quả giống lượt khởi động cùng tiến trình: 24/24 (SIM và bo mô phỏng chạy bước cố định nên phải giống; khác là có phụ thuộc đồng hồ thật, cần xem).
+- lagging: 0 nhịp (qua giao diện real_dt bị chặn 0,1 s nên nhánh SIM và bo mô phỏng không bật được cờ này; xem cột mất do chặn).
+- Chỉ báo (không phải phép đo trực tiếp), gui_system: phần CPU bận thêm rơi vào lõi E (nhiễu khi tải nhẹ): thường 17, thu nhỏ –, bị che 0 %; độ phân giải đồng hồ hệ thống lúc bấm (toàn máy, chỉ báo): thường 0,500, thu nhỏ 0,500, bị che 0,500 ms; CPU của tiến trình / thời gian thật: thường 0,37, thu nhỏ 0,13, bị che 0,38.

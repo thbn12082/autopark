@@ -24,8 +24,9 @@ from autopark.evaluation.score_run import BIEN_BAN_FIELDS, load_thresholds, main
 from autopark.lidar import recording as lidar_recording
 from autopark.storage import run_store
 from autopark.storage.run_store import export_run
-from autopark.storage.scenario_store import load_scenario, load_vehicle_config
-from autopark.transport.vehicle_io import SIM_FIRMWARE_DEFAULT, SimIOConfig
+from autopark.storage.scenario_store import (ACCEPTANCE_VEHICLE_CONFIG, load_scenario, load_vehicle_config,
+                                            save_vehicle_config)
+from autopark.transport.vehicle_io import SIM_FIRMWARE_DEFAULT, SimIOConfig, load_sim_io_config
 from tests.conftest import PROJECT_ROOT
 from tests.test_session_vehicle import SIM_CFG, FixedPose, run_until_done, sim_io, straight_session
 
@@ -509,7 +510,9 @@ def test_log_exported_before_the_run_ended_is_not_a_missed_stop(scenario, cfg, t
     s = score(tmp_path, "--log", vio_log(tmp_path, result=False), "--event", "session:4.0", scenario="VC-1")
     assert s.verdict("N-P1") == "khong_kiem_duoc" and "chưa kết thúc" in s.checks["N-P1"]["note"]
     assert s.row["t_phat_hien_s"] == "" and s.row["ket_qua"] == ""             # trước đây 'không đạt', THAT_BAI
-    session = straight_session(scenario, cfg)                                    # gói SIM xuất khi đang RUNNING
+    # Xe 0,10 m/s như xe nghiệm thu (02/10/2026): ở 0,15 m/s mặc định, vế mục tiêu của N-V1 đã không đạt (lệnh đã gửi)
+    # nên lần đỗ DO-5 dưới đây thành THAT_BAI dù log chưa kết thúc, không còn thử được điều test này nhắm tới.
+    session = straight_session(scenario, replace(cfg, max_speed=0.10))           # gói SIM xuất khi đang RUNNING
     session.start_run()
     while session.world.time < 1.0:
         session.advance(0.05)
@@ -563,6 +566,44 @@ def test_perf_counter_reference_maps_through_t13_link_clock(tmp_path):
     s = score(tmp_path, "--log", log, "--reference", ref, "--event", f"perf:{T0_PERF + 5.0}", scenario="VC-1",
               attempt=2)
     assert s.row["t_phat_hien_s"] == "0.200" and s.checks["N-P1"]["error"] == pytest.approx(0.0)
+
+
+def _patch_sidecar(ref: Path, **keys) -> None:
+    side = ref.with_suffix(".json")
+    meta = json.loads(side.read_text(encoding="utf-8"))
+    meta.update(keys)
+    side.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+
+
+def test_perf_counter_reference_uses_declared_sync_error(tmp_path):
+    # T4 (02/10/2026): stamp perf_counter của camera trên cao trễ hơn lúc chụp; tệp mô tả ghi sai số đó (sync_error_s),
+    # nên đổi qua link.json clock không còn coi sai số đồng bộ là 0
+    ref = write_track(tmp_path / "r1.csv", braking_motion, 8.0, sigma=0.001, clock="perf_counter",
+                      t_offset=T0_PERF, accuracy=(0.003, 0.5))
+    _patch_sidecar(ref, sync_error_s=0.12)
+    log = stop_log(tmp_path, t_detect=5.2, t_stop=5.22)
+    s = score(tmp_path, "--log", log, "--reference", ref, "--event", f"ref:{T0_PERF + 5.0}", scenario="VC-1",
+              attempt=1)
+    assert s.detail["sync_error_s"] == pytest.approx(0.12)
+    assert s.checks["N-P1"]["error"] == pytest.approx(0.12 + 1 / 30, abs=0.002)      # một khung + độ trễ chụp
+    assert s.verdict("N-P1") == "khong_kiem_duoc" and "quy tắc 3" in s.checks["N-P1"]["note"]
+    s = score(tmp_path, "--log", log, "--reference", ref, "--event", f"ref:{T0_PERF + 5.0}", "--time-error", "0.01",
+              scenario="VC-1", attempt=2)                                            # --time-error thắng tệp mô tả
+    assert s.detail["sync_error_s"] == pytest.approx(0.01) and s.verdict("N-P1") == "dat"
+
+
+def test_synthetic_reference_refused_at_bt_and_xt_but_allowed_at_mp(tmp_path, capsys):
+    ref = write_track(tmp_path / "r1.csv", parking_motion(), 8.5)
+    _patch_sidecar(ref, source={"synthetic": True})                                    # như bộ thử overhead_synth
+    real = vio_log(tmp_path, name="b_vehicle_io")
+    for level in ("XT", "BT"):
+        assert score(tmp_path, "--log", real, "--reference", ref, "--layout", BAI_DO_XE, level=level, expect=2) is None
+    assert capsys.readouterr().err.count("tham chiếu TỔNG HỢP chỉ dùng ở mức MP") == 2
+    assert not (tmp_path / "bien_ban.csv").exists()
+    sim = vio_log(tmp_path, name="a_vehicle_io", evidence="simulation_only", port=None, pose_source="sim_truth_pose",
+                  io_simulated=True)
+    s = score(tmp_path, "--log", sim, "--reference", ref, "--layout", BAI_DO_XE, level="MP")
+    assert s.row["phuong_phap_do"].startswith("R1")
 
 
 def sync_mark(n, t_perf, state="READY", note=""):
@@ -647,9 +688,10 @@ def test_t14_time_scale_maps_simulated_time_and_blocks_reaction_thresholds(tmp_p
 # ---------------------------------------------------------------------------------------------- lần chạy mô phỏng thật
 @pytest.mark.parametrize("speed_cap", [None, 0.10])
 def test_mp_vehicle_io_parking_run_scores_every_check(tmp_path, speed_cap):
-    """bai_do_xe qua VehicleLink.simulated(VEHICLE_IO). Ở tốc độ mặc định (0,15 m/s của planner) tốc độ THẬT của xe
-    mô phỏng trên đoạn 0,2 m vượt 0,12 m/s nên N-V1 không đạt; đặt trần 0,10 m/s (mục tiêu đợt đầu của N-V1) thì
-    THANH_CONG (thử 02/10/2026)."""
+    """bai_do_xe qua VehicleLink.simulated(VEHICLE_IO). Ở tốc độ mặc định (0,15 m/s của planner) N-V1 không đạt: tốc
+    độ mục tiêu 0,15 m/s của lệnh vượt vế mục tiêu 0,10 m/s (xác định, không phụ thuộc vọt lố của vòng tốc độ mô
+    phỏng; tốc độ THẬT trên đoạn 0,2 m cũng vượt 0,12 m/s). Đặt trần 0,10 m/s (mục tiêu đợt đầu của N-V1) thì
+    THANH_CONG (thử 02/10/2026; vế mục tiêu thêm cùng ngày)."""
     scenario = load_scenario(BAI_DO_XE)
     cfg = load_vehicle_config(scenario.vehicle_config_path)
     firmware = replace(SIM_FIRMWARE_DEFAULT, boot_hold_ms=200)
@@ -673,15 +715,135 @@ def test_mp_vehicle_io_parking_run_scores_every_check(tmp_path, speed_cap):
     assert float(row["thoi_gian_s"]) == pytest.approx(link.result["t_session"], abs=0.005)
     assert row["phuong_phap_do"] == "MP+R6" and row["thu_muc_du_lieu"].endswith("lan_vehicle_io")
     failed = [code for code, c in s.checks.items() if c["verdict"] == "khong_dat"]
-    too_fast = float(row["v_max_do_mps"]) > 0.12
-    assert failed == (["N-V1"] if too_fast else [])                  # mọi kiểm khác đạt
-    assert row["ket_qua"] == ("THAT_BAI" if too_fast else "THANH_CONG")
-    if speed_cap is not None:
-        assert not too_fast and row["ket_qua"] == "THANH_CONG"
+    target = s.checks["N-V1"]["detail"]["target"]
+    assert target["source"] == "commands.csv (kind TRACK)" and target["limit_mps"] == pytest.approx(0.10)
+    if speed_cap is None:
+        assert target["max_target_mps"] == pytest.approx(0.15, abs=1e-6) and target["verdict"] == "khong_dat"
+        assert failed == ["N-V1"] and row["ket_qua"] == "THAT_BAI"          # mọi kiểm khác đạt
+        assert "vế mục tiêu của N-V1" in row["ghi_chu"] and "configs/vehicle_nghiem_thu.json" in row["ghi_chu"]
+    else:
+        assert target["max_target_mps"] <= 0.10 + 1e-9 and target["verdict"] == "dat"
+        assert failed == [] and row["ket_qua"] == "THANH_CONG" and float(row["v_max_do_mps"]) <= 0.12
     hashes = {Path(f["path"]).name: f["sha256"] for f in s.detail["inputs"]["files"]}
     assert {"link.json", "commands.csv", "telemetry.csv", "events.csv", "lan.csv", "bai_do_xe.json"} <= set(hashes)
     assert all(re.fullmatch(r"[0-9a-f]{64}", h) for h in hashes.values())
     assert s.detail["git_commit"] == "test" and s.detail["thresholds"]["status"] == "DE_XUAT_CHO_CHOT"
+
+
+def test_mp_acceptance_files_score_thanh_cong(tmp_path):
+    """Đúng các tệp giao diện dùng khi nghiệm thu (configs/vehicle_nghiem_thu.json và vehicle_io_sim_nghiem_thu.json),
+    không phải SimIOConfig dựng tay: bai_do_xe qua bo mô phỏng → THANH_CONG, N-V1 đạt cả hai vế, có ghi chú xe mô
+    phỏng bị kẹp ở 0,10 m/s. Gói T9 của cùng lần chạy cho xe của lần chạy từ run.json (thêm 02/10/2026)."""
+    scenario = load_scenario(BAI_DO_XE)
+    acc = load_vehicle_config(ACCEPTANCE_VEHICLE_CONFIG)
+    scenario.vehicle_config_path = ACCEPTANCE_VEHICLE_CONFIG
+    session = Session(scenario, acc)
+    assert session.plan_sync().ok and session.trajectory.n_cusps == 1
+    link = VehicleLink.simulated(DriveMode.VEHICLE_IO,
+                                 load_sim_io_config(PROJECT_ROOT / "configs" / "vehicle_io_sim_nghiem_thu.json")[0])
+    session.set_vehicle_link(link)
+    session.start_run()
+    run_until_done(session)
+    assert session.state == SessionState.COMPLETED and link.limits_check.ok
+    session.log.to_csv(tmp_path / "lan.csv")
+    log = link.write_logs(tmp_path / "lan_vehicle_io")["link.json"].parent
+    s = score(tmp_path, "--log", log, "--sim-truth", "--layout", BAI_DO_XE, level="MP")
+    nv1 = s.checks["N-V1"]
+    assert nv1["verdict"] == "dat" and s.row["ket_qua"] == "THANH_CONG" and float(s.row["v_max_do_mps"]) <= 0.10 + 1e-3
+    target = nv1["detail"]["target"]
+    assert target["verdict"] == "dat" and 0.09 <= target["max_target_mps"] <= 0.10 + 1e-9
+    assert target["source"] == "commands.csv (kind TRACK)"
+    run_vehicle = s.detail["log"]["run_vehicle"]
+    assert run_vehicle == {"name": "xe_nghiem_thu_gia_dinh", "max_speed_mps": pytest.approx(0.10),
+                           "source": "link.json limits_check"}
+    assert "xe mô phỏng bị kẹp ở max_speed_mps của cấu hình xe (0.1 m/s)" in s.row["ghi_chu"]
+    assert "khác kích thước" not in s.row["ghi_chu"]
+    bundle = export_run(session, tmp_path / "lan_20261002_101500_000000")
+    s = score(tmp_path, "--log", bundle, "--sim-truth", "--layout", BAI_DO_XE, level="MP", attempt=2)
+    run_vehicle = s.detail["log"]["run_vehicle"]
+    assert run_vehicle["source"] == "config_snapshot/run.json của gói" and run_vehicle["width_m"] == pytest.approx(0.14)
+    assert s.row["ket_qua"] == "THANH_CONG" and "khác kích thước" not in s.row["ghi_chu"]
+
+
+def test_nv1_target_clause_synthetic(tmp_path):
+    """Vế mục tiêu của N-V1 trên log tổng hợp: tham chiếu R1 chạy 0,08 m/s (tốc độ đo đạt) nhưng lệnh 0,15 m/s → N-V1
+    không đạt; lệnh 0,10 m/s → đạt; log không có tốc độ mục tiêu hay tệp ngưỡng không có target_mps → chỉ vế đo."""
+    ref = write_track(tmp_path / "r1.csv", parking_motion(), 8.5)
+
+    def commands(target):
+        rows = [dict(cmd(i * 0.1), target_speed_mps=-target if target is not None else "") for i in range(85)]
+        rows[-1]["done"] = 1
+        return rows
+
+    base = ["--reference", ref, "--layout", BAI_DO_XE, "--touch", "khong", "--intervention", "khong"]
+    s = score(tmp_path, "--log", vio_log(tmp_path, name="a_vehicle_io", commands=commands(0.15)), *base, attempt=1)
+    nv1 = s.checks["N-V1"]
+    assert float(s.row["v_max_do_mps"]) == pytest.approx(0.08, abs=0.005)            # tốc độ đo vẫn ghi ô
+    assert nv1["verdict"] == "khong_dat" and nv1["detail"]["target"]["max_target_mps"] == pytest.approx(0.15)
+    assert "tốc độ mục tiêu lớn nhất 0.150 m/s > 0.1 m/s" in nv1["note"]
+    assert "chạy với configs/vehicle_nghiem_thu.json" in nv1["note"] and s.row["ket_qua"] == "THAT_BAI"
+    assert "xe mô phỏng bị kẹp" not in nv1["note"]                                   # bo thật: không có ghi chú đó
+    s = score(tmp_path, "--log", vio_log(tmp_path, name="b_vehicle_io", commands=commands(0.10)), *base, attempt=2)
+    assert s.verdict("N-V1") == "dat" and s.checks["N-V1"]["detail"]["target"]["verdict"] == "dat"
+    s = score(tmp_path, "--log", vio_log(tmp_path, name="c_vehicle_io", commands=commands(None)), *base, attempt=3)
+    nv1 = s.checks["N-V1"]
+    assert nv1["verdict"] == "dat" and nv1["detail"]["target"]["verdict"] == "khong_ap_dung"
+    assert "mục tiêu" not in nv1["note"]
+    data = json.loads((PROJECT_ROOT / "configs" / "nguong_nghiem_thu.json").read_text(encoding="utf-8"))
+    del data["limits"]["N-V1"]["target_mps"]
+    old = tmp_path / "nguong_cu.json"
+    old.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    s = score(tmp_path, "--log", tmp_path / "a_vehicle_io", *base, "--thresholds", old, attempt=4)
+    assert s.verdict("N-V1") == "dat" and s.checks["N-V1"]["detail"]["target"]["limit_mps"] is None
+
+
+def with_targets(log_dir: Path, speed: float) -> Path:
+    """Ghi tốc độ mục tiêu `speed` vào mọi dòng TRACK của commands.csv trong thư mục log tổng hợp."""
+    path = log_dir / "commands.csv"
+    with path.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    for row in rows:
+        if row["kind"] == "TRACK":
+            row["target_speed_mps"] = speed
+    write_csv(path, COMMAND_FIELDS, rows)
+    return log_dir
+
+
+def test_reaction_scenario_speed_note(tmp_path):
+    """Kịch bản phản ứng (VC-1) chạy với lệnh 0,15 m/s: ghi chú rằng các ngưỡng NGUONG mục 3 giả định tốc độ ≤ N-V1;
+    kết luận không đổi."""
+    ref = write_track(tmp_path / "r1.csv", braking_motion, 8.0, sigma=0.001, yaw_sigma_deg=0.2, accuracy=(0.003, 0.5))
+    base = ["--reference", ref, "--event", "ref:5.0", "--touch", "khong"]
+    plain = score(tmp_path, "--log", stop_log(tmp_path, name="a_vehicle_io"), *base, scenario="VC-1", attempt=1)
+    fast = score(tmp_path, "--log", with_targets(stop_log(tmp_path, name="b_vehicle_io"), 0.15), *base,
+                 scenario="VC-1", attempt=2)
+    note = "tốc độ mục tiêu lớn nhất 0.150 m/s > 0.1 m/s: các ngưỡng phản ứng (NGUONG mục 3) giả định tốc độ ≤ N-V1"
+    assert note in fast.row["ghi_chu"] and "giả định tốc độ" not in plain.row["ghi_chu"]
+    assert {c: fast.verdict(c) for c in fast.checks} == {c: plain.verdict(c) for c in plain.checks}
+    assert fast.row["ket_qua"] == plain.row["ket_qua"] == "" and fast.verdict("N-P1") == "dat"
+    slow = score(tmp_path, "--log", with_targets(stop_log(tmp_path, name="c_vehicle_io"), 0.10), *base,
+                 scenario="VC-1", attempt=3)
+    assert "giả định tốc độ" not in slow.row["ghi_chu"]
+
+
+def test_run_vehicle_geometry_mismatch_note(scenario, cfg, tmp_path):
+    """Gói SIM của xe rộng hơn chấm với bố trí trỏ xe mặc định: ghi chú khác kích thước (kiểm --vehicle/--layout); chấm
+    với đúng tệp xe thì không."""
+    wide = replace(cfg, name="xe_rong_hon", width=0.16, max_speed=0.10)
+    session = straight_session(scenario, wide)
+    session.start_run()
+    run_until_done(session)
+    assert session.state == SessionState.COMPLETED
+    bundle = export_run(session, tmp_path / "rong_20261002_101500_000000")
+    layout = straight_layout(tmp_path)
+    s = score(tmp_path, "--log", bundle, "--sim-truth", "--layout", layout, scenario="DO-5", level="MP", attempt=1)
+    assert "xe của lần chạy xe_rong_hon khác kích thước xe dùng để chấm" in s.row["ghi_chu"]
+    assert "width_m 0.16 ≠ 0.14" in s.row["ghi_chu"] and "kiểm --vehicle/--layout" in s.row["ghi_chu"]
+    assert s.detail["log"]["run_vehicle"]["width_m"] == pytest.approx(0.16)
+    vehicle = save_vehicle_config(wide, tmp_path / "xe_rong_hon.json")
+    s = score(tmp_path, "--log", bundle, "--sim-truth", "--layout", layout, "--vehicle", vehicle, scenario="DO-5",
+              level="MP", attempt=2)
+    assert "khác kích thước" not in s.row["ghi_chu"]
 
 
 def test_mp_sim_bundle_obstacle_run_scores_stop_distance_and_np1(scenario, cfg, tmp_path):
@@ -706,9 +868,10 @@ def test_mp_sim_bundle_obstacle_run_scores_stop_distance_and_np1(scenario, cfg, 
 
 def test_stopped_sim_parking_run_leaves_ket_qua_to_the_person(tmp_path):
     """Lần đỗ bai_do_xe (1 lần đổi chiều đã lập) ở nhánh SIM dừng vì vật chèn lúc 1 s, trước lần đổi chiều: N-D6(a)
-    không xét (đường chưa đi hết), ket_qua để trống cho người chấm chọn DUNG_DUNG hay THAT_BAI."""
+    không xét (đường chưa đi hết), ket_qua để trống cho người chấm chọn DUNG_DUNG hay THAT_BAI. Xe nghiệm thu
+    (0,10 m/s, 02/10/2026): ở 0,15 m/s mặc định vế mục tiêu của N-V1 không đạt và đề xuất thành THAT_BAI."""
     layout = load_scenario(BAI_DO_XE)
-    session = Session(layout, load_vehicle_config(layout.vehicle_config_path))
+    session = Session(layout, load_vehicle_config(ACCEPTANCE_VEHICLE_CONFIG))
     assert session.plan_sync().ok and session.trajectory.n_cusps == 1
     session.start_run()
     while session.world.time < 1.0:
@@ -840,6 +1003,36 @@ def test_level_rules_mp_xt(tmp_path, capsys):
     assert not (tmp_path / "bien_ban.csv").exists()
 
 
+def test_qemu_log_is_emulated_and_sim_truth_allowed_only_at_mp(tmp_path, capsys):
+    """Log bo ảo QEMU với xe mô phỏng phía laptop (02/10/2026, ĐỀ XUẤT): là giả lập (MP được, XT bị từ chối), kể cả khi
+    không có cổng socket://; --sim-truth nhận pose_source qemu_plant_pose chỉ ở mức MP, và không bao giờ nhận log có
+    bằng chứng của bo thật dù tên nguồn tư thế giống."""
+    from autopark.transport.qemu_plant import QEMU_EVIDENCE
+    motion = parking_motion()
+    runlog = [{"t": round(i * 0.05, 4), "x": motion(i * 0.05)[0], "y": motion(i * 0.05)[1],
+               "yaw_deg": motion(i * 0.05)[2], "speed": -0.08 if i * 0.05 < 6.25 else 0.0, "collided": 0}
+              for i in range(171)]
+    qemu = vio_log(tmp_path, name="q_vehicle_io", evidence=QEMU_EVIDENCE, port="socket://127.0.0.1:5999",
+                   pose_source="qemu_plant_pose", runlog=runlog)
+    s = score(tmp_path, "--log", qemu, "--sim-truth", "--layout", BAI_DO_XE, level="MP")
+    log = s.detail["log"]
+    assert log["emulated"] and (log["evidence"], log["pose_source"]) == (QEMU_EVIDENCE, "qemu_plant_pose")
+    assert s.row["trong_o"] == "co" and s.row["phuong_phap_do"].startswith("MP")
+    without_port = vio_log(tmp_path, name="r_vehicle_io", evidence=QEMU_EVIDENCE, port=None,
+                           pose_source="qemu_plant_pose", runlog=runlog)
+    assert score(tmp_path, "--log", without_port, "--sim-truth", "--layout", BAI_DO_XE, level="MP",
+                 attempt=2).detail["log"]["emulated"]
+    for level, extra in (("XT", ()), ("BT", ("--sim-truth",))):
+        assert score(tmp_path, "--log", qemu, "--layout", BAI_DO_XE, *extra, level=level, attempt=3, expect=2) is None
+    err = capsys.readouterr().err
+    assert "mức XT cần log của bo thật" in err and "log bo ảo QEMU" in err and "chỉ dùng ở mức MP" in err
+    real = vio_log(tmp_path, name="e_vehicle_io", evidence="hardware_untested", port="COM5",
+                   pose_source="qemu_plant_pose")
+    assert score(tmp_path, "--log", real, "--sim-truth", "--layout", BAI_DO_XE, level="BT", attempt=4,
+                 expect=2) is None
+    assert "quy tắc 2" in capsys.readouterr().err
+
+
 def manual_row(tmp_path, attempt, *extra, expect=0):
     argv = ["--scenario", "LD-1", "--attempt", str(attempt), "--level", "BT", "--when", "2026-10-02 09:30",
             "--report", str(tmp_path / "bb.csv"), *extra]
@@ -917,10 +1110,12 @@ def test_thresholds_file_matches_nguong_doc_and_rejects_unknown_keys(tmp_path):
     assert t.status == "DE_XUAT_CHO_CHOT" and t.reference_ratio == 3.0
     assert (t.limit("N-D1", "max_cm"), t.limit("N-D2", "max_deg"), t.limit("N-V1", "max_mps"),
             t.limit("N-P1", "max_s")) == (5.0, 5.0, 0.12, 0.4)
+    assert t.limit_or_none("N-V1", "target_mps") == 0.10 and t.limit_or_none("N-D1", "target_mps") is None
     nguong = (PROJECT_ROOT / "docs" / "NGUONG_NGHIEM_THU_DE_XUAT.md").read_text(encoding="utf-8")
     rows = {line.split("|")[1].strip(): line for line in nguong.splitlines() if line.startswith("| N-")}
     assert "≤ 5 cm" in rows["N-D1"] and "≤ 5°" in rows["N-D2"] and "≤ 0,4 s" in rows["N-P1"]
     assert "1,2 × 0,10 m/s" in rows["N-V1"] and "≥ 2 cm" in rows["N-D5"] and "≥ 10 cm" in rows["N-P3"]
+    assert "Tốc độ mục tiêu ≤ 0,10 m/s" in rows["N-V1"]                         # vế mục tiêu (target_mps)
     kich_ban = (PROJECT_ROOT / "docs" / "KICH_BAN_NGHIEM_THU.md").read_text(encoding="utf-8")
     section = kich_ban.split("## 4. Bảng tổng hợp kịch bản")[1].split("## 5.")[0]
     codes = re.findall(r"^\| ([A-Z]{2}-\d) \|", section, flags=re.M)
@@ -929,9 +1124,16 @@ def test_thresholds_file_matches_nguong_doc_and_rejects_unknown_keys(tmp_path):
         assert any(k == code or (k.startswith(code) and not k[len(code)].isdigit()) for k in t.scenarios), code
     assert {"VC-5dung", "VC-5do"} <= set(t.scenarios)
     data = json.loads((PROJECT_ROOT / "configs" / "nguong_nghiem_thu.json").read_text(encoding="utf-8"))
+    without_target = json.loads(json.dumps(data))                   # tệp cũ không có target_mps vẫn đọc được
+    del without_target["limits"]["N-V1"]["target_mps"]
+    (tmp_path / "cu.json").write_text(json.dumps(without_target), encoding="utf-8")
+    assert load_thresholds(tmp_path / "cu.json").limit_or_none("N-V1", "target_mps") is None
     for mutate in (lambda d: d.update(extra=1), lambda d: d["limits"]["N-D1"].update(min_cm=1.0),
                    lambda d: d["scenarios"]["DO-1"]["checks"].append("N-X9"),
-                   lambda d: d["analysis"].update(smooth_s=float("nan"))):
+                   lambda d: d["analysis"].update(smooth_s=float("nan")),
+                   lambda d: d["limits"]["N-V1"].update(target_kmh=0.36),         # khóa N-V1 lạ
+                   lambda d: d["limits"]["N-V1"].pop("max_mps"),                  # thiếu khóa bắt buộc
+                   lambda d: d["limits"]["N-D1"].update(target_mps=0.1)):         # khóa tùy chọn chỉ của N-V1
         broken = json.loads(json.dumps(data))
         mutate(broken)
         path = tmp_path / "nguong.json"

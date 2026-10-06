@@ -15,11 +15,18 @@ vào (E-stop), I2C/SPI/ADC, USB-Serial-JTAG nối ra ngoài; watchdog phần c�
 hồ máy (chậm ≈ 0,1 %) nên máy bận có thể làm firmware chốt LOOP_OVERRUN; millis() không về 0 khi reset; đôi khi QEMU
 tự thoát lúc khởi động (espressif/qemu#175) nên `QemuBoard.start()` thử lại. Chạy được ở đây KHÔNG chứng minh gì về bo
 thật.
+
+Thêm 02/10/2026 (bo ảo trong phiên đỗ của giao diện, `transport/qemu_plant.py`, `ui/qemu_runner.py`): `QemuBoard` là một
+`QemuBoardHandle` (`transport_opener()`, `describe()`, `clock`, `image_sha256`); `build_lock` cho mọi lần build env
+esp32s3_qemu (test, dòng lệnh, giao diện) chạy lần lượt; `ensure_image` build khi ảnh thiếu hoặc cũ hơn mã nguồn và
+không bao giờ trả ảnh cũ; `process_cpu_seconds` đọc thời gian CPU của QEMU.
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
 from dataclasses import dataclass
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -31,7 +38,7 @@ import sys
 import tempfile
 import time
 
-from autopark.power_throttling import disable_power_throttling
+from autopark.power_throttling import apply_ecoqos_policy, disable_power_throttling, ecoqos_state
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "configs" / "thiet_bi.json"
@@ -40,6 +47,7 @@ ENV_NAME = "esp32s3_qemu"
 IMAGE_NAME = "qemu_flash.bin"            # do firmware/esp32_vehicle/qemu/tao_anh_flash.py tạo sau khi build
 DEFAULT_PORT = 5555
 DEFAULT_MONITOR_PORT = 5556
+BUILD_LOCK_NAME = "autopark_esp32s3_qemu.lock"   # trong firmware/esp32_vehicle/.pio (git bỏ qua)
 _ANSI = re.compile(rb"\x1b\[[0-9;]*[A-Za-z]|\x1b[()][A-Za-z0-9]")
 
 
@@ -93,24 +101,166 @@ def image_path(firmware_dir: Path = FIRMWARE_DIR) -> Path:
     return Path(firmware_dir) / ".pio" / "build" / ENV_NAME / IMAGE_NAME
 
 
-def build_image(tools: QemuTools, firmware_dir: Path = FIRMWARE_DIR, *, timeout_s: float = 900.0) -> Path:
-    """`pio run -e esp32s3_qemu`; trả ảnh flash ghép sẵn. Lần đầu trên một máy mất vài phút, sau đó vài giây."""
+def build_image(tools: QemuTools, firmware_dir: Path = FIRMWARE_DIR, *, timeout_s: float = 900.0,
+                log_path: Path | str | None = None) -> Path:
+    """`pio run -e esp32s3_qemu`; trả ảnh flash ghép sẵn. Lần đầu trên một máy mất vài phút, sau đó vài giây.
+
+    Thêm 02/10/2026: chạy trong `build_lock` (test, dòng lệnh và giao diện không build song song vào cùng .pio), và ghi
+    ĐỦ stdout, stderr của PlatformIO vào `log_path` khi có (lỗi vẫn chỉ kèm 25 dòng cuối)."""
     if tools.platformio_python is None:
         raise QemuBoardError("thiếu \"platformio_python\" trong configs/thiet_bi.json: không build được bo ảo")
     env = dict(os.environ)
     if tools.platformio_core_dir is not None:
         env["PLATFORMIO_CORE_DIR"] = str(tools.platformio_core_dir)
     cmd = [str(tools.platformio_python), "-m", "platformio", "run", "-e", ENV_NAME, "-d", str(firmware_dir)]
-    try:
-        proc = subprocess.run(cmd, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                              timeout=timeout_s)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise QemuBoardError(f"không chạy được PlatformIO ({type(exc).__name__}: {exc})") from None
+    with build_lock(firmware_dir, timeout_s):
+        try:
+            proc = subprocess.run(cmd, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                                  timeout=timeout_s)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            _write_build_log(log_path, cmd, f"{type(exc).__name__}: {exc}")
+            raise QemuBoardError(f"không chạy được PlatformIO ({type(exc).__name__}: {exc})") from None
+        _write_build_log(log_path, cmd, f"mã thoát {proc.returncode}", proc.stdout, proc.stderr)
     image = image_path(firmware_dir)
     if proc.returncode != 0 or not image.is_file():
         tail = "\n".join((proc.stdout + proc.stderr).splitlines()[-25:])
         raise QemuBoardError(f"build env {ENV_NAME} hỏng (mã {proc.returncode}) hoặc thiếu {image}:\n{tail}")
     return image
+
+
+def _write_build_log(log_path: Path | str | None, cmd: list[str], outcome: str, stdout: str = "",
+                     stderr: str = "") -> None:
+    """build.log: dòng lệnh, kết quả, rồi toàn bộ stdout và stderr của PlatformIO. Không ghi được thì bỏ qua (log phụ)."""
+    if log_path is None:
+        return
+    text = (f"$ {' '.join(cmd)}\n# {outcome}\n\n---- stdout ----\n{stdout}\n---- stderr ----\n{stderr}\n")
+    try:
+        Path(log_path).write_text(text, encoding="utf-8")
+    except OSError:
+        pass
+
+
+@contextlib.contextmanager
+def build_lock(firmware_dir: Path = FIRMWARE_DIR, timeout_s: float = 900.0, *, poll_s: float = 0.5):
+    """Khóa giữa các tiến trình cho MỘT lần build env esp32s3_qemu (thêm 02/10/2026): fixture `board` của pytest, dòng
+    lệnh `qemu_board` và nút "Khởi động bo ảo" của giao diện không build song song vào cùng thư mục .pio (hai lần SCons
+    cùng lúc có thể làm hỏng cơ sở dữ liệu .sconsign). Tệp khóa `.pio/autopark_esp32s3_qemu.lock` (tạo cả thư mục nếu
+    thiếu); khóa một byte bằng `msvcrt.locking` (Windows) hay `fcntl.flock` (nơi khác), hỏi lại mỗi `poll_s`. Hệ điều
+    hành tự nhả khóa khi tiến trình giữ nó chết. Chờ quá `timeout_s` → QemuBoardError."""
+    path = Path(firmware_dir) / ".pio" / BUILD_LOCK_NAME
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
+    try:
+        deadline = time.monotonic() + timeout_s
+        while not _try_lock(fd):
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise QemuBoardError(f"đang có một lần build env {ENV_NAME} khác (pytest, dòng lệnh hay cửa sổ khác) "
+                                     f"quá {timeout_s:g} s (khóa {path})")
+            time.sleep(min(poll_s, left))
+        try:
+            yield path
+        finally:
+            _unlock(fd)
+    finally:
+        os.close(fd)
+
+
+def _try_lock(fd: int) -> bool:
+    try:
+        if sys.platform == "win32":
+            import msvcrt
+
+            os.lseek(fd, 0, os.SEEK_SET)
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    return True
+
+
+def _unlock(fd: int) -> None:
+    try:
+        if sys.platform == "win32":
+            import msvcrt
+
+            os.lseek(fd, 0, os.SEEK_SET)
+            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(fd, fcntl.LOCK_UN)
+    except OSError:
+        pass
+
+
+def firmware_sources_newer(image: Path | str, firmware_dir: Path = FIRMWARE_DIR) -> bool:
+    """True khi ảnh flash `image` không có, hoặc CŨ hơn mã nguồn của nó: tệp mới nhất (mtime) trong src/**,
+    platformio.ini và qemu/*.py (thêm 02/10/2026). So mtime nên lần lấy mã (git checkout) chạm tệp mà không đổi nội dung
+    cũng tính là cũ: lần build sau đó là lần build "không có gì để làm" của PlatformIO."""
+    image = Path(image)
+    if not image.is_file():
+        return True
+    firmware_dir = Path(firmware_dir)
+    sources = [p for p in (firmware_dir / "src").rglob("*") if p.is_file()]
+    sources += [firmware_dir / "platformio.ini", *(firmware_dir / "qemu").glob("*.py")]
+    newest = max((p.stat().st_mtime for p in sources if p.is_file()), default=0.0)
+    return newest > image.stat().st_mtime
+
+
+def ensure_image(tools: QemuTools, *, firmware_dir: Path = FIRMWARE_DIR, log_path: Path | str | None = None,
+                 timeout_s: float = 900.0) -> tuple[Path, bool]:
+    """Ảnh flash dùng được của env esp32s3_qemu (thêm 02/10/2026, nút "Khởi động bo ảo"): (ảnh, đã build hay không).
+    Ảnh mới hơn mã nguồn → dùng luôn. Thiếu hoặc cũ → build (`build_image`, trong `build_lock`, log đủ ở `log_path`).
+    Thiếu hoặc cũ mà máy không có "platformio_python" → QemuBoardError: KHÔNG BAO GIỜ chạy ảnh cũ hơn mã nguồn."""
+    image = image_path(firmware_dir)
+    if not firmware_sources_newer(image, firmware_dir):
+        return image, False
+    if tools.platformio_python is None:
+        what = "chưa có" if not image.is_file() else "cũ hơn mã nguồn firmware"
+        raise QemuBoardError(f"ảnh flash {image} {what} mà configs/thiet_bi.json không có \"platformio_python\" để build "
+                             f"env {ENV_NAME}; không chạy ảnh cũ")
+    return build_image(tools, firmware_dir, timeout_s=timeout_s, log_path=log_path), True
+
+
+def file_sha256(path: Path | str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def process_cpu_seconds(pid: int) -> float | None:
+    """Thời gian CPU (người dùng + nhân) của tiến trình `pid`, giây (thêm 02/10/2026, để ghi QEMU tốn bao nhiêu lõi).
+    Windows: GetProcessTimes; Linux: /proc/<pid>/stat. Không đọc được → None."""
+    if sys.platform == "win32":
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.GetProcessTimes.restype = wintypes.BOOL
+        kernel32.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
+        handle = kernel32.OpenProcess(0x1000, False, pid)      # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            return None
+        try:
+            times = [wintypes.FILETIME() for _ in range(4)]   # tạo, thoát, nhân, người dùng (đơn vị 100 ns)
+            if not kernel32.GetProcessTimes(handle, *(ctypes.byref(t) for t in times)):
+                return None
+            return sum((t.dwHighDateTime << 32 | t.dwLowDateTime) for t in times[2:]) / 1e7
+        finally:
+            _close_handle(handle)
+    try:
+        fields = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+        return (int(fields[11]) + int(fields[12])) / os.sysconf("SC_CLK_TCK")
+    except (OSError, ValueError, IndexError):
+        return None
 
 
 def free_port() -> int:
@@ -122,7 +272,12 @@ def free_port() -> int:
 class QemuBoard:
     """Một tiến trình QEMU chạy ảnh flash `image`. UART0 ở `url` (TCP, không chờ ai kết nối mới chạy), monitor HMP ở
     `monitor_port`; khi có client, mọi byte UART0 cũng được chép vào `uart_log` (QEMU bỏ byte UART lúc chưa ai kết nối,
-    nên chữ ROM/bootloader thường không có). `start()` chỉ trả về khi firmware đã trả HELLO_ACK (`hello`)."""
+    nên chữ ROM/bootloader thường không có). `start()` chỉ trả về khi firmware đã trả HELLO_ACK (`hello`).
+
+    Là một `QemuBoardHandle` (`transport/qemu_plant.py`, 02/10/2026): `clock` = None (io dùng đồng hồ của liên kết),
+    `transport_opener()`, `describe()`. QEMU chỉ phục vụ MỘT client TCP: client thứ hai treo ở HELLO."""
+
+    clock = None                             # QemuBoardHandle: None = io theo đồng hồ của liên kết (perf_counter)
 
     def __init__(self, image: Path | str, tools: QemuTools | None = None, *, port: int = 0, monitor_port: int = 0,
                  attempts: int = 5, boot_timeout_s: float = 15.0, boost: bool = True,
@@ -144,10 +299,49 @@ class QemuBoard:
         self._job = None                     # Windows: Job Object giữ QEMU chết theo tiến trình Python
         self.starts = 0                      # số lần khởi động QEMU (thử lại khi QEMU chết lúc khởi động)
         self.problems: list[str] = []        # lý do từng lần khởi động hỏng (để báo cáo)
+        self.image_sha256: str | None = None     # SHA-256 của ảnh nguồn, tính một lần trong start() (≈ 10–20 ms)
 
     @property
     def url(self) -> str:
         return f"socket://127.0.0.1:{self.port}"
+
+    @property
+    def exit_code(self) -> int | None:
+        """Mã thoát của QEMU; None khi chưa chạy hoặc còn đang chạy."""
+        return None if self.proc is None else self.proc.poll()
+
+    def transport_opener(self, read_timeout_s: float = 0.01, write_timeout_s: float = 0.05):
+        """Hàm mở MỘT kết nối TCP mới tới UART0 (`SocketPort`, như `SerialVehicleIO.open` với URL `socket://`). URL lấy
+        lúc gọi hàm này: io dựng cho lần khởi động này không bao giờ nối sang cổng của lần khởi động khác."""
+        from .socket_port import SocketPort
+
+        url = self.url
+
+        def opener():
+            return SocketPort.from_url(url, timeout=read_timeout_s, write_timeout=write_timeout_s)
+
+        return opener
+
+    def describe(self) -> dict:
+        """Bo ảo này cho log (khóa "board" của link.json, bo_ao.json): cổng, ảnh và SHA-256, QEMU, pid, số lần khởi
+        động và lý do hỏng, thư mục log, HELLO_ACK lúc khởi động."""
+        from .protocol import ResetReason
+
+        hello = self.hello
+        info = None
+        if hello is not None:
+            reason = hello.reset_reason
+            info = {"firmware": hello.firmware_version, "boot_id": f"0x{hello.boot_id:08x}",
+                    "reset_reason": ResetReason(reason).name if reason in ResetReason._value2member_map_ else str(reason),
+                    "telemetry_period_ms": round(hello.telemetry_period_s * 1000)}
+        return {"url": self.url, "monitor_port": self.monitor_port, "image": str(self.image),
+                "image_sha256": self.image_sha256, "qemu": str(self.tools.qemu),
+                "pid": self.proc.pid if self.proc is not None else None, "starts": self.starts,
+                "problems": list(self.problems), "workdir": str(self.workdir), "hello": info}
+
+    def cpu_seconds(self) -> float | None:
+        """Thời gian CPU QEMU đã dùng (`process_cpu_seconds`); None khi chưa chạy hoặc không đọc được."""
+        return None if self.proc is None else process_cpu_seconds(self.proc.pid)
 
     @property
     def uart_log(self) -> Path:
@@ -159,6 +353,10 @@ class QemuBoard:
     def start(self) -> "QemuBoard":
         if not self.image.is_file():
             raise QemuBoardError(f"không thấy ảnh flash {self.image}")
+        try:
+            self.image_sha256 = file_sha256(self.image)
+        except OSError as exc:
+            raise QemuBoardError(f"không đọc được ảnh flash {self.image} ({exc})") from None
         problems = []
         for _ in range(self.attempts):
             self.starts += 1
@@ -415,6 +613,7 @@ def _cmd_kiem(args) -> int:
 
     tools, image = _prepare(args)
     with QemuBoard(image, tools) as board:
+        qemu_ecoqos = ecoqos_state(board.proc.pid)     # QemuBoard(boost=True) tắt theo pid, không theo biến môi trường
         io = SerialVehicleIO.open(board.url)
         try:
             info = connect_with_retry(io)
@@ -436,10 +635,12 @@ def _cmd_kiem(args) -> int:
           f"trạng thái {state.name}, chu kỳ telemetry {info.telemetry_period_s * 1000:.0f} ms")
     print(f"Telemetry: {len(frames)} khung trong 2 s (≈ {len(frames) / 2:.1f} Hz), cộng {before} khung nhận trước đó lúc "
           f"kết nối và chờ bo ra khỏi BOOT; QEMU khởi động {board.starts} lần")
+    print(f"EcoQoS: tiến trình này {ecoqos_state()}, QEMU {qemu_ecoqos}")
     return 0 if len(frames) >= 30 else 1                 # 20 Hz → ≈ 40 khung; ≥ 30 chừa chỗ cho máy bận
 
 
 def main(argv: list[str] | None = None) -> int:
+    apply_ecoqos_policy("transport.qemu_board")        # tiến trình này; QEMU vẫn do QemuBoard tắt theo pid
     parser = argparse.ArgumentParser(prog="python -m autopark.transport.qemu_board", description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     chay = sub.add_parser("chay", help="chạy bo ảo ở một cổng cố định tới khi Ctrl+C")

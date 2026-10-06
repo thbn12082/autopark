@@ -62,6 +62,8 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBo
 
 from autopark.perception import fisheye_calib as fc
 from autopark.perception.calib_board import BoardSpec
+from autopark.power_throttling import apply_ecoqos_policy
+from autopark.ui.process_status import add_ecoqos_label
 from autopark.video.sources import FrameReadError
 
 PORTS = (1, 2, 3, 4)
@@ -824,9 +826,11 @@ def build_window(argv=None, *, start: bool = True) -> CalibWindow:
 
 
 def main(argv=None) -> int:
+    ecoqos = apply_ecoqos_policy("ui.calib_app")       # trước mọi việc khác (power_throttling.py)
     app = QApplication.instance() or QApplication(sys.argv)
     window = build_window(argv)
     window.show()
+    add_ecoqos_label(window, ecoqos)
     return app.exec()
 
 

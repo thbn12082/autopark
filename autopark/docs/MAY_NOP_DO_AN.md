@@ -161,6 +161,12 @@ push trong `77eb51f`*), `tom_tat.md` có thêm các dòng sau. Cột máy bàn l
 | Bàn thử 480p: quy tắc chờ camera chậm; 720p chỉ camera: quy tắc chờ camera chậm | `policy` của từng `.rig.json` (`wait_rule`, `wait_periods_of_own`, sàn `max_wait_ms`) | nhịp riêng: max(60 ms; 1,5 × chu kỳ của chính từng camera), cả hai bước | như cột trái |
 | … độ lệch bộ ảnh trung vị / p95 / max (ms), ở 480p và ở 720p | `sets.skew_ms` của từng `.rig.json` | 480p 17,1 / 32,0 / 35,9; 720p 26,0 / 30,2 / 32,8 | "—": tệp tham chiếu không lưu số này (xem dưới) |
 
+*(Thêm 02/10/2026.)* Dòng đầu bảng của `tom_tat.md` là "EcoQoS của tiến trình đo (off = đã tắt)", lấy từ `env.ecoqos`
+(`env.json`). Từ 02/10/2026 `may_moi` tự tắt EcoQoS cho tiến trình đo, kể cả `rig.bench` chạy bên trong;
+`AUTOPARK_KEEP_ECOQOS=1` giữ mặc định của Windows. Tệp tham chiếu máy bàn ghi trước ngày đó không có trạng thái này nên
+cột máy bàn là "—"; không có CẢNH BÁO mới. `.rig.json` có thêm `resources.ecoqos` (trong digest: `rig480.ecoqos`,
+`cam720.ecoqos`).
+
 Tệp 29/09 tạo từ `may_moi.json` nên `digest` có sẵn cả ba loại số. Tệp tham chiếu 19:08 lưu `policy` và `ai_warm_up_ms` ở tầng ngoài, không trong `digest`; lệnh đo tự đọc cả hai chỗ và không
 sửa tệp. Tệp 15:25 ([tham_chieu_20260924.json](evidence/may_ban/tham_chieu_20260924.json)) không lưu cả ba loại số, nên cột
 máy bàn là "—". Độ lệch bộ ảnh của máy bàn chỉ có trong tệp gốc, git-ignore, chỉ có trên máy bàn (đọc 24/09/2026):

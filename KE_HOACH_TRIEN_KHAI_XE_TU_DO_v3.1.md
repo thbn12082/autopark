@@ -474,10 +474,10 @@ Tính đến 30/09/2026, V1 đạt 0/10 điều kiện. Sơ đồ dưới xếp 
 
 ```mermaid
 flowchart TD
-    V["V1: 0/10 điều kiện đạt, kế hoạch mục 16.4, 30/09/2026"]
+    V["V1: 0/10 điều kiện đạt, kế hoạch mục 16.4, 02/10/2026"]
     subgraph SG_BT["Có số đo trên thiết bị thật, chưa đạt"]
         direction TB
-        C1["1 Bản đồ, định vị LiDAR: bản đồ tĩnh thật, định vị offline"]
+        C1["1 Bản đồ, định vị LiDAR: bản đồ tĩnh thật, định vị offline. Trong phiên: MP và bản ghi C1 đứng yên, chưa có trên xe"]
         C2["2 Bốn camera: chạy chung trên bàn, chưa hiệu chuẩn, chưa gá"]
         C10["10 Tái hiện: replay mô phỏng, ghi và phát lại bàn thử, phát lại log VehicleIO ở mức mô phỏng"]
         C1 ~~~ C2 ~~~ C10

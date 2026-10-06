@@ -2,6 +2,7 @@
 
     python -m autopark.lidar.live_view [--port COMx] [--max-age 0.3] [--record runs/lidar_bench/<ngày>/live] [--mirror]
     python -m autopark.lidar.live_view --recording runs/lidar_bench/20260922/p07_nen_phong.npz [--speed 1]
+    python -m autopark.lidar.live_view --recording runs/session_recordings/<thư mục>    (mọi phần LiDAR, 02/10/2026)
 
 Không có `--port` lẫn `--recording` thì mở LiDAR ở `lidar_port` của configs/thiet_bi.json (29/09/2026; lidar/port.py).
 
@@ -22,7 +23,9 @@ import time
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget
 
+from autopark.power_throttling import apply_ecoqos_policy
 from autopark.safety.freshness import FreshnessMonitor, SourcePolicy
+from autopark.ui.process_status import add_ecoqos_label
 from autopark.ui.scan_view import ScanView
 
 from .recording import RecordingReplaySource, ScanRecorder, default_meta
@@ -68,13 +71,33 @@ class ScanStreamEnded(RuntimeError):
     """A replay reached its end (a live driver never raises this)."""
 
 
-class ScanReader(threading.Thread):
-    """Pulls scans from a blocking source into a queue; errors are queued too so the window can show them."""
+class ScanConsumerError(RuntimeError):
+    """A scan consumer (`on_scan`) raised; the reader keeps reading and queues this so the window can show it."""
 
-    def __init__(self, source, out: queue.Queue):
+
+class ScanReader(threading.Thread):
+    """Pulls scans from a blocking source into a queue; errors are queued too so the window can show them.
+
+    Added 2026-10-02 (T2): every scan also goes to each consumer in `consumers` (shared list, may change while running)
+    as `on_scan(scan, quality, t_first_perf, t_perf)`, where t_perf = `time.perf_counter()` at the scan's arrival:
+    the read time minus how long ago the source stamped it (`source.now() - stamp`, divided by a replay `speed`). A
+    consumer that raises becomes a `ScanConsumerError` on the queue; the reader keeps reading. Queue items are
+    (scan, quality, t_first, t_perf); readers of the queue unpack `item[:3]` so 3-tuples still work."""
+
+    def __init__(self, source, out: queue.Queue, consumers: list | None = None):
         super().__init__(daemon=True)
         self.source, self.out = source, out
+        self.consumers = consumers if consumers is not None else []
         self.stop_event = threading.Event()
+
+    def _perf_of(self, t_source: float | None, now_perf: float) -> float | None:
+        if t_source is None:
+            return None
+        try:
+            age = (self.source.now() - t_source) / getattr(self.source, "speed", 1.0)
+        except Exception:  # noqa: BLE001 - a source without a usable clock: stamp at the read time
+            age = 0.0
+        return now_perf - max(0.0, age)
 
     def run(self) -> None:
         while not self.stop_event.is_set():
@@ -86,9 +109,20 @@ class ScanReader(threading.Thread):
                     return
                 time.sleep(0.2)
                 continue
+            if self.stop_event.is_set():           # đang dừng (ngăn đã đổi nguồn): không đưa vòng này cho ai
+                return
+            now_perf = time.perf_counter()
             revolution = getattr(self.source, "last_revolution", None)
-            self.out.put((scan, getattr(self.source, "last_quality", None),
-                          None if revolution is None else revolution.t_first))
+            quality = getattr(self.source, "last_quality", None)
+            t_first = None if revolution is None else revolution.t_first
+            t_perf = self._perf_of(scan.stamp.t, now_perf)
+            t_first_perf = self._perf_of(t_first, now_perf)
+            for consumer in list(self.consumers):
+                try:
+                    consumer.on_scan(scan, quality, t_first_perf, t_perf)
+                except Exception as exc:  # noqa: BLE001 - a broken consumer must not stop the reader
+                    self.out.put(ScanConsumerError(f"{type(consumer).__name__}.on_scan: {exc!r}"))
+            self.out.put((scan, quality, t_first, t_perf))
 
 
 class LiveWindow(QMainWindow):
@@ -134,7 +168,7 @@ class LiveWindow(QMainWindow):
                 if isinstance(item, ScanStreamEnded):
                     self.ended = True
                 continue
-            scan, quality, t_first = item
+            scan, quality, t_first = item[:3]
             rejected = self.monitor.observe(scan.stamp, now=now)
             events += rejected
             if not rejected:
@@ -167,10 +201,13 @@ class LiveWindow(QMainWindow):
 
 
 def main(argv=None) -> int:
+    ecoqos = apply_ecoqos_policy("lidar.live_view")    # trước mọi việc khác (power_throttling.py)
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     where = parser.add_mutually_exclusive_group()
     where.add_argument("--port", help="COM port of the RPLIDAR C1 (or auto); default: lidar_port in configs/thiet_bi.json")
-    where.add_argument("--recording", type=Path, help="replay a .npz written by autopark.lidar.recording")
+    where.add_argument("--recording", type=Path,
+                       help="replay a .npz written by autopark.lidar.recording, or every LiDAR part of a session "
+                            "recording folder (autopark.rig.recording)")
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--max-age", type=float, default=0.3, help="STALE_DATA after this many seconds without a scan")
     parser.add_argument("--expected-period", type=float, default=0.1)
@@ -200,6 +237,7 @@ def main(argv=None) -> int:
                         max_range=args.max_range)
     window.resize(720, 760)
     window.show()
+    add_ecoqos_label(window, ecoqos)
     return app.exec()
 
 

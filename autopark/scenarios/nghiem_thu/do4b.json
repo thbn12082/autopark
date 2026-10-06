@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "name": "DO-4b parallel_135",
+  "notes": "Đỗ song song, ô dài 42 cm = 1.35× thân xe, làn rộng 46 cm. Xe đã đi quá ô nên phải lùi vào. Tệp nghiệm thu DO-4b (mức MP) sinh bằng autopark.evaluation.acceptance_scenarios từ ca khó parallel_135 của evaluation/hard_cases.py, xe configs/vehicle_nghiem_thu.json: kích thước theo xe GIẢ ĐỊNH; xe đo khác thì sinh lại. Giới hạn đổi chiều lúc Bắt đầu đỗ theo trường acceptance (khóa DO-4b của configs/nguong_nghiem_thu.json, N-D6 (b), ĐỀ XUẤT – CHỜ CHỐT).",
+  "vehicle_config": "../../configs/vehicle_nghiem_thu.json",
+  "bounds": {
+    "xmin": 0.0,
+    "ymin": 0.0,
+    "xmax": 1.9585,
+    "ymax": 0.62
+  },
+  "start": {
+    "x": 1.6385,
+    "y": 0.39,
+    "yaw_deg": 0.0
+  },
+  "goal": {
+    "x": 0.7242500000000001,
+    "y": 0.09000000000000001,
+    "yaw_deg": 0.0,
+    "tolerance_cm": 5.0,
+    "tolerance_deg": 5.0
+  },
+  "obstacles": [
+    {
+      "id": "xe_sau",
+      "cx": 0.45499999999999996,
+      "cy": 0.09000000000000001,
+      "width": 0.31,
+      "height": 0.14,
+      "yaw_deg": 0.0,
+      "kind": "car"
+    },
+    {
+      "id": "xe_truoc",
+      "cx": 1.1835,
+      "cy": 0.09000000000000001,
+      "width": 0.31,
+      "height": 0.14,
+      "yaw_deg": 0.0,
+      "kind": "car"
+    }
+  ],
+  "seed": 0,
+  "slot": {
+    "cx": 0.81925,
+    "cy": 0.09000000000000001,
+    "yaw_deg": 0.0,
+    "length": 0.41850000000000004,
+    "width": 0.2
+  },
+  "mode": "parallel",
+  "acceptance": {
+    "code": "DO-4",
+    "variant": "b"
+  }
+}

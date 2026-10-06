@@ -10,6 +10,8 @@ vị."*); mục 5 "Khi nhận LiDAR" bước 4–6; mục 12 (giai đoạn 8: h�
 định vị cho V1 cần người dùng quyết định) và 4.3 (công cụ định vị chạy offline; phương án cho V1 là đề xuất chờ chốt).
 *(Cập nhật 30/09/2026: ý "chọn phương án SLAM/định vị 2D, kiểm đầu vào của nó" là mục 5.4 của
 [bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/TONG_HOP_DU_AN.md).)*
+*(Cập nhật 02/10/2026: việc này không còn để ngỏ: người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất mục 7;
+xem mục 0, 7, 10 và [NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md).)*
 
 **Mức bằng chứng.** Mọi thứ trong tài liệu này chạy **offline trên máy bàn i9-14900, tối và đêm 24/09/2026**. Không mở
 LiDAR, camera hay cổng COM nào. Dữ liệu dùng:
@@ -27,7 +29,8 @@ kết luận sai ở bản trước của tài liệu này. Quan trọng nhất:
 cứng** khi phép kiểm suy biến báo nhầm (mục 3.3 phát hiện 5, mục 3.4 kiểu hỏng 1), **không phải** do thiếu odometry bánh
 xe như bản trước kết luận. Số của bản đầu vẫn giữ trong tệp bằng chứng riêng để so.
 
-**Tài liệu này không chốt gì.** Mục 7 là **ĐỀ XUẤT – CHỜ CHỐT**; người dùng quyết định.
+**Tài liệu này không chốt gì.** Mục 7 là **ĐỀ XUẤT – CHỜ CHỐT**; người dùng quyết định. *(Cập nhật 02/10/2026:
+người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất mục 7; các ngưỡng vẫn ĐỀ XUẤT – CHỜ CHỐT.)*
 
 ## 0. Tóm tắt
 
@@ -61,6 +64,11 @@ xe như bản trước kết luận. Số của bản đầu vẫn giữ trong t
 - Khi có encoder/AS5600/BNO085: thay dự đoán vận tốc không đổi của (b) bằng odometry bánh xe + gyro (d).
 
 Phương án này chỉ đúng khi có đủ các điều kiện ở mục 7. Mục 8 là các phép đo để xác nhận nó.
+
+*(Cập nhật 02/10/2026: người dùng giao làm theo đề xuất mục 7 ("làm hết"); ngưỡng vẫn ĐỀ XUẤT – CHỜ CHỐT, dùng cho
+nghiệm thu tới khi chốt. Đã viết nguồn tư thế (a) + (b) nối vào phiên đỗ xe và công cụ dựng bản đồ nhiều chỗ đặt:
+[NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md); mới kiểm ở mức MP và trên bản ghi C1 đứng yên, chưa thử trên xe chạy.
+Không phải SLAM.)*
 
 ## 1. Bối cảnh V1 và ràng buộc
 
@@ -150,7 +158,9 @@ quét đi qua các bước sau:
    - `scan_to_scan`: vòng chấp nhận ngay trước làm tham chiếu.
 
 **Không phải:** SLAM đầy đủ (không đóng vòng, không tối ưu đồ thị tư thế, không định vị lại khi đã lạc); không có đầu vào
-bánh xe/IMU; chưa nối vào phiên đỗ xe. Mọi ngưỡng là tạm, **CHƯA CHỐT**.
+bánh xe/IMU; chưa nối vào phiên đỗ xe. Mọi ngưỡng là tạm, **CHƯA CHỐT**. *(Cập nhật 02/10/2026: (b) nay chạy trong
+nguồn tư thế LiDAR của phiên đỗ xe, làm tâm cửa sổ và phép kiểm chéo cho (a), mới ở mức MP và trên bản ghi C1 đứng yên;
+[NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md) mục 3. Vẫn không phải SLAM.)*
 
 ### 3.2. Kiểm bằng dữ liệu tổng hợp (quỹ đạo biết trước)
 
@@ -220,7 +230,9 @@ rộng hơn số đo xấu nhất trên 41 seed khoảng 1,5–2 lần.
    Tổng hợp: 0,35 m/vòng thay vì 0,03, xe lùi ngay sau khi bắt lại thì cả 29 vòng sau đó FAILED. Sửa: lấy từ vòng chấp
    nhận gần nhất, chia đều theo số vòng (hàm `scale_motion`, xoắn không đổi trong SE(2)). Vận tốc tính theo số vòng,
    không theo thời gian: nếu vòng quét bị rơi trước khi tới `update` thì vẫn sai; **CHƯA SỬA**, và chưa kiểm dữ liệu
-   C1/DROW đã chạy có rơi vòng hay không.
+   C1/DROW đã chạy có rơi vòng hay không. *(02/10/2026: `OdometryConfig.velocity_per = "second"` tính vận tốc theo thời
+   gian; nguồn tư thế dùng nó, mặc định "scan" giữ số cũ. Phòng tổng hợp 0,3 m/s, 30 % vòng rơi: sai số dự đoán lớn
+   nhất 9,8 mm theo giây, 62 mm theo vòng)*
 
 ### 3.4. DROW v2: so với odometry đi kèm (không phải ground truth)
 
@@ -509,13 +521,22 @@ Tích hợp vào dự án, suy ra từ cấu trúc hiện tại (không phải k
 | Đầu vào ngoài LiDAR | Không | Không | Không | cần tra (GMapping nghi bắt buộc odometry) | Encoder, AS5600, BNO085 |
 | Rủi ro tích hợp | Thấp (đã có mã, test) | Thấp (đã có mã, test) | Trung bình (chưa ghép, chưa nối phiên) | Cao (ROS/Linux, cầu nối, giấy phép) | Trung bình (phần cứng, hiệu chuẩn) |
 
-## 7. Đề xuất cho V1: ĐỀ XUẤT – CHỜ CHỐT
+*(Cập nhật 02/10/2026: cột (a) + (b) — nay đã ghép (`lidar/pose_estimator.py`) và nối vào phiên đỗ xe
+(`application/lidar_pose_source.py`), nên "chưa ghép" và "chưa nối phiên" ở bảng trên không còn đúng; mới kiểm ở mức MP
+và trên bản ghi C1 đứng yên, chưa thử trên xe; [NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md).)*
+
+## 7. Đề xuất cho V1: người dùng giao làm theo đề xuất ngày 02/10/2026 (ngưỡng vẫn ĐỀ XUẤT – CHỜ CHỐT)
+
+*(Cập nhật 02/10/2026: người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất dưới đây; phần đã làm và các
+ngưỡng chọn ở [NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md). Tên mục trước ngày này là "Đề xuất cho V1: ĐỀ XUẤT – CHỜ
+CHỐT"; nội dung dưới đây giữ như ngày 24/09/2026, kèm ghi chú có ngày.)*
 
 **Đề xuất.**
 
 1. **Bản đồ:** trước mỗi buổi chạy, đặt C1 (đã gá trên xe) ở 3–5 vị trí trong sa bàn và ghi mỗi vị trí 10–15 s. Ghép
    thành một bản đồ tĩnh. Tư thế của các chỗ đặt lấy từ (b) khi dời C1 chậm giữa các chỗ, hoặc đo bằng thước. Công cụ
-   ghép nhiều chỗ đặt **chưa viết**: `occupancy.py` hiện chỉ nhận một tư thế cố định hoặc odometry DROW. Bản đồ cố định
+   ghép nhiều chỗ đặt **chưa viết** *(02/10/2026: đã viết, `lidar/map_builder.py`)*: `occupancy.py` hiện chỉ nhận một
+   tư thế cố định hoặc odometry DROW. Bản đồ cố định
    trong suốt lượt chạy; vật mới đi vào costmap vật cản, không đi vào bản đồ định vị.
 2. **Định vị mỗi vòng (10 Hz):** dùng (a), `localize` với cửa sổ quanh tư thế dự đoán. Chỉ tư thế OK mới được dùng cho
    lập đường và điều khiển.
@@ -524,7 +545,8 @@ Tích hợp vào dự án, suy ra từ cấu trúc hiện tại (không phải k
    yêu cầu V1 "dữ liệu cần thiết không còn hợp lệ thì dừng". Vòng (b) báo AMBIGUOUS `degenerate` thì không dùng thành
    phần dọc trục của nó để kiểm chéo (mục 3.2: hành lang trơn tổng hợp, sau 6 s lệch dọc trục trung vị 0,15 m, xấu
    nhất 3,7 m). **Việc
-   ghép (a) + (b) chưa viết.**
+   ghép (a) + (b) chưa viết.** *(02/10/2026: đã viết, `lidar/pose_estimator.py` + `application/lidar_pose_source.py`;
+   dung sai kiểm chéo 4 cm + 3 % quãng đi, 2° + 2°/m; 2 vòng (a) không OK liên tiếp → POSE_LOST; ĐỀ XUẤT)*
 4. **Khi có encoder/AS5600/BNO085:** thay vận tốc không đổi bằng odometry bánh xe + gyro trong (b) (mục 5), rồi đo lại.
    Đây là cải tiến cho cảnh suy biến thật và cho lúc bị che, **không** phải điều kiện để (b) chạy được: trên DROW, sau
    khi sửa lỗi khóa trục, (b) không có (d) vẫn cho 2,8 % vòng FAILED (mục 3.4).
@@ -542,6 +564,11 @@ Tích hợp vào dự án, suy ra từ cấu trúc hiện tại (không phải k
 - Nguyên nhân +4,3° đã rõ. Nếu gốc góc đổi theo lần khởi động mô-tơ thì phải có bước hiệu chuẩn hướng mỗi lần bật.
 - Tốc độ xe ≤ khoảng 0,3 m/s (≈ 3 cm/vòng, trong cửa sổ ±0,15 m). Nhanh hơn thì phải tăng cửa sổ và đo lại thời gian.
 - Thời gian (a) + (b) trên laptop RTX 3050 Ti < 100 ms/vòng. **CHƯA ĐO.**
+
+*(Cập nhật 02/10/2026: phép biến đổi LiDAR ↔ tâm trục sau (gá), dấu góc p04 và nguyên nhân +4,3° (DV-2), cùng định vị
+tĩnh so với thước (DV-1), nay là cổng của nguồn tư thế LiDAR với bo thật trong `configs/dinh_vi_lidar_v0.json`
+([NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md) mục 6). Chưa đạt điều nào, nên VehicleIO với bo thật luôn bị từ chối
+(START_POSE_UNVERIFIED). Thời gian (a) + (b) trên laptop vẫn CHƯA ĐO.)*
 
 **Không tuyên bố:** không nói V1 "đã có SLAM". Không nói (b) là odometry bánh xe. Không lấy độ nhất quán hay độ không
 trôi khi đứng yên làm bằng chứng độ đúng.
@@ -597,9 +624,13 @@ vào cmd.exe.
 
 ## 10. Còn mở
 
-- Chọn phương án cho V1: **người dùng quyết định** (TONG_HOP mục 5.1). Tài liệu này chỉ đề xuất.
+- Chọn phương án cho V1: **người dùng quyết định** (TONG_HOP mục 5.1). Tài liệu này chỉ đề xuất. *(02/10/2026: người
+  dùng giao làm theo đề xuất mục 7)*
 - Chưa viết: ghép (a) + (b) thành một nguồn tư thế; nối vào phiên đỗ xe thay cho tư thế lý tưởng của mô phỏng; công cụ
   dựng bản đồ từ nhiều chỗ đặt; `ScanOdometry.update` nhận dự đoán từ odometry bánh xe; định vị lại toàn cục khi (b) lạc.
+  *(Cập nhật 02/10/2026: đã viết ghép (a) + (b), nối vào phiên, công cụ dựng bản đồ nhiều chỗ đặt, tìm toàn cục lúc khởi
+  tạo (chỉ ngoài lần chạy); xem [NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md). Còn thiếu: `ScanOdometry.update` nhận dự
+  đoán từ odometry bánh xe.)*
 - Chưa có bản ghi C1 di chuyển, chưa có tham chiếu độc lập, chưa đo trên laptop.
 - (c): mọi yêu cầu **cần tra** tại nguồn chính thức trước khi cân nhắc.
 - Giao thức xe: ĐỀ XUẤT thêm bộ đếm quãng đường cộng dồn (mục 5).
@@ -611,6 +642,7 @@ vào cmd.exe.
   bảng 3.000 vòng lẫn bảng chạy hết chiều dài, và cả hai cảnh tổng hợp (hội trường cột nhỏ giảm tốc, hành lang trơn).
   Không test nào ghim độ mạnh của khóa (đột biến M28 sống sót, mục 3.7).
 - Vận tốc dự đoán tính theo số vòng, không theo thời gian: vòng bị rơi trước `update` thì vẫn sai (mục 3.3, phát hiện 6).
+  *(02/10/2026: có `velocity_per="second"`, mục 3.3)*
 - DROW sau khi sửa, **CHƯA XEM KỸ**: các vòng FAILED `window_edge` lẻ ở cảnh không suy biến (mục 3.4, kiểu hỏng 4); tỉ
   lệ bước 1,84 của `13-47-42` khi chạy hết chiều dài; `13-35-21` chạy hết chiều dài FAILED nhiều hơn bản đầu (1.028 so
   với 889).

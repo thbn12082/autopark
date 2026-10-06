@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "created": "2026-10-02T18:58:05+07:00",
+  "kind": "bo ảo QEMU (firmware xe trong giả lập; KHÔNG phải bo thật)",
+  "tools": {
+    "qemu": "D:\\xetulai\\_platformio\\qemu\\qemu\\bin\\qemu-system-xtensa.exe",
+    "platformio_python": "D:\\xetulai\\_platformio\\penv\\Scripts\\python.exe",
+    "platformio_core_dir": "D:\\xetulai\\_platformio\\core"
+  },
+  "image": "D:\\xetulai\\_wt\\gop\\autopark\\firmware\\esp32_vehicle\\.pio\\build\\esp32s3_qemu\\qemu_flash.bin",
+  "image_sha256": "91fbeba0f0afbc2a11e1f4e4124caa19b11c6235976696fbe534bd83b84aa81d",
+  "built": false,
+  "build_s": 0.001,
+  "start_s": 0.541,
+  "url": "socket://127.0.0.1:59069",
+  "monitor_port": 59070,
+  "pid": 36504,
+  "starts": 1,
+  "problems": [],
+  "hello": {
+    "firmware": "1.0",
+    "boot_id": "0x38027a8c",
+    "reset_reason": "POWER_ON",
+    "telemetry_period_ms": 50
+  },
+  "stopped": "2026-10-02T18:58:51+07:00",
+  "exit_code": 0,
+  "stop_reason": "window_close",
+  "running_s": 45.719,
+  "cpu_s": 46.281,
+  "cpu_cores_avg": 1.012,
+  "error": null,
+  "evidence": "qemu_firmware_simulated_vehicle",
+  "note": "Bo ảo QEMU: firmware THẬT của xe trong giả lập, KHÔNG phải bo thật. cpu_s là thời gian CPU của lần chạy QEMU cuối (gồm lúc khởi động); cpu_cores_avg = cpu_s / running_s là ước lượng."
+}

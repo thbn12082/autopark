@@ -61,6 +61,7 @@ class DrivingReadout(QWidget):
         self.speed = self.steer = 0.0
         self.clearance = None
         self.gear = "P"
+        self.full_scale_mps = 0.3       # cung tốc độ đầy ở mức này; cửa sổ đặt bằng max_speed của xe (02/10/2026)
         self.setFixedSize(244, 240)
 
     def set_values(self, speed, steer, clearance):
@@ -75,7 +76,8 @@ class DrivingReadout(QWidget):
         p.setPen(QPen(QColor("#263541"), 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         p.drawArc(ring, 220 * 16, -260 * 16)
         p.setPen(QPen(QColor("#8cf0d6"), 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        p.drawArc(ring, 220 * 16, -int(max(0.014, min(abs(self.speed) / 0.3, 1)) * 260 * 16))
+        full = self.full_scale_mps if self.full_scale_mps > 0 else 0.3
+        p.drawArc(ring, 220 * 16, -int(max(0.014, min(abs(self.speed) / full, 1)) * 260 * 16))
         font = QFont("Segoe UI")
         font.setPixelSize(42)
         font.setWeight(QFont.Weight.Light)

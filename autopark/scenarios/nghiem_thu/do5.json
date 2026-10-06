@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "name": "DO-5 reverse_long_corridor",
+  "notes": "Hành lang rộng 40 cm (1,29× thân xe): không quay đầu được, buộc lùi thẳng 1 m. Tệp nghiệm thu DO-5 (mức MP) sinh bằng autopark.evaluation.acceptance_scenarios từ ca khó reverse_long_corridor của evaluation/hard_cases.py, xe configs/vehicle_nghiem_thu.json: kích thước theo xe GIẢ ĐỊNH; xe đo khác thì sinh lại. Giới hạn đổi chiều lúc Bắt đầu đỗ theo trường acceptance (khóa DO-5 của configs/nguong_nghiem_thu.json, N-D6 (b), ĐỀ XUẤT – CHỜ CHỐT).",
+  "vehicle_config": "../../configs/vehicle_nghiem_thu.json",
+  "bounds": {
+    "xmin": 0.0,
+    "ymin": 0.0,
+    "xmax": 1.7,
+    "ymax": 0.4
+  },
+  "start": {
+    "x": 1.3,
+    "y": 0.2,
+    "yaw_deg": 0.0
+  },
+  "goal": {
+    "x": 0.3,
+    "y": 0.2,
+    "yaw_deg": 0.0,
+    "tolerance_cm": 5.0,
+    "tolerance_deg": 5.0
+  },
+  "obstacles": [],
+  "seed": 0,
+  "acceptance": {
+    "code": "DO-5"
+  }
+}

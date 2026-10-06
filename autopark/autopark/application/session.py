@@ -25,6 +25,11 @@ Sự kiện dừng trong log (02/10/2026, T13; chỉ kiểm với bo mô phỏng
 dừng của phiên (mỗi phần tử của `safety_events`, yêu cầu dừng khi đang chạy kèm mã và nguồn, đặt lại khi đang chạy, va
 chạm hình học) còn thành một dòng ``session_stop`` trong events.csv của `run_link` (`VehicleLink.log_session_event`),
 ghi trước `end_run`. Không gửi gì thêm tới bo. Nhánh SIM không có log VehicleIO và không đổi.
+
+Giới hạn đổi chiều theo kịch bản (02/10/2026, T12; application/cusp_policy.py): có `acceptance_thresholds` (run_app.py,
+ui.lidar_app) thì tệp sa bàn có trường `acceptance` nhận giới hạn của kịch bản nghiệm thu đó trong tệp ngưỡng, đọc một
+lần lúc dựng phiên hay `replace_scenario` (tệp ngưỡng hỏng → AcceptanceTagError, phiên giữ nguyên); `cusp_policy` (cờ)
+chỉ siết thêm. Mặc định None: bỏ qua thẻ, như trước (phát lại, công cụ, test cũ).
 """
 from __future__ import annotations
 
@@ -33,9 +38,11 @@ import math
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from enum import Enum
+from pathlib import Path
 
 from autopark.control.tracker import TrackerOutput, TrackerParams, TrajectoryTracker
-from autopark.application.cusp_policy import CuspCheck, CuspPolicy, check_cusps
+from autopark.application.cusp_policy import (AcceptanceCuspRule, CuspCheck, CuspLimit, CuspPolicy, check_cusps,
+                                              read_acceptance_rule, resolve_cusp_limit)
 from autopark.application.layouts import scatter_parked_cars
 from autopark.application.vehicle_link import DriveMode, VehicleLink, VehicleLinkError
 from autopark.domain.computation import ComputationCancelled, ComputationControl, ComputationTimedOut
@@ -113,7 +120,7 @@ class Session:
                  planner_params: PlannerParams | None = None,
                  tracker_params: TrackerParams | None = None,
                  feedback_config: FeedbackConfig | None = None, *,
-                 cusp_policy: CuspPolicy | None = None):
+                 cusp_policy: CuspPolicy | None = None, acceptance_thresholds: str | Path | None = None):
         self.scenario = scenario
         self.cfg = cfg
         self.scenario.sync_goal(cfg)
@@ -151,6 +158,9 @@ class Session:
         self.feedback_config = feedback_config or FeedbackConfig()
         # số lần đổi chiều: giới hạn và mức cảnh báo (T12, application/cusp_policy.py; mặc định không chặn)
         self.cusp_policy = cusp_policy or CuspPolicy()
+        # giới hạn theo kịch bản nghiệm thu mà tệp sa bàn gắn (02/10/2026); None = bỏ qua thẻ (phát lại, công cụ)
+        self.acceptance_thresholds = None if acceptance_thresholds is None else Path(acceptance_thresholds)
+        self.acceptance_rule: AcceptanceCuspRule | None = self._acceptance_rule_for(self.scenario)
         self.feedback: SimFeedback | None = None
         self.safety_events: list[SafetyEvent] = []
         self.run_events: list[dict] = []
@@ -161,6 +171,7 @@ class Session:
         # thuộc về (giữ để xuất log; None sau lái tay hoặc chạy SIM)
         self.vehicle_link: VehicleLink | None = None
         self.run_link: VehicleLink | None = None
+        self.start_source = "manual"      # T2: điểm xuất phát do người đặt hay lấy từ định vị LiDAR (set_start)
 
     # ------------------------------------------------------------------ nhánh chạy
     @property
@@ -195,14 +206,41 @@ class Session:
 
     def replace_scenario(self, scenario: Scenario, cfg: VehicleConfig) -> None:
         self._require_editable()
+        # T12 theo kịch bản: giới hạn của tệp mới đọc TRƯỚC, lỗi (AcceptanceTagError) thì phiên giữ nguyên. Đổi xe
+        # (`set_vehicle`) đưa lại chính kịch bản đang mở: giữ giới hạn đã đọc, không đọc lại tệp ngưỡng.
+        new = scenario is not self.scenario
+        rule = self._acceptance_rule_for(scenario) if new else self.acceptance_rule
         self.scenario = scenario
         self.cfg = cfg
+        if new:
+            # T2: kịch bản mới mang điểm xuất phát của tệp. Đổi xe giữ nguyên điểm xuất phát nên giữ cả nguồn của nó
+            # (sửa 02/10/2026 sau review gộp đợt 2: trước đó đổi xe ghi "manual" cho điểm lấy từ định vị LiDAR).
+            self.start_source = "manual"
         self.scenario.sync_goal(cfg)
         self.log.clear()
         self._invalidate()
+        self.acceptance_rule = rule
 
-    def set_start(self, pose: Pose) -> None:
+    def set_vehicle(self, cfg: VehicleConfig, path: str | Path | None = None) -> None:
+        """Đổi cấu hình xe của phiên (thêm 02/10/2026, ô "Cấu hình xe" của giao diện; xe nghiệm thu 0,10 m/s). Chỉ khi
+        đang chỉnh hoặc sẵn sàng; cấu hình hỏng → SessionError. `path`: tệp xe, ghi vào kịch bản để Lưu trỏ đúng tệp.
+        Như `replace_scenario`: đích tính lại cho xe mới, đường và xem trước bị hủy, log xóa. Điểm xuất phát và nguồn
+        của nó (`start_source`, T2) giữ nguyên. Không đụng `vehicle_link` (giao diện tự chọn lại bo mô phỏng theo tệp
+        xe)."""
         self._require_editable()
+        problems = cfg.validate()
+        if problems:
+            raise SessionError("Cấu hình xe không hợp lệ: " + "; ".join(problems))
+        if path is not None:
+            self.scenario.vehicle_config_path = Path(path).resolve()
+        self.replace_scenario(self.scenario, cfg)
+
+    def set_start(self, pose: Pose, *, source: str = "manual") -> None:
+        """`source` (T2, 02/10/2026): "manual" (người đặt) hoặc "lidar_localize" (lấy từ định vị LiDAR; khi đó kiểm
+        START so tư thế đo với điểm xuất phát không còn là kiểm độc lập). Ghi vào `run_snapshot["start_source"]`."""
+        self._require_editable()
+        if not (source == "manual" and pose == self.scenario.start):
+            self.start_source = source        # đặt lại đúng điểm cũ (vd. "Chọn lại vị trí") không đổi nguồn
         self.scenario.start = pose
         self.scenario.sync_goal(self.cfg)   # đỗ song song chọn hướng theo hướng xe
         self._invalidate()
@@ -464,9 +502,24 @@ class Session:
                 link.close()              # VEHICLE_IO còn phiên: gửi enable=0 + DISARM trước khi đóng
 
     # ------------------------------------------------------------------ chạy kín vòng
+    def _acceptance_rule_for(self, scenario: Scenario) -> AcceptanceCuspRule | None:
+        """Giới hạn của kịch bản nghiệm thu mà `scenario` gắn (trường acceptance), đọc từ `acceptance_thresholds`; None
+        khi phiên không có tệp ngưỡng hay kịch bản không gắn. Tệp ngưỡng hỏng hay thiếu khóa → AcceptanceTagError."""
+        if self.acceptance_thresholds is None or scenario.acceptance is None:
+            return None
+        return read_acceptance_rule(scenario.acceptance, self.acceptance_thresholds)
+
+    def cusp_limit(self) -> CuspLimit:
+        """Giới hạn đổi chiều có hiệu lực (T12): `cusp_policy` (cờ, hàm dựng) gộp với `acceptance_rule`; cờ chỉ siết."""
+        return resolve_cusp_limit(self.cusp_policy, self.acceptance_rule)
+
     def cusp_check(self) -> CuspCheck | None:
-        """Số lần đổi chiều của đường đang có so với `cusp_policy` (T12); None khi chưa có đường."""
-        return None if self.trajectory is None else check_cusps(self.trajectory, self.cusp_policy)
+        """Số lần đổi chiều của đường đang có so với giới hạn có hiệu lực (`cusp_limit`, T12); None khi chưa có
+        đường."""
+        if self.trajectory is None:
+            return None
+        limit = self.cusp_limit()
+        return check_cusps(self.trajectory, limit.policy, origin=limit.origin)
 
     def start_run(self) -> None:
         if self._closed:
@@ -477,7 +530,8 @@ class Session:
         if not chk.ok:
             raise SessionError("Không bắt đầu được: " + chk.describe())
         link = self.vehicle_link
-        cusps = self.cusp_check()
+        limit = self.cusp_limit()
+        cusps = check_cusps(self.trajectory, limit.policy, origin=limit.origin)
         if cusps.refused:
             # T12: đường đổi chiều quá giới hạn — từ chối TRƯỚC mọi I/O với bo; giữ READY và đường (xem trước vẫn được)
             if link is not None:
@@ -516,7 +570,11 @@ class Session:
             "physics_dt": self.PHYSICS_DT, "control_every": self.CONTROL_EVERY,
             "max_run_time": self.MAX_RUN_TIME,
             "cusps": cusps.to_dict(),            # T12: số lần đổi chiều đã lập và chính sách lúc bắt đầu
+            "start_source": self.start_source,   # T2: "manual" hoặc "lidar_localize"
         })
+        if self.acceptance_rule is not None:
+            # T12 theo kịch bản: nguồn giới hạn, khóa, tệp ngưỡng (đường dẫn, sha256) đã dùng; tệp không gắn thì không có
+            self.run_snapshot["cusp_rule"] = limit.to_dict()
         if link is not None:
             # Khóa này đánh dấu lần chạy qua VehicleIO: gói của nó phát lại bằng log (T9, replay_vehicle_run), không tái
             # mô phỏng như nhánh SIM.

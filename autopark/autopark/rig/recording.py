@@ -33,6 +33,16 @@ Cỡ và tốc độ (đo 24/09/2026 trên máy bàn i9-14900, bằng ảnh th�
 trên bàn nhìn thảm hoa văn — KHÔNG phải số đo một phiên ghi trên phần cứng): JPEG q95 640×480 150–174 KB/khung, mã hóa
 0,7 ms; 1280×720 430–524 KB, 2,3 ms; PNG 640×480 ≈ 700 KB, 7,7 ms. Bốn camera × ≈ 24 khung tốt/s × ≈ 160 KB ≈ 15 MB/s
 ≈ 0,9 GB/phút ở 480p — gấp mấy lần ước lượng "vài chục KB/khung" ban đầu; cảnh ít chi tiết thì nhỏ hơn.
+
+Thêm 02/10/2026 cho bản ghi cảm biến trong phiên đỗ (T3, `rig.session_recording`), không đổi gì của bench/rig_app:
+- `tables` (đường dẫn CSV tương đối → cột): bảng phụ mở cùng các CSV khác lúc `start()`, nhận dòng bằng `add_row` (không
+  chặn, như sự kiện), flush sau mỗi lô; `add_csv_file` ghi trọn một tệp CSV ở luồng ghi (ví dụ bản sao dấu đồng bộ lúc dừng).
+  meta.json có thêm `tables` (cột, số dòng), `files`, `warnings`.
+- Bộ ghi NGOÀI gắn vào một `Rig` (`Rig.attach_recorder`): Rig chỉ đưa khung camera vào, không bao giờ dừng hay chờ nó.
+- Vòng LiDAR có stamp sớm hơn vòng đã ghi trước nó bị BỎ và đếm (`lidar.out_of_order_dropped`, `warnings`) thay vì làm
+  hỏng cả bản ghi như trước (ScanRecorder từ chối stamp lùi): nguồn LiDAR của ngăn LiDAR có thể được nối lại giữa chừng.
+- `LidarTap(ignore=...)`: ngoại lệ thuộc các loại đó vẫn ném lại nhưng không ghi thành lỗi đọc LiDAR (hết bản ghi phát
+  lại không phải lỗi đọc).
 """
 from __future__ import annotations
 
@@ -45,13 +55,14 @@ import os
 from pathlib import Path
 import platform
 import threading
-from typing import Callable
+from typing import Callable, Iterable, Mapping, Sequence
 
 import cv2
 import numpy as np
 
 from autopark.domain.sensors import LidarScan, SourceStamp
 from autopark.lidar.recording import RECORDING_VERSION, ScanRecorder, git_commit
+from autopark.power_throttling import ecoqos_state
 from autopark.video.multicam import RIG_CLOCK, clock_info
 from autopark.video.sources import FrameReadError
 
@@ -75,6 +86,14 @@ RECORD_DROPPED = "record_dropped"
 
 def camera_dir(port: int) -> str:
     return f"cam_p{port}"
+
+
+def relative_file(relpath: str) -> str:
+    """Đường dẫn tệp phụ trong thư mục ghi (bảng `tables`, tệp `add_csv_file`): tương đối, không `..`, dạng a/b.csv."""
+    path = Path(str(relpath).replace("\\", "/"))
+    if path.is_absolute() or path.drive or not path.parts or ".." in path.parts:
+        raise ValueError(f"tệp phụ phải là đường dẫn tương đối trong thư mục ghi, không có '..' (nhận {relpath!r})")
+    return path.as_posix()
 
 
 def event_kind(message: str) -> str:
@@ -120,7 +139,9 @@ class RigRecorder:
 
     def __init__(self, folder, *, ports, lidar: bool = False, meta: dict | None = None, clock=RIG_CLOCK,
                  image_format: str = "jpg", jpeg_quality: int = DEFAULT_JPEG_QUALITY,
-                 max_pending_mb: float = DEFAULT_MAX_PENDING_MB, lidar_scans_per_part: int = LIDAR_SCANS_PER_PART):
+                 max_pending_mb: float = DEFAULT_MAX_PENDING_MB, lidar_scans_per_part: int = LIDAR_SCANS_PER_PART,
+                 tables: Mapping[str, Sequence[str]] | None = None):
+        """`tables`: bảng phụ (đường dẫn CSV tương đối → cột), nhận dòng bằng `add_row` (T3, 02/10/2026)."""
         if image_format not in IMAGE_FORMATS:
             raise ValueError(f"image_format phải là một trong {IMAGE_FORMATS}")
         if not 1 <= int(jpeg_quality) <= 100:
@@ -168,6 +189,14 @@ class RigRecorder:
         self._events_csv: dict[int, csv.writer] = {}
         self._lidar_csv = None
         self._lidar_part: ScanRecorder | None = None
+        # T3 (02/10/2026): bảng phụ, tệp CSV trọn vẹn, cảnh báo, vòng LiDAR lùi thời gian (bỏ và đếm)
+        self.tables = {relative_file(name): tuple(fields) for name, fields in (tables or {}).items()}
+        self.table_rows = {name: 0 for name in self.tables}
+        self._tables_csv: dict[str, csv.writer] = {}
+        self.files: list[str] = []
+        self.warnings: list[str] = []
+        self.lidar_out_of_order = 0
+        self._last_scan_t: float | None = None
 
     # ---- vòng đời ------------------------------------------------------------------------------------------------
     def start(self) -> "RigRecorder":
@@ -185,6 +214,9 @@ class RigRecorder:
             if self.lidar:
                 (self.folder / LIDAR_DIR).mkdir(exist_ok=True)
                 self._lidar_csv = self._open_csv(self.folder / LIDAR_DIR / EVENTS_CSV, LIDAR_EVENT_FIELDS)
+            for name, fields in self.tables.items():
+                (self.folder / name).parent.mkdir(parents=True, exist_ok=True)
+                self._tables_csv[name] = self._open_csv(self.folder / name, fields)
             self._flush()
         except BaseException:
             self._close_files()
@@ -274,7 +306,8 @@ class RigRecorder:
             self._cond.notify()
 
     def add_scan(self, scan: LidarScan, t_abs: float, t_first_abs: float | None, quality=None) -> None:
-        """Một vòng LiDAR; `t_abs`, `t_first_abs` trên đồng hồ bàn thử. Không bao giờ bị bỏ (nhỏ: ≈ 4,6 KB)."""
+        """Một vòng LiDAR; `t_abs`, `t_first_abs` trên đồng hồ bàn thử. Không bao giờ bị bỏ vì hàng đợi (nhỏ: ≈ 4,6 KB);
+        chỉ vòng có `t_abs` sớm hơn vòng đã ghi trước bị bỏ và đếm (`lidar_out_of_order`, T3 02/10/2026)."""
         if not self._accepting or not self.lidar:
             return
         with self._cond:
@@ -289,6 +322,31 @@ class RigRecorder:
             if self._accepting:
                 self.lidar_events += 1
                 self._items.append(("lidar_event", float(t), message))
+                self._cond.notify()
+
+    def add_row(self, table: str, row: Mapping[str, object]) -> None:
+        """Một dòng của bảng phụ `table` (khóa của `tables`; cột thiếu hay None ghi ô trống). Không chặn; không bao giờ bị
+        bỏ khi bộ ghi đang nhận (dòng nhỏ); bảng lạ hay bộ ghi chưa/không còn nhận thì bỏ qua; sau lỗi ghi thì không ghi
+        (như sự kiện camera). Số dòng đã ghi ở `table_rows`."""
+        if not self._accepting or table not in self.tables:
+            return
+        values = dict(row)
+        with self._cond:
+            if self._accepting:
+                self._items.append(("row", table, values))
+                self._cond.notify()
+
+    def add_csv_file(self, relpath: str, fields: Sequence[str], rows: Iterable[Mapping[str, object]]) -> None:
+        """Một tệp CSV trọn vẹn (`relpath` tương đối trong thư mục ghi), ghi ở luồng ghi SAU mọi mục đang chờ. Gọi khi bộ
+        ghi còn nhận, tức trước `stop()`; sau đó thì bỏ qua. Vẫn thử ghi cả khi đã có lỗi ghi (tệp riêng, như phần LiDAR
+        còn trong RAM); ghi được thì tên tệp vào `files`, không được thì vào `errors`."""
+        name = relative_file(relpath)
+        if not self._accepting:
+            return
+        item = ("csv_file", name, tuple(fields), [dict(r) for r in rows])
+        with self._cond:
+            if self._accepting:
+                self._items.append(item)
                 self._cond.notify()
 
     # ---- luồng ghi -----------------------------------------------------------------------------------------------
@@ -341,10 +399,21 @@ class RigRecorder:
             except Exception as exc:  # noqa: BLE001
                 self._fail("ghi vòng LiDAR", exc)
             return
+        if kind == "csv_file":                  # tệp riêng: thử cả sau lỗi ghi
+            try:
+                self._write_csv_file(*item[1:])
+            except Exception as exc:  # noqa: BLE001
+                self._fail(f"ghi {item[1]}", exc)
+            return
         if self.error is not None:
             return
         try:
-            if kind == "dropped":
+            if kind == "row":
+                _, table, values = item
+                self._tables_csv[table].writerow(["" if values.get(f) is None else values.get(f)
+                                                  for f in self.tables[table]])
+                self.table_rows[table] += 1
+            elif kind == "dropped":
                 _, port, seq, t, pending = item
                 self._events_csv[port].writerow([f"{t:.9f}", RECORD_DROPPED, seq - 1,
                                                  f"hàng đợi ghi đầy ({pending / 2**20:.0f} MB chưa ghi): bỏ khung seq {seq}"])
@@ -375,7 +444,30 @@ class RigRecorder:
     def _write_bytes(self, path: Path, data: bytes) -> None:
         path.write_bytes(data)
 
+    def _write_csv_file(self, name: str, fields: tuple, rows: list[dict]) -> None:
+        path = self.folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(fields)
+            for values in rows:
+                writer.writerow(["" if values.get(f) is None else values.get(f) for f in fields])
+        self.files.append(name)
+
+    def _warn(self, message: str) -> None:
+        if len(self.warnings) < 20:
+            self.warnings.append(message)
+
     def _write_scan(self, scan: LidarScan, t_abs: float, t_first_abs: float | None, quality) -> None:
+        if self._last_scan_t is not None and t_abs < self._last_scan_t:
+            # stamp lùi so với vòng đã ghi trước (ví dụ nguồn LiDAR được nối lại với đồng hồ khác): ScanRecorder và
+            # Recording từ chối stamp giảm, nên bỏ vòng này và đếm, thay vì làm hỏng cả bản ghi (T3, 02/10/2026)
+            self.lidar_out_of_order += 1
+            if self.lidar_out_of_order == 1:
+                self._warn(f"vòng LiDAR có stamp {t_abs:.6f} s sớm hơn vòng đã ghi trước ({self._last_scan_t:.6f} s): "
+                           "bỏ và đếm ở lidar.out_of_order_dropped")
+            return
+        self._last_scan_t = t_abs
         if self._lidar_part is None:
             k = len(self.lidar_parts)
             self._lidar_part = ScanRecorder(self.folder / LIDAR_DIR / f"part_{k:04d}", {
@@ -444,8 +536,8 @@ class RigRecorder:
                         "first_t_s": self.first_t[p], "last_t_s": self.last_t[p]} for p in self.ports}
         return {"format": FORMAT, "format_version": FORMAT_VERSION, "status": status,
                 "created_utc": self.created_utc, "created_local": self.created_local,
-                "host": platform.node(), "python": platform.python_version(), "opencv": cv2.__version__,
-                "git_commit": self.git_commit,
+                "host": platform.node(), "python": platform.python_version(), "ecoqos": ecoqos_state(),
+                "opencv": cv2.__version__, "git_commit": self.git_commit,
                 "clock": clock_info(), "t_start_s": self.t_start, "t_stop_s": self.t_stop,
                 "stamps": "đồng hồ bàn thử (perf_counter, giây). Camera: lúc read() trả khung (gồm giải mã), không phải lúc "
                           "phơi sáng. LiDAR: lúc byte cuối của vòng tới máy. created_utc ứng với t_start_s.",
@@ -456,8 +548,12 @@ class RigRecorder:
                 "per_port": per_port,
                 "lidar": None if not self.lidar else {"folder": LIDAR_DIR, "parts": list(self.lidar_parts),
                                                       "scans": self.lidar_scans, "events": self.lidar_events,
-                                                      "scans_per_part": self.lidar_scans_per_part},
+                                                      "scans_per_part": self.lidar_scans_per_part,
+                                                      "out_of_order_dropped": self.lidar_out_of_order},
                 "writer": {"max_pending_mb": self.max_pending_bytes / 2**20, "bytes_written": self.bytes_written},
+                "tables": {name: {"fields": list(fields), "rows": self.table_rows[name]}
+                           for name, fields in self.tables.items()},
+                "files": list(self.files), "warnings": list(self.warnings),
                 "error": self.error, "errors": list(self.errors), **self.final_meta}
 
     def status(self) -> dict:
@@ -478,7 +574,8 @@ class RigRecorder:
                 "lidar_scans": self.lidar_scans if self.lidar else None, "lidar_parts": len(self.lidar_parts),
                 "lidar_events": self.lidar_events if self.lidar else None,
                 "pending_frames": pending_frames, "pending_mb": round(pending_bytes / 2**20, 1),
-                "mb_written": round(mb, 2), "mb_per_s": round(mb / elapsed, 2) if elapsed else None}
+                "mb_written": round(mb, 2), "mb_per_s": round(mb / elapsed, 2) if elapsed else None,
+                "tables": dict(self.table_rows), "lidar_out_of_order": self.lidar_out_of_order if self.lidar else None}
 
 
 # ------------------------------------------------------------------------------------------------ lớp bọc nguồn
@@ -522,16 +619,20 @@ class CameraTap:
 
 class LidarTap:
     """Như `CameraTap` cho nguồn LiDAR của `LidarWorker`: ghi vòng quét với stamp trên đồng hồ bàn thử (stamp driver +
-    `t0`, cùng phép đổi mà `LidarWorker` dùng) và `last_revolution.t_first`, `last_quality` nếu nguồn có."""
+    `t0`, cùng phép đổi mà `LidarWorker` dùng) và `last_revolution.t_first`, `last_quality` nếu nguồn có.
 
-    def __init__(self, inner, sink: Callable[[], RigRecorder | None], clock=RIG_CLOCK):
-        self.inner, self.sink, self.clock = inner, sink, clock
+    `ignore` (T3, 02/10/2026): ngoại lệ thuộc các loại này vẫn ném lại nhưng KHÔNG ghi thành lỗi đọc LiDAR — ví dụ
+    `ScanStreamEnded` của phát lại `.npz` ở ngăn LiDAR (hết bản ghi không phải lỗi đọc)."""
+
+    def __init__(self, inner, sink: Callable[[], RigRecorder | None], clock=RIG_CLOCK,
+                 ignore: tuple[type[BaseException], ...] = ()):
+        self.inner, self.sink, self.clock, self.ignore = inner, sink, clock, tuple(ignore)
 
     def read(self):
         try:
             scan = self.inner.read()
         except Exception as exc:
-            rec = self.sink()
+            rec = None if isinstance(exc, self.ignore) else self.sink()
             if rec is not None:
                 rec.add_lidar_event(self.clock(), f"{type(exc).__name__}: {exc}")
             raise

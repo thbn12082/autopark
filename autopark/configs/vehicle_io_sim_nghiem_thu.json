@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "notes": "Bo mô phỏng đi cùng configs/vehicle_nghiem_thu.json (thêm 02/10/2026; người dùng giao quyết định 02/10/2026 ('làm hết'): cấu hình xe nghiệm thu riêng, N-V1 ĐỀ XUẤT – CHỜ CHỐT). Bản sao đúng của vehicle_io_sim.json (mọi số vẫn GIẢ ĐỊNH, CHƯA ĐO trên MN300 hay ESP32-S3) trừ vehicle_config và firmware.max_speed_mm_s = 100: bằng max_speed_mps 0,10 m/s của xe, nên lúc START ở VehicleIO giới hạn bo khớp cấu hình xe (không LIMITS_MISMATCH); mọi giới hạn firmware khác giữ nguyên (524 mrad, 1571 mrad/s, 300/600/600 mm/s²). Giao diện tự chọn tệp này khi xe đang dùng là vehicle_nghiem_thu.json (vehicle_io_sim*.json có vehicle_config trỏ đúng tệp xe). Xe mô phỏng bị kẹp ở max_speed_mps của cấu hình xe nên tốc độ đo không vượt 0,10 m/s: chạy MP với tệp này không kiểm được vọt lố của vòng tốc độ (GIAO_THUC_XE.md mục 10). Firmware C++ (QEMU, ESP32-S3) biên dịch cứng max_speed_mm_s = 300 nên với xe nghiệm thu START ở VehicleIO bị từ chối cho tới khi có bản firmware 100 mm/s.",
+  "vehicle_config": "vehicle_nghiem_thu.json",
+  "tick_ms": 10,
+  "seed": 0,
+  "link": {
+    "host_to_device_latency_ms": 4,
+    "device_to_host_latency_ms": 4,
+    "drop_probability": 0.0
+  },
+  "actuator": {
+    "latency_ms": 30,
+    "effort_deadzone_permille": 150,
+    "speed_at_full_effort_mps": 0.8,
+    "steer_offset_deg": 0.0,
+    "estop_cuts_power": true
+  },
+  "sensors": {
+    "speed_available": true,
+    "speed_latency_ms": 20,
+    "speed_noise_std_mps": 0.01,
+    "steer_available": true,
+    "steer_latency_ms": 10,
+    "steer_noise_std_deg": 0.3,
+    "imu_available": true,
+    "gyro_noise_std_deg_s": 0.6
+  },
+  "firmware": {
+    "boot_hold_ms": 1000,
+    "max_speed_mm_s": 100,
+    "max_steer_mrad": 524,
+    "max_steer_rate_mrad_s": 1571,
+    "max_accel_mm_s2": 300,
+    "max_decel_mm_s2": 600,
+    "stop_decel_mm_s2": 600,
+    "max_validity_ms": 300,
+    "link_timeout_ms": 500,
+    "default_telemetry_period_ms": 50,
+    "min_telemetry_period_ms": 20,
+    "max_telemetry_period_ms": 1000,
+    "max_tick_gap_ms": 100,
+    "direction_change_hold_ms": 300,
+    "standstill_mm_s": 10,
+    "ff_permille_per_mps": 2000,
+    "deadzone_comp_permille": 100,
+    "kp_permille_per_mps": 500,
+    "ki_permille_per_m": 4000,
+    "integ_limit_permille": 300,
+    "min_supply_mv": 0,
+    "require_speed_feedback": false,
+    "fw_major": 1,
+    "fw_minor": 0,
+    "tx_capacity": 512,
+    "max_effort_permille": 1000,
+    "stall_effort_permille": 200,
+    "stall_timeout_ms": 1000
+  }
+}

@@ -65,6 +65,7 @@ import cv2
 import numpy as np
 
 from autopark.domain.sensors import Costmap, SourceStamp
+from autopark.power_throttling import apply_ecoqos_policy, ecoqos_state
 from autopark.video.sources import bottom_repeat_share, torn_bands, truncated_rows
 
 from .calibration import CameraCalibration, Extrinsics, FisheyeIntrinsics, load_woodscape_calibration
@@ -1489,7 +1490,7 @@ def _cmd_bench(args) -> int:
         raise RuntimeError("kết quả khung sau khác khung đầu trên cùng đầu vào")
     fine = fine_grid(grid, args.supersample)
     report = {
-        "created_utc": utc_now(), "kind": "autopark_bev_bench_v0",
+        "created_utc": utc_now(), "kind": "autopark_bev_bench_v0", "ecoqos": ecoqos_state(),     # 02/10/2026
         "machine": {"platform": platform.platform(), "processor": platform.processor(), "cpu_count": os.cpu_count(),
                     "python": sys.version.split()[0], "numpy": np.__version__, "opencv": cv2.__version__},
         "input": {"kind": "rig tổng hợp (DEFAULT_SCENE), KHÔNG phải ảnh thật", "cameras": sorted(cameras),
@@ -1512,11 +1513,12 @@ def _cmd_bench(args) -> int:
     print(f"BEV bench (rig tổng hợp, {len(cameras)} camera 640×480, lưới {grid.shape[0]}×{grid.shape[1]} ô, "
           f"supersample {args.supersample}): lần đầu {first_ms:.1f} ms; {args.repeat} lần sau: tốt nhất "
           f"{min(warm):.1f} ms, trung vị {statistics.median(warm):.1f} ms, chậm nhất {max(warm):.1f} ms "
-          f"(chu kỳ khung 24 khung/s ≈ 41,7 ms)\n  -> {out / 'bench.json'}", flush=True)
+          f"(chu kỳ khung 24 khung/s ≈ 41,7 ms); EcoQoS {report['ecoqos']}\n  -> {out / 'bench.json'}", flush=True)
     return 0
 
 
 def main(argv=None) -> int:
+    apply_ecoqos_policy("perception.bev")              # trước mọi việc khác; `bench` so thời gian với nhịp khung
     parser = argparse.ArgumentParser(description="BEV chiếm chỗ từ AI của nhiều camera (docs/BEV.md)")
     sub = parser.add_subparsers(dest="command", required=True)
 

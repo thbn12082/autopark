@@ -117,6 +117,9 @@ class CameraAIDock(QDockWidget):
         self.stale = False
         self._warned_kinds: set[str] = set()      # loại "AI không dùng được" đã cảnh báo trong lần chạy này
         self._last_gate: str | None = None
+        # bản ghi cảm biến (T3, 02/10/2026): on_batch(result, upd, info) sau mọi quyết định an toàn của một lô đã xét
+        self.on_batch = None
+        self._on_batch_failed = False
 
         body = QWidget()
         layout = QVBoxLayout(body)
@@ -349,9 +352,11 @@ class CameraAIDock(QDockWidget):
         else:
             self.stop_ai()
 
-    def start_ai(self, make_segmenter=None) -> bool:
+    def start_ai(self, make_segmenter=None, *, replay_session=None) -> bool:
         """Dựng Rig từ các ô (bản ghi nếu có, không thì camera thật theo cổng) rồi bật. `make_segmenter`: None = bộ phân
-        đoạn thật (cần torch); test truyền bộ giả. Rig tổng hợp mà không có bản ghi → từ chối, KHÔNG mở camera nào."""
+        đoạn thật (cần torch); test truyền bộ giả. Rig tổng hợp mà không có bản ghi → từ chối, KHÔNG mở camera nào.
+        `replay_session` (T3b, `ui.lidar_app --session-replay`): phát lại từ ReplaySession đã mở, dùng CHUNG với ngăn
+        LiDAR — Rig bắt đầu đồng hồ phát lại khi AI nạp xong mô hình, ngăn LiDAR chờ cùng đồng hồ đó."""
         from autopark.rig.core import Rig, RigConfig
         from autopark.video.multicam import MultiCameraManager
 
@@ -363,6 +368,8 @@ class CameraAIDock(QDockWidget):
             self.say(f"Lỗi cổng: {exc}")
             self.lbl_source.setText(str(exc))
             return False
+        if replay_session is not None:
+            self.edit_replay.setText(str(replay_session.folder))
         replay_text = self.edit_replay.text().strip()
         if self.test_rig and not replay_text:
             message = ("Từ chối: rig TỔNG HỢP chỉ chạy với bản ghi phát lại, không bao giờ với camera thật "
@@ -387,7 +394,7 @@ class CameraAIDock(QDockWidget):
             if replay_text:
                 from autopark.rig.replay import ReplaySession
 
-                session = ReplaySession(Path(replay_text), ports=ports)
+                session = replay_session if replay_session is not None else ReplaySession(Path(replay_text), ports=ports)
                 mode = session.camera_mode()
                 width, height = int(mode.get("width") or 640), int(mode.get("height") or 480)
                 cams = MultiCameraManager(session.camera_specs(), width=width, height=height,
@@ -630,6 +637,7 @@ class CameraAIDock(QDockWidget):
         if self.session.state in EDITABLE_STATES:
             self.anchor = self.session.scenario.start      # camera trên bàn đứng ở chỗ xe ảo xuất phát
             self._warned_kinds.clear()                     # lần chạy sau cảnh báo lại từ đầu
+        injected_before = self.new_on_path
         try:
             self._ensure_mapper()
             result = self.rig.ai.result() if self.rig.ai is not None else None
@@ -673,11 +681,41 @@ class CameraAIDock(QDockWidget):
             elif upd.processed and self.chk_track.isChecked():
                 self._inject(now)
         self._show_status(now, upd)                        # sau khi đồng bộ/chèn: số hộp AI hiện là số mới
+        if upd.processed and self.on_batch is not None:
+            self._record_batch(result, upd, st, injected_before)
         if st in DRIVING_STATES or self.new_on_path or self.stale_stops or self.stale_warnings:
             self.lbl_track.setText(f"Vật mới từ AI trên đường: {self.new_on_path} · ngoài đường (bỏ qua): "
                                    f"{len(self.bridge.seen)} · dừng vì AI: {self.stale_stops} · "
                                    f"cảnh báo AI không dùng được: {self.stale_warnings}")
         self._refresh_buttons()
+
+    def _record_batch(self, result, upd, state, injected_before: int) -> None:
+        """Móc của bản ghi cảm biến (T3): gọi SAU mọi quyết định an toàn của lô; lỗi của nó ở lại trong ngăn (một dòng
+        nhật ký lần đầu), không bao giờ đổi việc chèn vật cản hay dừng xe."""
+        info = {"state": state.value, "ai_boxes": len(self.bridge.owned()) if self.bridge is not None else 0,
+                "injected": self.new_on_path - injected_before, "stale": self.stale}
+        try:
+            self.on_batch(result, upd, info)
+        except Exception as exc:  # noqa: BLE001
+            if not self._on_batch_failed:
+                self._on_batch_failed = True
+                self.say(f"Ghi lô AI vào bản ghi cảm biến lỗi ({type(exc).__name__}: {exc}): AI vẫn chạy")
+
+    def recording_info(self) -> dict:
+        """Cấu hình của ngăn cho bản ghi cảm biến (T3): nguồn, hiệu chuẩn, ngưỡng, cửa sổ lọc, cách đặt camera, chặn."""
+        rig = self.rig
+        mapper = self.mapper
+        return {"on": rig is not None, "source_kind": self.source_kind,
+                "ports": [] if rig is None else [int(s.port) for s in rig.cams.specs],
+                "synthetic": None if self.camera_rig is None else bool(self.camera_rig.synthetic),
+                "checkpoint": None if rig is None else rig.cfg.checkpoint,
+                "calibration_dir": self.edit_calib.text().strip(), "extrinsics": self.edit_extr.text().strip(),
+                "roi_dir": self.edit_roi.text().strip(), "threshold": round(self.spin_threshold.value(), 4),
+                "window": self.spin_window.value(), "min_hits": self.spin_min_hits.value(),
+                "mask_cm": self.spin_mask.value(), "pose": POSE_LABELS[self.combo_pose.currentIndex()],
+                "live_map": self.chk_live.isChecked(), "track": self.chk_track.isChecked(),
+                "required": self.chk_required.isChecked(), "replay": self.edit_replay.text().strip() or None,
+                "gate": None if mapper is None else list(mapper.static_reasons), "test_rig": self.test_rig}
 
     def shutdown(self) -> None:
         self.timer.stop()

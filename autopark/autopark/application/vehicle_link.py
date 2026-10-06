@@ -90,6 +90,53 @@ Thêm 02/10/2026 (T9, băng để phát lại log; chỉ kiểm với bo mô ph�
   `describe()`, `io_source_id`.
 - Chỉ ghi: không quyết định nào của lớp nối đổi, không gửi gì thêm tới bo. Tư thế đọc trong `_open_run` (kiểm START)
   không ghi, vì phát lại không chạy lại bước START.
+
+Thêm 02/10/2026 (bo ảo QEMU trong phiên đỗ; người dùng giao quyết định 02/10/2026; chỉ thử với bo ảo GIẢ trong test và
+một lần với QEMU thật, CHƯA THỬ với ESP32-S3):
+
+- `VehicleLink.qemu_board(mode, source)`: firmware THẬT trong QEMU qua `QemuPlantVehicleIO` (`transport/qemu_plant.py`).
+  Firmware chưa đọc cảm biến, nên tốc độ, góc lái và tư thế (`QemuPlantPose`) lấy từ XE MÔ PHỎNG phía laptop bám tham
+  chiếu firmware báo; luật START không nới. Mỗi START: lấy bo đang chạy từ `source` (chưa chạy → START_NO_QEMU_BOARD,
+  trước mọi I/O), đặt xe mô phỏng ở điểm xuất phát, mở socket (bước 0c của `_open_run`, chung với cổng COM), HELLO
+  (boot_id phải đúng bo ảo đã khởi động), kiểm START, ARM; hết lần chạy thì DISARM rồi đóng socket
+  (`_close_after_run`, chỉ bo ảo: QEMU chỉ phục vụ một client; cổng COM giữ mở giữa các lần chạy). Liên kết bo ảo
+  có `virtual_board` = True: không tính là phần cứng chấp hành.
+- Luật ghép: `QemuPlantPose` chỉ với chính `QemuPlantVehicleIO` của liên kết, và io bo ảo chỉ với `QemuPlantPose`
+  (không bao giờ với SimTruthPose, NoPoseSource hay tư thế LiDAR). Bằng chứng `qemu_firmware_simulated_vehicle` (mức MP);
+  link.json có thêm khóa "board" và "plant" (None với liên kết khác).
+
+Thêm 02/10/2026 (T2, nguồn tư thế LiDAR, `application/lidar_pose_source.py`; người dùng giao quyết định 02/10/2026,
+ngưỡng ĐỀ XUẤT – CHỜ CHỐT; chỉ kiểm với bo mô phỏng + LiDAR mô phỏng và cổng serial GIẢ, mọi đường với bo thật CHƯA
+THỬ):
+
+- `PoseSample` có thêm `status` ("OK" hoặc POSE_LOST / POSE_DISAGREE / POSE_UNCHECKED) và `reason`. Mẫu không OK không
+  bao giờ dùng cho điều khiển hay thế giới gương: `observe` dừng với mã = status (nguồn = source_id của mẫu), `estimate`
+  giữ tư thế trước. poses.csv nối thêm hai cột status, reason (băng cũ không có hai cột vẫn phát lại được).
+- `LinkParams.max_pose_age_s` (None = như max_state_age_s): tuổi tư thế tối đa riêng cho nguồn LiDAR (0,25 s, N-T2 phương
+  án "chỉ LiDAR 10 Hz"); telemetry vẫn theo max_state_age_s.
+- `_open_run`: bước 0a (nguồn không `available` → START_NO_POSE_SOURCE, như cũ); bước 0b: `start_gate` của nguồn — bo
+  THẬT (`hardware_actuators`) ở VEHICLE_IO với điều kiện tiên quyết chưa đạt → START_POSE_UNVERIFIED, KHÔNG I/O nào;
+  còn lại → dòng POSE_SOURCE_WARNING; bước 0c (mới): cổng serial chưa mở (`SerialVehicleIO.deferred`) thì `reopen()`;
+  lỗi → START_NO_LINK. Cổng giữ mở giữa các lần chạy, `close()` mới đóng. Điều kiện START của nguồn (`start_problems`)
+  vào START_CHECK.
+- Móc nguồn tư thế (`bind_clock`, `warm_up`, `run_started`, `run_ended`, `start_gate`, `start_problems`, `describe`,
+  `log_rows`, `write_truth_reference`) gọi qua getattr trên nguồn đã bóc lớp tiêm lỗi; lỗi của móc thành dòng
+  POSE_SOURCE_HOOK_FAILED, không bao giờ chặn bước dừng. `write_logs` ghi thêm localization.csv và (nguồn mô phỏng)
+  tu_the_that_mo_phong.csv + .json (tham chiếu MP).
+- `virtual_board=True`: bo ảo (QEMU) được gắn cờ, không tính là phần cứng chấp hành ở bước 0b. Bo không gắn cờ coi là
+  bo thật.
+
+Sửa sau review 02/10/2026 (chỉ kiểm với bo mô phỏng + LiDAR mô phỏng, bo ảo GIẢ và cổng serial GIẢ; bo thật CHƯA THỬ):
+
+- Dự đoán tư thế (`LinkParams.predict_pose`, bật bởi `LinkParams.for_lidar` cho mọi liên kết với nguồn LiDAR của giao
+  diện): tư thế của mẫu OK được dời từ dấu thời gian của mẫu tới io.now() bằng tốc độ, góc lái ĐO (mô hình xe đạp động
+  học) trước khi vào bộ bám (`observe`) và thế giới gương (`estimate`); poses.csv ghi thêm các cột pred_*. Kiểm tuổi tư
+  thế (STALE_POSE, kiểm START) vẫn trên tuổi THÔ. Lý do: ở MP, mẫu LiDAR cũ 0,04–0,13 s làm xe lệch tư thế thật quá khe
+  hở của đường (DO-4a va chạm khi mọi vòng định vị đều OK). Mặc định tắt: SimTruthPose, bo ảo QEMU và băng cũ như trước.
+- Bước 0a nói đúng trạng thái cổng (chưa mở / liên kết đang giữ mở từ bước 0c của lần START trước), như bước 0b.
+- `release_port()`: đóng cổng serial liên kết giữ giữa các lần chạy; "Kiểm kết nối bo" gọi trước khi mở cùng cổng.
+- io bo ảo truyền thẳng (`QemuPlantVehicleIO`, ví dụ với lớp bọc tiêm lỗi) cũng là liên kết bo ảo (`is_qemu`): đóng
+  socket sau lần chạy, `virtual_board`, bằng chứng `qemu_firmware_simulated_vehicle`, khóa board/plant.
 """
 from __future__ import annotations
 
@@ -102,14 +149,18 @@ from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Protocol
+from typing import Callable, Protocol
 
 from autopark.control.tracker import TrackerOutput
 from autopark.domain.sensors import SafetyEvent, SourceStamp
 from autopark.domain.types import Pose, Scenario, VehicleConfig, VehicleState, clamp, wrap_angle
 from autopark.geometry.footprint import check_motion, check_pose
+from autopark.power_throttling import ecoqos_state
+from autopark.simulation.vehicle import integrate_bicycle
 from autopark.simulation.world import SimWorld, StepResult
 from autopark.transport.protocol import Fault, ResetReason, Result, State, TelemetryFlag
+from autopark.transport.qemu_plant import (QEMU_EVIDENCE, QEMU_KIND, PlantConfig, QemuBoardHandle,
+                                           QemuPlantVehicleIO)
 from autopark.transport.vehicle_io import (HelloInfo, LimitsCheck, SerialVehicleIO, SimIOConfig, SimVehicleIO,
                                            VehicleIO, VehicleIOError, VehicleTelemetry)
 
@@ -132,12 +183,18 @@ class VehicleLinkError(RuntimeError):
     """Không bắt đầu được lần chạy qua VehicleIO (trạng thái thật không đạt điều kiện START)."""
 
 
+POSE_OK = "OK"
+
+
 @dataclass(frozen=True)
 class PoseSample:
     pose: Pose
     t: float              # đồng hồ của VehicleIO (io.now())
     source_id: str
     simulated: bool       # True: tư thế lấy từ mô phỏng, không phải từ cảm biến/định vị
+    # T2 (02/10/2026): "OK" hoặc mã dừng của nguồn (POSE_LOST, POSE_DISAGREE, POSE_UNCHECKED) kèm lý do tiếng Việt.
+    status: str = POSE_OK
+    reason: str = ""
 
 
 class PoseSource(Protocol):
@@ -237,6 +294,73 @@ class SimHumanDriver:
         self.steer = clamp(steer, -cfg.max_steer, cfg.max_steer)
 
 
+# ---------------------------------------------------------------------- bo ảo QEMU (thêm 02/10/2026)
+QEMU_OVERRUN_HINT = (" (bo ảo QEMU: máy bận làm QEMU trễ nhịp > 100 ms; giảm tải máy, bấm 'Xóa lỗi bo (CLEAR_FAULT)' "
+                     "rồi thử lại)")
+
+
+class QemuPlantPose:
+    """MÔ PHỎNG: tư thế của xe mô phỏng phía laptop trong `QemuPlantVehicleIO` (bo ảo QEMU, thêm 02/10/2026).
+
+    Mẫu mang t của khung telemetry cuối (xe mô phỏng chỉ tiến khi có khung, không ngoại suy), nên tuổi tư thế bằng tuổi
+    telemetry. Như `SimTruthPose`: định vị lý tưởng, KHÔNG nói gì về định vị thật; chỉ ghép với chính io đó (luật ghép
+    trong `VehicleLink.__init__`). Đây là nguồn "trạng thái đo" của bo ảo: io cho tốc độ, góc lái; nguồn này cho tư thế."""
+
+    source_id = "qemu_plant_pose"
+    simulated = True
+
+    def __init__(self, io: QemuPlantVehicleIO):
+        self.io = io
+
+    def latest(self) -> PoseSample | None:
+        sample = self.io.plant_sample()
+        if sample is None:
+            return None
+        pose, t = sample
+        return PoseSample(pose, t, self.source_id, True)
+
+
+class PlantHumanDriver:
+    """MÔ PHỎNG người lái ở chế độ quan sát qua bo ảo QEMU (thêm 02/10/2026): cùng giao diện với `SimHumanDriver`
+    (`speed`, `steer`, `set()`), lái xe mô phỏng phía laptop của `QemuPlantVehicleIO` thay cho tham chiếu firmware.
+    Firmware giữ DISARMED và không nhận COMMAND nào."""
+
+    def __init__(self, io: QemuPlantVehicleIO, cfg: VehicleConfig):
+        self.io = io
+        self.cfg = cfg
+        self.speed = 0.0
+        self.steer = 0.0
+        io.set_human_targets(0.0, 0.0)
+
+    def set(self, speed: float, steer: float) -> None:
+        if not all(math.isfinite(v) for v in (speed, steer)):
+            raise ValueError("Lệnh người lái phải hữu hạn")
+        self.speed = clamp(speed, -self.cfg.max_speed, self.cfg.max_speed)
+        self.steer = clamp(steer, -self.cfg.max_steer, self.cfg.max_steer)
+        self.io.set_human_targets(self.speed, self.steer)
+
+
+class QemuBoardSource(Protocol):
+    """Nơi liên kết bo ảo lấy bo đang chạy lúc START và lúc "Xóa lỗi bo": `ui/qemu_runner.QemuBoardRunner`, bo giả."""
+
+    def current_board(self) -> tuple[QemuBoardHandle | None, str]:
+        """(bo đang chạy, "") hoặc (None, lý do bằng tiếng Việt)."""
+
+
+@dataclass(frozen=True)
+class QemuLinkSpec:
+    """Liên kết bo ảo QEMU: nguồn bo và tham số xe mô phỏng phía laptop (configs/bo_ao_qemu.json)."""
+
+    source: QemuBoardSource
+    plant: PlantConfig
+
+
+def _perf_clock() -> Callable[[], float]:
+    """perf_counter() − t0 (như đồng hồ mặc định của `SerialVehicleIO`)."""
+    t0 = time.perf_counter()
+    return lambda: time.perf_counter() - t0
+
+
 @dataclass(frozen=True)
 class LinkParams:
     """Ngưỡng của lớp nối. Đều là giá trị khởi đầu để thử phần mềm, CHƯA CHỐT theo xe thật."""
@@ -253,6 +377,15 @@ class LinkParams:
     ready_timeout_s: float = 3.0
     fresh_timeout_s: float = 1.0
     disarm_timeout_s: float = 0.2
+    # T2 (02/10/2026): tuổi tư thế tối đa riêng cho nguồn tư thế; None = max_state_age_s. Nguồn LiDAR dùng 0,25 s (N-T2
+    # phương án "chỉ LiDAR 10 Hz", ĐỀ XUẤT; người dùng giao quyết định 02/10/2026). Telemetry vẫn theo max_state_age_s.
+    max_pose_age_s: float | None = None
+    # Sửa sau review 02/10/2026 (T2): dời tư thế của mẫu OK từ dấu thời gian của mẫu tới io.now() bằng tốc độ và góc lái
+    # ĐO (mô hình xe đạp động học) trước khi giao cho bộ bám và thế giới gương (`VehicleLink._predicted_pose`). Mặc định
+    # tắt: bo mô phỏng với SimTruthPose (tuổi 0), bo ảo QEMU (tư thế xe mô phỏng mang t của khung telemetry cuối) và
+    # băng phát lại ghi trước khi có khóa này chạy như trước. Liên kết với nguồn LiDAR bật (`for_lidar`). Kiểm tuổi tư
+    # thế vẫn trên tuổi THÔ của mẫu.
+    predict_pose: bool = False
 
     def __post_init__(self):
         for name in ("max_state_age_s", "standstill_mps", "start_position_tolerance_m", "start_yaw_tolerance_rad",
@@ -263,6 +396,22 @@ class LinkParams:
                 raise ValueError(f"{name} phải hữu hạn và > 0")
         if not isinstance(self.start_samples, int) or isinstance(self.start_samples, bool) or self.start_samples < 1:
             raise ValueError("start_samples phải là số nguyên >= 1")
+        if self.max_pose_age_s is not None and (not math.isfinite(self.max_pose_age_s) or self.max_pose_age_s <= 0):
+            raise ValueError("max_pose_age_s phải hữu hạn và > 0 (hoặc None)")
+        if not isinstance(self.predict_pose, bool):
+            raise ValueError("predict_pose phải là True hoặc False")
+
+    @property
+    def pose_age_limit_s(self) -> float:
+        """Tuổi tư thế tối đa: `max_pose_age_s`, không đặt thì `max_state_age_s`."""
+        return self.max_state_age_s if self.max_pose_age_s is None else self.max_pose_age_s
+
+    @classmethod
+    def for_lidar(cls, max_pose_age_s: float, **kwargs) -> "LinkParams":
+        """Ngưỡng của liên kết với nguồn tư thế LiDAR (T2): tuổi tư thế tối đa riêng (`max_pose_age_s`, N-T2 phương án
+        "chỉ LiDAR 10 Hz", ĐỀ XUẤT) và dự đoán tư thế tới io.now() (`predict_pose`, sửa sau review 02/10/2026). Giao
+        diện dựng liên kết "LiDAR mô phỏng" và "LiDAR thật" bằng hàm này."""
+        return cls(max_pose_age_s=max_pose_age_s, predict_pose=True, **kwargs)
 
 
 COMMAND_FIELDS = ["t_session", "t_io", "mode", "kind", "sent", "seq", "target_speed_mps", "target_steer_rad",
@@ -285,8 +434,18 @@ SESSION_STOP = "session_stop"
 # trong lần chạy (use = "estimate" hoặc "observe"); t_io = io.now() đọc liền SAU mẫu; available = 0 khi nguồn không có
 # mẫu (các cột của mẫu để trống). clock.csv: một dòng mỗi lần đọc io trong lần chạy (kind = "refresh" hoặc "pump");
 # t_io = io.now() sau lần đọc.
+# status, reason (nối cuối 02/10/2026, T2): trạng thái của mẫu (OK hoặc mã dừng của nguồn tư thế LiDAR) và lý do.
+# pred_* (nối cuối sau review 02/10/2026, T2): dự đoán tư thế tới io.now() (`LinkParams.predict_pose`): khoảng đã dời
+# (= tuổi THÔ của mẫu, s), tốc độ và góc lái ĐO đã dùng, tư thế giao cho bộ bám (use = observe) hay thế giới gương
+# (use = estimate). Trống khi không dời. x, y, yaw_rad vẫn là mẫu THÔ của nguồn: phát lại log đọc mẫu thô rồi dự đoán
+# lại bằng cùng mã, nên phát lại không so các cột pred_*.
 POSE_FIELDS = ["n", "use", "t_session", "t_io", "available", "sample_t_io", "x", "y", "yaw_rad", "source_id",
-               "simulated"]
+               "simulated", "status", "reason", "pred_dt_s", "pred_speed_mps", "pred_steer_rad", "pred_x", "pred_y",
+               "pred_yaw_rad"]
+_PRED_BLANK = {name: "" for name in POSE_FIELDS if name.startswith("pred_")}
+# Tệp ghi thêm của nguồn tư thế LiDAR (T2): định vị từng vòng, và tham chiếu MP của nguồn mô phỏng.
+LOCALIZATION_FILE = "localization.csv"
+SIM_TRUTH_FILE = "tu_the_that_mo_phong.csv"
 CLOCK_FIELDS = ["call", "kind", "t_session", "t_io"]
 # Định dạng log của `write_logs` (khóa log_format của link.json). 2 = có băng phát lại (T9); log trước đó không có khóa.
 LOG_FORMAT = 2
@@ -309,6 +468,36 @@ _VEHICLE_IO_STOP_CODES = {"COMMAND_REJECTED", "VEHICLE_STOPPED"}
 
 def _blank(value):
     return "" if value is None else value
+
+
+def _close_io(io) -> None:
+    """Đóng io (socket của bo ảo QEMU); lỗi khi đóng thì bỏ đối tượng cổng, lần sau mở lại từ đầu."""
+    if io is None:
+        return
+    try:
+        io.close()
+    except OSError:
+        if isinstance(io, SerialVehicleIO):
+            io.transport = None
+            io.connected = False
+
+
+def _port_closed(io) -> bool:
+    return isinstance(io, SerialVehicleIO) and io.transport is None
+
+
+def _port_open(io) -> bool:
+    return isinstance(io, SerialVehicleIO) and io.transport is not None
+
+
+def _port_state_text(io) -> str:
+    """Câu về cổng trong lời từ chối START trước mọi I/O của lần này (bước 0a, 0b), theo trạng thái THẬT của cổng: chưa
+    mở; đang mở (bước 0c của một lần START trước đã mở, liên kết giữ cổng giữa các lần chạy); không phải cổng serial."""
+    if _port_closed(io):
+        return "Cổng chưa được mở, không gửi gì tới bo"
+    if _port_open(io):
+        return "Cổng đang mở (liên kết giữ cổng giữa các lần chạy), lần này không gửi gì tới bo"
+    return "Không gửi gì tới bo"
 
 
 def _event_row(t_io: float | None, t_session: float | None, source: str, code: str, action: str, handling: str,
@@ -361,14 +550,16 @@ class VehicleLink:
     Dùng `VehicleLink.simulated(mode)` cho chuỗi mô phỏng của giao diện: mỗi lần START tạo một `SimVehicleIO` mới
     đặt tại điểm xuất phát (mô phỏng người đặt xe vào vị trí), nguồn tư thế là `SimTruthPose`, và ở chế độ quan
     sát có `SimHumanDriver`. Truyền `io` + `pose_source` để dùng một VehicleIO có sẵn (test, hoặc bo thật khi đã có
-    nguồn định vị)."""
+    nguồn định vị). `VehicleLink.qemu_board(mode, source)` (02/10/2026): bo ảo QEMU với xe mô phỏng phía laptop."""
 
     def __init__(self, mode: DriveMode | str, io: VehicleIO | None = None, *, pose_source: PoseSource | None = None,
-                 params: LinkParams | None = None, sim_config: SimIOConfig | None = None, _simulated: bool = False):
+                 params: LinkParams | None = None, sim_config: SimIOConfig | None = None, _simulated: bool = False,
+                 _qemu: QemuLinkSpec | None = None, clock: Callable[[], float] | None = None,
+                 pose_factory=None, virtual_board: bool = False):
         mode = DriveMode(mode)
         if mode == DriveMode.SIM:
             raise ValueError("Chế độ SIM không đi qua VehicleLink (Session.set_vehicle_link(None))")
-        if not _simulated and (io is None or pose_source is None):
+        if not _simulated and _qemu is None and (io is None or pose_source is None):
             raise ValueError("Cần VehicleIO và nguồn tư thế (hoặc dùng VehicleLink.simulated)")
         # Lớp bọc tiêm lỗi (`fault_inner`, safety/fault_injection.py, 02/10/2026) không được che luật SimTruthPose.
         base = unwrap_pose_source(pose_source)
@@ -378,13 +569,33 @@ class VehicleLink:
             # không phải tư thế của xe mà io điều khiển.
             raise ValueError("SimTruthPose chỉ dùng với chính SimVehicleIO của liên kết (bo mô phỏng); không ghép với "
                              "bo thật hay bo mô phỏng khác")
+        # Bo ảo QEMU (02/10/2026): tư thế của xe mô phỏng phía laptop chỉ đi với chính io đó, và io đó chỉ đi với nó.
+        if isinstance(base, QemuPlantPose) and (base.io is not io or not isinstance(io, QemuPlantVehicleIO)):
+            raise ValueError("QemuPlantPose chỉ dùng với chính QemuPlantVehicleIO của liên kết (bo ảo QEMU)")
+        if isinstance(io, QemuPlantVehicleIO) and not isinstance(base, QemuPlantPose):
+            raise ValueError("Bo ảo QEMU chỉ đi với tư thế của chính xe mô phỏng phía laptop (QemuPlantPose)")
         self.mode = mode
         self.io = io
         self.pose_source = pose_source
         self.params = params or LinkParams()
         self.sim_config = sim_config
         self._simulated = _simulated
-        self.human: SimHumanDriver | None = None
+        # Bo ảo QEMU (02/10/2026): nguồn bo + xe mô phỏng; một đồng hồ cho mọi io của liên kết (t_io so được giữa các lần
+        # chạy và với board_actions.csv). Socket mở ở bước 0c của `_open_run` như cổng COM; chỉ bo ảo đóng nó sau mỗi lần
+        # chạy (QEMU chỉ phục vụ một client), cổng COM giữ mở giữa các lần chạy (T2).
+        self._qemu = _qemu
+        self._clock = clock or _perf_clock()
+        # Sửa sau review 02/10/2026: io bo ảo truyền thẳng (`QemuPlantVehicleIO`, ví dụ với lớp bọc tiêm lỗi quanh
+        # `QemuPlantPose`, luật ghép ở trên cho phép) cũng là liên kết bo ảo: đóng socket sau lần chạy, không phải phần
+        # cứng chấp hành, bằng chứng và khóa board/plant của bo ảo (`is_qemu`). Trước đó chỉ `qemu_board()` có các nhãn
+        # này.
+        qemu_io = isinstance(io, QemuPlantVehicleIO)
+        self._close_after_run = _qemu is not None or qemu_io
+        # T2: nhà máy nguồn tư thế cho liên kết mô phỏng (gọi mỗi lần START với bo mô phỏng mới); None = SimTruthPose
+        self.pose_factory = pose_factory
+        # bo ảo (QEMU, hay bo khác đã gắn cờ): không phải phần cứng chấp hành (T2, bước 0b)
+        self.virtual_board = bool(virtual_board) or _qemu is not None or qemu_io
+        self.human: SimHumanDriver | PlantHumanDriver | None = None
         self._closed = False
         self.command_rows: list[dict] = []
         self.telemetry_rows: list[dict] = []
@@ -406,20 +617,33 @@ class VehicleLink:
         self.suggestion: TrackerOutput | None = None
         self.limits_check: LimitsCheck | None = None    # lần so giới hạn gần nhất lúc START (kể cả lần bị từ chối)
         self._reset_run_state()
+        if self.io is not None:
+            self._pose_hook("bind_clock", self.io.now)
 
     @classmethod
     def simulated(cls, mode: DriveMode | str, sim_config: SimIOConfig | None = None, *,
-                  params: LinkParams | None = None) -> "VehicleLink":
-        return cls(mode, params=params, sim_config=sim_config or SimIOConfig(), _simulated=True)
+                  params: LinkParams | None = None, pose_factory=None, virtual_board: bool = False) -> "VehicleLink":
+        return cls(mode, params=params, sim_config=sim_config or SimIOConfig(), _simulated=True,
+                   pose_factory=pose_factory, virtual_board=virtual_board)
 
     @classmethod
     def serial_port(cls, mode: DriveMode | str, port: str, *, pose_source: PoseSource | None = None,
-                    params: LinkParams | None = None, **io_kwargs) -> "VehicleLink":
+                    params: LinkParams | None = None, pose_factory=None, virtual_board: bool = False,
+                    **io_kwargs) -> "VehicleLink":
         """Liên kết tới bo THẬT qua cổng `port` (thêm 24/09/2026). Cổng KHÔNG được mở ở đây
         (`SerialVehicleIO.deferred`). Không truyền nguồn tư thế thì dùng `NoPoseSource`, và START luôn bị từ chối
-        trước khi mở cổng."""
+        trước khi mở cổng. Có nguồn tư thế (T2): cổng mở ở START (bước 0c của `_open_run`), sau các bước kiểm nguồn."""
         io = SerialVehicleIO.deferred(port, **io_kwargs)
-        return cls(mode, io, pose_source=pose_source if pose_source is not None else NoPoseSource(), params=params)
+        return cls(mode, io, pose_source=pose_source if pose_source is not None else NoPoseSource(), params=params,
+                   pose_factory=pose_factory, virtual_board=virtual_board)
+
+    @classmethod
+    def qemu_board(cls, mode: DriveMode | str, source: QemuBoardSource, *, plant_config: PlantConfig | None = None,
+                   params: LinkParams | None = None, clock: Callable[[], float] | None = None) -> "VehicleLink":
+        """Liên kết tới bo ảo QEMU (firmware THẬT trong giả lập) với xe mô phỏng phía laptop (thêm 02/10/2026). Chưa mở
+        gì ở đây; mỗi START lấy bo đang chạy từ `source`, io và `QemuPlantPose` dựng lúc đó. `clock`: đồng hồ io của liên
+        kết (mặc định perf_counter() − t0; bo giả trong test có đồng hồ riêng)."""
+        return cls(mode, params=params, _qemu=QemuLinkSpec(source, plant_config or PlantConfig()), clock=clock)
 
     def _reset_run_state(self) -> None:
         self._io_t0 = 0.0
@@ -432,6 +656,7 @@ class VehicleLink:
         self._running = False
         self._call = 0                    # số của lần đọc io kế tiếp trong lần chạy (cột call, clock.csv; T9)
         self._last_t = 0.0                # t của lần pump gần nhất = world.time lúc đầu bước (dòng refresh ghi t này)
+        self._wheelbase: float | None = None   # chiều dài cơ sở của xe lần chạy (dự đoán tư thế); None: chưa mở
 
     # ------------------------------------------------------------------ thuộc tính
     @property
@@ -446,34 +671,113 @@ class VehicleLink:
         return not isinstance(self.io, SimVehicleIO)
 
     @property
+    def is_qemu(self) -> bool:
+        """Liên kết tới bo ảo QEMU: `qemu_board` (02/10/2026), hoặc io bo ảo (`QemuPlantVehicleIO`) truyền thẳng (sửa
+        sau review 02/10/2026)."""
+        return self._qemu is not None or isinstance(self.io, QemuPlantVehicleIO)
+
+    @property
     def pose_simulated(self) -> bool:
-        return self._simulated or bool(self.pose_source is not None and self.pose_source.simulated)
+        return (self._simulated or self.is_qemu
+                or bool(self.pose_source is not None and self.pose_source.simulated))
+
+    @property
+    def hardware_actuators(self) -> bool:
+        """True khi lệnh của liên kết tới phần cứng chấp hành thật: không phải bo mô phỏng, không phải bo ảo đã gắn cờ
+        `virtual_board`. Bo không gắn cờ coi là bo thật (T2)."""
+        return not (self._simulated or isinstance(self.io, SimVehicleIO) or self.virtual_board)
+
+    # ------------------------------------------------------------------ móc của nguồn tư thế (T2)
+    def _pose_base(self):
+        try:
+            return unwrap_pose_source(self.pose_source)
+        except ValueError:
+            return self.pose_source
+
+    def _pose_attr(self, name: str):
+        """Móc `name` của nguồn tư thế đã bóc lớp tiêm lỗi, chỉ khi nó có THẬT (qua `inspect.getattr_static`, như
+        `unwrap_pose_source`: proxy có `__getattr__` không bị hỏi); None khi không có."""
+        base = self._pose_base()
+        if base is None or inspect.getattr_static(base, name, None) is None:
+            return None
+        return getattr(base, name, None)
+
+    def _pose_hook(self, name: str, *args, **kwargs):
+        """Gọi móc `name` của nguồn tư thế (đã bóc lớp tiêm lỗi) nếu có. Lỗi KHÔNG BAO GIỜ thoát ra (có thể đang ở bước
+        dừng): thành một dòng POSE_SOURCE_HOOK_FAILED; trả None."""
+        hook = self._pose_attr(name)
+        if hook is None:
+            return None
+        try:
+            return hook(*args, **kwargs)
+        except Exception as exc:  # noqa: BLE001 - móc của nguồn không được chặn bước dừng
+            try:
+                t_io = self.io.now() if self.io is not None else None
+            except Exception:  # noqa: BLE001
+                t_io = None
+            self._log_event(t_io, None, "vehicle_link", "POSE_SOURCE_HOOK_FAILED", "LOG", "log",
+                            f"{name}() của nguồn tư thế lỗi: {exc!r}")
+            return None
 
     def describe(self) -> dict:
         source = self.pose_source
+        qemu = self.is_qemu
+        factory = self.pose_factory
+        info = self._pose_hook("describe") if source is not None else None
         return {
             "mode": self.mode.value,
-            "io": type(self.io).__name__ if self.io is not None else ("SimVehicleIO" if self._simulated else None),
+            "io": type(self.io).__name__ if self.io is not None else ("SimVehicleIO" if self._simulated else
+                                                                   "QemuPlantVehicleIO" if qemu else None),
             # T9: nguồn đóng dấu khung telemetry; phát lại log dựng lại khung và nguồn trạng thái với đúng tên này
             "io_source_id": getattr(self.io, "source_id", None),
+            # Đồng hồ io mô phỏng hay không (score_run, khóa "clock" của link.json): bo ảo QEMU chạy theo perf_counter.
             "io_simulated": self._simulated or isinstance(self.io, SimVehicleIO),
             "pose_source": source.source_id if source is not None else (
-                SimTruthPose.source_id if self._simulated else None),
+                getattr(factory, "source_id", None) if factory is not None else
+                SimTruthPose.source_id if self._simulated else QemuPlantPose.source_id if qemu else None),
             "pose_simulated": self.pose_simulated,
             "port": getattr(self.io, "port", None),
             "params": asdict(self.params),
             "sim_config": self.sim_config.to_dict() if self.sim_config is not None else None,
             "limits_check": self.limits_check.to_dict() if self.limits_check is not None else None,
             "evidence": ("simulation_only" if (self._simulated or isinstance(self.io, SimVehicleIO))
-                         else "hardware_untested"),
+                         else QEMU_EVIDENCE if qemu else "hardware_untested"),
+            # Bo ảo QEMU (02/10/2026): hai khóa luôn có (None với liên kết khác) để ReplayVehicleLink chép lại.
+            "board": self._board_info(),
+            "plant": self._plant_info(),
+            "pose_source_info": info if isinstance(info, dict) else None,      # T2: bản đồ, cấu hình, ngưỡng
+            "virtual_board": self.virtual_board,
         }
+
+    def _board_info(self) -> dict | None:
+        """Khóa "board": bo ảo của io hiện tại ({"kind": "qemu", ...`describe()` của bo}, cả khi io bo ảo được truyền
+        thẳng); {"kind": "qemu"} trước lần chạy đầu của `qemu_board()`; None với liên kết không phải bo ảo."""
+        io = self.io
+        if isinstance(io, QemuPlantVehicleIO):
+            return {"kind": "qemu", **io.board.describe()}
+        return {"kind": "qemu"} if self._qemu is not None else None
+
+    def _plant_info(self) -> dict | None:
+        """Khóa "plant": tham số xe mô phỏng phía laptop của liên kết bo ảo (của `qemu_board()`, hay của io bo ảo truyền
+        thẳng); None với liên kết khác."""
+        if self._qemu is not None:
+            return self._qemu.plant.to_dict()
+        io = self.io
+        return io.plant_config.to_dict() if isinstance(io, QemuPlantVehicleIO) else None
+
+    def _now_or_none(self) -> float | None:
+        """io.now(); chưa có io thì đồng hồ của liên kết bo ảo, còn lại None (dòng log không có t_io)."""
+        if self.io is not None:
+            return self.io.now()
+        return self._clock() if self._qemu is not None else None
 
     # ------------------------------------------------------------------ bắt đầu lần chạy
     def _t_session(self, t_io: float) -> float:
         return t_io - self._io_t0
 
-    def _link_event(self, t: float, code: str, message: str, action: str = "STOP") -> SafetyEvent:
-        return SafetyEvent(SourceStamp("vehicle_link", max(0.0, t)), code, message, action)
+    def _link_event(self, t: float, code: str, message: str, action: str = "STOP",
+                    source: str = "vehicle_link") -> SafetyEvent:
+        return SafetyEvent(SourceStamp(source, max(0.0, t)), code, message, action)
 
     def _log_event(self, t_io: float | None, t_session: float | None, source: str, code: str, action: str,
                    handling: str, message: str, *, call: int | None = None) -> None:
@@ -535,6 +839,8 @@ class VehicleLink:
         if tel.state == State.FAULT or tel.fault != Fault.NONE:
             problems.append(f"Bo đang FAULT ({tel.fault.name}): xử lý nguyên nhân (nhả nút dừng khẩn…) rồi bấm "
                             f"'Xóa lỗi bo (CLEAR_FAULT)' ở thẻ Bo điều khiển")
+            if self.is_qemu and tel.fault == Fault.LOOP_OVERRUN:
+                problems[-1] += QEMU_OVERRUN_HINT
         if tel.estop_input:
             problems.append("Nút dừng khẩn đang nhấn")
         if tel.state == State.BOOT:
@@ -552,6 +858,12 @@ class VehicleLink:
                                 f"tham chiếu của bo {tel.speed_ref_mps:+.3f} m/s): chỉ bắt đầu khi xe đứng yên")
         sample = self.pose_source.latest()
         summary = f"bo {tel.state.name}, tốc độ đo trung bình {mean_speed:+.3f} m/s"
+        source_check = self._pose_hook("start_problems")      # T2: định vị LiDAR đã bắt, đủ nhịp, đủ nhanh
+        if source_check is not None:
+            source_problems, source_warnings = source_check
+            problems += [f"nguồn tư thế: {text}" for text in source_problems]
+            if source_warnings:
+                summary += ", cảnh báo nguồn tư thế: " + "; ".join(source_warnings)
         if self._pose_fresh(sample):
             start = scenario.start
             dist = sample.pose.distance_to(start)
@@ -563,11 +875,14 @@ class VehicleLink:
         return problems, summary
 
     def _pose_fresh(self, sample: PoseSample | None) -> bool:
-        return sample is not None and 0 <= self.io.now() - sample.t <= self.params.max_state_age_s
+        return (sample is not None and sample.status == POSE_OK
+                and 0 <= self.io.now() - sample.t <= self.params.pose_age_limit_s)
 
     def _pose_problems(self, sample: PoseSample | None, scenario: Scenario, cfg: VehicleConfig) -> list[str]:
         """Kiểm tư thế lúc START (dùng cả trước ARM và sau ARM/DISARM): mới, gần điểm xuất phát, không chạm vật cản."""
         p = self.params
+        if sample is not None and sample.status != POSE_OK:
+            return [f"Định vị LiDAR báo {sample.status}: {sample.reason}"]
         if not self._pose_fresh(sample):
             return ["Chưa có tư thế mới từ nguồn định vị"]
         out = []
@@ -590,9 +905,7 @@ class VehicleLink:
         nên dùng được cả khi liên kết mô phỏng chưa START lần nào (`io` None); log và kết quả lần chạy trước giữ nguyên.
         Dòng dựng bằng `_event_row` như mọi dòng events.csv (t_session trống, t_io = io.now() khi đã có io, t_perf lúc
         ghi, call trống)."""
-        io = self.io
-        self.start_refusals.append(_event_row(io.now() if io is not None else None, None, source, code, "LOG",
-                                              "before_start", message))
+        self.start_refusals.append(_event_row(self._now_or_none(), None, source, code, "LOG", "before_start", message))
         self.refused_starts += 1
 
     def begin_run(self, scenario: Scenario, cfg: VehicleConfig, dt: float) -> MirroredWorld:
@@ -608,18 +921,26 @@ class VehicleLink:
         previous = (self.io, self.pose_source, self.human, self.event_rows)
         if self._simulated:
             new_io = SimVehicleIO(cfg, self.sim_config, start=VehicleState(scenario.start, 0.0, 0.0, 0.0))
-            self.io, self.pose_source = new_io, SimTruthPose(new_io)
+            source = self.pose_factory(new_io, scenario, cfg) if self.pose_factory is not None else SimTruthPose(new_io)
+            self.io, self.pose_source = new_io, source
             self.human = SimHumanDriver(new_io) if self.observe_only else None
         self.event_rows = []              # dòng trước START của lần thử này (_log_event ghi vào đây)
         try:
+            if self._qemu is not None:
+                self._stage_qemu(scenario, cfg)     # bo ảo QEMU: trong try để dòng từ chối vào start_refusals
+            if self._simulated and self.pose_factory is not None:
+                self._pose_hook("bind_clock", self.io.now)
+                self._pose_hook("warm_up", self.io.advance)      # T2: xe mô phỏng còn đứng yên trước START
             world = self._open_run(scenario, cfg, dt)
         except Exception as exc:
             if not isinstance(exc, VehicleLinkError):     # lỗi trước khi gửi ARM/DISARM (ví dụ nguồn tư thế ném)
-                self._log_event(self.io.now(), None, "vehicle_link", "START_ABORTED", "LOG", "before_start",
+                self._log_event(self._now_or_none(), None, "vehicle_link", "START_ABORTED", "LOG", "before_start",
                                 repr(exc))
             attempt = self.event_rows
             if self._simulated:
                 self.io.close()           # bo mô phỏng MỚI của lần bị từ chối; bo của lần trước giữ nguyên
+            elif self._close_after_run:
+                _close_io(self.io)        # bo ảo: đóng socket của io mới hay io dùng lại; không để kết nối nào mở
             self.io, self.pose_source, self.human, self.event_rows = previous
             self.start_refusals.extend(attempt)
             self.refused_starts += 1
@@ -628,10 +949,28 @@ class VehicleLink:
             raise VehicleLinkError(f"Lỗi khi mở lần chạy: {exc!r}") from exc
         # Lần mới đã mở: tới đây mới thay log/kết quả của lần chạy trước.
         staged = self.event_rows
-        if self._simulated and previous[0] is not None:
+        if (self._simulated or self._qemu is not None) and previous[0] is not None and previous[0] is not self.io:
             previous[0].close()
         self._commit_run(staged, world)
         return world
+
+    def _stage_qemu(self, scenario: Scenario, cfg: VehicleConfig) -> None:
+        """Bo ảo QEMU (02/10/2026), đầu START: lấy bo đang chạy; chưa chạy → START_NO_QEMU_BOARD trước mọi I/O. io của
+        liên kết không nối tới bo này (lần đầu, hoặc bo đã khởi động lại) → io và `QemuPlantPose` mới (lần bị từ chối thì
+        `begin_run` trả io cũ). Rồi người đặt xe mô phỏng vào điểm xuất phát; quan sát: người lái mô phỏng."""
+        spec = self._qemu
+        board, reason = spec.source.current_board()
+        if board is None:
+            message = (f"Không bắt đầu được với bo ảo QEMU: {reason}. Chưa mở kết nối, không gửi gì; bấm 'Khởi động bo "
+                       f"ảo' ở thẻ Bo điều khiển")
+            self._log_event(self._clock(), None, "vehicle_link", "START_NO_QEMU_BOARD", "LOG", "before_start", message)
+            raise VehicleLinkError(message)
+        io = self.io
+        if not (isinstance(io, QemuPlantVehicleIO) and io.board is board and io.port == board.url):
+            io = QemuPlantVehicleIO(board, plant_config=spec.plant, clock=self._clock)
+            self.io, self.pose_source = io, QemuPlantPose(io)
+        io.place_vehicle(cfg, scenario.start)
+        self.human = PlantHumanDriver(io, cfg) if self.observe_only else None
 
     def _commit_run(self, staged_events: list[dict], world: MirroredWorld) -> None:
         """Mở lần chạy mới (`begin_run` đã qua mọi kiểm tra, hoặc phát lại log ở `ReplayVehicleLink`): thay log, kết quả
@@ -647,23 +986,45 @@ class VehicleLink:
         self.suggestion = None
         self._io_t0 = self.io.now()
         self._perf_t0 = time.perf_counter()    # liền sau _io_t0: cặp đổi t_io → perf của link.json "clock"
+        self._wheelbase = world.cfg.wheelbase  # dự đoán tư thế (`_predicted_pose`), cả khi phát lại log
         self._running = True
         self.runs += 1
         state = world.state
         self.run_start = {"t_io0": self._io_t0, "x": state.pose.x, "y": state.pose.y, "yaw_rad": state.pose.yaw,
                           "steer_rad": state.steer, "state_source": state.source_id}
+        self._pose_hook("run_started")        # T2: nguồn LiDAR: không tìm toàn cục, giữ chốt dừng tới run_ended
 
     def _open_run(self, scenario: Scenario, cfg: VehicleConfig, dt: float) -> MirroredWorld:
         io = self.io
         p = self.params
         if not getattr(self.pose_source, "available", True):
             # Bo thật mà chưa có nguồn tư thế thật (24/09/2026): từ chối TRƯỚC mọi I/O (không mở cổng, không HELLO).
+            # Sửa sau review 02/10/2026: câu về cổng theo trạng thái THẬT (như bước 0b). Bước 0c của lần START trước có
+            # thể đã mở cổng và liên kết giữ nó; trước đó lời luôn nói "Cổng chưa được mở".
             port = getattr(io, "port", None)
+            hint = ("; dùng 'Kiểm kết nối bo' để kiểm liên lạc" if _port_closed(io) else
+                    "; 'Kiểm kết nối bo' đóng cổng này của liên kết trước khi kiểm (lần Bắt đầu đỗ sau mở lại)"
+                    if _port_open(io) else "")
             message = (f"Không bắt đầu được với bo thật{f' ({port})' if port else ''}: "
-                       f"{getattr(self.pose_source, 'reason', NO_POSE_SOURCE_REASON)}. Cổng chưa được mở, không gửi gì "
-                       f"tới bo; dùng 'Kiểm kết nối bo' để kiểm liên lạc")
+                       f"{getattr(self.pose_source, 'reason', NO_POSE_SOURCE_REASON)}. {_port_state_text(io)}{hint}")
+            if not self.hardware_actuators:   # T2: bo mô phỏng / bo ảo với nguồn LiDAR chưa dùng được
+                message = (f"Không bắt đầu được: nguồn tư thế {getattr(self.pose_source, 'source_id', '?')} chưa dùng "
+                           f"được: {getattr(self.pose_source, 'reason', NO_POSE_SOURCE_REASON)}. Không gửi gì tới bo")
             self._log_event(io.now(), None, "vehicle_link", "START_NO_POSE_SOURCE", "LOG", "before_start", message)
             raise VehicleLinkError(message)
+        self._check_pose_gate(io)
+        if isinstance(io, SerialVehicleIO) and io.transport is None:
+            # Bước 0c (T2): cổng của `serial_port` chưa mở → mở ở đây, sau mọi bước kiểm không I/O. Cổng giữ mở giữa
+            # các lần chạy; `close()` đóng. Mở cổng có thể làm ESP32-S3 khởi động lại (DTR/RTS): wait_ready lo BOOT.
+            # Bo ảo QEMU (02/10/2026): socket mở ở đây mỗi lần START, đóng sau lần chạy (`_close_after_run`).
+            port = getattr(io, "port", None) or "cổng serial"
+            try:
+                io.reopen()
+            except Exception as exc:          # SerialException/ConnectionRefusedError (OSError), VehicleIOError...
+                message = (f"Không mở được kết nối tới bo ảo {io.port}: {exc}" if self.is_qemu
+                           else f"Không mở được {port}: {exc}")
+                self._log_event(io.now(), None, "vehicle_link", "START_NO_LINK", "LOG", "before_start", message)
+                raise VehicleLinkError(message) from exc
         try:
             if not io.connected:
                 io.connect(timeout_s=p.connect_timeout_s)
@@ -731,6 +1092,27 @@ class VehicleLink:
             if isinstance(exc, VehicleLinkError):
                 raise
             raise VehicleLinkError(f"Lỗi khi mở lần chạy: {exc!r}") from exc
+
+    def _check_pose_gate(self, io) -> None:
+        """Bước 0b (T2): `start_gate` của nguồn tư thế. Từ chối (bo thật ở VEHICLE_IO, điều kiện tiên quyết của định vị
+        LiDAR chưa đạt) → START_POSE_UNVERIFIED và `VehicleLinkError`, KHÔNG I/O nào; cảnh báo → dòng
+        POSE_SOURCE_WARNING. Móc lỗi khi phần cứng chấp hành thật → coi như từ chối (an toàn)."""
+        gate = self._pose_attr("start_gate")
+        if gate is None:
+            return
+        try:
+            refusals, warnings = gate(self.mode.value, hardware=self.hardware_actuators)
+        except Exception as exc:  # noqa: BLE001 - không kiểm được thì không chạy với bo thật
+            refusals, warnings = ([f"kiểm điều kiện của nguồn tư thế lỗi: {exc!r}"] if self.hardware_actuators
+                                  else []), [f"kiểm điều kiện của nguồn tư thế lỗi: {exc!r}"]
+        for text in warnings:
+            self._log_event(io.now(), None, "vehicle_link", "POSE_SOURCE_WARNING", "LOG", "before_start", text)
+        if refusals:
+            port = getattr(io, "port", None)
+            message = (f"Không bắt đầu được với bo thật{f' ({port})' if port else ''} ở {self.mode.value}: "
+                       + "; ".join(refusals) + f". {_port_state_text(io)}")
+            self._log_event(io.now(), None, "vehicle_link", "START_POSE_UNVERIFIED", "LOG", "before_start", message)
+            raise VehicleLinkError(message)
 
     def _state_source(self, sample: PoseSample) -> str:
         return f"{self.io.source_id}+{sample.source_id}"
@@ -849,30 +1231,60 @@ class VehicleLink:
     def telemetry_fresh(self) -> bool:
         return self.io is not None and self.io.telemetry_fresh(max_age_s=self.params.max_state_age_s)
 
-    def _pose(self, use: str, t: float) -> tuple[PoseSample | None, float | None]:
+    def _pose(self, use: str, t: float) -> tuple[PoseSample | None, float | None, dict]:
         """Đọc nguồn tư thế rồi đọc io.now() NGAY SAU mẫu (thứ tự `observe` vẫn dùng), và (T9) ghi một dòng poses.csv:
         mẫu, hoặc available = 0 khi nguồn không có mẫu, cùng đồng hồ io lúc đọc. `use`: "estimate" (thế giới gương)
-        hoặc "observe" (trạng thái đo cho bộ bám). Trả (mẫu, io.now())."""
+        hoặc "observe" (trạng thái đo cho bộ bám). Trả (mẫu, io.now(), dòng poses.csv); các cột pred_* để trống, chỉ
+        `_predicted_pose` điền."""
         sample = self.pose_source.latest() if self.pose_source is not None else None
         now = self.io.now() if self.io is not None else None
         row = {"n": len(self.pose_rows), "use": use, "t_session": round(t, 4), "t_io": _blank(now),
                "available": int(sample is not None)}
         if sample is None:
-            row.update(sample_t_io="", x="", y="", yaw_rad="", source_id="", simulated="")
+            row.update(sample_t_io="", x="", y="", yaw_rad="", source_id="", simulated="", status="", reason="")
         else:
             row.update(sample_t_io=sample.t, x=sample.pose.x, y=sample.pose.y, yaw_rad=sample.pose.yaw,
-                       source_id=sample.source_id, simulated=int(sample.simulated))
+                       source_id=sample.source_id, simulated=int(sample.simulated), status=sample.status,
+                       reason=sample.reason)
+        row.update(_PRED_BLANK)
         self.pose_rows.append(row)
-        return sample, now
+        return sample, now, row
+
+    def _predicted_pose(self, sample: PoseSample, now: float | None, tel: VehicleTelemetry | None,
+                        row: dict) -> Pose:
+        """Tư thế giao cho bộ bám (`observe`) và thế giới gương (`estimate`) từ một mẫu OK (sửa sau review 02/10/2026).
+
+        Khi `params.predict_pose`: dời tư thế của mẫu từ dấu thời gian của mẫu tới `now` (io.now() đọc liền sau mẫu)
+        bằng tốc độ ĐO (`_measured_speed`, như trạng thái giao cho bộ bám) và góc lái ĐO của khung telemetry `tel`, giữ
+        không đổi trong khoảng đó: mô hình xe đạp động học (`integrate_bicycle`, chiều dài cơ sở của cấu hình xe lần
+        chạy). Chỉ dời khi tuổi THÔ của mẫu trong (0, pose_age_limit_s], khung telemetry mới (0 ≤ tuổi ≤
+        max_state_age_s, cùng `now`) và có cả tốc độ lẫn góc lái đo; còn lại trả nguyên tư thế của mẫu (SimTruthPose có
+        tuổi 0 nên không đổi). Ghi khoảng đã dời, tốc độ, góc lái và tư thế dời vào các cột pred_* của dòng poses.csv
+        `row`. Không đổi mẫu và dấu thời gian của nó: mọi kiểm tuổi vẫn trên tuổi thô.
+
+        Lý do (review 02/10/2026, MP với LiDAR mô phỏng ở tốc độ nghiệm thu 0,10 m/s): mẫu LiDAR tới bộ bám đã cũ
+        0,04–0,13 s (trễ xử lý 0,04 s cộng chu kỳ quét 0,1 s); xe trễ 0,4–1,3 cm sau tư thế thật, cộng sai số định vị,
+        vượt khe hở của đường lập (DO-4a: va chạm xe_sau khi mọi vòng định vị đều OK), và thế giới gương báo va chạm
+        trễ."""
+        p = self.params
+        if not p.predict_pose or sample.status != POSE_OK or now is None or tel is None or self._wheelbase is None:
+            return sample.pose
+        age = now - sample.t
+        speed, steer = self._measured_speed(tel), tel.steer_rad
+        if (speed is None or steer is None or not 0 < age <= p.pose_age_limit_s
+                or not 0 <= now - tel.stamp.t <= p.max_state_age_s):
+            return sample.pose
+        pose = integrate_bicycle(sample.pose, speed, steer, age, self._wheelbase)
+        row.update(pred_dt_s=age, pred_speed_mps=speed, pred_steer_rad=steer, pred_x=pose.x, pred_y=pose.y,
+                   pred_yaw_rad=pose.yaw)
+        return pose
 
     def estimate(self, t: float, prev: VehicleState) -> VehicleState:
-        """Trạng thái cho thế giới gương: tư thế từ nguồn định vị, tốc độ/góc lái đo; thiếu thì giữ giá trị trước."""
+        """Trạng thái cho thế giới gương: tư thế từ nguồn định vị (dời tới io.now() khi `params.predict_pose`, xem
+        `_predicted_pose`), tốc độ/góc lái đo; thiếu thì giữ giá trị trước."""
         pose = prev.pose
         source = prev.source_id
-        sample, _ = self._pose("estimate", t)
-        if sample is not None:
-            pose = sample.pose
-            source = self._state_source(sample)
+        sample, now, row = self._pose("estimate", t)
         speed, steer = prev.speed, prev.steer
         tel = self.io.latest() if self.io is not None else None
         if tel is not None:
@@ -881,6 +1293,9 @@ class VehicleLink:
                 speed = measured
             if tel.steer_rad is not None:
                 steer = tel.steer_rad
+        if sample is not None and sample.status == POSE_OK:      # T2: mẫu không OK không vào thế giới gương
+            pose = self._predicted_pose(sample, now, tel, row)
+            source = self._state_source(sample)
         return VehicleState(pose, speed, steer, t, source_id=source)
 
     def observe(self, t: float) -> tuple[VehicleState | None, SafetyEvent | None]:
@@ -899,11 +1314,17 @@ class VehicleLink:
         # Đọc đồng hồ SAU khi lấy mẫu (trong `_pose`): với đồng hồ mịn (bo thật), mẫu đóng dấu io.now() bên trong
         # latest() luôn muộn hơn một `now` đọc trước đó vài µs và sẽ bị coi nhầm là mẫu "ở tương lai" (tuổi âm) →
         # STALE_POSE giả.
-        sample, now = self._pose("observe", t)
-        if sample is None or not 0 <= now - sample.t <= p.max_state_age_s:
+        sample, now, row = self._pose("observe", t)
+        if sample is not None and sample.status != POSE_OK:
+            # T2: nguồn LiDAR báo POSE_LOST / POSE_DISAGREE / POSE_UNCHECKED: dừng với đúng mã đó, nguồn = id của nguồn
+            return None, self._link_event(t, sample.status, f"Định vị LiDAR: {sample.reason}: dừng và chờ đánh giá "
+                                                            f"lại", source=sample.source_id)
+        # Tuổi THÔ của mẫu (trước mọi dự đoán): dự đoán không bao giờ làm một mẫu cũ thành "mới".
+        if sample is None or not 0 <= now - sample.t <= p.pose_age_limit_s:
             return None, self._link_event(t, "STALE_POSE", "Tư thế từ nguồn định vị cũ hoặc thiếu: dừng và chờ "
                                                            "đánh giá lại")
-        return VehicleState(sample.pose, speed, tel.steer_rad, t, source_id=self._state_source(sample)), None
+        pose = self._predicted_pose(sample, now, tel, row)       # sửa sau review 02/10/2026: bù tuổi của mẫu
+        return VehicleState(pose, speed, tel.steer_rad, t, source_id=self._state_source(sample)), None
 
     def _command_row(self, t: float, kind: str, sent: bool, seq, speed: float, steer: float,
                      out: TrackerOutput | None, observed: VehicleState | None, note: str = "") -> dict:
@@ -990,11 +1411,15 @@ class VehicleLink:
                     action()
                 except (VehicleIOError, ValueError) as exc:
                     self._log_event(io.now(), None, "vehicle_link", "END_RUN_SEND_FAILED", "LOG", "log", str(exc))
+        self._pose_hook("run_ended")          # T2: sau lệnh dừng + DISARM; lỗi chỉ thành dòng log
         tel = io.latest() if io is not None else None
         self.result = {"t_session": t, "outcome": outcome, "reason": reason,
                        "board_state": tel.state.name if tel is not None else None,
                        "commands_sent": io.stats.commands_sent if io is not None else 0,
                        "telemetry_received": io.stats.telemetry_received if io is not None else 0}
+        if self._close_after_run and io is not None:
+            # Bo ảo QEMU (02/10/2026): TCP của QEMU chỉ phục vụ một client; nhả cho "Kiểm kết nối bo", "Xóa lỗi bo".
+            _close_io(io)
 
     # ------------------------------------------------------------------ xóa lỗi bo (T15, thêm 02/10/2026)
     @property
@@ -1008,6 +1433,9 @@ class VehicleLink:
         if self._simulated:
             return ("bo mô phỏng của giao diện được tạo mới (DISARMED) mỗi lần Bắt đầu đỗ, không có lỗi để xóa; nút "
                     "dùng với bo chọn ở cổng COM")
+        if self._qemu is not None:
+            board, reason = self._qemu.source.current_board()
+            return None if board is not None else f"bo ảo QEMU chưa chạy ({reason})"
         if self.io is None:
             return "liên kết chưa có VehicleIO"
         return None
@@ -1035,20 +1463,23 @@ class VehicleLink:
         blocker = self.clear_fault_blocker
         if blocker is not None:
             raise VehicleLinkError(f"Không xóa lỗi bo: {blocker}")
-        io = self.io
+        io = self.io if self._qemu is None else self._qemu_fault_io()
         opened_here = isinstance(io, SerialVehicleIO) and io.transport is None
         if opened_here:
             try:
                 io.reopen()
             except Exception as exc:          # SerialException (OSError), VehicleIOError, ValueError, ImportError...
-                target = io.port or "cổng serial"
-                report = BoardFaultClear(target, False, error=f"Không mở được {target}: {exc}")
+                target = self._qemu_target(io) or io.port or "cổng serial"
+                report = BoardFaultClear(target, False, error=f"Không mở được {target}: {exc}",
+                                         kind=QEMU_KIND if self.is_qemu else "")
                 report.stamp(io)
                 self.board_actions.append(report.to_row())
                 return report
         close_error: OSError | None = None
         try:
             report = self._clear_fault_on(io, request_timeout_s)
+            if self.is_qemu:
+                report.target, report.kind = self._qemu_target(io), QEMU_KIND
         finally:
             if opened_here:
                 try:
@@ -1060,6 +1491,21 @@ class VehicleLink:
             report.error = report.error or f"Lỗi khi đóng cổng: {close_error}"
         self.board_actions.append(report.to_row())
         return report
+
+    def _qemu_fault_io(self) -> QemuPlantVehicleIO:
+        """io cho "Xóa lỗi bo" của liên kết bo ảo (02/10/2026): io của liên kết nếu nó nối tới bo đang chạy; không thì
+        một io tạm tới bo đó (không giữ lại), cùng đồng hồ liên kết. Mở và đóng như cổng COM chưa mở."""
+        board, reason = self._qemu.source.current_board()
+        if board is None:
+            raise VehicleLinkError(f"Không xóa lỗi bo: bo ảo QEMU chưa chạy ({reason})")
+        io = self.io
+        if isinstance(io, QemuPlantVehicleIO) and io.board is board and io.port == board.url:
+            return io
+        return QemuPlantVehicleIO(board, plant_config=self._qemu.plant, clock=self._clock)
+
+    def _qemu_target(self, io) -> str | None:
+        """Cột target của board_actions.csv với bo ảo: "bo ảo QEMU socket://…"; None với liên kết khác."""
+        return f"bo ảo QEMU {io.port}" if self.is_qemu else None
 
     def _clear_fault_on(self, io: VehicleIO, request_timeout_s: float | None) -> BoardFaultClear:
         """Một lần xóa lỗi trên io đã mở (xem `clear_fault`). Lỗi liên lạc trước bước quyết định: giữ NO_LINK.
@@ -1139,7 +1585,8 @@ class VehicleLink:
     def write_logs(self, directory: str | Path) -> dict[str, Path]:
         """Ghi tám tệp vào thư mục: commands.csv, telemetry.csv, events.csv, poses.csv, clock.csv (của lần chạy gần
         nhất đã mở), start_refusals.csv (mọi lần START bị từ chối của liên kết này), board_actions.csv (mọi lần "Xóa lỗi
-        bo" của liên kết này, T15) và link.json. Hai tệp cộng dồn luôn được tạo, có thể chỉ có dòng tiêu đề.
+        bo" của liên kết này, T15) và link.json. Hai tệp cộng dồn luôn được tạo, có thể chỉ có dòng tiêu đề. Nguồn tư
+        thế LiDAR thêm tệp của nó (T2, dưới).
 
         T13 (02/10/2026): events.csv có cả dòng `session_stop` (quyết định dừng của phiên) và cột t_perf (cả
         start_refusals.csv); link.json có thêm khóa "clock" (cặp t_io/perf_counter lúc mở lần chạy, xem docstring của
@@ -1147,7 +1594,11 @@ class VehicleLink:
 
         T9 (02/10/2026): băng phát lại log: poses.csv, clock.csv, cột call của telemetry.csv và events.csv; link.json có
         thêm "run_start" (None khi chưa mở lần chạy nào), "log_format" (`LOG_FORMAT`) và, qua `describe()`,
-        "io_source_id"."""
+        "io_source_id".
+
+        T2 (02/10/2026): nguồn tư thế có `log_rows()` → thêm localization.csv (định vị từng vòng: 5 vòng trước START và
+        các vòng của lần chạy); nguồn mô phỏng có `write_truth_reference` → thêm tu_the_that_mo_phong.csv + .json (tham
+        chiếu MP của evaluation/reference_pose.py, đồng hồ t_session = t_io − t_io0)."""
         path = Path(directory)
         path.mkdir(parents=True, exist_ok=True)
         written = {}
@@ -1168,11 +1619,42 @@ class VehicleLink:
                     stats=asdict(self.io.stats) if self.io is not None else None,
                     clock={"t_io_at_start": None if self._perf_t0 is None else self._io_t0,
                            "t_perf_at_start": self._perf_t0},
-                    run_start=self.run_start, log_format=LOG_FORMAT)
+                    run_start=self.run_start, log_format=LOG_FORMAT,
+                    ecoqos=ecoqos_state())     # 02/10/2026: ngoài describe(), phát lại log và snapshot không đổi
         target = path / "link.json"
         target.write_text(json.dumps(info, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
         written["link.json"] = target
+        written.update(self._write_pose_source_logs(path))
         return written
+
+    def _write_pose_source_logs(self, path: Path) -> dict[str, Path]:
+        """Tệp của nguồn tư thế LiDAR (T2). Lỗi của nguồn chỉ làm thiếu tệp đó (dòng POSE_SOURCE_HOOK_FAILED trong
+        bộ nhớ), không làm hỏng các tệp khác."""
+        written: dict[str, Path] = {}
+        rows = self._pose_hook("log_rows")
+        if rows is not None:
+            from autopark.lidar.pose_estimator import write_localization_csv
+
+            written[LOCALIZATION_FILE] = write_localization_csv(path / LOCALIZATION_FILE, rows)
+        if self.run_start is not None:
+            reference = self._pose_hook("write_truth_reference", path / SIM_TRUTH_FILE, self._io_t0)
+            if reference is not None:
+                written[SIM_TRUTH_FILE] = reference[0]
+                written[reference[1].name] = reference[1]
+        return written
+
+    def release_port(self) -> str | None:
+        """Đóng cổng serial mà liên kết đang giữ mở giữa các lần chạy (bước 0c, T2), khi không có lần chạy nào đang mở
+        (sửa sau review 02/10/2026). Cổng trở lại "chưa mở"; bước 0c mở lại (và HELLO lại) ở lần Bắt đầu đỗ sau. Giao
+        diện gọi hàm này trước "Kiểm kết nối bo" trên cùng cổng: trên Windows một cổng COM chỉ mở được một lần, nên mở
+        lần hai để kiểm hỏng ("Access is denied") khi liên kết còn giữ cổng. Không gửi gì tới bo: ngoài lần chạy bo đã
+        ở DISARMED (`end_run`, hay DISARM khi START bị từ chối sau ARM; quan sát không ARM). Trả tên cổng đã đóng; None
+        khi không có gì để đóng (không phải cổng serial, cổng chưa mở, đang có lần chạy, liên kết đã đóng)."""
+        io = self.io
+        if self._closed or self._running or not _port_open(io):
+            return None
+        _close_io(io)
+        return getattr(io, "port", None) or "cổng serial"
 
     def close(self) -> None:
         """Đóng liên kết. VEHICLE_IO còn phiên: COMMAND enable=0 và DISARM trước khi đóng cổng."""
@@ -1209,6 +1691,7 @@ class BoardProbe:
     commands_sent: int = 0                        # phải luôn 0: kiểm kết nối không gửi COMMAND nào
     requests_sent: int = 0                        # REQUEST (chỉ có thể là DISARM do VehicleIO tự gửi khi mất liên lạc)
     frames_wanted: int = 0
+    kind: str = ""                                # loại bo trong dòng đầu báo cáo; "" = theo `simulated` (02/10/2026)
 
     @property
     def ok(self) -> bool:
@@ -1216,7 +1699,8 @@ class BoardProbe:
 
     def lines(self) -> list[str]:
         """Báo cáo tiếng Việt, mỗi phần tử một dòng (giao diện hiển thị nguyên văn)."""
-        kind = "bo MÔ PHỎNG (SimVehicleIO + FirmwareModel)" if self.simulated else "bo thật qua cổng serial"
+        kind = self.kind or ("bo MÔ PHỎNG (SimVehicleIO + FirmwareModel)" if self.simulated
+                             else "bo thật qua cổng serial")
         out = [f"Kiểm kết nối: {self.target} — {kind}. Chỉ HELLO, không ARM, không gửi lệnh chuyển động."]
         h = self.hello
         if h is None:
@@ -1258,7 +1742,7 @@ class BoardProbe:
 
 
 def probe_board(io: VehicleIO, cfg: VehicleConfig, *, target: str = "", frames: int = 5,
-                connect_timeout_s: float = 1.0, frames_timeout_s: float = 1.0) -> BoardProbe:
+                connect_timeout_s: float = 1.0, frames_timeout_s: float = 1.0, kind: str = "") -> BoardProbe:
     """"Kiểm kết nối bo": `connect()` (HELLO; bo về DISARMED hoặc giữ BOOT/FAULT), đọc tới `frames` khung telemetry
     trong `frames_timeout_s` (đồng hồ io), so giới hạn với `cfg` (`check_limits`, có sự kiện `LIMITS_MISMATCH`), rồi
     ĐÓNG io. KHÔNG BAO GIỜ gọi `arm()`, `send()` hay `stop()`: không COMMAND nào, kể cả enable=0. REQUEST duy nhất có
@@ -1270,7 +1754,7 @@ def probe_board(io: VehicleIO, cfg: VehicleConfig, *, target: str = "", frames: 
         raise ValueError("frames phải là số nguyên >= 1")
     simulated = isinstance(io, SimVehicleIO)
     report = BoardProbe(target or getattr(io, "port", None) or ("bo mô phỏng" if simulated else type(io).__name__),
-                        simulated, frames_wanted=frames)
+                        simulated, frames_wanted=frames, kind=kind)
     commands0, requests0 = io.stats.commands_sent, io.stats.requests_sent
     hello_before = io.hello              # HELLO_ACK của phiên cũ (nếu có) không được báo như của lần kiểm này
     try:
@@ -1388,6 +1872,7 @@ class BoardFaultClear:
     # CLEAR_FAULT, PING rào khi dùng lại phiên, và DISARM do VehicleIO tự gửi khi mất liên lạc
     requests_sent: int = 0
     commands_sent: int = 0                        # phải luôn 0: xóa lỗi không gửi COMMAND nào
+    kind: str = ""                                # loại bo trong dòng đầu báo cáo; "" = theo `simulated` (02/10/2026)
 
     @property
     def ok(self) -> bool:
@@ -1427,7 +1912,8 @@ class BoardFaultClear:
 
     def lines(self) -> list[str]:
         """Báo cáo tiếng Việt, mỗi phần tử một dòng (giao diện hiển thị nguyên văn, chọn và chép được)."""
-        kind = "bo MÔ PHỎNG (SimVehicleIO + FirmwareModel)" if self.simulated else "bo qua cổng serial"
+        kind = self.kind or ("bo MÔ PHỎNG (SimVehicleIO + FirmwareModel)" if self.simulated
+                             else "bo qua cổng serial")
         out = [f"Xóa lỗi bo (CLEAR_FAULT): {self.target} — {kind}. Chỉ gửi CLEAR_FAULT khi bo đang FAULT và nút dừng "
                f"khẩn đã nhả; không ARM, không gửi lệnh chuyển động."]
         h = self.hello

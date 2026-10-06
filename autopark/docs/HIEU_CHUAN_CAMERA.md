@@ -114,7 +114,12 @@ từng ô thì có ảnh hưởng tới K, D.
   chung của các cổng không trùng số.
 - Bộ dò khung hỏng của `UsbCameraSource` và mô hình mắt cá được chọn cho camera Sunplus của xe; camera trên cao khác loại
   có thể bị loại khung (xem bộ đếm trên dòng trạng thái) hay cần mô hình ống kính khác (việc của công cụ T4,
-  [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7).
+  [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7). *(Cập nhật 02/10/2026: T4 dùng tệp Kannala–Brandt của T11,
+  chưa thêm mô hình lỗ kim; bộ đọc của `overhead_ref` chỉ nhận định dạng `autopark.fisheye_intrinsics/1`, từ chối
+  tệp của camera cổng hub và phân nhánh theo khóa `format` để thêm mô hình sau. Khớp mặt sàn báo xu hướng sai số theo
+  bán kính ảnh và mốc ngoại suy, còn TC-1 cho biết mô hình có hợp với camera trên cao không; chưa chọn camera trên
+  cao, CHƯA THỬ. Bộ ghi video của T4 cũng đọc qua `UsbCameraSource`: khung hỏng không vào video, chỉ ghi ở
+  `.events.csv`. [THAM_CHIEU_TREN_CAO.md](THAM_CHIEU_TREN_CAO.md) mục 4, 5, 6.)*
 
 ## 4. Hiệu chuẩn, đọc kết quả, lưu
 
