@@ -1,0 +1,6 @@
+15:59:04 302268.860 pid=45420 nap_plugin luong_py=1 ['MainThread'] luong_os=4 python 3.12.10 argv=['-p', 'no:cacheprovider', '-p', 'ghi_dau_tat', '-q', '-o', 'faulthandler_timeout=300', '-rfE', '--junitxml=<nháp>/pytest_lap/lan_2/junit.xml']
+16:09:44 302908.829 pid=45420 phien_xong luong_py=1 ['MainThread'] luong_os=71 exitstatus=0 hong=0 so_test=2109 QApplication còn; top-level 1325, mọi widget 47028
+16:09:44 302909.078 pid=45420 unconfigure luong_py=1 ['MainThread'] luong_os=71 QApplication còn; top-level 1325, mọi widget 47028 module_la=F:\Programs\UltraViewer\uvh64.dll;C:\ProgramData\Microsoft\Windows Defender\Platform\4.18.26080.4-0\MpOav.dll
+16:09:44 302909.190 pid=45420 thread_atexit_dau luong_py=1 ['MainThread'] luong_os=71 (trước _python_exit của concurrent.futures)
+16:09:44 302909.222 pid=45420 atexit_dau luong_py=1 ['MainThread'] luong_os=71 (trước PySide6.__moduleShutdown)
+16:09:45 302909.763 pid=45420 atexit_cuoi luong_py=1 ['MainThread'] luong_os=66 (sau PySide6.__moduleShutdown, multiprocessing._exit_function)

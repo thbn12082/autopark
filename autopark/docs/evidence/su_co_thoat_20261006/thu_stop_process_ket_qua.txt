@@ -1,0 +1,4 @@
+lần 1: pid python gốc=34892  bash $?=127  tre_tu_luc_goi_toi_lan_ghi_cuoi=0.193s  powershell_chay=0.232s
+lần 2: pid python gốc=25072  bash $?=127  tre_tu_luc_goi_toi_lan_ghi_cuoi=0.175s  powershell_chay=0.220s
+lần 3: pid python gốc=20668  bash $?=127  tre_tu_luc_goi_toi_lan_ghi_cuoi=0.180s  powershell_chay=0.215s
+launcher ExitCode = -1 = 0xFFFFFFFF

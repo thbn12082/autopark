@@ -1,0 +1,41 @@
+# kiem_job.py (bản trong repo), 06/10/2026 ≈ 17:36, máy bàn, thư mục autopark của repo. ErrorMode mà tiến trình python
+# thừa hưởng: mở từ Git Bash (kể cả qua timeout) 0x3 = SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX, nên WER không ghi
+# sự kiện hay minidump khi crash; qua chay_co_theo_doi.py hay từ PowerShell 0x8001. Cả bốn đường: tiến trình nằm trong
+# một job có LimitFlags 0x3000 (KILL_ON_JOB_CLOSE | SILENT_BREAKAWAY_OK); job đó do tiến trình nào tạo (trình khởi
+# chạy venv hay môi trường chạy lệnh của tác tử) CHƯA XÁC ĐỊNH. Đường dẫn hồ sơ người dùng thay bằng %USERPROFILE%.
+
+### 1) Git Bash (công cụ Bash của tác tử) -> .venv/Scripts/python.exe -X utf8 kiem_job.py
+sys.executable      : D:\xetulai\autopark\autopark\.venv\Scripts\python.exe
+sys._base_executable: %USERPROFILE%\AppData\Local\Programs\Python\Python312\python.exe
+__PYVENV_LAUNCHER__ : None
+pid / ppid          : 41384 / 33696 -> python.exe | D:\xetulai\autopark\autopark\.venv\Scripts\python.exe
+IsProcessInJob      : True
+QueryInformationJob : ok LimitFlags=0x3000 ['SILENT_BREAKAWAY_OK', 'KILL_ON_JOB_CLOSE']
+GetErrorMode        : 0x3 (SEM_FAILCRITICALERRORS=1, SEM_NOGPFAULTERRORBOX=2, SEM_NOOPENFILEERRORBOX=0x8000)
+
+### 2) Git Bash -> timeout 60 .venv/Scripts/python.exe -X utf8 kiem_job.py
+sys.executable      : D:\xetulai\autopark\autopark\.venv\Scripts\python.exe
+sys._base_executable: %USERPROFILE%\AppData\Local\Programs\Python\Python312\python.exe
+__PYVENV_LAUNCHER__ : None
+pid / ppid          : 30736 / 27440 -> python.exe | D:\xetulai\autopark\autopark\.venv\Scripts\python.exe
+IsProcessInJob      : True
+QueryInformationJob : ok LimitFlags=0x3000 ['SILENT_BREAKAWAY_OK', 'KILL_ON_JOB_CLOSE']
+GetErrorMode        : 0x3 (SEM_FAILCRITICALERRORS=1, SEM_NOGPFAULTERRORBOX=2, SEM_NOOPENFILEERRORBOX=0x8000)
+
+### 3) Git Bash -> chay_co_theo_doi.py --ra <kiểm> -- .venv/Scripts/python.exe -X utf8 kiem_job.py
+sys.executable      : D:\xetulai\autopark\autopark\.venv\Scripts\python.exe
+sys._base_executable: %USERPROFILE%\AppData\Local\Programs\Python\Python312\python.exe
+__PYVENV_LAUNCHER__ : None
+pid / ppid          : 31756 / 20220 -> python.exe | D:\xetulai\autopark\autopark\.venv\Scripts\python.exe
+IsProcessInJob      : True
+QueryInformationJob : ok LimitFlags=0x3000 ['SILENT_BREAKAWAY_OK', 'KILL_ON_JOB_CLOSE']
+GetErrorMode        : 0x8001 (SEM_FAILCRITICALERRORS=1, SEM_NOGPFAULTERRORBOX=2, SEM_NOOPENFILEERRORBOX=0x8000)
+
+### 4) Công cụ PowerShell của tác tử (Windows PowerShell 5.1) -> .venv\Scripts\python.exe -X utf8 kiem_job.py
+sys.executable      : D:\xetulai\autopark\autopark\.venv\Scripts\python.exe
+sys._base_executable: %USERPROFILE%\AppData\Local\Programs\Python\Python312\python.exe
+__PYVENV_LAUNCHER__ : None
+pid / ppid          : 33000 / 35172 -> python.exe | D:\xetulai\autopark\autopark\.venv\Scripts\python.exe
+IsProcessInJob      : True
+QueryInformationJob : ok LimitFlags=0x3000 ['SILENT_BREAKAWAY_OK', 'KILL_ON_JOB_CLOSE']
+GetErrorMode        : 0x8001 (SEM_FAILCRITICALERRORS=1, SEM_NOGPFAULTERRORBOX=2, SEM_NOOPENFILEERRORBOX=0x8000)

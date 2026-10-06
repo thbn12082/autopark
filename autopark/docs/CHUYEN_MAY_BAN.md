@@ -636,7 +636,7 @@ bản sửa đó *(các thay đổi đó, cùng các sửa sau đó, nay ở com
 | 14:09 | `camera_bench measure`, bốn camera 640×480, 60 s | mỗi camera 23,8 khung/s thật; 0 khung bị cắt, xé, cũ hay đọc hỏng; khoảng giữa hai khung mới trung vị 48 ms, p95 48–49 ms, lớn nhất 55–62 ms; `read()` 47 ms; tổng 95,4 khung/s; CPU tiến trình 0,21 lõi |
 | 14:09 | `fusion.demo --seconds 30 --warmup 4.5`, C1 thật | COMPLETED; 166 vòng, 0 lỗi đọc; bỏ 23 vòng khởi động mô-tơ (vòng nền đầu ở 4,55 s); nền từ 10 vòng, 500–512 tia mỗi vòng; 18 vật có sẵn; 4 vật mới ngoài đường đi (không dừng); không va chạm |
 | 14:09–14:11 | `rig.bench` ghi thử 60 s (`--record`) | 5,31 MB/s (5865 khung, 318,49 MB; LiDAR 601 vòng, 10,014 Hz, 0 lỗi); ước LD-1 30 phút ≈ 11,7 GB (đã cộng 25 %) |
-| 14:11–14:29 | LD-1 lần 1: `rig.bench --ports 1 2 3 4 --lidar --seconds 1800 --record …` | tiến trình CHẾT ở t ≈ 1050 s, mã thoát 127, không traceback, không có `.rig.json` |
+| 14:11–14:29 | LD-1 lần 1: `rig.bench --ports 1 2 3 4 --lidar --seconds 1800 --record …` | tiến trình CHẾT ở t ≈ 1050 s, mã thoát 127, không traceback, không có `.rig.json` *(Cập nhật 06/10/2026: bị một phiên tác tử Claude khác trên cùng máy (dự án khác) dừng bằng `Stop-Process -Force`; mã Windows là 0xFFFFFFFF (mã của `Stop-Process -Force`; mã 32 bit của lượt 02/10 không được ghi), Git Bash báo 127; kiểm trên máy tính, mục 16.3)* |
 | 16:29–17:00 | LD-1 lần 2: cùng lệnh, theo dõi bộ nhớ và ổ đĩa mỗi 10 s | chạy đủ 1800 s; LiDAR 0 vòng, 8151 lỗi "bad response descriptor"; mã thoát 1 |
 | 17:23–17:54 | LD-1 lần 3: cùng lệnh, cây gộp đợt 2, driver C1 đã sửa | chạy đủ 1800 s, mã thoát 0, 0 lỗi LiDAR; số đo ở bảng dưới |
 
@@ -647,6 +647,14 @@ byte thấp của mã thoát Windows; giả thuyết STATUS_DISK_FULL (0xC000007
 ≈ 1,57 GB và cả hai chạy đủ 30 phút. `theo_doi.ps1` (bộ nhớ của mọi tiến trình python, chỗ trống ổ C và D, bộ nhớ cam kết
 còn trống, mỗi 10 s) đã chạy ở lần 2, 3 và dùng lại được. Tiến trình chết khi C1 đang quét, không gửi STOP; đó là gốc lỗi
 của lần 2 (mục 12.2).
+*(Cập nhật 06/10/2026: nguyên nhân đã rõ, kiểm trên máy tính. Lúc 14:29:12 một phiên tác tử Claude khác trên cùng máy
+(dự án khác) chạy `Stop-Process -Id 26456 -Force`, tưởng đó là tiến trình treo của chính nó; 26456 là python gốc của
+`rig.bench` theo loại trừ trên hai bảng tiến trình mà phiên đó in lúc 14:25 và 14:29 (phía autopark không ghi PID). Câu
+"127 là byte thấp của mã thoát Windows" SAI: Git Bash báo 127 cho mọi mã ≥ 0xC0000000 trừ bốn mã, kể cả mã 0xFFFFFFFF
+của `Stop-Process -Force`; giả thuyết STATUS_DISK_FULL bị bác. Log Application/System trống đúng như dự kiến khi bị
+dừng bằng TerminateProcess (dừng từ ngoài không sinh sự kiện WER, kể cả với ErrorMode 0x8001:
+[thu_dau_cuoi/](evidence/su_co_thoat_20261006/thu_dau_cuoi/)). Vì tiến trình mở từ Git Bash (ErrorMode 0x3), log
+trống cũng không loại được một crash. Mục 16.)*
 
 **LD-1 lần 2** (máy có việc khác: tải CPU 76 % lúc bắt đầu, GPU dùng chung với một ứng dụng Omniverse lúc đầu, nhiệt GPU
 tới 80 °C): bốn camera 23,77–25,79 khung/s TB, 0 khung cắt, xé, cũ hay đọc hỏng, nhưng khoảng dài nhất không có khung tốt
@@ -673,7 +681,8 @@ này không dùng để so.
   khởi động lại, nên "camera đúng hướng sau mỗi lần khởi động lại" (N-C5) CHƯA KIỂM.
 - Không có LED đo trễ sự kiện → khung (N-C4): dụng cụ CHƯA CÓ.
 - Ngưỡng của LD-1 (N-C1 … N-C5, N-T3 … N-T6, N-T8) vẫn ĐỀ XUẤT – CHỜ CHỐT; lượt này không chấm theo ngưỡng.
-- Nguyên nhân mã thoát 127 của lần 1: CHƯA RÕ.
+- Nguyên nhân mã thoát 127 của lần 1: CHƯA RÕ. *(Cập nhật 06/10/2026: đã rõ, kiểm trên máy tính — bị một phiên tác tử
+  Claude khác trên cùng máy dừng bằng `Stop-Process -Force`; mục 16.3.)*
 - Việc cần người ở cạnh thiết bị, xếp theo thứ tự nên làm: [VIEC_TAI_CHO_THIET_BI.md](VIEC_TAI_CHO_THIET_BI.md).
 
 ### 12.2. Lỗi xả bộ đệm cổng LiDAR và bản sửa driver C1
@@ -918,6 +927,11 @@ tử thiết kế đợt sau đọc mã và chạy thí nghiệm nhỏ (tải CP
   (theo ghi chép phiên làm việc, không có tệp bằng chứng); 139 = 128 + 11 là cách Git Bash báo mã Windows 0xC0000005
   (kiểm trên máy tính 06/10/2026), tức cùng loại lỗi. Các lượt toàn bộ khác hôm đó không gặp lỗi này (lần đó chưa ghi
   vào tài liệu). Nguyên nhân CHƯA RÕ; lượt sau sẽ giữ stdout, stderr và bật faulthandler.
+  *(Cập nhật 06/10/2026: điều tra ở mục 16.4. Nhật ký trống vì script chạy từ shell của tác tử (Git Bash): tiến trình
+  con mang ErrorMode 0x3 nên Windows Error Reporting không ghi sự kiện hay minidump. Ba lượt `.venv` chạy lại có theo
+  dõi cùng ngày (15:47–16:20) đều thoát 0; thủ phạm vẫn CHƯA RÕ. Bản mới của script,
+  [chay_tren_commit.py](evidence/su_co_thoat_20261006/chay_tren_commit.py), giữ stdout và stderr, bật faulthandler,
+  đặt ErrorMode 0x8001 và chép dump mới.)*
 - `.venv-train`: `test_parking_session_through_qemu_board` hỏng sau 0,159 s: START bị từ chối "Xe đang chuyển động
   (trung bình +0.007 m/s trên 3 khung, tham chiếu của bo +0.004 m/s)". Điều tra cùng ngày trên bo ảo (101 lượt, kiểm
   trên máy tính; [dua_start_bo_ao/README.txt](evidence/dot2_20261006/dua_start_bo_ao/README.txt)): cổng START từ chối
@@ -934,3 +948,202 @@ tử thiết kế đợt sau đọc mã và chạy thí nghiệm nhỏ (tải CP
   QEMU), không có cảnh báo QEMU tự thoát (#175) hay LOOP_OVERRUN
   ([chay_lap_test_bo_ao_470abb3.txt](evidence/dot2_20261006/chay_lap_test_bo_ao_470abb3.txt)).
 - Chạy được trong bo ảo không chứng minh gì về bo thật ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md) mục 1).
+
+## 16. Hai kiểu thoát bất thường: điều tra 06/10/2026
+
+Hai kiểu thoát chưa rõ nguyên nhân: (a) LD-1 lần 1 ngày 02/10/2026 dừng ở t ≈ 1050 s, Git Bash ghi `exit=127` (mục
+12.1); (b) tiến trình pytest của `.venv` thoát mã 0xC0000005 sau khi chạy hết test, ngày 02/10/2026 và 06/10/2026 (mục
+15). Người dùng giao 06/10/2026 ('làm đi'), theo đề xuất. Cách làm: đọc log Windows, khóa registry (chỉ đọc), dấu thời
+gian tệp và bản ghi phiên Claude Code trên máy; thí nghiệm nhỏ trên tiến trình vô hại của chính mình; ba lượt bộ test
+`.venv` chạy lại có theo dõi. Không đổi registry, không chạy lại LD-1, không dùng thiết bị. Mức bằng chứng của cả mục:
+kiểm trên máy tính. Bằng chứng, công cụ và cách chạy lại:
+[evidence/su_co_thoat_20261006/](evidence/su_co_thoat_20261006/) (`README.txt`).
+
+### 16.1. Git Bash đổi mã thoát Windows thế nào
+
+Đo 06/10/2026 (Git Bash 5.3.15, MSYS 3.6.9): một tiến trình python tự gọi `ExitProcess(mã)`, qua ba đường (python
+gốc, trình khởi chạy venv, `timeout` cộng trình khởi chạy venv); 47 mã, ba đường cho cùng kết quả ở cả 47 mã: 27 mã ở
+[bang_ma_thoat_ket_qua.txt](evidence/su_co_thoat_20261006/bang_ma_thoat_ket_qua.txt); 20 mã bổ sung ở
+[bang_ma_thoat_bo_sung.txt](evidence/su_co_thoat_20261006/bang_ma_thoat_bo_sung.txt) (lần đầu, 15:33, chỉ đo qua
+python gốc; đo lại qua đủ ba đường lúc 18:27 bằng `bang_ma_thoat.sh bo_sung`, cột python gốc trùng lần đầu).
+
+| Mã Windows (32 bit) | `$?` trong Git Bash |
+|---|---|
+| < 0xC0000000 | byte thấp: 0x17F → 127, 0x40000015 → 21, 0x80000003 → 3, 0xBFFFFFFF → 255 |
+| 0xC0000005 (vi phạm truy cập) | 139; bash in "Segmentation fault" |
+| 0xC0000017 (hết bộ nhớ) | 138 |
+| 0xC000001D (lệnh máy không hợp lệ) | 132 |
+| 0xC000013A (Ctrl+C) | 130 |
+| 32 mã ≥ 0xC0000000 khác đã thử, gồm 0xC000007F (STATUS_DISK_FULL), 0xC0000409, 0xC0000374, 0xC00000FD, 0xC000012D, 0xE06D7363 và 0xFFFFFFFF (mã của `Stop-Process -Force`) | 127, không in gì |
+
+Hệ quả: 127 không phải "byte thấp của mã thoát Windows"; Git Bash cho 127 với mọi mã ≥ 0xC0000000 trừ bốn mã ở bảng,
+nên 127 gom gần như mọi kiểu chết bất thường, kể cả bị dừng bằng `Stop-Process -Force`. 139 thì chỉ có thể là
+0xC0000005. Trình khởi chạy venv (`.venv*\Scripts\python.exe`) trả nguyên mã 32 bit của python gốc.
+
+### 16.2. ErrorMode và Windows Error Reporting
+
+- Tiến trình mở từ Git Bash (công cụ Bash của tác tử, `chay.sh`, kể cả qua `timeout`) mang ErrorMode 0x3
+  (SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX); mở từ PowerShell, hay qua `chay_co_theo_doi.py`, là 0x8001
+  ([kiem_job_ket_qua.txt](evidence/su_co_thoat_20261006/kiem_job_ket_qua.txt)). Với 0x3, một lần crash KHÔNG có sự
+  kiện Application Error 1000/1001 và KHÔNG có minidump, dù LocalDumps đã bật trên máy bàn (khóa
+  `HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps` có sẵn; dump vào `%LOCALAPPDATA%\CrashDumps`,
+  giữ 10 tệp).
+- Vì vậy các câu "log Application/System … không có sự kiện nào" ở mục 12.1 và mục 15 đúng nhưng không loại được một
+  crash: LD-1 lần 1 và hai lượt pytest đều mở từ Git Bash. ErrorMode chỉ quyết định WER có ghi sự kiện vào log
+  Application hay không, không ảnh hưởng log System. Bị dừng từ ngoài (TerminateProcess) thì không có ngoại lệ nên
+  không có sự kiện WER, kể cả với ErrorMode 0x8001 ([thu_dau_cuoi/](evidence/su_co_thoat_20261006/thu_dau_cuoi/): mã
+  0xFFFFFFFF, 0 sự kiện).
+- Đối chứng tự nhiên ngày 29/09/2026: cùng một exe `ht_dynamic.exe` crash hai lần cách nhau khoảng 1 s, một lần chạy
+  thẳng trong Git Bash, một lần qua `powershell.exe`; log chỉ có đúng một Application Error (15:30:59). Ngày 06/10/2026,
+  lượt 3 của vòng chạy lại có theo dõi (mục 16.4, ErrorMode 0x8001) có sự kiện WER cho một lần QEMU crash (0xC0000005,
+  16:12:03; giờ khởi động ghi trong sự kiện là 16:12:02,715, tức crash chưa tới 1,3 s sau khi khởi động); có lẽ đó là
+  lỗi QEMU tự thoát lúc khởi động espressif/qemu#175 (suy luận).
+
+### 16.3. (a) LD-1 lần 1: dòng thời gian và kết luận
+
+Giờ máy, ngày 02/10/2026. "Phiên kia" là một phiên tác tử Claude khác trên cùng máy, làm dự án khác; bản ghi phiên của
+nó nằm ngoài repo và không chép vào đây.
+
+| Giờ | Sự kiện | Nguồn |
+|---|---|---|
+| 14:11:16 | `chay.sh` (chạy nền bằng công cụ Bash của tác tử, ErrorMode 0x3) bắt đầu bước 5: `rig.bench … --seconds 1800 --record runs/rig_recordings/20261002_ld1` | [nhat_ky.txt](evidence/thiet_bi_20261002/nhat_ky.txt) |
+| 14:11:39,03 | t = 0 của phiên ghi | `meta.json` của bản ghi (`runs/`, git bỏ qua) |
+| 14:25:20 | Phiên kia liệt kê mọi tiến trình tên python: PID 26456 là 1552 MB, 33860 là 4 MB, ba tiến trình khác ≤ 151 MB | bản ghi phiên kia |
+| 14:29:06 | Liệt kê lại: 26456 là 1554 MB, 1469,4 s CPU; 33860 là 4 MB, 0 s CPU; ba tiến trình khác ≤ 238 MB | bản ghi phiên kia |
+| 14:29:09,04 | Dòng trạng thái cuối của `rig.bench` (t = 1050,0 s) | giờ sửa tệp `ld1.txt` (`runs/`) |
+| 14:29:12,569 | Phiên kia chạy `powershell -NoProfile -Command "Stop-Process -Id 26456 -Force -ErrorAction SilentlyContinue"`, tưởng đó là tiến trình treo của chính nó | bản ghi phiên kia; tìm lại bằng `tim_lenh_giet.py --pid` ([kiem_cong_cu.txt](evidence/su_co_thoat_20261006/kiem_cong_cu.txt) mục 3) |
+| 14:29:13,24–13,26 | Khung ảnh cuối của bốn camera; không có khung kế (lẽ ra sau 33–48 ms) | `frames.csv` của bản ghi (`runs/`): stamp và giờ sửa tệp |
+| 14:29:14 | `chay.sh` ghi `exit=127` | [nhat_ky.txt](evidence/thiet_bi_20261002/nhat_ky.txt) |
+
+Kết luận (kiểm trên máy tính): LD-1 lần 1 không dừng vì lỗi của autopark mà vì bị phiên kia dừng bằng
+`Stop-Process -Force`.
+- Đúng giờ: khung cuối đến 0,67–0,69 s sau lúc phiên kia gọi lệnh. Đo 06/10/2026, từ lúc gọi `powershell` với
+  `Stop-Process` tới lúc tiến trình bị dừng mất 0,175–0,193 s (3 lần); phần còn lại có lẽ là lúc công cụ của phiên kia
+  dựng bash (suy luận), không đo được cho ngày 02/10.
+- Đúng mã: `Stop-Process -Force` cho mã 0xFFFFFFFF, Git Bash báo 127 (tái hiện 3/3,
+  [thu_stop_process_ket_qua.txt](evidence/su_co_thoat_20261006/thu_stop_process_ket_qua.txt)).
+- Đúng tiến trình, theo LOẠI TRỪ (phía autopark không ghi PID): LD-1 gồm trình khởi chạy venv (≈ 4 MB) và python gốc.
+  Ở cả hai bảng, 26456 là python duy nhất ≥ 1 GB và 33860 có 4 MB. Bảng 14:25:20 không có cột CPU và có thêm 17016 =
+  8 MB; ở bảng 14:29:06, 33860 là tiến trình duy nhất có 0 s CPU (17016 có 174,6 s CPU nên không phải trình khởi chạy).
+  1469,4 s CPU sau ≈ 1070 s chạy là ≈ 1,37 lõi trung bình (12 dòng trạng thái giữ trong `ld1_rut_gon.txt` ghi 1,08–1,58
+  lõi); bộ nhớ WS của `rig.bench` ở LD-1 lần 3 là 1544–1592 MB (≈ 1560 MB cùng thời điểm tính từ lúc mở;
+  `runs/thiet_bi_20261002/theo_doi_ld1_lan3.csv`).
+- Đúng dấu vết của việc bị dừng từ ngoài (TerminateProcess): không traceback, không `.rig.json`, `meta.json` của bản ghi
+  kẹt ở "đang ghi", C1 bị bỏ lại đang quét (gốc lỗi của LD-1 lần 2, mục 12.2), không có sự kiện WER (không phân biệt
+  được với crash vì ErrorMode 0x3).
+- Giả thuyết STATUS_DISK_FULL bị bác: ổ D còn 55,8 GB lúc 14:29, và 127 không đặc trưng cho mã này (mục 16.1). Crash
+  native khác cho 127, hết bộ nhớ hay lỗi GPU: rất thấp; trùng giờ với lệnh dừng trong vòng một phần giây, hết bộ nhớ
+  (0xC0000017) sẽ cho 138, log System ngày 02/10 không có sự kiện Display, nvlddmkm hay WHEA.
+- Hệ quả: lý do (e) "nguyên nhân lần 1 CHƯA RÕ" ở [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 5.8 đã rõ; LD-1
+  vẫn chưa tính là đạt vì các lý do (a)–(d) ở đó.
+
+### 16.4. (b) pytest `.venv` thoát 0xC0000005 lúc tắt
+
+| Lượt | Cách chạy | Kết quả |
+|---|---|---|
+| 02/10/2026 19:00:39–19:10:53, `.venv`, cây gộp đợt 2 | công cụ Bash của tác tử (ErrorMode 0x3): `timeout 3000 … python -X utf8 -m pytest -p no:cacheprovider -q -o faulthandler_timeout=300 -rfE`, đầu ra vào tệp, không JUnit (bản ghi phiên và tệp đầu ra ngoài repo) | chạy tới "[100%]"; bash in "Segmentation fault", `$?` = 139, tức 0xC0000005; tệp đầu ra không có "Windows fatal exception" hay "Fatal Python error" |
+| 06/10/2026 14:46–14:57, `.venv`, commit `470abb3` (mục 15) | `chay_tren_commit.py` bản cũ, từ shell của tác tử (ErrorMode 0x3); không `-X faulthandler`; stdout và stderr bị bỏ | JUnit đủ 2115 test, 0 hỏng; mã 3221225477 = 0xC0000005 |
+| 06/10/2026 15:47–16:20, `.venv`, 3 lượt, cây chính (mã như commit `470abb3`) | qua `chay_co_theo_doi.py` (ErrorMode 0x8001), `-X faulthandler`, plugin `ghi_dau_tat`, `-q -rfE -o faulthandler_timeout=300`, JUnit | 3/3 thoát 0x00000000; mỗi lượt 2115 test, 0 hỏng, 10 bỏ qua (cần torch); 681, 640, 612 s theo JUnit ([pytest_lap/](evidence/su_co_thoat_20261006/pytest_lap/)) |
+
+Tỉ lệ (người phản biện đếm các lượt toàn bộ test ghi trong bản ghi phiên làm việc, suy venv từ giờ chạy): `.venv` 2/9
+lượt trước điều tra, `.venv-train` 0/6; cộng ba lượt có theo dõi thì `.venv` 2/12. Hai venv có cùng Python 3.12.10,
+PySide6 6.11.2, opencv-python 5.0.0.93, numpy 2.5.2 và pytest 9.1.1 nhưng không chỉ khác torch (đọc bằng
+`importlib.metadata` 06/10/2026: `.venv` 31 gói, `.venv-train` 39): `.venv-train` có thêm torch, torchvision, onnx,
+onnxruntime, onnxscript, psutil, pillow, nvidia-ml-py, sympy, networkx …; `.venv` có coverage, gdown, requests, tqdm …
+mà `.venv-train` không có. Vì có psutil và nvidia-ml-py, `ResourceMonitor` trong
+[autopark/rig/core.py](../autopark/rig/core.py) chạy nhánh khác ở `.venv-train`; `.venv-train` còn chạy thêm 54 test
+(2169 so với 2115 trên commit `470abb3`). Số lượt quá ít để nói venv nào hay gặp hơn.
+
+Tiến trình chết lúc nào (đọc mã pytest 9.1.1 và thí nghiệm nhỏ; suy luận có căn cứ):
+- Plugin faulthandler của pytest bật faulthandler ở `pytest_configure` và TẮT ở `pytest_unconfigure`, chỉ bật lại nếu
+  có `-X faulthandler`. Hook đó chạy trước `pytest_unconfigure` của plugin unraisableexception, plugin này gọi
+  `gc.collect()` toàn phần; lúc dọn "cleanup stack" của config, `gc.collect()` chạy lần nữa; sau đó là đường ra của
+  pytest và pha tắt của Python: `threading._shutdown`, atexit (gồm `PySide6.QtCore.__moduleShutdown`,
+  [kiem_atexit_ket_qua.txt](evidence/su_co_thoat_20261006/kiem_atexit_ket_qua.txt)), dọn module, DLL detach.
+- Thí nghiệm của người phản biện ([thu_thu_tu/](evidence/su_co_thoat_20261006/thu_thu_tu/), chạy lại 06/10/2026 cho
+  cùng đầu ra): không `-X faulthandler` thì `faulthandler.is_enabled()` là False ở cả hai lần `gc.collect()`; có thì
+  True.
+- Vì vậy lượt 02/10 chết SAU khi faulthandler đã bị tắt trong `pytest_unconfigure` (crash trước đó sẽ in "Windows fatal
+  exception"); lượt 06/10 14:46 chết sau khi đã ghi JUnit (JUnit ghi ở `pytest_sessionfinish`), stderr bị bỏ nên không
+  biết thêm. Dòng "N passed" vắng ở lượt 02/10 không phải dấu hiệu chết sớm: `-q` của lệnh cộng `-q` trong `addopts`
+  làm pytest không in dòng tổng kết.
+
+Ba lượt có theo dõi: plugin ghi đủ sáu dấu đúng thứ tự, dấu cuối `atexit_cuoi`; tệp traceback của faulthandler rỗng.
+Lúc kết thúc phiên (`phien_xong`) QApplication còn 1325 cửa sổ top-level và 47 028 widget; chỉ còn luồng Python
+`MainThread` nhưng tiến trình có 70–71 luồng hệ điều hành, còn 65–66 sau atexit. DLL lạ trong tiến trình: `uvh64.dll`
+(hook của UltraViewer) và `MpOav.dll` (Windows Defender). Lượt 3 có một lần QEMU crash (16:12:03, chưa tới 1,3 s sau
+khi khởi động; có lẽ #175, suy luận), WER ghi được vì ErrorMode 0x8001; không có dump python mới.
+
+| # | Giả thuyết | Khả năng | Ủng hộ | Yếu hoặc bác |
+|---|---|---|---|---|
+| 1 | Vi phạm truy cập khi hủy đối tượng native lúc tắt: QApplication, QObject còn sống bị hủy trong `PySide6.QtCore.__moduleShutdown`, hoặc wrapper Qt/OpenCV bị giải phóng trong hai lần `gc.collect()` của pytest hay lúc dọn module | trung bình | 0xC0000005; chết sau khi faulthandler tắt; 1325 cửa sổ top-level và 47 028 widget còn sống lúc kết thúc phiên; các tệp test cuối là test giao diện | chưa có dump; 3 lượt có theo dõi thoát 0 |
+| 2 | Đua lúc DLL_PROCESS_DETACH với luồng native còn sống (65–66 luồng hệ điều hành sau atexit: Qt, OpenCV, OpenBLAS; DLL chèn `uvh64.dll`, `MpOav.dll`) | trung bình – thấp | hiếm, phụ thuộc thời điểm; faulthandler không bắt được pha này | chưa có dump |
+| 3 | Luồng daemon Python còn chạy lúc kết thúc trình thông dịch (`ScanReader` của LiDAR dừng mà không join) | thấp | luồng daemon có thật trong các test LiDAR | kiểu này in "Fatal Python error" (lượt 02/10 không có); cuối 3 lượt có theo dõi chỉ còn `MainThread` |
+| 4 | Cờ `-o faulthandler_timeout=300` | bác, ít nhất như điều kiện cần | — | lượt 06/10 14:46 không có cờ này vẫn crash |
+| 5 | Bên ngoài: bị dừng, hết bộ nhớ, phần cứng | rất thấp | — | bị dừng thì mã là 0xFFFFFFFF (Git Bash 127), không phải 0xC0000005 (139) |
+
+Mức bằng chứng: thời điểm chết là suy luận có căn cứ; thủ phạm CHƯA RÕ, CẦN ĐO (cần minidump của một lần crash).
+
+### 16.5. Công cụ
+
+Trong [evidence/su_co_thoat_20261006/](evidence/su_co_thoat_20261006/), bản đã sửa theo phản biện và đã kiểm nhỏ
+06/10/2026 ([kiem_cong_cu.txt](evidence/su_co_thoat_20261006/kiem_cong_cu.txt)):
+- `chay_co_theo_doi.py`: chạy một lệnh dài với ErrorMode 0x8001; ghi PID, đầu ra, mã 32 bit (hex, nghĩa, `$?` mà Git
+  Bash sẽ báo); `--het-gio S` (quá hạn thì `taskkill /T /F` cả cây tiến trình, ghi "HẾT GIỜ"); chép dump mới vào
+  `<ra>/dump/`; khi mã ≥ 0xC0000000 thì tìm trong bản ghi phiên Claude trên máy lệnh dừng nhắm PID của mình (ghi
+  nguyên câu lệnh chỉ khi nhắm đúng PID đó; lệnh giết python theo tên chỉ ghi giờ và loại lệnh);
+  `--theo-doi` chạy `theo_doi_mo_rong.ps1` (ổ trống, bộ nhớ, CPU, GPU, mọi tiến trình python, lệnh dừng tiến trình
+  thấy được, log Windows; dòng lệnh của lệnh dừng chỉ ghi khi nhắm PID đang canh, lệnh giết python theo tên chỉ ghi giờ
+  và loại lệnh). `theo_doi/python.csv`, `theo_doi/gpu_app.csv` và `lenh_giet.txt` có thể chứa dòng lệnh hay tên của
+  tiến trình khác trên máy: để `<ra>` ngoài git, không chép ba tệp đó vào `docs/evidence`.
+- `ghi_dau_tat.py`: plugin pytest ghi dấu các pha tắt; `GHI_DAU_TAT_DEM_WIDGET=0` tắt đếm widget.
+- `lap_pytest.sh`: lặp bộ test `.venv` qua wrapper, hạn giờ 3000 s mỗi lượt; chế độ `day_du` (như ba lượt ở trên
+  nhưng bỏ `-o faulthandler_timeout=300`, vì lượt crash 06/10 14:46 không có cờ này) hay `chi_wrapper` (không
+  `-X faulthandler`, không plugin: đúng điều kiện hai lần crash, vẫn có minidump).
+- `chay_tren_commit.py`: bản mới của script chạy lại trên commit (mục 9, 11, 15; bản cũ giữ nguyên): ErrorMode 0x8001,
+  pytest với `-X faulthandler`, đầu ra từng lượt ra tệp, mã hex kèm nghĩa, dump mới chép sang `runs/dump/`, hạn giờ,
+  ghi HEAD và độ sạch của cây; `--chi-test` để kiểm script trong vài giây.
+- `doc_minidump.py` (đọc minidump không cần WinDbg) và `tim_lenh_giet.py` (tìm lệnh dừng tiến trình trong bản ghi phiên
+  Claude theo khoảng giờ; `--pid` chỉ in nguyên câu lệnh nhắm PID đó, lệnh giết python theo tên chỉ in giờ và loại lệnh
+  ("lệnh giết python theo tên (…); dòng lệnh không ghi"), không in lệnh nào khác; kiểm lại sau lần sửa này:
+  [kiem_cong_cu.txt](evidence/su_co_thoat_20261006/kiem_cong_cu.txt) mục 9).
+
+### 16.6. Bước tiếp
+
+- (b): chạy `lap_pytest.sh` chế độ `chi_wrapper` vài lượt khi máy rảnh (mỗi lượt ≈ 10–12 phút, nặng CPU), sau khi sao
+  lưu `%LOCALAPPDATA%\CrashDumps`; có dump thì đọc bằng `doc_minidump.py` (module và offset chỗ lỗi). CHƯA CHẠY.
+  *(Cập nhật 06/10/2026: đã chạy 6 lượt `chi_wrapper` lúc 17:53–18:56 trên mã `ea78327` (= mã `470abb3`), máy có các
+  tác tử khác chạy song song: 0/6 lượt Python thoát 0xC0000005; lượt 2–6 đạt 2115 test, thoát 0. Lượt 1 thoát 1
+  vì một test bo ảo hỏng (`test_chip_reset_is_seen_as_firmware_reset`): QEMU tự crash trong lúc test reset chip
+  (dump QEMU 17:55:30, trong khoảng 17:55:25–17:55:31 của test). Với ErrorMode 0x8001, tiến trình QEMU còn sống
+  lúc WER ghi dump, nên `on_board` thấy bo "vẫn chạy", kiểm LOOP_OVERRUN bằng một kết nối mới và kết nối hết hạn
+  2 s thay vì chạy lại; mở từ Git Bash (0x3) thì QEMU thoát ngay và test tự khởi động lại bo ảo. Sửa ở test trong
+  đợt mã sau. Tính cả các lượt này, lỗi thoát 0xC0000005 của `.venv` là 2/18 lượt toàn bộ; kết quả: [chi_wrapper_20261006/](evidence/su_co_thoat_20261006/chi_wrapper_20261006/).)*
+- (b), ĐỀ XUẤT – CHỜ CHỐT, CHƯA THỬ: dọn cửa sổ Qt mà test để lại (đóng và `deleteLater()` các cửa sổ top-level sau mỗi
+  test giao diện, ví dụ bằng một fixture chung trong `tests/conftest.py`) như một hướng giảm crash lúc tắt, vì lúc kết
+  thúc phiên còn 1325 cửa sổ top-level và 47 028 widget. Chưa biết đây có phải nguyên nhân.
+- Lượt chạy lại trên commit sau: dùng `chay_tren_commit.py` bản mới.
+- (a), ĐỀ XUẤT – CHỜ CHỐT: lần LD-1 tới chạy qua wrapper (hay ít nhất mở từ PowerShell) để có PID, mã 32 bit và dump;
+  trước đó báo các phiên tác tử khác trên máy không dừng tiến trình python theo tên hay theo cỡ bộ nhớ
+  ([VIEC_TAI_CHO_THIET_BI.md](VIEC_TAI_CHO_THIET_BI.md) việc 1 bước 5, việc 7 bước 7). Không cần chạy lại LD-1 chỉ để
+  tìm nguyên nhân lần 1.
+
+### 16.7. Giới hạn
+
+- (a) dựa trên bản ghi phiên Claude của dự án khác và dấu thời gian tệp; không có log kiểm toán của hệ điều hành (sự
+  kiện kết thúc tiến trình Security 4689 cần bật kiểm toán và quyền quản trị; log 'Windows PowerShell' là vòng 15 MB,
+  giữ ≈ 15–33 phút). PID khớp theo loại trừ. Bản trích bản ghi phiên kia không đưa vào repo.
+- (b) chưa tái hiện (0/3 lượt có theo dõi). Ba lượt đó đổi điều kiện so với hai lần crash: `-X faulthandler`, plugin đếm
+  47 028 widget ngay trước pha tắt. Chế độ `chi_wrapper` CHƯA CHẠY. *(Cập nhật 06/10/2026: đã chạy 6 lượt, 0/6 tái
+  hiện; mục 16.6.)*
+- *(Thêm 06/10/2026.)* Chạy qua wrapper hay `chay_tren_commit.py` bản mới (ErrorMode 0x8001) làm lần QEMU tự crash
+  kéo dài (WER ghi dump trong lúc tiến trình còn sống): test bo ảo có thể hỏng cho tới khi `on_board` chờ QEMU thoát
+  hẳn rồi chạy lại (sửa trong đợt mã sau; mục 16.6).
+- Với ErrorMode 0x8001, WER ghi cả các lần QEMU crash trong test (có lẽ #175, suy luận); mỗi dump mới làm WER xóa dump
+  cũ nhất khi thư mục đã có 10 tệp. Kiểm được: bản sao lưu lúc 15:46 ngày 06/10/2026 có đủ 10 dump trước đó
+  (`runs/crashdumps_sao_luu_20261006/`, git bỏ qua); lúc 17:31 `CrashDumps` còn 9 tệp
+  ([kiem_cong_cu.txt](evidence/su_co_thoat_20261006/kiem_cong_cu.txt) mục 6); lúc 18:31 có 10 tệp, dump QEMU
+  30/09/2026 10:23 không còn, thêm một dump QEMU 06/10/2026 17:55:30. Dump 30/09 mất lúc nào và vì sao: CHƯA RÕ.
+- Bộ theo dõi không thấy lệnh do công cụ PowerShell của Claude Code chạy (lệnh nằm trong biến môi trường), không thấy
+  `taskkill` hay `kill` gọi thẳng; `tim_lenh_giet.py` chỉ thấy lệnh do phiên Claude Code chạy. Tải CPU của bộ theo dõi
+  CHƯA ĐO. Trên laptop, LocalDumps (dump của WER) CHƯA KIỂM.

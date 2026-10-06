@@ -28,7 +28,9 @@ Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://gith
   0 khung hỏng; LiDAR 18 015 vòng, 10,008 Hz, 0 lỗi; AI 23,75 bộ/s. Lần 1 tiến trình chết ở t ≈ 1050 s (nguyên nhân
   CHƯA RÕ); lần 2 LiDAR 0 vòng vì byte cũ ở cổng không được xả (trên cổng CP210x của máy bàn `reset_input_buffer()`
   không xóa gì), driver C1 đã sửa và thử lại trên C1 thật. Camera nhìn gì lúc đó không ai kiểm; laptop CHƯA ĐO
-  ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 12).
+  ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 12). *(Cập nhật 06/10/2026: nguyên nhân lần 1 đã rõ,
+  kiểm trên máy tính — một phiên tác tử Claude khác trên cùng máy (dự án khác) dừng nhầm tiến trình bằng
+  `Stop-Process -Force`; [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 16.)*
 - **Đã kiểm trên máy tính:** toàn bộ test tự động trên commit `ebbec83` (30/09/2026, máy bàn): `.venv` 1.380 đạt,
   8 bỏ qua (cần torch), 0 hỏng; `.venv-train` 1.442 đạt, 0 hỏng
   ([tóm tắt](autopark/docs/evidence/mo_phong_20260930/chay_tren_commit_ebbec83.txt)). Lõi C++ của firmware khớp bản
@@ -73,6 +75,9 @@ Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://gith
   *(Cập nhật 06/10/2026: toàn bộ test trên commit `470abb3`: `.venv` 2.105 đạt, 10 bỏ qua, 0 hỏng, nhưng tiến trình
   thoát bất thường sau khi chạy hết; `.venv-train` 2.168 đạt, 1 hỏng (test bo ảo: test trước để bo còn dốc tham chiếu
   tốc độ về 0, cổng START từ chối đúng); [biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 15.)*
+  *(Cập nhật 06/10/2026: lỗi thoát của `.venv` (mã 0xC0000005 lúc tắt) được điều tra ở [biên bản chuyển
+  máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 16, thủ phạm vẫn CHƯA RÕ; lượt chạy lại trên commit sau dùng bản mới của
+  script, [chay_tren_commit.py](autopark/docs/evidence/su_co_thoat_20261006/chay_tren_commit.py).)*
 
 ## Bắt đầu từ đâu?
 
@@ -241,6 +246,10 @@ Số test là kiểm trên máy tính, không thay số đo thiết bị. Lượ
 offscreen, 06/10/2026): [tóm tắt](autopark/docs/evidence/dot2_20261006/chay_tren_commit_470abb3.txt); có 1 test bo ảo
 hỏng và một lần tiến trình pytest thoát bất thường sau khi chạy hết ([biên bản chuyển
 máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 15); các lượt trước và giới hạn: [tổng quan](TONG_HOP_DU_AN.md) mục 7.
+*(Cập nhật 06/10/2026: lần thoát bất thường đó (mã 0xC0000005 lúc tắt) được điều tra ở [biên bản chuyển
+máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 16, thủ phạm vẫn CHƯA RÕ; lượt chạy lại trên commit sau dùng bản mới của
+script, [chay_tren_commit.py](autopark/docs/evidence/su_co_thoat_20261006/chay_tren_commit.py): đặt ErrorMode 0x8001
+(crash có sự kiện WER, có minidump khi LocalDumps bật như trên máy bàn) và giữ đầu ra từng lượt.)*
 
 ## Chạy mô phỏng trên Windows
 

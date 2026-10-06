@@ -50,3 +50,10 @@ Thiết bị đã chạm: LiDAR C1 thật (không người ở cạnh). Script: 
 Chưa rõ: vì sao LD-1 lần 1 chết ở t ≈ 1050 s với exit 127 (không có sự kiện nào trong Application/System log 14:15–14:40;
 RAM tiến trình ở lần 2 và 3 ổn định ≈ 1,57 GB; lần 2 và 3 chạy đủ 30 phút). Giả thuyết STATUS_DISK_FULL (0xC000007F, byte
 thấp 127) CHƯA KIỂM; theo dõi bộ nhớ/ổ đĩa (theo_doi.ps1) đã sẵn cho lần sau.
+(Cập nhật 06/10/2026: đã rõ, kiểm trên máy tính — lúc 14:29:12 một phiên tác tử Claude khác trên cùng máy (dự án khác)
+chạy Stop-Process -Id 26456 -Force; 26456 là python gốc của rig.bench theo loại trừ trên hai bảng tiến trình mà phiên
+đó in (phía autopark không ghi PID). Stop-Process cho mã 0xFFFFFFFF, Git Bash báo 127; "byte thấp 127" là sai (Git Bash
+báo 127 cho mọi mã ≥ 0xC0000000 trừ bốn mã); STATUS_DISK_FULL bị bác. Log trống đúng như dự kiến khi bị dừng bằng
+TerminateProcess (dừng từ ngoài không sinh sự kiện WER, kể cả với ErrorMode 0x8001: su_co_thoat_20261006/thu_dau_cuoi/).
+Vì tiến trình mở từ Git Bash (ErrorMode 0x3), log trống cũng không loại được một crash. Chi tiết:
+autopark/docs/CHUYEN_MAY_BAN.md mục 16, autopark/docs/evidence/su_co_thoat_20261006/.)

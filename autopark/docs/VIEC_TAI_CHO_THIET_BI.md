@@ -137,6 +137,15 @@ mỗi cổng hub vẫn là đúng camera, đúng cảnh.
    `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name ld1_thu_ghi --out runs\rig_bench\<ngay> --record runs\rig_recordings\<ngay>_ld1_thu_ghi`
    rồi 30 phút, khi ổ còn trống ít nhất MB/s × 1800 cộng dư (thư mục `--record` phải chưa có hoặc rỗng):
    `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 1800 --name ld1 --out runs\rig_bench\<ngay> --record runs\rig_recordings\<ngay>_ld1`
+   *(Cập nhật 06/10/2026, ĐỀ XUẤT – CHỜ CHỐT.)* Chạy hai lệnh trên qua wrapper `chay_co_theo_doi.py` để có PID, mã
+   thoát 32 bit, minidump nếu crash và hạn giờ (`--het-gio` 300 s cho lệnh 60 s, 2400 s cho lệnh 30 phút), ví dụ:
+   `.venv\Scripts\python.exe -X utf8 docs\evidence\su_co_thoat_20261006\chay_co_theo_doi.py --ra runs\thiet_bi_<ngay>\ld1 --het-gio 2400 --theo-doi -- .venv-train\Scripts\python.exe -X utf8 -X faulthandler -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 1800 --name ld1 --out runs\rig_bench\<ngay> --record runs\rig_recordings\<ngay>_ld1`
+   Không dùng wrapper thì mở lệnh từ PowerShell, không từ Git Bash: tiến trình mở từ Git Bash mang ErrorMode 0x3 nên
+   Windows Error Reporting không ghi sự kiện hay minidump khi crash. Trước khi chạy, báo các phiên tác tử Claude khác
+   trên máy không dừng tiến trình python theo tên hay theo cỡ bộ nhớ: ngày 02/10/2026 một phiên như thế đã dừng nhầm
+   LD-1 lần 1 ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 16). Tải CPU của `--theo-doi` CHƯA ĐO. Để `--ra` ngoài git
+   (`runs\`); KHÔNG chép `theo_doi\python.csv`, `theo_doi\gpu_app.csv` hay `lenh_giet.txt` của wrapper vào
+   `docs\evidence`: các tệp đó có thể chứa dòng lệnh hay tên của tiến trình khác trên máy, kể cả của dự án khác.
 
 **Thời gian.** ≈ 30 phút cho ba lần khởi động lại; LD-1 chạy lại thêm ≈ 32 phút, không cần người.
 
@@ -387,6 +396,11 @@ checkpoint `runs\ai_woodscape_rtx4000_v1\best.pt` chép từ máy bàn; Python 3
    `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name ld1_thu_ghi --out runs\rig_bench\<ngay> --record runs\rig_recordings\<ngay>_ld1_thu_ghi`
    `.venv-train\Scripts\python.exe -X utf8 -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 1800 --name ld1 --out runs\rig_bench\<ngay> --record runs\rig_recordings\<ngay>_ld1`
    Máy bàn ngày 02/10/2026 ghi 7995–8344 MB cho 30 phút; trên laptop đọc lại chỗ trống trước.
+   *(Cập nhật 06/10/2026, ĐỀ XUẤT – CHỜ CHỐT.)* Như việc 1 bước 5: chạy qua `chay_co_theo_doi.py` (`--het-gio 2400`
+   cho lệnh 30 phút), hay ít nhất mở từ PowerShell; báo các phiên tác tử khác trên laptop không dừng tiến trình python
+   theo tên hay theo cỡ bộ nhớ. LocalDumps (minidump của WER) trên laptop CHƯA KIỂM. Như việc 1 bước 5, KHÔNG chép
+   `theo_doi\python.csv`, `theo_doi\gpu_app.csv` hay `lenh_giet.txt` của wrapper vào `docs\evidence` (có thể chứa dòng
+   lệnh hay tên của tiến trình khác).
 8. Tùy chọn, khi không ai chạm laptop ≈ 15 phút: đo vòng 50 Hz khi thu nhỏ trên laptop
    `.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.ecoqos_gui do-chay --ra docs\evidence\ecoqos_chay_<ngay>_laptop`
    (thư mục `--ra` phải mới; [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 13).

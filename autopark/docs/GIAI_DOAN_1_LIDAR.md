@@ -48,6 +48,9 @@ hiện tại (cầu CP210x, VID:PID 10C4:EA60), không người ở cạnh; bằ
   vòng, 10,008 Hz, 0 lỗi LiDAR.
 - Chưa thử: cổng USB CDC của bo ESP32-S3 (`SerialVehicleIO` không gọi `reset_input_buffer`). Nguyên nhân exit 127 của
   LD-1 lần 1: CHƯA RÕ. Chi tiết các lượt chạy: [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 12.
+  *(Cập nhật 06/10/2026: nguyên nhân exit 127 của LD-1 lần 1 đã rõ, kiểm trên máy tính — một phiên tác tử Claude khác
+  trên cùng máy (dự án khác) dừng tiến trình bằng `Stop-Process -Force`, không liên quan LiDAR;
+  [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 16.)*
 
 ## 3. Số đo trên bàn
 

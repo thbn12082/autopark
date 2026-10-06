@@ -1,0 +1,93 @@
+Kiểm nhỏ các công cụ bản trong repo — 06/10/2026 17:28–17:34, máy bàn, cây chính (HEAD ea78327 cộng các tệp đang sửa
+của việc này), từ Git Bash (ErrorMode 0x3), thư mục autopark của repo, E=docs/evidence/su_co_thoat_20261006. Kết quả ghi
+ở thư mục nháp (<kiểm>), không đưa vào repo; dưới đây chép các dòng chính. Không chạy bộ test đầy đủ, không dùng thiết
+bị.
+
+1. chay_co_theo_doi.py, lệnh tự thoát bằng ExitProcess(0xC0000005) sau 1 s, có bộ theo dõi:
+     .venv/Scripts/python.exe -X utf8 $E/chay_co_theo_doi.py --ra <kiểm>/k1a --theo-doi --khoang 2 --cho-wer 2 -- \
+       .venv/Scripts/python.exe -X utf8 $E/ngu_roi_thoat.py 1 0xC0000005
+   -> ErrorMode 0x3 -> 0x8001; launcher và python gốc 0xC0000005 (ACCESS VIOLATION; Git Bash sẽ báo 139); bash in
+      "Segmentation fault", $? = 139; chờ WER 2 s; 0 sự kiện WER, 0 dump (ExitProcess không phải ngoại lệ, đúng như dự
+      kiến); lenh_giet.txt: "số tệp bản ghi quét: 2137 ; số câu lệnh giết nhắm PID 7644, 11288 hoặc python theo tên: 0";
+      su_kien.txt: "pid 11288 THOÁT lúc 17:28:12.916, mã 0xC0000005 (-1073741819) — ACCESS VIOLATION (Git Bash báo
+      139)", không có dòng "lỗi chu kỳ".
+   Chép dump, không cần crash thật (không đụng WER): --thu-muc-dump trỏ một thư mục giả; lệnh ghi python.exe.<pid>.dmp
+   vào đó rồi ExitProcess(0xC0000005) -> tom_tat.json "dump_moi_da_chep": ["python.exe.4016.dmp (256 B, 17:28:20) ->
+   dump/python.exe.4016.dmp"], tệp có trong <ra>/dump/.
+
+2. Hạn giờ: --het-gio 3 với ngu_roi_thoat.py 30 0 -> sau 3 s "HẾT GIỜ sau 3 s: taskkill /T /F /PID 3984"; taskkill dừng
+   cả python gốc 36060 lẫn launcher 3984 (cả hai mã 0x00000001); tom_tat.json "het_gio": {"trang_thai": "HẾT GIỜ",
+   "giay": 3.0, "luc": "2026-10-06T17:29:06", …}; không quét lệnh giết (đã biết ai dừng lệnh). Cả lệnh 3,7 s.
+
+3. tim_lenh_giet.py:
+   - 2026-10-02T07:20 2026-10-02T07:35 --pid 26456 --pid 33860 (5,5 s):
+       số tệp bản ghi quét: 2137 ; số câu lệnh giết nhắm PID 26456, 33860 hoặc python theo tên: 1
+       ==================== 2026-10-02T07:29:12.569Z Bash
+       powershell -NoProfile -Command "Stop-Process -Id 26456 -Force -ErrorAction SilentlyContinue"
+     Chỉ in câu lệnh giết; phần còn lại của lệnh trong phiên kia (đường dẫn của dự án khác) không in.
+   - USERPROFILE trỏ một thư mục rỗng: "KHÔNG QUÉT ĐƯỢC: 0 tệp bản ghi phiên trong ~\.claude\projects (máy khác? Claude
+     Code chưa chạy ở đây?)", mã thoát 2.
+
+4. ghi_dau_tat.py trên test_nho_ghi_dau.py (một test Qt nhỏ, offscreen), GHI_DAU_TAT_DEM_WIDGET = 0 / phien_xong / 1:
+   cả ba thoát 0, đủ 6 dấu đúng thứ tự (nap_plugin, phien_xong, unconfigure, thread_atexit_dau, atexit_dau,
+   atexit_cuoi); với 0: "không đếm widget (GHI_DAU_TAT_DEM_WIDGET=0)" ở phien_xong và unconfigure; với phien_xong:
+   chỉ đếm ở phien_xong; với 1 (mặc định): đếm ở cả hai; tệp .faulthandler.txt rỗng.
+
+5. lap_pytest.sh 0 <kiểm>/k5 chi_wrapper (0 lượt, chỉ kiểm đường dẫn): đúng thư mục autopark của repo (HEAD ea78327),
+   tạo plugin/ghi_dau_tat.py và ket_qua.txt; chế độ sai -> "chế độ phải là day_du hoặc chi_wrapper", mã 2.
+   bash -n đạt cho lap_pytest.sh, thu_dau_cuoi.sh, bang_ma_thoat.sh, thu_stop_process.sh; py_compile đạt cho các .py.
+
+6. chay_tren_commit.py (bản mới):
+   - thu <kiểm>/k6 --chi-test tests/test_geometry.py (17:29:57–17:30:01): hai venv, mỗi venv 10 test, 0 hỏng, exit=0,
+     ecoqos=off; tệp pytest_*_thu.dau_ra.txt có đầu ra của pytest và dòng cuối "mã thoát 0 = 0x00000000 (thoát bình
+     thường; Git Bash sẽ báo 0)"; dòng đầu ghi "HEAD ea78327, cây làm việc KHÔNG sạch" (đúng: các tệp của việc này).
+   - thêm --het-gio-pytest 0.1: hai venv "exit=1, HẾT GIỜ sau 0.1 s (taskkill /T /F), JUnit thiếu hay không đọc được"
+     (JUnit 0 byte của lượt bị dừng không làm hỏng script).
+   - thu_bo_ao <kiểm>/k7 --chi-test tests/test_geometry.py --lap-bo-ao 1 (17:31:29–17:31:54, kiểm nhánh bo ảo): kiem
+     exit=0 (39 khung trong 2 s, QEMU khởi động 1 lần); 1 lượt tests/test_firmware_qemu.py: 14 đạt, 0 hỏng, 0 cảnh báo
+     #175, 0 LOOP_OVERRUN, 17 s; thư mục tạm trong runs/ tự xóa; CrashDumps vẫn 9 tệp.
+
+7. theo_doi_mo_rong.ps1: Parser.ParseFile của PowerShell 5.1: 0 lỗi cú pháp; tệp UTF-8 CÓ BOM.
+   - bash thu_dau_cuoi.sh <kiểm>/k8 (17:32, tự Stop-Process python gốc vô hại của mình): su_kien.txt có
+       LỆNH GIẾT (log Windows PowerShell, 17:32:14.098): C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
+       -NoProfile -Command Stop-Process -Id 36072 -Force -ErrorAction SilentlyContinue
+       pid 36072 THOÁT lúc 17:32:14.195, mã 0xFFFFFFFF (-1) — BỊ GIẾT bằng TerminateProcess(-1) …; Git Bash báo 127
+     tom_tat.json: launcher và python gốc 0xFFFFFFFF, git_bash_se_bao 127; bash $? = 127.
+   - Trong lúc canh một lệnh vô hại, Stop-Process một tiến trình ping.exe (không phải python, không phải PID đang canh):
+     su_kien.txt chỉ ghi "lệnh giết khác (log Windows PowerShell, 17:33:01.057): không nhắm PID đang canh hay python;
+     không ghi dòng lệnh".
+
+8. bang_ma_thoat.sh (python gốc lấy theo %LOCALAPPDATA% thay vì đường dẫn viết cứng): chạy lại 9 s; cột mã của 27 mã ×
+   3 đường giống hệt bang_ma_thoat_ket_qua.txt. Cột stderr cho 0xC0000005 lần này đọc được đầy đủ: "<thư mục này>/
+   bang_ma_thoat.sh: line 11: <pid> Segmentation fault …".
+
+9. Kiểm lại sau lần sửa thứ hai theo phản biện (06/10/2026 18:27–18:41, cùng máy, từ Git Bash; vòng lap_pytest.sh chế
+   độ chi_wrapper đang chạy nền, không đụng tới; các .py chỉ sửa docstring hay phần in, không đổi tham số):
+   - bang_ma_thoat.sh (thêm tham số chinh|bo_sung): bash -n đạt; "bash bang_ma_thoat.sh bo_sung" 7 s: 20 mã × 3 đường
+     cùng kết quả, cột goc trùng bản đầu của bang_ma_thoat_bo_sung.txt (nay là bảng mới); không tham số: cột mã của 27
+     mã × 3 đường giống hệt bang_ma_thoat_ket_qua.txt; tham số sai -> "tham số phải là chinh hoặc bo_sung", mã 2.
+   - tim_lenh_giet.py (với --pid, lệnh giết python theo tên chỉ in giờ và loại lệnh):
+       2026-10-02T07:20 2026-10-02T07:35 --pid 26456 (5,1 s):
+       số tệp bản ghi quét: 2143 ; số câu lệnh giết nhắm PID 26456: 1 ; số lệnh giết python theo tên (chỉ ghi giờ): 0
+       ==================== 2026-10-02T07:29:12.569Z Bash
+       powershell -NoProfile -Command "Stop-Process -Id 26456 -Force -ErrorAction SilentlyContinue"
+     Bản ghi phiên GIẢ (USERPROFILE trỏ thư mục nháp; 5 lệnh: cd vào thư mục của một dự án giả rồi Get-Process python |
+     Stop-Process; Stop-Process hai PID trong một lệnh; taskkill /IM python.exe kèm echo; kill một PID khác; pytest),
+     --pid 4242: in nguyên "Stop-Process -Id 4242 -Force" và hai dòng "lệnh giết python theo tên (Stop-Process;
+     không nhắm PID đang tìm); dòng lệnh không ghi" (dòng thứ hai là taskkill); không in câu nhắm PID khác, thư mục dự
+     án giả hay phần echo.
+   - theo_doi_mo_rong.ps1: Parser.ParseFile 0 lỗi; vẫn UTF-8 CÓ BOM, LF. Hai hàm Loai-LenhGiet, Dong-Giet tách khỏi tệp
+     chạy riêng (không chạy lệnh giết nào), PID canh 4242: "Stop-Process -Id 4242" và "...GetProcessById(4242).Kill()"
+     -> pid (ghi đủ dòng lệnh); "Get-Process python | Stop-Process -Force", "taskkill /IM python.exe /F" -> python (chỉ
+     giờ và loại lệnh); "Stop-Process -Id 14242", "Stop-Process -Name ping" -> lệnh giết khác (chỉ giờ). Các chuỗi
+     định dạng ghi vào su_kien.txt chạy được với -f.
+   - bash thu_dau_cuoi.sh <kiểm>/k9 (18:40, tự Stop-Process python gốc vô hại của mình): su_kien.txt có
+       LỆNH GIẾT (log Windows PowerShell, 18:40:39.194): C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
+       -NoProfile -Command Stop-Process -Id 37132 -Force -ErrorAction SilentlyContinue
+       pid 37132 THOÁT lúc 18:40:39.282, mã 0xFFFFFFFF (-1) — BỊ GIẾT bằng TerminateProcess(-1) …; Git Bash báo 127
+       log Windows từ 18:40:31: 0 sự kiện liên quan
+     tom_tat.json: error_mode_con 0x8001, launcher và python gốc 0xFFFFFFFF, su_kien_wer []; bash $? = 127;
+     lenh_giet.txt: "số câu lệnh giết nhắm PID 37132, 41956: 0 ; số lệnh giết python theo tên (chỉ ghi giờ): 0" (lệnh
+     dừng do script gọi, không phải công cụ của một phiên Claude). Thư mục <kiểm>/k9 (có python.csv) đã xóa.
+   - py_compile (ghi .pyc ra thư mục nháp) đạt cho chay_co_theo_doi.py, tim_lenh_giet.py, chay_tren_commit.py;
+     chay_co_theo_doi.py --help và chay_tren_commit.py --help chạy được.

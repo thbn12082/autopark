@@ -1613,6 +1613,9 @@ nguyên nhân CHƯA RÕ); lần 2 chạy đủ 1800 s nhưng LiDAR 0 vòng, 8151
 GB. Từ 02/10/2026 `rig.bench` tự tắt EcoQoS (dòng đầu "EcoQoS: off", khóa `resources.ecoqos` của `.rig.json`; sơ đồ
 3.7); lần 1 và 2 chạy mã trước đợt 2, EcoQoS không được ghi. Đây là máy bàn, không phải laptop nộp đồ án; camera nhìn gì
 không ai kiểm, nên chưa phải lượt nghiệm thu LD-1 ([tom_tat](evidence/thiet_bi_20261002/ld1_lan3.tom_tat.json)).
+*(Cập nhật 06/10/2026: nguyên nhân lần 1 đã rõ, kiểm trên máy tính — một phiên tác tử Claude khác trên cùng máy
+(dự án khác) dừng tiến trình bằng `Stop-Process -Force`; mã Windows là 0xFFFFFFFF (mã của `Stop-Process -Force`; mã
+32 bit của lượt 02/10 không được ghi), Git Bash báo 127; [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 16.)*
 
 Chi tiết: [GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) · [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2, 12 ·
 [m01_480p_lidar_ai.rig.json](evidence/chuyen_may_20260929/may_moi/m01_480p_lidar_ai.rig.json) ·
@@ -3107,6 +3110,12 @@ lượt đạt, mỗi lượt 14 test, 7 trong đó chạy firmware thật trong
 Script không tự checkout commit: người chạy phải ở
 đúng commit với cây làm việc sạch. Mục `[tool.pytest.ini_options]` của `pyproject.toml` đặt
 `tmp_path_retention_policy = "failed"`: chỉ giữ thư mục tạm của test hỏng.
+*(Cập nhật 06/10/2026: lỗi thoát 0xC0000005 của `.venv` được điều tra ở [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục
+16; thủ phạm vẫn CHƯA RÕ. Lượt chạy lại trên commit sau dùng bản mới của script,
+[evidence/su_co_thoat_20261006/chay_tren_commit.py](evidence/su_co_thoat_20261006/chay_tren_commit.py): vẫn các bước
+của sơ đồ trên, thêm ErrorMode 0x8001 để crash có sự kiện WER và minidump (LocalDumps bật trên máy bàn), pytest với
+`-X faulthandler`, giữ đầu ra từng lượt, mã thoát dạng hex, hạn giờ, ghi HEAD và độ sạch của cây. Sơ đồ trên chưa vẽ
+các bước thêm đó.)*
 
 Chi tiết: [chay_tren_commit.py](evidence/mo_phong_20260930/chay_tren_commit.py) (bản sửa 01/10/2026:
 [evidence/bien_tap_20261001/chay_tren_commit.py](evidence/bien_tap_20261001/chay_tren_commit.py)) ·

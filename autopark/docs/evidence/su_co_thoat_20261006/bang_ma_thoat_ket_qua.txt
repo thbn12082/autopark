@@ -1,0 +1,30 @@
+# Đo 06/10/2026, Git Bash 5.3.15 / MSYS 3.6.9, bằng bang_ma_thoat.sh. Cột cuối: stderr của bash, cắt ở 120 ký tự;
+# ba dòng 139/138/132 là thông báo tín hiệu của bash, mở đầu bằng đường dẫn script (thư mục nháp, thay bằng <nháp>).
+ma           y_nghia                               goc   venv  timeout  stderr_cua_bash
+0            thanh_cong                              0      0        0   | | 
+1            loi_thuong                              1      1        1   | | 
+3            abort_CRT_cu                            3      3        3   | | 
+127          ma_127_truc_tiep                      127    127      127   | | 
+0x17F        383_byte_thap_7F                      127    127      127   | | 
+255          ma_255                                255    255      255   | | 
+0x40000015   STATUS_FATAL_APP_EXIT                  21     21       21   | | 
+0x40010004   DBG_TERMINATE_PROCESS                   4      4        4   | | 
+0x80000003   STATUS_BREAKPOINT                       3      3        3   | | 
+0xBFFFFFFF   ngay_duoi_C0000000                    255    255      255   | | 
+0xC0000005   STATUS_ACCESS_VIOLATION               139    139      139  <nháp>… (bị cắt)
+0xC0000006   STATUS_IN_PAGE_ERROR                  127    127      127   | | 
+0xC0000017   STATUS_NO_MEMORY                      138    138      138  <nháp>… (bị cắt)
+0xC000001D   STATUS_ILLEGAL_INSTRUCTION            132    132      132  <nháp>… (bị cắt)
+0xC000007F   STATUS_DISK_FULL                      127    127      127   | | 
+0xC0000094   STATUS_INTEGER_DIVIDE_BY_ZERO         127    127      127   | | 
+0xC00000FD   STATUS_STACK_OVERFLOW                 127    127      127   | | 
+0xC000012D   STATUS_COMMITMENT_LIMIT               127    127      127   | | 
+0xC0000135   STATUS_DLL_NOT_FOUND                  127    127      127   | | 
+0xC000013A   STATUS_CONTROL_C_EXIT                 130    130      130   | | 
+0xC0000142   STATUS_DLL_INIT_FAILED                127    127      127   | | 
+0xC0000374   STATUS_HEAP_CORRUPTION                127    127      127   | | 
+0xC0000409   STATUS_STACK_BUFFER_OVERRUN_fastfail    127    127      127   | | 
+0xC0000420   STATUS_ASSERTION_FAILURE              127    127      127   | | 
+0xC06D007F   delay_load_proc_not_found             127    127      127   | | 
+0xE06D7363   MSVC_Cpp_exception                    127    127      127   | | 
+0xE0434352   CLR_exception                         127    127      127   | | 

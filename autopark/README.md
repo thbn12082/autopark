@@ -154,6 +154,8 @@ Ngày 30/09/2026 bước này chạy bằng script [chay_tren_commit.py](docs/ev
 
 Lần chạy toàn bộ gần nhất: 06/10/2026, máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB, Windows 11), bằng bản sửa của script ở trên (offscreen), commit `470abb3` của đợt 2, cây làm việc sạch: `.venv` 2105 đạt, 10 bỏ qua (cần torch), 0 hỏng, 640 s, nhưng tiến trình thoát mã 0xC0000005 sau khi đã ghi JUnit (có lẽ lúc tắt Python; chưa rõ nguyên nhân); `.venv-train` 2168 đạt, 1 hỏng, 683 s: `test_parking_session_through_qemu_board` bị từ chối START vì test trước để bo ảo còn dốc tham chiếu tốc độ về 0 (cổng START từ chối đúng; sửa test ở đợt sau); thêm 462 test so với lượt trên `d3e1555` (02/10/2026). Cả hai tệp JUnit ghi `ecoqos=off`. Số test đổi theo mã; tệp kết quả và các lượt trước ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 2, 3, 6, 8, 9, 11, 15.
 
+*(Cập nhật 06/10/2026: lỗi thoát 0xC0000005 của `.venv` được điều tra ở [biên bản chuyển máy](docs/CHUYEN_MAY_BAN.md) mục 16; thủ phạm vẫn CHƯA RÕ. Lượt chạy lại trên commit sau dùng bản mới của script, [docs/evidence/su_co_thoat_20261006/chay_tren_commit.py](docs/evidence/su_co_thoat_20261006/chay_tren_commit.py), cùng hai tham số `<commit> <thư mục kết quả>`: đặt ErrorMode 0x8001 để crash có sự kiện WER và minidump (LocalDumps bật trên máy bàn; dump mới chép sang `runs/dump/`), chạy pytest với `-X faulthandler`, giữ đầu ra từng lượt, ghi mã thoát dạng hex, có hạn giờ, ghi HEAD và độ sạch của cây; `--chi-test tests/test_geometry.py` để kiểm script trong vài giây. Các bản cũ giữ nguyên.)*
+
 Tạo phiên mẫu rồi phát lại:
 
 ```powershell

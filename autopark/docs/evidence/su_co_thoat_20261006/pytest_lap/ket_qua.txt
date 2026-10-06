@@ -1,0 +1,8 @@
+15:47:20 bắt đầu lượt 1 (-o faulthandler_timeout=300)
+15:59:03 lượt 1: exit=0; dấu cuối: 15:58:42 302247.619 pid=43448 atexit_cuoi luong_py=1 ['MainThread'] luong_os=65 (sau PySide6.__moduleShutdown, multiprocessing._exit_function)
+15:59:03 bắt đầu lượt 2 (-o faulthandler_timeout=300)
+16:10:05 lượt 2: exit=0; dấu cuối: 16:09:45 302909.763 pid=45420 atexit_cuoi luong_py=1 ['MainThread'] luong_os=66 (sau PySide6.__moduleShutdown, multiprocessing._exit_function)
+16:10:05 bắt đầu lượt 3 (-o faulthandler_timeout=300)
+16:20:40 lượt 3: exit=0; dấu cuối: 16:20:19 303543.959 pid=20388 atexit_cuoi luong_py=1 ['MainThread'] luong_os=66 (sau PySide6.__moduleShutdown, multiprocessing._exit_function)
+16:20:40 dừng theo tệp DUNG trước lượt 4
+16:20:40 xong

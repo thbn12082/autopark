@@ -1,0 +1,28 @@
+{
+  "lenh": [
+    "D:\\xetulai\\autopark\\autopark\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=D:/xetulai/autopark/autopark/runs/su_co_thoat/chi_wrapper_20261006/lan_6/junit.xml"
+  ],
+  "cwd": "D:\\xetulai\\autopark\\autopark",
+  "bat_dau": "2026-10-06T18:45:50+07:00",
+  "ket_thuc": "2026-10-06T18:55:45+07:00",
+  "error_mode_con": "0x8001",
+  "het_gio": "không (hạn 3000 s)",
+  "pid_launcher": 43536,
+  "pid_python": 25440,
+  "ma_launcher": "0x00000000",
+  "nghia_launcher": "thoát bình thường",
+  "git_bash_se_bao": 0,
+  "ma_python": "0x00000000",
+  "nghia_python": "thoát bình thường",
+  "gio_thoat_python": "2026-10-06T18:55:45.181+07:00",
+  "su_kien_wer": [],
+  "dump_moi_da_chep": [],
+  "bao_cao_wer_moi": []
+}

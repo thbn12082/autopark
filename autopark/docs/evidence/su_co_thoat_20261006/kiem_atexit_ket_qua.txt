@@ -1,0 +1,26 @@
+# kiem_atexit.py, 06/10/2026 17:41, máy bàn, .venv (Python 3.12.10), thư mục autopark của repo, offscreen.
+# Lệnh: .venv/Scripts/python.exe -X utf8 docs/evidence/su_co_thoat_20261006/kiem_atexit.py
+
+numpy                            ok         atexit 0 -> 0
+cv2                              ok         atexit 0 -> 0
+shapely                          ok         atexit 0 -> 0
+serial                           ok         atexit 0 -> 0
+PySide6.QtCore                   ok         atexit 0 -> 2
+PySide6.QtGui                    ok         atexit 2 -> 2
+PySide6.QtWidgets                ok         atexit 2 -> 2
+concurrent.futures.process       ok         atexit 2 -> 3
+multiprocessing.pool             ok         atexit 3 -> 3
+logging                          ok         atexit 3 -> 3
+autopark.ui.app                  ok         atexit 3 -> 3
+autopark.rig.core                ok         atexit 3 -> 3
+autopark.video.multicam          ok         atexit 3 -> 3
+autopark.transport.vehicle_io    ok         atexit 3 -> 3
+--- đăng ký thấy được qua atexit.register / threading._register_atexit:
+   ('atexit', 'logging', 'shutdown', 'PySide6.QtCore')
+   ('atexit', 'PySide6.QtCore', '__moduleShutdown', 'PySide6.QtCore')
+   ('atexit', 'multiprocessing.util', '_exit_function', 'concurrent.futures.process')
+   ('threading._register_atexit', 'concurrent.futures.process', '_python_exit', 'concurrent.futures.process')
+   ('threading._register_atexit', 'concurrent.futures.thread', '_python_exit', 'autopark.ui.app')
+threading._threading_atexits: [functools.partial(<function _python_exit at 0x000001F610E71580>), functools.partial(<function _python_exit at 0x000001F611042340>)]
+số luồng Python: 1 ['MainThread']
+# exit=0

@@ -1,0 +1,164 @@
+# 06/10/2026 17:53:12 cwd=D:\xetulai\autopark\autopark
+# lệnh: ['D:\\xetulai\\autopark\\autopark\\.venv\\Scripts\\python.exe', '-X', 'utf8', '-m', 'pytest', '-p', 'no:cacheprovider', '--junitxml=D:/xetulai/autopark/autopark/runs/su_co_thoat/chi_wrapper_20261006/lan_1/junit.xml']
+........................................................................ [  3%]
+........................................................................ [  6%]
+........................................................................ [ 10%]
+........................................................................ [ 13%]
+........................................................................ [ 17%]
+........................................ss.............................. [ 20%]
+........................................................................ [ 23%]
+........F............................................................... [ 27%]
+......................................................s................. [ 30%]
+............s........................................................... [ 34%]
+........................................................................ [ 37%]
+........................................................................ [ 40%]
+........................................................................ [ 44%]
+........................................................................ [ 47%]
+........................................................................ [ 51%]
+........................................................................ [ 54%]
+........................................................................ [ 58%]
+........................................................................ [ 61%]
+........................................................................ [ 64%]
+........................................................................ [ 68%]
+........................................................................ [ 71%]
+........................................................................ [ 75%]
+........................................................................ [ 78%]
+........................................................................ [ 81%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 92%]
+........................................................................ [ 95%]
+........................................................................ [ 99%]
+.....................                                                    [100%]
+================================== FAILURES ===================================
+__________________ test_chip_reset_is_seen_as_firmware_reset __________________
+
+board = <autopark.transport.qemu_board.QemuBoard object at 0x0000027B688754F0>
+body = <function test_chip_reset_is_seen_as_firmware_reset.<locals>.body at 0x0000027B08012980>
+attempts = 4
+
+    def on_board(board, body, attempts: int = 3):
+        """Chạy `body(io)` trên một phiên mới. Hỏng (assert, VehicleIOError, lỗi cổng, kể cả lúc mở phiên) do chính bo ảo thì
+        kết quả vô nghĩa, chạy lại, tối đa `attempts` lần, có cảnh báo: (1) tiến trình QEMU tự thoát (espressif/qemu#175, hay
+        gặp lúc chip khởi động) → khởi động lại bo ảo; (2) firmware đang chốt LOOP_OVERRUN (QEMU bị máy chủ bỏ đói > 100 ms).
+        Hỏng mà không có hai dấu hiệu đó thì báo lỗi ngay."""
+        for attempt in range(1, attempts + 1):
+            if not board.running():
+                warnings.warn(f"QEMU đã tự thoát (espressif/qemu#175) trước lần {attempt}/{attempts}; khởi động lại bo ảo")
+                board.start()
+            io = None
+            try:
+                io = fresh_io(board)
+>               return body(io)
+                       ^^^^^^^^
+
+tests\test_firmware_qemu.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_firmware_qemu.py:416: in body
+    info = qemu_board.connect_with_retry(io)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+autopark\transport\qemu_board.py:577: in connect_with_retry
+    raise last
+autopark\transport\qemu_board.py:574: in connect_with_retry
+    return io.connect(timeout_s=timeout_s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <autopark.transport.vehicle_io.SerialVehicleIO object at 0x0000027B0788C320>
+timeout_s = 1.0
+
+    def connect(self, timeout_s: float = 1.0) -> HelloInfo:
+        """Mở phiên MỚI (session_id ngẫu nhiên khác 0) bằng HELLO và chờ HELLO_ACK. Gọi lại = kết nối lại: bo luôn
+        về DISARMED (hoặc giữ BOOT/FAULT), lệnh của phiên cũ bị từ chối. Phát hiện bo đã khởi động lại qua boot_id."""
+        with self._lock:
+            if not self._is_open():
+>               raise VehicleIOError("Cổng chưa mở")
+E               autopark.transport.vehicle_io.VehicleIOError: Cổng chưa mở
+
+autopark\transport\vehicle_io.py:450: VehicleIOError
+
+During handling of the above exception, another exception occurred:
+
+board = <autopark.transport.qemu_board.QemuBoard object at 0x0000027B688754F0>
+
+    def test_chip_reset_is_seen_as_firmware_reset(board):
+        """Chạy cuối: reset cả chip ảo (HMP system_reset). QEMU báo lý do POWER_ON; millis() không về 0 (khác chip thật).
+        Laptop thấy mất liên lạc (TELEMETRY_STALE hoặc SESSION_LOST, tùy bo khởi động lại nhanh hay chậm hơn 0,3 s)."""
+        def body(io):
+            boot0 = io.hello.boot_id
+            io.arm()
+            board.reset()
+            pump(io, 1.0)
+            assert {"TELEMETRY_STALE", "SESSION_LOST"} & {e.code for e in io.events()}
+            info = qemu_board.connect_with_retry(io)
+            assert info.boot_id != boot0 and info.reset_reason == ResetReason.POWER_ON
+            assert "FIRMWARE_RESET" in [e.code for e in io.events()]
+            assert io.wait_ready() == State.DISARMED
+    
+>       on_board(board, body, attempts=4)                                # mỗi lần reset là một lần khởi động (QEMU#175)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_firmware_qemu.py:421: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_firmware_qemu.py:121: in on_board
+    if attempt < attempts and overrun_latched(board):
+                              ^^^^^^^^^^^^^^^^^^^^^^
+tests\test_firmware_qemu.py:95: in overrun_latched
+    io = board.open_io()
+         ^^^^^^^^^^^^^^^
+autopark\transport\qemu_board.py:445: in open_io
+    return SerialVehicleIO.open(self.url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+autopark\transport\vehicle_io.py:818: in open
+    return cls(opener(), opener=opener, port=port, **kwargs)
+               ^^^^^^^^
+autopark\transport\vehicle_io.py:841: in opener
+    return SocketPort.from_url(port, timeout=read_timeout_s, write_timeout=write_timeout_s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+autopark\transport\socket_port.py:38: in from_url
+    return cls(parts.hostname, parts.port, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+autopark\transport\socket_port.py:29: in __init__
+    self._sock: socket.socket | None = socket.create_connection((host, port), timeout=connect_timeout)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+%USERPROFILE%\AppData\Local\Programs\Python\Python312\Lib\socket.py:865: in create_connection
+    raise exceptions[0]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+address = ('127.0.0.1', 49837), timeout = 2.0, source_address = None
+all_errors = False
+
+    def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT,
+                          source_address=None, *, all_errors=False):
+        """Connect to *address* and return the socket object.
+    
+        Convenience function.  Connect to *address* (a 2-tuple ``(host,
+        port)``) and return the socket object.  Passing the optional
+        *timeout* parameter will set the timeout on the socket instance
+        before attempting to connect.  If no *timeout* is supplied, the
+        global default timeout setting returned by :func:`getdefaulttimeout`
+        is used.  If *source_address* is set it must be a tuple of (host, port)
+        for the socket to bind as a source address before making the connection.
+        A host of '' or port 0 tells the OS to use the default. When a connection
+        cannot be created, raises the last error if *all_errors* is False,
+        and an ExceptionGroup of all errors if *all_errors* is True.
+        """
+    
+        host, port = address
+        exceptions = []
+        for res in getaddrinfo(host, port, 0, SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket(af, socktype, proto)
+                if timeout is not _GLOBAL_DEFAULT_TIMEOUT:
+                    sock.settimeout(timeout)
+                if source_address:
+                    sock.bind(source_address)
+>               sock.connect(sa)
+E               TimeoutError: timed out
+
+%USERPROFILE%\AppData\Local\Programs\Python\Python312\Lib\socket.py:850: TimeoutError
+=========================== short test summary info ===========================
+FAILED tests/test_firmware_qemu.py::test_chip_reset_is_seen_as_firmware_reset
+1 failed, 2104 passed, 10 skipped in 629.36s (0:10:29)

@@ -226,6 +226,11 @@ lỗi xả bộ đệm cổng, đã sửa driver ([GIAI_DOAN_1_LIDAR.md](GIAI_DO
 laptop nộp đồ án; camera nhìn gì lúc đó không ai kiểm. Chi tiết: [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 12; bằng
 chứng [evidence/thiet_bi_20261002/](evidence/thiet_bi_20261002/).)*
 
+*(Cập nhật 06/10/2026: nguyên nhân exit 127 của LD-1 lần 1 đã rõ, kiểm trên máy tính — một phiên tác tử Claude khác
+trên cùng máy (dự án khác) dừng tiến trình bằng `Stop-Process -Force`; mã Windows là 0xFFFFFFFF (mã của
+`Stop-Process -Force`; mã 32 bit của lượt 02/10 không được ghi), Git Bash báo 127. Chi tiết:
+[CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 16.)*
+
 ## 4. Đọc kết quả
 
 - **Cấu hình dùng được hiện nay là 640×480, kèm bộ dò khung hỏng.** 480p chưa chắc sạch (mục 2.4), nhưng khung hỏng bị

@@ -1,0 +1,2 @@
+# 06/10/2026 15:29:00 cwd=D:\xetulai\autopark\autopark
+# lệnh: ['D:\\xetulai\\autopark\\autopark\\.venv\\Scripts\\python.exe', '-X', 'utf8', '<nháp>/con_ngu.py', '<nháp>/thu_dau_cuoi/con.pid', '<nháp>/thu_dau_cuoi/con.out']

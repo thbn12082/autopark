@@ -1,0 +1,28 @@
+{
+  "lenh": [
+    "D:\\xetulai\\autopark\\autopark\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "<nháp>/con_ngu.py",
+    "<nháp>/thu_dau_cuoi/con.pid",
+    "<nháp>/thu_dau_cuoi/con.out"
+  ],
+  "cwd": "D:\\xetulai\\autopark\\autopark",
+  "bat_dau": "2026-10-06T15:29:00+07:00",
+  "ket_thuc": "2026-10-06T15:29:08+07:00",
+  "error_mode_con": "0x8001",
+  "pid_launcher": 9892,
+  "pid_python": 40740,
+  "ma_launcher": "0xFFFFFFFF",
+  "nghia_launcher": "BỊ GIẾT bằng TerminateProcess(-1): Stop-Process -Force / .NET Process.Kill()",
+  "git_bash_se_bao": 127,
+  "ma_python": "0xFFFFFFFF",
+  "nghia_python": "BỊ GIẾT bằng TerminateProcess(-1): Stop-Process -Force / .NET Process.Kill()",
+  "gio_thoat_python": "2026-10-06T15:29:08.865+07:00",
+  "su_kien_wer": [],
+  "dump_moi": [],
+  "bao_cao_wer_moi": [],
+  "lenh_giet": [
+    "số tệp bản ghi quét: 2104 ; số lệnh khớp: 0"
+  ]
+}

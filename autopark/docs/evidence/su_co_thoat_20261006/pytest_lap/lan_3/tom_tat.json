@@ -1,0 +1,39 @@
+{
+  "lenh": [
+    "D:\\xetulai\\autopark\\autopark\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-X",
+    "faulthandler",
+    "-m",
+    "pytest",
+    "-p",
+    "no:cacheprovider",
+    "-p",
+    "ghi_dau_tat",
+    "-q",
+    "-o",
+    "faulthandler_timeout=300",
+    "-rfE",
+    "--junitxml=<nháp>/pytest_lap/lan_3/junit.xml"
+  ],
+  "cwd": "D:\\xetulai\\autopark\\autopark",
+  "bat_dau": "2026-10-06T16:10:05+07:00",
+  "ket_thuc": "2026-10-06T16:20:19+07:00",
+  "error_mode_con": "0x8001",
+  "pid_launcher": 38160,
+  "pid_python": 20388,
+  "ma_launcher": "0x00000000",
+  "nghia_launcher": "thoát bình thường",
+  "git_bash_se_bao": 0,
+  "ma_python": "0x00000000",
+  "nghia_python": "thoát bình thường",
+  "gio_thoat_python": "2026-10-06T16:20:19.758+07:00",
+  "su_kien_wer": [
+    "16:12:03 Application Error id=1000: Faulting application name: qemu-system-xtensa.exe, version: 9.2.2.0, time stamp: 0x69e2664c Faulting module name: unknown, version: 0.0.0.0, time stamp: 0x00000000 Exception code: 0xc0000005 Fault offset: 0x000001c10406447d Faulting process id: 0x92C8 Faulting application start time: 0x1DD5572C004BE66 Faulting application path: D:\\xetulai\\_platformio\\qemu\\qemu\\bin\\qemu-system-xtensa.exe Faulting m",
+    "16:12:48 Windows Error Reporting id=1001: Fault bucket , type 0 Event Name: APPCRASH Response: Not available Cab Id: 0 Problem signature: P1: qemu-system-xtensa.exe P2: 9.2.2.0 P3: 69e2664c P4: StackHash_2264 P5: 0.0.0.0 P6: 00000000 P7: c0000005 P8: PCH_DD_FROM_unknown+0x0000000000000000 P9: P10: Attached files: \\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.c4a15209-ce97-45a6-b6c3-c6a0fd9d762c.tmp.mdmp \\\\?\\C:\\ProgramData\\Microsoft\\Wi",
+    "16:13:09 Windows Error Reporting id=1001: Fault bucket , type 0 Event Name: APPCRASH Response: Not available Cab Id: 0 Problem signature: P1: qemu-system-xtensa.exe P2: 9.2.2.0 P3: 69e2664c P4: StackHash_2264 P5: 0.0.0.0 P6: 00000000 P7: c0000005 P8: PCH_DD_FROM_unknown+0x0000000000000000 P9: P10: Attached files: \\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.c4a15209-ce97-45a6-b6c3-c6a0fd9d762c.tmp.mdmp \\\\?\\C:\\ProgramData\\Microsoft\\Wi"
+  ],
+  "dump_moi": [],
+  "bao_cao_wer_moi": []
+}

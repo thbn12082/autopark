@@ -1,0 +1,35 @@
+{
+  "lenh": [
+    "D:\\xetulai\\autopark\\autopark\\.venv\\Scripts\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "-p",
+    "no:cacheprovider",
+    "--junitxml=D:/xetulai/autopark/autopark/runs/su_co_thoat/chi_wrapper_20261006/lan_1/junit.xml"
+  ],
+  "cwd": "D:\\xetulai\\autopark\\autopark",
+  "bat_dau": "2026-10-06T17:53:12+07:00",
+  "ket_thuc": "2026-10-06T18:03:42+07:00",
+  "error_mode_con": "0x8001",
+  "het_gio": "không (hạn 3000 s)",
+  "pid_launcher": 42756,
+  "pid_python": 23652,
+  "ma_launcher": "0x00000001",
+  "nghia_launcher": "lỗi thường (Python có traceback; hoặc taskkill /F, Popen.kill())",
+  "git_bash_se_bao": 1,
+  "ma_python": "0x00000001",
+  "nghia_python": "lỗi thường (Python có traceback; hoặc taskkill /F, Popen.kill())",
+  "gio_thoat_python": "2026-10-06T18:03:42.915+07:00",
+  "su_kien_wer": [
+    "17:55:26 Application Error id=1000: Faulting application name: qemu-system-xtensa.exe, version: 9.2.2.0, time stamp: 0x69e2664c Faulting module name: unknown, version: 0.0.0.0, time stamp: 0x00000000 Exception code: 0xc0000005 Fault offset: 0x0000023e0418cb7d Faulting process id: 0x98A4 Faulting application start time: 0x1DD558129A5AE1E Faulting application path: D:\\xetulai\\_platformio\\qemu\\qemu\\bin\\qemu-system-xtensa.exe Faulting m",
+    "17:55:30 Windows Error Reporting id=1001: Fault bucket 1689390144228708596, type 4 Event Name: APPCRASH Response: Not available Cab Id: 0 Problem signature: P1: qemu-system-xtensa.exe P2: 9.2.2.0 P3: 69e2664c P4: StackHash_b4ee P5: 0.0.0.0 P6: 00000000 P7: c0000005 P8: PCH_B4_FROM_unknown+0x0000000000000000 P9: P10: Attached files: \\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.b006487f-ea82-4f29-aa1b-b600fef75f97.tmp.mdmp \\\\?\\C:\\Progr"
+  ],
+  "dump_moi_da_chep": [
+    "qemu-system-xtensa.exe.39076.dmp (4369056 B, 17:55:30) -> dump/qemu-system-xtensa.exe.39076.dmp"
+  ],
+  "bao_cao_wer_moi": [
+    "WER/ReportArchive: AppCrash_qemu-system-xten_a558449667b35f1d809a3ae333808439de080bd_091ef0ec_2ec8816d-cbe8-4b7c-bfcb-8d55e068db03 (4096 B, 17:55:30)"
+  ]
+}

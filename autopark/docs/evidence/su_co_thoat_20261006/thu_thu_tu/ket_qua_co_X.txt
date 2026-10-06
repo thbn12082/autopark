@@ -1,0 +1,7 @@
+.                                                                        [100%][sessionfinish] faulthandler.is_enabled=True
+[gc start gen=2] faulthandler.is_enabled=True | unraisableexception.py:33:gc_collect_harder <- unraisableexception.py:172:pytest_unconfigure <- _callers.py:121:_multicall <- _manager.py:120:_hookexec <- _hooks.py:512:__call__
+[unconfigure trylast] faulthandler.is_enabled=True
+[gc start gen=2] faulthandler.is_enabled=True | unraisableexception.py:33:gc_collect_harder <- unraisableexception.py:99:cleanup <- contextlib.py:478:_exit_wrapper <- contextlib.py:595:__exit__ <- contextlib.py:618:close
+
+[atexit] faulthandler.is_enabled=True
+[gc start gen=2] faulthandler.is_enabled=True | 

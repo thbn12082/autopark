@@ -1,0 +1,24 @@
+# Đo lại 06/10/2026 18:27, Git Bash 5.3.15 / MSYS 3.6.9, bằng "bash bang_ma_thoat.sh bo_sung": 20 mã × 3 đường
+# (python gốc, trình khởi chạy venv, timeout + trình khởi chạy venv), ba đường cùng kết quả; bash không in gì ra stderr.
+# Bản đầu của tệp này (06/10/2026 15:33) chỉ đo qua python gốc và cho đúng cột goc dưới đây.
+ma           y_nghia                               goc   venv  timeout  stderr_cua_bash
+0x80000002   STATUS_DATATYPE_MISALIGNMENT            2      2        2   | | 
+0xC0000008   STATUS_INVALID_HANDLE                 127    127      127   | | 
+0xC0000025   STATUS_NONCONTINUABLE_EXCEPTION       127    127      127   | | 
+0xC0000026   STATUS_INVALID_DISPOSITION            127    127      127   | | 
+0xC000008C   STATUS_ARRAY_BOUNDS_EXCEEDED          127    127      127   | | 
+0xC000008D   STATUS_FLOAT_DENORMAL_OPERAND         127    127      127   | | 
+0xC000008E   STATUS_FLOAT_DIVIDE_BY_ZERO           127    127      127   | | 
+0xC000008F   STATUS_FLOAT_INEXACT_RESULT           127    127      127   | | 
+0xC0000090   STATUS_FLOAT_INVALID_OPERATION        127    127      127   | | 
+0xC0000091   STATUS_FLOAT_OVERFLOW                 127    127      127   | | 
+0xC0000092   STATUS_FLOAT_STACK_CHECK              127    127      127   | | 
+0xC0000093   STATUS_FLOAT_UNDERFLOW                127    127      127   | | 
+0xC0000095   STATUS_INTEGER_OVERFLOW               127    127      127   | | 
+0xC0000096   STATUS_PRIVILEGED_INSTRUCTION         127    127      127   | | 
+0xC0000194   STATUS_POSSIBLE_DEADLOCK              127    127      127   | | 
+0xC0000602   STATUS_FAIL_FAST_EXCEPTION            127    127      127   | | 
+0xC000041D   STATUS_FATAL_USER_CALLBACK_EXC        127    127      127   | | 
+0xFFFFFFFF   ma_cua_Stop-Process_-Force            127    127      127   | | 
+0xC0000001   STATUS_UNSUCCESSFUL                   127    127      127   | | 
+0xDEADBEEF   ma_tuy_y                              127    127      127   | | 

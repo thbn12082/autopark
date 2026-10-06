@@ -1,0 +1,8 @@
+﻿2026-10-06 15:29:00.782 bắt đầu theo dõi, 90 s, mỗi 5 s, ổ: C D F
+2026-10-06 15:29:00.813 canh pid 9892 (python, tạo 15:29:00)
+2026-10-06 15:29:00.820 canh pid 40740 (python, tạo 15:29:00)
+2026-10-06 15:29:13.655 LỆNH GIẾT (log Windows PowerShell, 15:29:08.773): C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -Command Stop-Process -Id 40740 -Force -ErrorAction SilentlyContinue
+2026-10-06 15:29:13.675 pid 9892 THOÁT lúc 15:29:08.867, mã 0xFFFFFFFF (-1) — BỊ GIẾT bằng TerminateProcess(-1): Stop-Process -Force / .NET Process.Kill(); Git Bash báo 127
+2026-10-06 15:29:13.677 pid 40740 THOÁT lúc 15:29:08.865, mã 0xFFFFFFFF (-1) — BỊ GIẾT bằng TerminateProcess(-1): Stop-Process -Force / .NET Process.Kill(); Git Bash báo 127
+2026-10-06 15:29:28.770 log Windows từ 15:29:00: 0 sự kiện liên quan
+2026-10-06 15:29:28.773 kết thúc theo dõi

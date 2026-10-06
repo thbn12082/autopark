@@ -1,0 +1,14 @@
+06/10/2026 17:53:12 bắt đầu: 6 lượt, chế độ chi_wrapper, HEAD ea78327
+17:53:12 bắt đầu lượt 1 (chi_wrapper)
+18:03:43 lượt 1: exit=1, mã python gốc 0x00000001; dấu cuối: (không có plugin)
+18:03:43 bắt đầu lượt 2 (chi_wrapper)
+18:14:30 lượt 2: exit=0, mã python gốc 0x00000000; dấu cuối: (không có plugin)
+18:14:30 bắt đầu lượt 3 (chi_wrapper)
+18:24:43 lượt 3: exit=0, mã python gốc 0x00000000; dấu cuối: (không có plugin)
+18:24:43 bắt đầu lượt 4 (chi_wrapper)
+18:35:19 lượt 4: exit=0, mã python gốc 0x00000000; dấu cuối: (không có plugin)
+18:35:19 bắt đầu lượt 5 (chi_wrapper)
+18:45:50 lượt 5: exit=0, mã python gốc 0x00000000; dấu cuối: (không có plugin)
+18:45:50 bắt đầu lượt 6 (chi_wrapper)
+18:55:45 lượt 6: exit=0, mã python gốc 0x00000000; dấu cuối: (không có plugin)
+18:55:45 xong; kết quả ở D:/xetulai/autopark/autopark/runs/su_co_thoat/chi_wrapper_20261006
