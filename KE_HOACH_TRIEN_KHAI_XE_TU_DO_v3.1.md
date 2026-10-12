@@ -1,10 +1,36 @@
 # Kế hoạch triển khai AutoPark — v3.1
 
-**Mục tiêu:** hoàn thành xe mô hình tự đỗ có phản hồi, có kiểm chứng bằng số đo. Triển khai phần mềm và bàn thử trước, rồi tích hợp xe thật.
+Kế hoạch này chia việc làm xe mô hình tự đỗ AutoPark thành 11 giai đoạn (GĐ 0–10) và sáu đợt mua thiết bị. **Mục tiêu:** hoàn thành xe mô hình tự đỗ có phản hồi, có kiểm chứng bằng số đo; làm phần mềm và bàn thử trước, rồi tích hợp xe thật. Mỗi giai đoạn ghi việc làm khi chờ thiết bị, việc làm khi có thiết bị, đầu ra và điều kiện chuyển bước.
 
-Biên tập 30/09/2026 theo mã tại `ff4a018` (mã giống `ebbec83`); cập nhật 02/10/2026 ở mục 7, 14, 16.2 và 16.4 cho các công cụ nghiệm thu (commit `d3e1555`). Cấu hình, 11 giai đoạn, sáu đợt mua và các điều kiện chuyển bước giữ như kế hoạch gốc; lần biên tập này chỉ cập nhật trạng thái và dữ kiện, kèm ngày và nguồn. Kế hoạch không chứa phép đo mới: số đo nằm ở [tổng quan](TONG_HOP_DU_AN.md) và các biên bản được dẫn. Bản trước đợt này: <https://github.com/thbn12082/autopark/tree/ff4a018>; bản trước đợt biên tập 26/09/2026: <https://github.com/thbn12082/autopark/tree/9d68257>.
+Cấu hình, 11 giai đoạn, sáu đợt mua và các điều kiện chuyển bước giữ như kế hoạch gốc; các dòng "Hiện tại" ghi trạng thái kèm ngày và nguồn. Kế hoạch không chứa phép đo mới: số đo nằm ở [tổng quan](TONG_HOP_DU_AN.md) và các biên bản được dẫn.
 
-**Hiện trạng 30/09/2026:** giai đoạn 0 đạt ở mức mô phỏng (20/09/2026). Giai đoạn 1–2 đang làm với LiDAR và bốn camera trên bàn thử; cổng chưa đạt. Giai đoạn 3, 5, 8 mới có phần mềm hoặc giả lập; trong đó firmware ESP32-S3 của giai đoạn 5 đã biên dịch (29/09/2026) và chạy trong bo ảo QEMU (30/09/2026), **CHƯA nạp bo**. Giai đoạn 4, 6 là bản nháp; giai đoạn 7, 9 chưa làm; giai đoạn 10 có bản nháp, chưa nghiệm thu. V1 đạt 0/10 điều kiện (mục 16.4). Đã nhận phần chính của đợt mua 1–2 (LiDAR, bốn camera, hub); đợt 3–6 chưa nhận (mục 3).
+Một số viết tắt dùng trong tài liệu:
+
+- **GĐ:** giai đoạn.
+- **V1:** bản đầu cần đạt của dự án, gồm mười điều kiện hoàn thành ở mục 16.4.
+- **M0–M3:** các mức thử trên bo ESP32-S3 ([chuẩn bị nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md) mục 5.1).
+- **T1–T15:** các công cụ nghiệm thu; **DV-, LD-, …:** mã kịch bản nghiệm thu; **TC-1:** kiểm tham chiếu trên cao bằng xe giả ([kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md), công cụ ở mục 7).
+- **N-…:** mã ngưỡng nghiệm thu; **R1–R7:** các phương pháp đo độc lập; **L1–L16:** kịch bản lỗi nguồn và dừng.
+- **Bo mô phỏng:** `SimVehicleIO` + `FirmwareModel` chạy trong Python. **Bo ảo:** firmware thật chạy trong QEMU. Cả hai đều là giả lập, không phải bo thật.
+
+## Hiện trạng (30/09/2026)
+
+- GĐ 0 đạt ở mức mô phỏng (20/09/2026).
+- GĐ 1–2 đang làm với LiDAR và bốn camera trên bàn thử; cổng chưa đạt.
+- GĐ 3, 5, 8 mới có phần mềm hoặc giả lập. Firmware ESP32-S3 của GĐ 5 đã biên dịch (29/09/2026) và chạy trong bo ảo QEMU (30/09/2026), **chưa nạp bo**.
+- GĐ 4, 6 là bản nháp; GĐ 7, 9 chưa làm; GĐ 10 có bản nháp, chưa nghiệm thu.
+- V1 đạt 0/10 điều kiện (mục 16.4).
+- Đã nhận phần chính của đợt mua 1–2 (LiDAR, bốn camera, hub); đợt 3–6 chưa nhận (mục 3).
+- Ngày 02/10/2026 có thêm phần lớn công cụ phần mềm cho nghiệm thu (commit `d3e1555`); các mục 7, 14, 16.2 và 16.4 đã ghi phần này.
+
+Các dòng "Hiện tại" bên dưới chưa ghi những kết quả có sau đó. Vì vậy vài câu trong các mục 2.1, 9, 12, 14 và 16.1 đã cũ. Những thay đổi chính tới 06/10/2026:
+
+- Bo ảo QEMU chọn được trong giao diện và chạy được cả phiên đỗ, với xe mô phỏng phía laptop (02/10/2026; vẫn là giả lập).
+- Có nguồn tư thế LiDAR (T2), ghi cảm biến trong phiên đỗ (T3) và công cụ tham chiếu trên cao (T4), mới kiểm bằng test, mô phỏng hay ảnh tổng hợp. Phương án định vị đã chọn ngày 02/10/2026, theo đề xuất mục 7 của [so sánh SLAM](autopark/docs/SO_SANH_DINH_VI_SLAM.md); các ngưỡng vẫn là đề xuất.
+- LD-1 (chạy dài 30 phút) đã chạy đủ trên máy bàn ngày 02/10/2026, nhưng chưa tính là đạt.
+- V1 vẫn đạt 0/10 điều kiện.
+
+Trạng thái đầy đủ và mới nhất nằm ở [tổng quan](TONG_HOP_DU_AN.md).
 
 [Tiến độ và kết quả hiện có](TONG_HOP_DU_AN.md) · [Cách chạy](autopark/README.md) · [Mục lục kỹ thuật](autopark/docs/README.md) · [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md)
 
@@ -28,23 +54,23 @@ Nghiên cứu nhận thức sử dụng **[Valeo WoodScape Dataset](https://gith
 | Khoảng bốn VL53L1X | Khoảng cách gần; thử hai trước |
 | Nguồn, cầu chì, E-stop, phần tử ngắt | Cấp điện và dừng theo thiết kế đã đo |
 
-Chưa tự thay xe bằng HSP, camera bằng ESP32-CAM/Wi-Fi, bỏ LiDAR hoặc thay laptop. USB laptop–ESP32 là phương án thử trên bàn; đường điều khiển khi tích hợp xe chưa chốt.
+Chưa tự ý thay xe bằng HSP, thay camera bằng ESP32-CAM/Wi-Fi, bỏ LiDAR hay thay laptop. USB giữa laptop và ESP32 là phương án thử trên bàn; đường điều khiển khi tích hợp xe chưa chốt.
 
-Theo [kiểm kê](autopark/docs/hardware_inventory.md): đã nhận RPLIDAR C1 kèm bộ chuyển CP2102N (22/09/2026), bốn camera USB và hub UGREEN (23/09/2026). Hồ sơ đến 30/09/2026 ghi chưa nhận MN300, ESP32-S3, BNO085, VL53L1X, AS5600, MT6701/encoder, nguồn, cầu chì, E-stop LA38 và phần tử ngắt.
+Theo [kiểm kê](autopark/docs/hardware_inventory.md), đã nhận RPLIDAR C1 kèm bộ chuyển CP2102N (22/09/2026), bốn camera USB và hub UGREEN (23/09/2026). Hồ sơ đến 30/09/2026 ghi chưa nhận MN300, ESP32-S3, BNO085, VL53L1X, AS5600, MT6701/encoder, nguồn, cầu chì, E-stop LA38 và phần tử ngắt.
 
-Máy phát triển chính từ 29/09/2026 là máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB). Mọi số đo cảm biến, AI và bàn thử đến nay làm trên máy bàn: máy bàn trước đến 25/09/2026, máy bàn hiện tại từ 29/09/2026 ([chuyển máy bàn](autopark/docs/CHUYEN_MAY_BAN.md)). Laptop RTX 3050 Ti là máy trình diễn và nộp đồ án; trên máy này mới chạy mô phỏng giai đoạn 0 (20/09/2026), chưa đo LiDAR, camera hay AI ([máy nộp đồ án](autopark/docs/MAY_NOP_DO_AN.md)).
+Máy phát triển chính từ 29/09/2026 là máy bàn Dell Precision 3680 (i9-14900, RTX 4000 Ada 20 GB). Mọi số đo cảm biến, AI và bàn thử đến nay làm trên máy bàn: máy bàn trước đến 25/09/2026, máy bàn hiện tại từ 29/09/2026 ([chuyển máy bàn](autopark/docs/CHUYEN_MAY_BAN.md)). Laptop RTX 3050 Ti là máy trình diễn và nộp đồ án. Trên laptop mới chạy mô phỏng giai đoạn 0 (20/09/2026), chưa đo LiDAR, camera hay AI ([máy nộp đồ án](autopark/docs/MAY_NOP_DO_AN.md)).
 
 ### 1.2. V1 phải làm gì?
 
-Người dùng đặt vị trí/hướng đỗ. Xe tìm và chạy đường tiến/lùi phù hợp cơ cấu lái, dùng LiDAR và camera để nhận biết môi trường, dừng và đánh giá lại khi có vật cản hoặc dữ liệu không hợp lệ.
+Người dùng đặt vị trí và hướng đỗ. Xe tìm và chạy đường tiến/lùi phù hợp cơ cấu lái, dùng LiDAR và camera để nhận biết môi trường. Khi có vật cản hoặc dữ liệu không hợp lệ, xe dừng và đánh giá lại.
 
-Không bắt buộc tự tìm ô, nhận diện vạch, tự lái đến bãi, điều khiển neural end-to-end, MPC nâng cao, dự đoán người hoặc tái dựng 3D.
+V1 không bắt buộc tự tìm ô, nhận diện vạch, tự lái đến bãi, điều khiển neural end-to-end, MPC nâng cao, dự đoán người hay tái dựng 3D.
 
 ### 1.3. Nguyên tắc giữ nguyên
 
-Kết quả mô phỏng, bàn thử và xe thật ghi riêng. Ngưỡng chưa đo/chưa duyệt phải để “cần chốt”. Có thể làm phần mềm khi thiếu thiết bị, nhưng chưa được đánh dấu đạt phép thử thật.
+Kết quả mô phỏng, bàn thử và xe thật ghi riêng. Ngưỡng chưa đo hoặc chưa duyệt phải để “cần chốt”. Có thể làm phần mềm khi thiếu thiết bị, nhưng chưa được đánh dấu đạt phép thử thật.
 
-Nguồn/dừng phải chuẩn bị trước khi thử chấp hành; giai đoạn 6 xác nhận toàn hệ thống trước chạy tự động trên sàn. Có thể mua sớm chính ESP32-S3 duy nhất ở đợt 3 để đọc cảm biến.
+Nguồn và dừng phải chuẩn bị trước khi thử chấp hành. Giai đoạn 6 xác nhận toàn hệ thống trước khi chạy tự động trên sàn. Có thể mua sớm ESP32-S3 chính duy nhất ở đợt 3 để đọc cảm biến.
 
 ## 2. Luồng hệ thống và cách triển khai
 
@@ -85,15 +111,27 @@ flowchart TD
     class F,X,K chuaLam
 ```
 
-Màu ở sơ đồ này: xanh là khối đã chạy với thiết bị thật trên bàn thử (LiDAR C1, bốn camera, AI suy luận trên camera thật, bản đồ tĩnh từ LiDAR thật), chưa phải đạt cổng, chưa chạy trên xe · vàng là khối mới chạy với xe, bo mô phỏng hoặc trong bo ảo QEMU · đỏ viền đứt là chưa làm. Mũi tên đứt: đoạn nối chưa có trong phiên đỗ hôm nay.
+Màu ở sơ đồ này: xanh là khối đã chạy với thiết bị thật trên bàn thử (LiDAR C1, bốn camera, AI suy luận trên camera thật, bản đồ tĩnh từ LiDAR thật), chưa phải đạt cổng, chưa chạy trên xe · vàng là khối mới chạy với xe, bo mô phỏng hoặc trong bo ảo QEMU · đỏ viền đứt là chưa làm. Mũi tên đứt: đoạn nối chưa có trong phiên đỗ tính đến 30/09/2026.
 
-Cả sơ đồ là luồng dữ liệu/lệnh của hệ thống hoàn chỉnh. Mũi tên liền là đoạn đã có trong phiên đỗ hôm nay (với xe, bo mô phỏng hoặc thiết bị trên bàn thử), không có nghĩa đã chạy trên xe thật. Hiện chưa có vòng kín nào qua xe thật: tư thế xe trong phiên đỗ lấy từ mô phỏng, và với bo thật lệnh START bị từ chối vì chưa có nguồn tư thế thật ([chế độ quan sát](autopark/docs/CHE_DO_QUAN_SAT.md)). Bo ảo QEMU mới dùng được từ Python qua `SerialVehicleIO` (test và lệnh `qemu_board`), chưa chọn được từ giao diện và chưa nối vào phiên đỗ ([mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md)). AI camera đã nối vào phiên đỗ làm nguồn vật cản thứ hai (25/09/2026) nhưng chặn mọi lô vì chưa có hiệu chuẩn camera thật ([AI trong vòng điều khiển](autopark/docs/AI_DIEU_KHIEN_XE.md)). Bản tô màu chi tiết theo từng khối: sơ đồ 1.1; kiến trúc theo mô-đun mã: sơ đồ 1.2 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
+Cả sơ đồ là luồng dữ liệu và lệnh của hệ thống hoàn chỉnh. Mũi tên liền là đoạn đã có trong phiên đỗ, với xe và bo mô phỏng hoặc với thiết bị trên bàn thử. Mũi tên liền không có nghĩa đã chạy trên xe thật. Tính đến 30/09/2026:
 
-Giám sát lỗi chạy cùng vòng điều khiển. E-stop vật lý là đường dừng riêng với giao diện laptop.
+- Chưa có vòng kín nào qua xe thật. Tư thế xe trong phiên đỗ lấy từ mô phỏng; với bo thật, lệnh START bị từ chối vì chưa có nguồn tư thế thật ([chế độ quan sát](autopark/docs/CHE_DO_QUAN_SAT.md)).
+- Bo ảo QEMU mới dùng được từ Python qua `SerialVehicleIO` (test và lệnh `qemu_board`). Bo ảo chưa chọn được từ giao diện và chưa nối vào phiên đỗ ([mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md)).
+- AI camera đã nối vào phiên đỗ làm nguồn vật cản thứ hai (25/09/2026), nhưng chặn mọi lô vì chưa có hiệu chuẩn camera thật ([AI trong vòng điều khiển](autopark/docs/AI_DIEU_KHIEN_XE.md)).
+
+Bản tô màu chi tiết theo từng khối: sơ đồ 1.1; kiến trúc theo mô-đun mã: sơ đồ 1.2 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
+
+Giám sát lỗi chạy cùng vòng điều khiển. E-stop vật lý là đường dừng riêng, tách khỏi giao diện laptop.
 
 ### 2.2. Những việc có thể làm đồng thời
 
-Mô phỏng/AI từ dữ liệu sẵn có; kiểm cảm biến/bàn thử; đo xe/điều khiển/nguồn. Ba nhánh gặp nhau ở tích hợp và nghiệm thu. Đợt mua không tương đương giai đoạn phần mềm.
+Công việc chia ba nhánh làm song song:
+
+1. mô phỏng và AI từ dữ liệu sẵn có;
+2. kiểm cảm biến trên bàn thử;
+3. đo xe, điều khiển và nguồn.
+
+Ba nhánh gặp nhau ở tích hợp và nghiệm thu. Đợt mua không tương ứng một-một với giai đoạn phần mềm.
 
 **Các nhánh công việc và điểm tích hợp** (trạng thái 30/09/2026):
 
@@ -120,9 +158,9 @@ flowchart TD
     class E,P,G,R,I,J chuaLam
 ```
 
-Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị. GĐ 1–2 tô xanh vì có số đo trên thiết bị thật ở bàn thử; cổng của cả hai chưa đạt. GĐ 0 đạt, nhưng chỉ ở mức mô phỏng.
+Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị. GĐ 1–2 tô xanh vì có số đo trên thiết bị thật ở bàn thử, dù cổng của cả hai chưa đạt. GĐ 0 đạt, nhưng chỉ ở mức mô phỏng.
 
-Sơ đồ chỉ các phụ thuộc chính khi tích hợp. Phần mềm, thiết kế và hồ sơ nghiệm thu có thể chuẩn bị sớm; các bước thử chấp hành vẫn phải có nguồn/dừng phù hợp trước khi thực hiện. Trạng thái chi tiết ở dòng “Hiện tại” của từng giai đoạn (mục 4–14) và mục 17.4.
+Sơ đồ chỉ vẽ các phụ thuộc chính khi tích hợp. Phần mềm, thiết kế và hồ sơ nghiệm thu có thể chuẩn bị sớm. Các bước thử chấp hành vẫn phải có nguồn và dừng phù hợp trước khi thực hiện. Trạng thái chi tiết ở dòng “Hiện tại” của từng giai đoạn (mục 4–14) và mục 17.4.
 
 ### 2.3. Cách ghi tiến độ
 
@@ -132,16 +170,21 @@ Mỗi giai đoạn ghi việc đã làm, đầu ra, kết quả đo và thứ c�
 
 | Đợt | Chuẩn bị | Điều kiện trước khi mở rộng | Trạng thái 30/09/2026 |
 |---|---|---|---|
-| 1 | LiDAR + bộ nối, một camera mẫu, dây ngắn, nguồn bàn thử | Camera dùng được ở vùng gần xe | Đã nhận RPLIDAR C1 kèm bộ chuyển CP2102N (22/09/2026); camera mẫu về cùng đợt 2. Kiểm kê chưa ghi dây ngắn, nguồn bàn thử. Camera chưa thử ở vùng gần xe (chưa gá, chưa hiệu chuẩn) |
-| 2 | Thêm ba camera, hub/nguồn/gá | Thử cả bốn đồng thời, rồi mới thêm dây dài | Đã nhận đủ bốn camera USB và hub UGREEN (23/09/2026); các phiên đã ghi đều cấp nguồn hub qua USB, chưa thử adapter; chưa có gá. Đã thử bốn camera đồng thời trên bàn (dùng được ở 640×480); chưa thử dây dài |
+| 1 | LiDAR + bộ nối, một camera mẫu, dây ngắn, nguồn bàn thử | Camera dùng được ở vùng gần xe | Đã nhận RPLIDAR C1 kèm bộ chuyển CP2102N (22/09/2026). Camera chưa thử ở vùng gần xe (ghi chú dưới bảng) |
+| 2 | Thêm ba camera, hub/nguồn/gá | Thử cả bốn đồng thời, rồi mới thêm dây dài | Đã nhận đủ bốn camera USB và hub UGREEN (23/09/2026). Đã thử bốn camera đồng thời trên bàn; chưa có gá, chưa thử dây dài |
 | 3 | BNO085, hai ToF, dây; đề xuất mua sớm ESP32-S3 chính | Đối chiếu nguồn/giao tiếp, đọc ổn từng cảm biến | Chưa nhận. Firmware đã biên dịch (29/09/2026), chờ bo để nạp |
 | 4 | MN300 đúng gói pin/sạc/phụ kiện | Đo xe để chọn phản hồi/gá và cách điều khiển | Chưa nhận; phiếu kiểm kê và bảng đo đã soạn, chưa điền |
 | 5 | AS5600, encoder, gá; thêm ToF nếu cần | Có nguồn/dừng phù hợp trước thử chấp hành; không mua trùng ESP32 | Chưa nhận |
-| 6 | Nguồn theo tải, E-stop + phần ngắt, cầu chì/dây/gá cuối | Mất lệnh, dừng, reset, tải đồng thời đạt trước tự đỗ | Chưa nhận; bảng tải và 16 kịch bản lỗi là bản nháp, CHƯA THỬ |
+| 6 | Nguồn theo tải, E-stop + phần ngắt, cầu chì/dây/gá cuối | Mất lệnh, dừng, reset, tải đồng thời đạt trước tự đỗ | Chưa nhận; bảng tải và 16 kịch bản lỗi là bản nháp, chưa thử |
 
-Thực tế đã mua đủ bốn camera trước khi hoàn tất phép thử mẫu. Đây là khác biệt so với trình tự dự kiến, không phải bằng chứng camera mẫu đã đạt. Nguồn của cột trạng thái: [kiểm kê](autopark/docs/hardware_inventory.md), [phiếu MN300](autopark/docs/mn300_inventory.md), [chuẩn bị đo xe](autopark/docs/GIAI_DOAN_4_CHUAN_BI.md), [chuẩn bị nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md), [README firmware](autopark/firmware/esp32_vehicle/README.md).
+Ghi chú cho đợt 1–2:
 
-Đợt mua nào mở khóa giai đoạn nào, và vì sao giai đoạn 4–9 đang chờ thiết bị:
+- Camera mẫu của đợt 1 về cùng đợt 2. Kiểm kê chưa ghi dây ngắn và nguồn bàn thử. Camera chưa thử ở vùng gần xe vì chưa gá, chưa hiệu chuẩn.
+- Các phiên đã ghi đều cấp nguồn hub qua USB, chưa thử adapter. Bốn camera chạy đồng thời trên bàn dùng được ở 640×480.
+
+Thực tế đã mua đủ bốn camera trước khi hoàn tất phép thử camera mẫu. Đây là khác biệt so với trình tự dự kiến, không phải bằng chứng camera mẫu đã đạt. Nguồn của cột trạng thái: [kiểm kê](autopark/docs/hardware_inventory.md), [phiếu MN300](autopark/docs/mn300_inventory.md), [chuẩn bị đo xe](autopark/docs/GIAI_DOAN_4_CHUAN_BI.md), [chuẩn bị nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md), [README firmware](autopark/firmware/esp32_vehicle/README.md).
+
+Sơ đồ dưới cho biết đợt mua nào mở khóa giai đoạn nào, và vì sao giai đoạn 4–9 đang chờ thiết bị:
 
 ```mermaid
 flowchart LR
@@ -191,13 +234,13 @@ flowchart LR
     class D3,D4,D5,D6,G4,G6,G7,G9,G10,PR chuaLam
 ```
 
-Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị. Ở sơ đồ này, đợt tô xanh là đã nhận phần chính, đợt tô đỏ là chưa nhận; giai đoạn tô xanh là có số đo trên thiết bị thật, chưa phải đạt cổng; bước chuẩn bị nguồn, dừng tô đỏ vì mới là bản nháp.
+Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị. Ở sơ đồ này, đợt tô xanh là đã nhận phần chính, đợt tô đỏ là chưa nhận. Giai đoạn tô xanh là có số đo trên thiết bị thật, chưa phải đạt cổng. Bước chuẩn bị nguồn và dừng tô đỏ vì mới là bản nháp.
 
-Mũi tên từ đợt mua tới giai đoạn là điều kiện cần có thiết bị, không phải việc đã làm. Bước chuẩn bị nguồn, dừng phải xong trước khi thử chấp hành ở giai đoạn 5 (mức thử M2 cần đường dừng phần cứng sẵn sàng và phần tử ngắt đã lắp, [chuẩn bị nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md) mục 5.1); giai đoạn 6 xác nhận toàn hệ thống trước chạy tự động trên sàn (mục 1.3), không phải điều kiện trước giai đoạn 5. Lộ trình và các đợt mua cũng có ở sơ đồ 8.1–8.2 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
+Mũi tên từ đợt mua tới giai đoạn là điều kiện cần có thiết bị, không phải việc đã làm. Bước chuẩn bị nguồn và dừng phải xong trước khi thử chấp hành ở giai đoạn 5. Lý do: mức thử M2 cần đường dừng phần cứng sẵn sàng và phần tử ngắt đã lắp ([chuẩn bị nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md) mục 5.1). Còn giai đoạn 6 xác nhận toàn hệ thống trước khi chạy tự động trên sàn (mục 1.3); nó không phải điều kiện trước giai đoạn 5. Lộ trình và các đợt mua cũng có ở sơ đồ 8.1–8.2 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
 
 ## 4. Giai đoạn 0 — mô phỏng
 
-**Hiện tại (30/09/2026):** đạt sáu điều kiện chuyển bước ở mức mô phỏng ngày 20/09/2026 (chạy trên laptop, thông số xe giả định). Ngày 29/09/2026 `phase0` chạy lại trên máy bàn hiện tại (mã `b37e9ee`) cho năm phiên trùng từng giá trị với đợt 20/09, vẫn chỉ là mô phỏng ([tóm tắt kiểm lại](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.1).
+**Hiện tại (30/09/2026):** đạt sáu điều kiện chuyển bước ở mức mô phỏng ngày 20/09/2026, chạy trên laptop với thông số xe giả định. Ngày 29/09/2026 `phase0` chạy lại trên máy bàn hiện tại (mã `b37e9ee`) và cho năm phiên trùng từng giá trị với đợt 20/09. Đó vẫn chỉ là mô phỏng ([tóm tắt kiểm lại](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.1).
 
 **Làm:** sa bàn, đích, động học, tìm/bám đường, toàn thân/vùng quét, lỗi giả, log/replay. Khi có thiết bị có thể thử từng cảm biến độc lập.
 
@@ -212,13 +255,23 @@ Mũi tên từ đợt mua tới giai đoạn là điều kiện cần có thiế
 - [x] Xem trước không phát lệnh đến phần cứng.
 - [x] Ghi lại đủ cấu hình và log để chạy lại cùng kịch bản.
 
-**Kết quả 20/09/2026:** sáu điều kiện trên đã kiểm chứng ở mức mô phỏng trong `autopark`; xem [báo cáo](BAO_CAO_GIAI_DOAN_0.md), [biên bản và giới hạn](autopark/docs/GIAI_DOAN_0.md), [dataset và kiểm tra nhãn](autopark/datasets/DANH_MUC_DATASET.md). Không diễn giải thành kết quả xe thật.
+**Kết quả 20/09/2026:** sáu điều kiện trên đã kiểm chứng ở mức mô phỏng trong `autopark`. Xem [báo cáo](BAO_CAO_GIAI_DOAN_0.md), [biên bản và giới hạn](autopark/docs/GIAI_DOAN_0.md), [dataset và kiểm tra nhãn](autopark/datasets/DANH_MUC_DATASET.md). Không diễn giải thành kết quả xe thật.
 
-**Nếu chưa đạt:** sửa dữ liệu/hình học/logic tại mô phỏng. Không cần mua thêm cảm biến để xử lý một lỗi thuần phần mềm.
+**Nếu chưa đạt:** sửa dữ liệu, hình học hoặc logic tại mô phỏng. Không cần mua thêm cảm biến để xử lý một lỗi thuần phần mềm.
 
 ## 5. Giai đoạn 1 — LiDAR và camera mẫu
 
-**Hiện tại (30/09/2026):** đang làm; [cổng 1 CHƯA ĐẠT](autopark/docs/gate_01.md). Ba kết quả LiDAR: đọc scan **đạt** trên máy bàn (22/09 và 24/09/2026 trên máy bàn trước; 29/09/2026 trên máy bàn hiện tại, COM3, 10,00 Hz, trung vị 508 tia/vòng); tạo map **một phần** (bản đồ lưới tĩnh từ một vị trí); định vị lại **chưa** (công cụ mới chạy offline trên bản ghi, chưa có tham chiếu độc lập). Chưa đo sai số khoảng cách so với thước. Camera đã đo mode, FPS và bốn luồng trên máy bàn; chưa đặt ở độ cao/góc dự kiến, chưa hiệu chuẩn, chưa chấm AI trên ảnh thật. Laptop trình diễn chưa thử. [Thử LiDAR](autopark/docs/GIAI_DOAN_1_LIDAR.md), [thử camera](autopark/docs/GIAI_DOAN_1_CAMERA.md), [định vị](autopark/docs/DINH_VI_LIDAR.md), [kiểm trên máy bàn hiện tại](autopark/docs/CHUYEN_MAY_BAN.md) mục 2.
+**Hiện tại (30/09/2026):** đang làm; [cổng 1 chưa đạt](autopark/docs/gate_01.md).
+
+- LiDAR có ba kết quả, tách riêng:
+  - đọc scan **đạt** trên máy bàn: 22/09 và 24/09/2026 trên máy bàn trước; 29/09/2026 trên máy bàn hiện tại (COM3, 10,00 Hz, trung vị 508 tia/vòng);
+  - tạo map **một phần**: bản đồ lưới tĩnh từ một vị trí;
+  - định vị lại **chưa**: công cụ mới chạy offline trên bản ghi, chưa có tham chiếu độc lập.
+- Chưa đo sai số khoảng cách của LiDAR so với thước.
+- Camera đã đo mode, FPS và bốn luồng trên máy bàn. Camera chưa đặt ở độ cao/góc dự kiến, chưa hiệu chuẩn, chưa chấm AI trên ảnh thật.
+- Laptop trình diễn chưa thử.
+
+Nguồn: [thử LiDAR](autopark/docs/GIAI_DOAN_1_LIDAR.md), [thử camera](autopark/docs/GIAI_DOAN_1_CAMERA.md), [định vị](autopark/docs/DINH_VI_LIDAR.md), [kiểm trên máy bàn hiện tại](autopark/docs/CHUYEN_MAY_BAN.md) mục 2.
 
 **Khi chờ đồ:** nguồn phát lại, hợp đồng dữ liệu, khảo sát đầu vào của phương án mapping/định vị.
 
@@ -231,63 +284,80 @@ Tách ba kết quả LiDAR: đọc scan, tạo map, định vị lại. Scan t�
 ### Mục tiêu cần đạt / điều kiện chuyển bước
 
 - [ ] Laptop nhận LiDAR và camera ổn ở mode đã ghi rõ. *Máy bàn: LiDAR đạt (Standard, 460800 bps); bốn camera qua hub chỉ dùng được ở 640×480. Laptop: chưa thử.*
-- [ ] Có dữ liệu và phép thử lưu/nạp bản đồ; phần định vị chưa đạt được báo riêng. *Có phép thử lưu/nạp ở mức bản đồ lưới tĩnh; định vị báo riêng, chưa đạt vì chưa có vị trí tham chiếu đo bằng thước.*
-- [ ] Camera đủ nét trong vùng làm việc; hiệu chuẩn được và chạy AI trên ảnh thật. *Mã hiệu chuẩn fisheye mới kiểm trên ảnh tổng hợp; AI chạy trực tiếp trên bốn camera để đo thời gian, chưa đo lỗi vì chưa có ảnh sa bàn có nhãn.*
-- [ ] Có số đo, không chỉ nhận xét video “mượt”. *Có tần số, tia/vòng, FPS, khung hỏng, thời gian suy luận; chưa đo sai số khoảng cách LiDAR, độ trễ từ sự kiện thật tới khung ảnh và mọi số trên laptop.*
-- [ ] **Chỉ quyết định mua thêm ba camera sau khi mẫu vượt kiểm tra đơn camera.** *Đã mua đủ bốn trước khi thử (mục 3); bài thử đơn camera ngày 23/09/2026 đạt về mode và FPS, chưa đạt về vùng làm việc và hiệu chuẩn.*
+- [ ] Có dữ liệu và phép thử lưu/nạp bản đồ; phần định vị chưa đạt được báo riêng. *Có phép thử lưu/nạp ở mức bản đồ lưới tĩnh. Định vị báo riêng, chưa đạt vì chưa có vị trí tham chiếu đo bằng thước.*
+- [ ] Camera đủ nét trong vùng làm việc; hiệu chuẩn được và chạy AI trên ảnh thật. *Mã hiệu chuẩn fisheye mới kiểm trên ảnh tổng hợp. AI chạy trực tiếp trên bốn camera để đo thời gian, chưa đo lỗi vì chưa có ảnh sa bàn có nhãn.*
+- [ ] Có số đo, không chỉ nhận xét video “mượt”. *Đã có tần số, tia/vòng, FPS, khung hỏng, thời gian suy luận. Chưa đo sai số khoảng cách LiDAR, độ trễ từ sự kiện thật tới khung ảnh, và chưa có số nào trên laptop.*
+- [ ] **Chỉ quyết định mua thêm ba camera sau khi mẫu vượt kiểm tra đơn camera.** *Đã mua đủ bốn trước khi thử (mục 3). Bài thử đơn camera ngày 23/09/2026 đạt về mode và FPS, chưa đạt về vùng làm việc và hiệu chuẩn.*
 
 **Nếu camera chưa đạt:** thử cấu hình hoặc model khác trước khi nhân số lượng. **Nếu LiDAR đến trước:** làm scan/map và tiếp tục AI với dữ liệu lưu sẵn; không chờ camera.
 
 ## 6. Giai đoạn 2 — bốn camera và BEV
 
-**Hiện tại (30/09/2026):** đang làm, cổng chưa đạt. Bàn thử bốn camera + LiDAR + AI chạy trên máy bàn, mặc định 640×480. Lượt kiểm máy bàn hiện tại ngày 29/09/2026 (`do_may_moi.cmd`, mã `9d68257`): 480p + LiDAR + AI trong 120 s được 2.861 bộ ảnh, 0 khung hỏng, 23,85 bộ AI/s; cảnh camera lúc đo không ghi lại. Có ghi và phát lại phiên bàn thử. Còn thiếu hiệu chuẩn nội tham, ngoại tham, ROI và gá thật; BEV mới kiểm trên rig tổng hợp. [Bàn thử](autopark/docs/GIAI_DOAN_2_BAN_THU.md), [BEV](autopark/docs/BEV.md), [ghi/phát lại](autopark/docs/GHI_PHAT_LAI_BAN_THU.md), [kiểm trên máy bàn hiện tại](autopark/docs/CHUYEN_MAY_BAN.md) mục 2.
+**Hiện tại (30/09/2026):** đang làm, cổng chưa đạt.
+
+- Bàn thử bốn camera + LiDAR + AI chạy trên máy bàn, mặc định 640×480.
+- Lượt kiểm máy bàn hiện tại ngày 29/09/2026 (`do_may_moi.cmd`, mã `9d68257`): 480p + LiDAR + AI trong 120 s được 2.861 bộ ảnh, 0 khung hỏng, 23,85 bộ AI/s. Cảnh camera lúc đo không được ghi lại.
+- Có ghi và phát lại phiên bàn thử.
+- Còn thiếu hiệu chuẩn nội tham, ngoại tham, ROI và gá thật. BEV (lưới chiếm chỗ nhìn từ trên xuống, dựng từ AI trên nhiều camera) mới kiểm trên rig tổng hợp.
+
+Nguồn: [bàn thử](autopark/docs/GIAI_DOAN_2_BAN_THU.md), [BEV](autopark/docs/BEV.md), [ghi/phát lại](autopark/docs/GHI_PHAT_LAI_BAN_THU.md), [kiểm trên máy bàn hiện tại](autopark/docs/CHUYEN_MAY_BAN.md) mục 2.
 
 **Khi chờ:** nguồn phát lại bốn hướng, hàng đợi giới hạn, đo từng khối và kiểm sai lệch thời gian.
 
-**Có đồ:** thử cả bốn với LiDAR + AI; ghi USB/nguồn/cách gán hướng; đo nội/ngoại tham; dựng ROI; đặt vật có tọa độ biết trước để chấm BEV và vùng che khuất. Thử A/B dây ngắn–dài.
+**Có đồ:** thử cả bốn camera với LiDAR + AI; ghi USB, nguồn và cách gán hướng; đo nội/ngoại tham; dựng ROI; đặt vật có tọa độ biết trước để chấm BEV và vùng che khuất. Thử A/B dây ngắn và dây dài.
 
-720p30 MJPEG là mục tiêu khảo sát ban đầu; mặc định triển khai hiện là **640×480** vì các phiên 720p có khung cắt. Cùng FPS không chứng minh ảnh chụp đồng thời.
+720p30 MJPEG là mục tiêu khảo sát ban đầu. Mặc định triển khai hiện là **640×480**, vì các phiên 720p có khung bị cắt. Cùng FPS không chứng minh ảnh được chụp đồng thời.
 
 **Đầu ra:** gá, bộ hiệu chuẩn, USB topology, log, vùng quan sát, sai số BEV. Không chiếu toàn bộ vật cao xuống sàn rồi coi đó là footprint đúng.
 
 ### Mục tiêu cần đạt / điều kiện chuyển bước
 
-- [ ] Bốn camera chạy đồng thời ở mode đã thống nhất; có báo cáo tải và mất hình. *Có số đo ở 640×480 trên máy bàn; ở 720p khung MJPEG bị cắt khi bốn camera chạy chung; 480p cũng từng có đợt khung hỏng chưa rõ nguyên nhân. Chưa đo trên laptop.*
-- [ ] Đọc đúng camera theo đúng hướng sau khi khởi động lại. *Máy bàn trước (23/09/2026): sau khởi động lại, định danh theo cổng hub giữ nguyên, chỉ số OpenCV đổi, nên chọn camera theo cổng. Máy bàn hiện tại chưa khởi động lại để kiểm (N-C5). Camera chưa gá.*
+- [ ] Bốn camera chạy đồng thời ở mode đã thống nhất; có báo cáo tải và mất hình. *Có số đo ở 640×480 trên máy bàn. Ở 720p khung MJPEG bị cắt khi bốn camera chạy chung; 480p cũng từng có đợt khung hỏng chưa rõ nguyên nhân. Chưa đo trên laptop.*
+- [ ] Đọc đúng camera theo đúng hướng sau khi khởi động lại. *Máy bàn trước (23/09/2026): sau khởi động lại, định danh theo cổng hub giữ nguyên còn chỉ số OpenCV đổi, nên chọn camera theo cổng. Máy bàn hiện tại chưa khởi động lại để kiểm (N-C5). Camera chưa gá.*
 - [ ] Có bộ hiệu chuẩn đa camera gắn với gá thực. *Chưa có tệp nội tham nào; ngoại tham `v0` là giả định.*
 - [ ] Vật mẫu xuất hiện tại vị trí có thể đối chiếu trên BEV, không chỉ hiện một ô màu bất kỳ. *Chưa: BEV chưa chạy trên camera dự án.*
-- [ ] Vùng chưa quan sát/thiếu tin cậy được giữ là `UNKNOWN`, không mặc định `FREE`. *Có trong mã BEV và hợp nhất, kiểm trên rig tổng hợp; chưa kiểm với camera thật.*
+- [ ] Vùng chưa quan sát hoặc thiếu tin cậy được giữ là `UNKNOWN`, không mặc định `FREE`. *Có trong mã BEV và hợp nhất, kiểm trên rig tổng hợp; chưa kiểm với camera thật.*
 - [ ] Có thử riêng dây kéo dài trước khi đưa vào vận hành xe. *Chưa; kiểm kê chưa ghi loại và chiều dài dây camera.*
 
-**Nếu chưa đạt:** quay về bài thử cổng/nguồn/mode từng bước. Không mặc định đổi hub đắt hơn sẽ giải quyết mọi vấn đề; ghi nguyên nhân và bằng chứng trước khi mua lại.
+**Nếu chưa đạt:** quay về bài thử cổng, nguồn và mode từng bước. Không mặc định rằng đổi sang hub đắt hơn sẽ giải quyết mọi vấn đề; ghi nguyên nhân và bằng chứng trước khi mua lại.
 
 ## 7. Giai đoạn 3 — hợp nhất trên bàn
 
-**Hiện tại (30/09/2026):** mới có phần mềm, kiểm bằng nguồn giả; chờ IMU, ToF và ESP32-S3 (đợt 3). Có các lớp bản đồ (`fusion/layers.py`), quy tắc hợp nhất (`fusion/fuse.py`) và cầu nối vào phiên đỗ (`fusion/bridge.py`). Đầu vào thật duy nhất đang tạo vật cản là LiDAR C1 đứng yên trên bàn: xe ảo lập đường quanh đồ vật thật và đỗ xong (22/09/2026); chưa thử đưa vật vào đường khi xe ảo đang chạy. AI camera cũng đã nối vào phiên đỗ làm nguồn vật cản thứ hai (`fusion/camera_ai.py`, `b01dea4`, 25/09/2026), nhưng chưa camera nào được hiệu chuẩn nên mọi lô bị chặn, không tạo vật cản nào; mới kiểm bằng nguồn giả, rig tổng hợp và phát lại bản ghi thật, chưa thử với camera đang chạy ([AI trong vòng điều khiển](autopark/docs/AI_DIEU_KHIEN_XE.md)). Cầu nối ToF → `NearFieldReading` mới thử với telemetry của bo mô phỏng qua cổng serial giả; chưa có số đo IMU hay ToF thật nào. [Chuẩn bị hợp nhất](autopark/docs/GIAI_DOAN_3_CHUAN_BI.md).
+**Hiện tại (30/09/2026):** mới có phần mềm, kiểm bằng nguồn giả; chờ IMU, ToF và ESP32-S3 (đợt 3).
+
+- Có các lớp bản đồ (`fusion/layers.py`), quy tắc hợp nhất (`fusion/fuse.py`) và cầu nối vào phiên đỗ (`fusion/bridge.py`).
+- Đầu vào thật duy nhất đang tạo vật cản là LiDAR C1 đứng yên trên bàn. Với nó, xe ảo lập đường quanh đồ vật thật và đỗ xong (22/09/2026). Chưa thử đưa vật vào đường khi xe ảo đang chạy.
+- AI camera cũng đã nối vào phiên đỗ làm nguồn vật cản thứ hai (`fusion/camera_ai.py`, `b01dea4`, 25/09/2026). Nhưng chưa camera nào được hiệu chuẩn, nên mọi lô bị chặn và không tạo vật cản nào. Nhánh này mới kiểm bằng nguồn giả, rig tổng hợp và phát lại bản ghi thật, chưa thử với camera đang chạy ([AI trong vòng điều khiển](autopark/docs/AI_DIEU_KHIEN_XE.md)).
+- Cầu nối ToF → `NearFieldReading` mới thử với telemetry của bo mô phỏng qua cổng serial giả. Chưa có số đo IMU hay ToF thật nào.
+
+[Chuẩn bị hợp nhất](autopark/docs/GIAI_DOAN_3_CHUAN_BI.md).
 
 **Khi chờ:** telemetry giả, thời hạn dữ liệu, đổi hệ tọa độ và logic vật mới → dừng → đánh giá lại.
 
-**Có đồ:** đọc từng cảm biến qua ESP32; đo dấu/trục IMU; thử ToF với vật liệu/khoảng cách/timeout; chuyển về hệ rig; đối chiếu vật biết vị trí. Chưa nối chấp hành ở bước kiểm đọc cảm biến.
+**Có đồ:** đọc từng cảm biến qua ESP32; đo dấu và trục IMU; thử ToF với vật liệu/khoảng cách/timeout; chuyển về hệ rig; đối chiếu vật biết vị trí. Chưa nối chấp hành ở bước kiểm đọc cảm biến.
 
-**Đầu ra:** firmware cảm biến, dây, telemetry có timestamp/cờ hợp lệ, log đồng bộ, map/BEV và bài thử vật cản.
+**Đầu ra:** firmware cảm biến, dây, telemetry có timestamp và cờ hợp lệ, log đồng bộ, map/BEV và bài thử vật cản.
 
 ### Mục tiêu cần đạt / điều kiện chuyển bước
 
 - [ ] IMU/ToF thật được đọc qua một đường giao tiếp đã xác định. *Chưa có thiết bị; firmware chưa có mã đọc cảm biến.*
-- [ ] Mỗi số đo có thời gian và trạng thái; lỗi sensor không bị biến thành giá trị khoảng cách “an toàn”. *Có trong giao thức và phần mềm (số đo không hợp lệ gửi 0 kèm cờ hợp lệ 0), mới kiểm bằng nguồn giả.*
+- [ ] Mỗi số đo có thời gian và trạng thái; lỗi sensor không bị biến thành giá trị khoảng cách “an toàn”. *Có trong giao thức và phần mềm: số đo không hợp lệ gửi 0 kèm cờ hợp lệ 0. Mới kiểm bằng nguồn giả.*
 - [ ] Global map và local BEV đặt được vào cùng phép mô tả tọa độ. *Có phép biến đổi và test với vị trí biết trước; chưa có BEV từ camera thật.*
 - [ ] Vật mới làm đường mất hiệu lực; phần mềm phát dừng và phân biệt đường bị chắn với chính đích bị chiếm. *Hủy đường và dừng có trong mô phỏng và với nguồn quét kịch bản; chưa thử với vật thật đặt vào đường khi xe ảo đang chạy.*
-- [ ] Có log cho `STOP → quan sát lại → cập nhật → replan/chờ`. *Chuỗi trạng thái có trong mô phỏng (`MAP_CHANGED`, `WAIT_REPLAN`). Từ 02/10/2026 mỗi quyết định dừng của phiên chạy qua `VehicleIO` thành một dòng `session_stop` của `events.csv` (công cụ T13 của [kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 7), mới kiểm với bo mô phỏng và cổng serial giả; chưa thử với cảm biến thật.*
+- [ ] Có log cho `STOP → quan sát lại → cập nhật → replan/chờ`. *Chuỗi trạng thái có trong mô phỏng (`MAP_CHANGED`, `WAIT_REPLAN`). Từ 02/10/2026 mỗi quyết định dừng của phiên chạy qua `VehicleIO` thành một dòng `session_stop` trong `events.csv`; đó là công cụ T13 của [kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 7. Mới kiểm với bo mô phỏng và cổng serial giả, chưa thử với cảm biến thật.*
 
-**Giới hạn bằng chứng:** giai đoạn này chứng minh nhận thức và logic; chưa chứng minh quãng đường dừng hoặc độ chính xác đỗ thật.
+**Giới hạn bằng chứng:** giai đoạn này chứng minh nhận thức và logic; chưa chứng minh quãng đường dừng hay độ chính xác đỗ thật.
 
 ## 8. Giai đoạn 4 — nhận và đo MN300
 
-**Hiện tại (30/09/2026):** chờ xe (đợt 4). Phần “khi chờ” đã làm: [phiếu kiểm kê MN300](autopark/docs/mn300_inventory.md) và bảng đo B0–B8 đã soạn, mọi ô CHƯA ĐO; công cụ `evaluation/sensitivity.py` và hai lượt thử độ nhạy planner theo kích thước giả định (chỉ mô phỏng, 24/09/2026, [độ nhạy kích thước xe](autopark/docs/DO_NHAY_KICH_THUOC_XE.md)). Chưa nhận, chưa đo xe; `configs/vehicle_default.json` là giả định, không phải thông số MN300.
+**Hiện tại (30/09/2026):** chờ xe (đợt 4). Chưa nhận, chưa đo xe; `configs/vehicle_default.json` là giả định, không phải thông số MN300. Phần “khi chờ” đã làm:
+
+- [phiếu kiểm kê MN300](autopark/docs/mn300_inventory.md) và bảng đo B0–B8 đã soạn, mọi ô ghi CHƯA ĐO;
+- công cụ `evaluation/sensitivity.py` và hai lượt thử độ nhạy planner theo kích thước giả định, chỉ mô phỏng, 24/09/2026 ([độ nhạy kích thước xe](autopark/docs/DO_NHAY_KICH_THUOC_XE.md)).
 
 **Khi chờ:** chuẩn bị phiếu B0–B8 và kiểm độ nhạy planner với kích thước giả định.
 
-**Có xe:** kiểm gói thực giao, cơ khí/bộ điện; đo thân xe, chiều dài cơ sở, góc lái, bán kính quay, tốc độ thấp, đặc tính phanh/lùi và vị trí gá. Xác định quan hệ góc cảm biến với góc bánh.
+**Có xe:** kiểm gói thực giao, cơ khí và bộ điện; đo thân xe, chiều dài cơ sở, góc lái, bán kính quay, tốc độ thấp, đặc tính phanh/lùi và vị trí gá. Xác định quan hệ giữa góc cảm biến và góc bánh.
 
 **Đầu ra:** ảnh kiểm kê, số đo và cấu hình xe có nguồn gốc. [Hướng dẫn đo](autopark/docs/GIAI_DOAN_4_CHUAN_BI.md).
 
@@ -303,40 +373,45 @@ Tách ba kết quả LiDAR: đọc scan, tạo map, định vị lại. Scan t�
 
 ## 9. Giai đoạn 5 — ESP32 và điều khiển có phản hồi
 
-**Hiện tại (30/09/2026):** có phần mềm và giả lập, chờ bo ESP32-S3 (đợt 3) và xe (đợt 4). **CHƯA NẠP, CHƯA CHẠY trên bo nào.** Đã xong:
+**Hiện tại (30/09/2026):** có phần mềm và giả lập, chờ bo ESP32-S3 (đợt 3) và xe (đợt 4). **Chưa nạp, chưa chạy trên bo nào.** Đã xong:
 
 - giao thức, bo mô phỏng (`FirmwareModel`) và `VehicleIO` có test; phiên đỗ xe chạy qua `VehicleIO` với bo mô phỏng ([giao thức](autopark/docs/GIAO_THUC_XE.md), [chế độ quan sát](autopark/docs/CHE_DO_QUAN_SAT.md));
 - lõi C++ `src/core` biên dịch và khớp bản Python qua test host: 703 check, 0 lệch (29/09/2026, máy bàn, g++ 16.1.0, cmake 4.4.1; [bằng chứng](autopark/docs/evidence/chuyen_may_20260929/firmware_host_20260929.txt));
 - cả firmware biên dịch cho ESP32-S3 bằng PlatformIO (`pio run -e esp32s3`, espressif32 7.1.3 = Arduino-ESP32 2.0.17): 0 lỗi, 0 cảnh báo (29/09/2026; [bằng chứng](autopark/docs/evidence/chuyen_may_20260929/firmware_esp32_20260929.txt));
-- firmware thật chạy trong bo ảo QEMU (env `esp32s3_qemu`, `Serial` qua UART0), laptop nói chuyện bằng đúng `SerialVehicleIO`; `tests/test_firmware_qemu.py` (13 test, 6 trong đó chạy firmware thật trong QEMU) đạt cả 10/10 lượt chạy lặp trên commit `ebbec83` (30/09/2026; [mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md)).
+- firmware thật chạy trong bo ảo QEMU (env `esp32s3_qemu`, `Serial` qua UART0), và laptop nói chuyện với nó bằng đúng `SerialVehicleIO`. `tests/test_firmware_qemu.py` có 13 test, 6 trong đó chạy firmware thật trong QEMU; bộ này đạt cả 10/10 lượt chạy lặp trên commit `ebbec83` (30/09/2026; [mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md)).
 
-Bo ảo không có PWM/LEDC, GPIO vào (E-stop), I2C, USB-CDC thật và không cho watchdog phần cứng (task watchdog) kích hoạt, nên không thay được đo trên bo. Firmware chưa có mã đọc cảm biến (encoder, AS5600, BNO085, VL53L1X, điện áp nguồn); giao diện chưa chọn được bo ảo. [README firmware](autopark/firmware/esp32_vehicle/README.md).
+Bo ảo không có PWM/LEDC, GPIO vào (E-stop), I2C, USB-CDC thật, và không cho watchdog phần cứng (task watchdog) kích hoạt. Vì vậy nó không thay được phép đo trên bo. Firmware chưa có mã đọc cảm biến (encoder, AS5600, BNO085, VL53L1X, điện áp nguồn); giao diện chưa chọn được bo ảo. [README firmware](autopark/firmware/esp32_vehicle/README.md).
 
-**Khi chờ:** đặc tả giao thức, bo giả, test vector, kiểm trạng thái kết nối và lệnh hết hạn; biên dịch/test host khi có toolchain. Các việc này đã làm: toolchain có trên máy bàn từ 29/09/2026, bo ảo QEMU từ 30/09/2026. Còn thiếu bo để nạp và đo.
+**Khi chờ:** đặc tả giao thức, bo giả, test vector, kiểm trạng thái kết nối và lệnh hết hạn; biên dịch và test host khi có toolchain. Các việc này đã làm: toolchain có trên máy bàn từ 29/09/2026, bo ảo QEMU từ 30/09/2026. Còn thiếu bo để nạp và đo.
 
-**Có đồ:** đo tín hiệu/giới hạn ESC–servo; đọc encoder/góc lái; kiểm hướng và điều khiển phản hồi; thử mất lệnh/reset. Chỉ thử chấp hành khi phần nguồn/dừng của bước thử đã sẵn sàng.
+**Có đồ:** đo tín hiệu và giới hạn ESC–servo; đọc encoder/góc lái; kiểm hướng và điều khiển phản hồi; thử mất lệnh/reset. Chỉ thử chấp hành khi phần nguồn và dừng của bước thử đã sẵn sàng.
 
-**Đầu ra:** firmware đã biên dịch/nạp, hiệu chuẩn, log đáp ứng và giao thức khớp laptop. START trên xe cần nguồn tư thế thật; quan sát không gửi lệnh chạy.
+**Đầu ra:** firmware đã biên dịch và nạp, hiệu chuẩn, log đáp ứng và giao thức khớp laptop. START trên xe cần nguồn tư thế thật; chế độ quan sát không gửi lệnh chạy.
 
 ### Mục tiêu cần đạt / điều kiện chuyển bước
 
-- [ ] Nhận lệnh đúng đơn vị và chỉ chạy khi được cho phép. *Đã kiểm ở bản Python, test host và bo ảo QEMU (ARM rồi COMMAND có enable → RUNNING; COMMAND khi DISARMED bị từ chối BAD_STATE); trên bo: CHƯA THỬ.*
+- [ ] Nhận lệnh đúng đơn vị và chỉ chạy khi được cho phép. *Đã kiểm ở bản Python, test host và bo ảo QEMU: ARM rồi COMMAND có enable → RUNNING; COMMAND khi DISARMED bị từ chối BAD_STATE. Trên bo: chưa thử.*
 - [ ] Đo được tốc độ/góc lái; đã kiểm tra dấu và hệ số quy đổi. *Chưa có encoder, AS5600; firmware chưa có mã đọc.*
 - [ ] Có số đo sai số bám tốc độ/góc ở miền thử nghiệm. *Chưa (cần xe và phản hồi).*
 - [ ] Đổi tiến/lùi theo trình tự đã kiểm chứng trên bộ điện thực. *Chưa có ESC thật (chưa nhận xe).*
-- [ ] Mất lệnh/reset làm hệ thống về trạng thái đã thiết kế; reconnect không tự chạy tiếp. *Hết hạn lệnh, laptop im và reset chip đã kiểm trong bo ảo QEMU (30/09/2026); trên bo: CHƯA THỬ.*
+- [ ] Mất lệnh/reset làm hệ thống về trạng thái đã thiết kế; reconnect không tự chạy tiếp. *Hết hạn lệnh, laptop im lặng và reset chip đã kiểm trong bo ảo QEMU (30/09/2026). Trên bo: chưa thử.*
 
-**Nếu chưa đạt:** phân biệt lỗi đo, cơ khí, nguồn và bộ điều khiển; không tăng gain tùy tiện để bù một encoder lắp sai hoặc tín hiệu không hợp lệ.
+**Nếu chưa đạt:** phân biệt lỗi đo, cơ khí, nguồn và bộ điều khiển. Không tăng gain tùy tiện để bù một encoder lắp sai hoặc tín hiệu không hợp lệ.
 
 ## 10. Giai đoạn 6 — nguồn và dừng
 
-**Hiện tại (30/09/2026):** chờ thiết bị (đợt 6). Có bản nháp ngày 24/09/2026: bảng tải, sơ đồ cấp điện và đường dừng, bảng định mức cần kiểm, 16 kịch bản lỗi L1–L16 với các mức thử R, M0–M3; mọi kịch bản CHƯA THỬ. Chưa có phần cứng nguồn hay dừng nào; chưa đo điện áp hay dòng của thiết bị nào. Tác dụng của `output_guard`, móc panic, task watchdog khi kích hoạt và ngõ vào E-stop thật của firmware chưa được kiểm ở đâu (bo ảo QEMU không có LEDC, GPIO vào và không cho watchdog phần cứng kích hoạt). Chỉ phần logic đã kiểm trên máy tính: watchdog liên lạc 500 ms (`LINK_TIMEOUT`) và hết hạn lệnh ở bản Python, test host và bo ảo QEMU; logic chốt E-stop (vector `estop_latch`) ở bản Python và test host (mục 16.4).
+**Hiện tại (30/09/2026):** chờ thiết bị (đợt 6).
 
-**Khi chờ:** bảng tải, sơ đồ cấp điện/đường dừng, định mức cần kiểm, kịch bản lỗi.
+- Có bản nháp ngày 24/09/2026: bảng tải, sơ đồ cấp điện và đường dừng, bảng định mức cần kiểm, 16 kịch bản lỗi L1–L16 với các mức thử R, M0–M3. Mọi kịch bản chưa thử.
+- Chưa có phần cứng nguồn hay dừng nào; chưa đo điện áp hay dòng của thiết bị nào.
+- Tác dụng của `output_guard`, móc panic, task watchdog khi kích hoạt và ngõ vào E-stop thật của firmware chưa được kiểm ở đâu. Bo ảo QEMU không có LEDC, GPIO vào và không cho watchdog phần cứng kích hoạt.
+- Chỉ phần logic đã kiểm trên máy tính: watchdog liên lạc 500 ms (`LINK_TIMEOUT`) và hết hạn lệnh ở bản Python, test host và bo ảo QEMU; logic chốt E-stop (vector `estop_latch`) ở bản Python và test host (mục 16.4).
 
-**Có đồ:** đo từng nhánh và tải chung; kiểm sụt áp/reset/nhiệt; dừng phần mềm, mất lệnh, E-stop và reconnect. Xác định phần tử ngắt động lực; nút E-stop và cờ FAULT không tự chứng minh xe đã dừng.
+**Khi chờ:** bảng tải, sơ đồ cấp điện và đường dừng, định mức cần kiểm, kịch bản lỗi.
 
-**Đầu ra:** bảng đo, sơ đồ hoàn công, kịch bản lỗi có log. [Hướng dẫn nguồn/dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md).
+**Có đồ:** đo từng nhánh và tải chung; kiểm sụt áp, reset, nhiệt; thử dừng phần mềm, mất lệnh, E-stop và reconnect. Xác định phần tử ngắt động lực. Nút E-stop và cờ FAULT không tự chứng minh xe đã dừng.
+
+**Đầu ra:** bảng đo, sơ đồ hoàn công, kịch bản lỗi có log. [Hướng dẫn nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md).
 
 ### Mục tiêu cần đạt / điều kiện chuyển bước
 
@@ -348,13 +423,13 @@ Bo ảo không có PWM/LEDC, GPIO vào (E-stop), I2C, USB-CDC thật và không 
 
 ## 11. Giai đoạn 7 — gá cảm biến lên xe
 
-**Hiện tại (30/09/2026):** chưa làm; chờ xe (đợt 4) và số đo xe (giai đoạn 4). Phương án gá mới ở mức khái niệm ([chuẩn bị đo xe](autopark/docs/GIAI_DOAN_4_CHUAN_BI.md) mục 6). Ngoại tham camera trong `configs/rig/camera_rig_extrinsics_v0.json` là giả định; công cụ đo ngoại tham và dựng ROI đã có nhưng mới kiểm trên ảnh tổng hợp ([ngoại tham và ROI](autopark/docs/NGOAI_THAM_VA_ROI.md)).
+**Hiện tại (30/09/2026):** chưa làm; chờ xe (đợt 4) và số đo xe (giai đoạn 4). Phương án gá mới ở mức khái niệm ([chuẩn bị đo xe](autopark/docs/GIAI_DOAN_4_CHUAN_BI.md) mục 6). Ngoại tham camera trong `configs/rig/camera_rig_extrinsics_v0.json` là giả định. Công cụ đo ngoại tham và dựng ROI đã có, nhưng mới kiểm trên ảnh tổng hợp ([ngoại tham và ROI](autopark/docs/NGOAI_THAM_VA_ROI.md)).
 
 **Khi chờ:** thiết kế sơ bộ và quy ước tọa độ từ số đo xe.
 
-**Có đồ:** gá cứng, giữ vùng nhìn, quản lý dây, đo lại ngoại tham/ROI và các vùng mù, kiểm khi rung/chuyển động.
+**Có đồ:** gá cứng, giữ vùng nhìn, quản lý dây, đo lại ngoại tham/ROI và các vùng mù, kiểm khi rung và chuyển động.
 
-**Đầu ra:** bản vẽ/ảnh gá, hệ tọa độ, bộ hiệu chuẩn trên xe và log kiểm.
+**Đầu ra:** bản vẽ hoặc ảnh gá, hệ tọa độ, bộ hiệu chuẩn trên xe và log kiểm.
 
 ### Mục tiêu cần đạt / điều kiện chuyển bước
 
@@ -365,11 +440,11 @@ Bo ảo không có PWM/LEDC, GPIO vào (E-stop), I2C, USB-CDC thật và không 
 
 ## 12. Giai đoạn 8 — hợp nhất khi xe chuyển động
 
-**Hiện tại (30/09/2026):** mới có phần mềm chuẩn bị, chưa kiểm trên xe. Tư thế xe trong phiên đỗ lấy từ mô phỏng; với bo thật, START bị từ chối (`START_NO_POSE_SOURCE`) vì chưa có nguồn tư thế thật. Định vị LiDAR trên bản đồ tĩnh và odometry khớp scan mới chạy offline trên bản ghi C1 đứng yên, chưa có tham chiếu độc lập, chưa nối vào phiên ([định vị](autopark/docs/DINH_VI_LIDAR.md); [so sánh phương án](autopark/docs/SO_SANH_DINH_VI_SLAM.md), ĐỀ XUẤT – CHỜ CHỐT).
+**Hiện tại (30/09/2026):** mới có phần mềm chuẩn bị, chưa kiểm trên xe. Tư thế xe trong phiên đỗ lấy từ mô phỏng; với bo thật, START bị từ chối (`START_NO_POSE_SOURCE`) vì chưa có nguồn tư thế thật. Định vị LiDAR trên bản đồ tĩnh và odometry khớp scan mới chạy offline trên bản ghi C1 đứng yên, chưa có tham chiếu độc lập và chưa nối vào phiên ([định vị](autopark/docs/DINH_VI_LIDAR.md)). Phương án định vị lúc đó còn là đề xuất, chờ chốt ([so sánh phương án](autopark/docs/SO_SANH_DINH_VI_SLAM.md)).
 
-**Khi chờ:** phát lại có trễ/mất dữ liệu, kiểm đổi hệ tọa độ và phản ứng khi các lớp mâu thuẫn.
+**Khi chờ:** phát lại có trễ hoặc mất dữ liệu, kiểm đổi hệ tọa độ và phản ứng khi các lớp mâu thuẫn.
 
-**Có xe:** đồng bộ thời gian, ước lượng tư thế, chuyển dữ liệu về đúng thời điểm/hệ tọa độ, đo sai số bằng tham chiếu độc lập, kiểm khi tiến/lùi/quay.
+**Có xe:** đồng bộ thời gian, ước lượng tư thế, chuyển dữ liệu về đúng thời điểm và hệ tọa độ, đo sai số bằng tham chiếu độc lập, kiểm khi tiến/lùi/quay.
 
 **Đầu ra:** pose/map/BEV/log trên xe chuyển động, sai số và giới hạn công bố.
 
@@ -383,11 +458,16 @@ Bo ảo không có PWM/LEDC, GPIO vào (E-stop), I2C, USB-CDC thật và không 
 
 ## 13. Giai đoạn 9 — tự đỗ và vật cản
 
-**Hiện tại (30/09/2026):** chưa chạy thật (chưa có xe, bo và nguồn tư thế thật). Phần “khi chờ” đã có ở mức mô phỏng: chế độ quan sát (`OBSERVE`: phần mềm tính đường và lệnh, không gửi COMMAND nào, bo giữ DISARMED) và kiểm trạng thái trước START, mới chạy với bo mô phỏng và cổng serial giả ([chế độ quan sát](autopark/docs/CHE_DO_QUAN_SAT.md)). Các bài thử nằm trong [kịch bản nghiệm thu nháp](autopark/docs/KICH_BAN_NGHIEM_THU.md), CHƯA THỬ. Chưa có cấu hình xe đo được để dùng trong mô phỏng.
+**Hiện tại (30/09/2026):** chưa chạy thật, vì chưa có xe, bo và nguồn tư thế thật. Phần “khi chờ” đã có ở mức mô phỏng:
+
+- chế độ quan sát (`OBSERVE`): phần mềm tính đường và lệnh nhưng không gửi COMMAND nào, bo giữ DISARMED;
+- kiểm trạng thái trước START.
+
+Cả hai mới chạy với bo mô phỏng và cổng serial giả ([chế độ quan sát](autopark/docs/CHE_DO_QUAN_SAT.md)). Các bài thử nằm trong [kịch bản nghiệm thu nháp](autopark/docs/KICH_BAN_NGHIEM_THU.md), chưa thử. Chưa có cấu hình xe đo được để dùng trong mô phỏng.
 
 **Khi chờ:** dùng cấu hình xe đo được trong mô phỏng; chuẩn bị chế độ quan sát và bài thử.
 
-**Có đủ điều kiện:** quan sát trước; kiểm trạng thái đầu, xem trước; thử đỗ ở phạm vi/tốc độ đã xác nhận, rồi thử vật cản trước/sau/hông/chiếm đích.
+**Có đủ điều kiện:** quan sát trước; kiểm trạng thái đầu, xem trước; thử đỗ ở phạm vi và tốc độ đã xác nhận, rồi thử vật cản trước/sau/hông/chiếm đích.
 
 Luồng phản ứng: **phát hiện → vô hiệu đường → dừng → quan sát/cập nhật → lập lại đường hoặc giữ dừng**. V1 không cần tự lách liên tục qua vật đang chuyển động.
 
@@ -403,13 +483,32 @@ Luồng phản ứng: **phát hiện → vô hiệu đường → dừng → qua
 
 ## 14. Giai đoạn 10 — đánh giá và khóa luận
 
-**Hiện tại (30/09/2026):** có [dàn ý khóa luận](autopark/docs/DAN_Y_KHOA_LUAN.md) (đề xuất, chưa phải khóa luận), kết quả từng khối, [37 kịch bản nghiệm thu nháp](autopark/docs/KICH_BAN_NGHIEM_THU.md) trong 9 nhóm (mọi kịch bản CHƯA THỬ) và [ngưỡng đề xuất](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md) (mọi ngưỡng ĐỀ XUẤT – CHỜ CHỐT). Chưa nghiệm thu; V1 đạt 0/10 điều kiện (mục 16.4). Chưa biết mẫu của trường, kiểu trích dẫn, giới hạn trang và quy định khai báo công cụ AI. Ngày 02/10/2026 có thêm phần lớn công cụ phần mềm cho nghiệm thu ([kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 7): chấm một lần chạy (T5), tiêm lỗi có kiểm soát ở mức mô phỏng (T6), phát lại log lần chạy qua `VehicleIO` (T9), khoảng hở cuối phiên của camera (T10), camera ngoài hub (T11), giới hạn số lần đổi chiều (T12), ghi sự kiện dừng (T13), dấu đồng bộ video–log (T14), nút CLEAR_FAULT (T15); tất cả mới kiểm bằng test và mô phỏng. Còn thiếu nguồn tư thế thật (T2), ghi cảm biến trong phiên đỗ (T3), công cụ tham chiếu trên cao (T4, mới có định dạng tệp tư thế) và LED trên bo (T7); mã đọc cảm biến trong firmware (T8) vẫn chưa có, mới có cầu nối phía laptop.
+**Hiện tại (30/09/2026):** chưa nghiệm thu; V1 đạt 0/10 điều kiện (mục 16.4).
+
+- Có [dàn ý khóa luận](autopark/docs/DAN_Y_KHOA_LUAN.md) (đề xuất, chưa phải khóa luận) và kết quả từng khối.
+- Có [37 kịch bản nghiệm thu nháp](autopark/docs/KICH_BAN_NGHIEM_THU.md) trong 9 nhóm; mọi kịch bản chưa thử.
+- Có [ngưỡng đề xuất](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md); mọi ngưỡng còn là đề xuất, chờ chốt.
+- Chưa biết mẫu của trường, kiểu trích dẫn, giới hạn trang và quy định khai báo công cụ AI.
+
+Ngày 02/10/2026 có thêm phần lớn công cụ phần mềm cho nghiệm thu ([kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 7). Tất cả mới kiểm bằng test và mô phỏng:
+
+- T5: chấm một lần chạy;
+- T6: tiêm lỗi có kiểm soát ở mức mô phỏng;
+- T9: phát lại log lần chạy qua `VehicleIO`;
+- T10: khoảng hở cuối phiên của camera;
+- T11: camera ngoài hub;
+- T12: giới hạn số lần đổi chiều;
+- T13: ghi sự kiện dừng;
+- T14: dấu đồng bộ video–log;
+- T15: nút CLEAR_FAULT.
+
+Lúc đó còn thiếu nguồn tư thế thật (T2), ghi cảm biến trong phiên đỗ (T3), công cụ tham chiếu trên cao (T4, mới có định dạng tệp tư thế) và LED trên bo (T7). Mã đọc cảm biến trong firmware (T8) vẫn chưa có; mới có cầu nối phía laptop.
 
 **Khi chờ:** chốt cách chấm, tập ảnh sa bàn độc lập, mẫu báo cáo và cách ghi thất bại.
 
 **Khi tích hợp xong:** thực hiện bộ bài đã chốt, so cấu hình, lưu cả lỗi, viết rõ vùng làm việc và giới hạn.
 
-**Đầu ra:** báo cáo, dữ liệu/cấu hình tái hiện, video, hướng dẫn bàn giao.
+**Đầu ra:** báo cáo, dữ liệu và cấu hình để tái hiện, video, hướng dẫn bàn giao.
 
 ### Mục tiêu cần đạt
 
@@ -425,17 +524,17 @@ Luồng phản ứng: **phát hiện → vô hiệu đường → dừng → qua
 |---|---|
 | Camera | AI trên dữ liệu lưu sẵn, nguồn phát lại, LiDAR |
 | LiDAR | Camera, hiệu chuẩn, nhãn, mô phỏng |
-| IMU/ToF/ESP32 | Hợp đồng telemetry, nguồn giả, test logic; test host lõi C++ và bo ảo QEMU chạy firmware thật (đã có từ 29–30/09/2026; bo ảo không có PWM, GPIO vào, cảm biến) |
+| IMU/ToF/ESP32 | Hợp đồng telemetry, nguồn giả, test logic; test host lõi C++ và bo ảo QEMU chạy firmware thật (có từ 29–30/09/2026) |
 | MN300 | Bàn thử, bảng đo, độ nhạy cấu hình |
 | Nguồn/gá cuối | Thiết kế, test host, mô phỏng; chưa nghiệm thu chấp hành/xe |
 
-Không thay phép thử phần cứng bằng kết quả mô phỏng để đánh dấu đạt cổng. Kết quả trong bo ảo QEMU cũng là giả lập, không thay phép thử trên bo.
+Bo ảo QEMU không có PWM, GPIO vào và cảm biến. Không thay phép thử phần cứng bằng kết quả mô phỏng để đánh dấu đạt cổng. Kết quả trong bo ảo QEMU cũng là giả lập, không thay phép thử trên bo.
 
 ## 16. Đo lường và hoàn thành V1
 
 ### 16.1. Mốc khảo sát ban đầu
 
-720p30 MJPEG là mode dự kiến khảo sát; hiện bốn camera mặc định 480p. Phiên khoảng 30 phút là bước sàng lọc dài hạn được đề xuất (kịch bản LD-1, CHƯA THỬ). Miền tốc độ 0,05–0,15 m/s là miền cần khảo sát, không phải tốc độ đã nghiệm thu.
+720p30 MJPEG là mode dự kiến khảo sát; hiện bốn camera mặc định 480p. Phiên khoảng 30 phút là bước sàng lọc dài hạn được đề xuất (kịch bản LD-1). Tính đến 30/09/2026 LD-1 chưa thử; các lượt chạy ngày 02/10/2026 ghi ở [tổng quan](TONG_HOP_DU_AN.md) mục 4.5. Miền tốc độ 0,05–0,15 m/s là miền cần khảo sát, không phải tốc độ đã nghiệm thu.
 
 ### 16.2. Ngưỡng cần chốt
 
@@ -449,13 +548,15 @@ Không thay phép thử phần cứng bằng kết quả mô phỏng để đán
 | Tự đỗ | Sai số cuối, khoảng hở, tỷ lệ hoàn thành, thời gian, số đổi chiều |
 | Lỗi | Thời điểm phát hiện/phát lệnh/dừng thực, reconnect |
 
-[Bảng ngưỡng đề xuất](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md) chưa phải ngưỡng đã được duyệt: tính đến 02/10/2026 mọi ngưỡng N-… là ĐỀ XUẤT – CHỜ CHỐT, riêng N-K1…N-K4 (điều khiển) còn CHƯA ĐỀ XUẤT số. Từ 02/10/2026 công cụ chấm một lần chạy (T5) dùng bản sao của các ngưỡng này ở `autopark/configs/nguong_nghiem_thu.json`, cùng trạng thái; chốt ngưỡng thì sửa cả hai. UNKNOWN gồm vùng chưa quan sát/không hợp lệ/che khuất/thiếu tin cậy; thêm tên lớp không tự bảo đảm nhận ra vật lạ.
+[Bảng ngưỡng đề xuất](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md) chưa phải ngưỡng đã được duyệt. Tính đến 02/10/2026 mọi ngưỡng N-… mang trạng thái ĐỀ XUẤT – CHỜ CHỐT; riêng N-K1…N-K4 (điều khiển) còn chưa đề xuất số. Từ 02/10/2026 công cụ chấm một lần chạy (T5) dùng bản sao của các ngưỡng này ở `autopark/configs/nguong_nghiem_thu.json`, cùng trạng thái. Khi chốt ngưỡng thì sửa cả hai nơi.
+
+UNKNOWN gồm vùng chưa quan sát, không hợp lệ, bị che khuất hoặc thiếu tin cậy. Thêm tên lớp không tự bảo đảm nhận ra vật lạ.
 
 ### 16.3. Bộ kịch bản
 
-[Bản nháp nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) có 37 kịch bản trong chín nhóm, gồm đỗ cơ sở, nhận thức, vật cản mới, lỗi cảm biến/liên lạc và nguồn/dừng. Tính đến 30/09/2026 chưa kịch bản nào thử ở mức nghiệm thu; vài kịch bản làm được ngay trên bàn thử (DV-1, DV-2, LD-1; TC-1 khi có camera trên cao).
+[Bản nháp nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) có 37 kịch bản trong chín nhóm, gồm đỗ cơ sở, nhận thức, vật cản mới, lỗi cảm biến/liên lạc và nguồn/dừng. Tính đến 30/09/2026 chưa kịch bản nào thử ở mức nghiệm thu. Vài kịch bản làm được ngay trên bàn thử: DV-1, DV-2, LD-1; TC-1 khi có camera trên cao.
 
-Cần ghi vùng làm việc, ánh sáng, vật thử, tốc độ và khoảng phát hiện; không cam kết phát hiện mọi vật trong mọi điều kiện.
+Cần ghi vùng làm việc, ánh sáng, vật thử, tốc độ và khoảng phát hiện. Không cam kết phát hiện mọi vật trong mọi điều kiện.
 
 ### 16.4. Mười điều kiện hoàn thành
 
@@ -470,7 +571,7 @@ Cần ghi vùng làm việc, ánh sáng, vật thử, tốc độ và khoảng p
 - [ ] Nguồn, watchdog và E-stop đã kiểm chứng.
 - [ ] Có dữ liệu, cấu hình và hướng dẫn để tái hiện kết quả.
 
-Tính đến 30/09/2026, V1 đạt 0/10 điều kiện. Sơ đồ dưới xếp mỗi điều kiện theo mức bằng chứng cao nhất hiện có cho phần chính của điều kiện, để không đọc kết quả mô phỏng thành kết quả xe:
+V1 đạt 0/10 điều kiện, tính đến 30/09/2026; sơ đồ dưới cập nhật tới 02/10/2026. Sơ đồ xếp mỗi điều kiện theo mức bằng chứng cao nhất hiện có cho phần chính của điều kiện, để không đọc kết quả mô phỏng thành kết quả xe:
 
 ```mermaid
 flowchart TD
@@ -508,29 +609,49 @@ flowchart TD
     class C7,C9 chuaLam
 ```
 
-Màu ở sơ đồ này theo tên nhóm: xanh là có số đo trên thiết bị thật nhưng chưa đạt · vàng là chỉ mô phỏng, giả lập hoặc dữ liệu công khai · đỏ viền đứt là chưa có bằng chứng cho phần chính của điều kiện. Điều kiện 3 xếp nhóm vàng vì sai số AI mới đo trên dữ liệu công khai; AI camera đã nối vào phiên đỗ nhưng chặn mọi lô vì chưa có hiệu chuẩn camera thật. Điều kiện 6 xếp nhóm vàng chỉ nhờ cảm biến giả của bo mô phỏng; bo ảo QEMU không có phản hồi tốc độ, góc: firmware chưa có mã đọc cảm biến nên telemetry báo không có số đo và vòng tốc độ chạy hở. Điều kiện 10 vẫn chưa đạt: phát lại log của lần chạy qua `VehicleIO` (T9, 02/10/2026) mới ở mức mô phỏng và chỉ tái hiện quyết định của phần mềm, không tái hiện xe; còn thiếu manifest GD1 của từng lần chạy và hướng dẫn tái hiện.
+Màu ở sơ đồ này theo tên nhóm: xanh là có số đo trên thiết bị thật nhưng chưa đạt · vàng là chỉ mô phỏng, giả lập hoặc dữ liệu công khai · đỏ viền đứt là chưa có bằng chứng cho phần chính của điều kiện. MP trong ô 1 là mô phỏng.
 
-Điều kiện 9: watchdog liên lạc (bo ở ARMED/RUNNING mà 500 ms không nhận thông điệp hợp lệ thì về DISARMED, `LINK_TIMEOUT`) đã kiểm trong bản tham chiếu Python, test host lõi C++ và bo ảo QEMU; logic chốt E-stop (vector `estop_latch`) đã kiểm ở bản Python và test host. Task watchdog kích hoạt, `output_guard`, móc panic và ngõ vào E-stop thật chưa được kiểm ở đâu; chưa có phần cứng nguồn và dừng. Căn cứ: bảng 4.12 của [dàn ý khóa luận](autopark/docs/DAN_Y_KHOA_LUAN.md), sơ đồ dừng và bảng các đường dừng (mục 3, 3.1) của [chuẩn bị nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md), [mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md). Ngưỡng đề xuất và kịch bản (CHƯA THỬ) của từng điều kiện: mục 11.2 của [ngưỡng đề xuất](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md).
+Giải thích một số ô:
+
+- **Điều kiện 3** xếp nhóm vàng vì sai số AI mới đo trên dữ liệu công khai. AI camera đã nối vào phiên đỗ nhưng chặn mọi lô vì chưa có hiệu chuẩn camera thật.
+- **Điều kiện 6** xếp nhóm vàng chỉ nhờ cảm biến giả của bo mô phỏng. Bo ảo QEMU không có phản hồi tốc độ, góc: firmware chưa có mã đọc cảm biến, nên telemetry báo không có số đo và vòng tốc độ chạy hở.
+- **Điều kiện 10** vẫn chưa đạt. Phát lại log của lần chạy qua `VehicleIO` (T9, 02/10/2026) mới ở mức mô phỏng và chỉ tái hiện quyết định của phần mềm, không tái hiện xe. Còn thiếu manifest GD1 của từng lần chạy và hướng dẫn tái hiện.
+- **Điều kiện 9.** Watchdog liên lạc đã kiểm trong bản tham chiếu Python, test host lõi C++ và bo ảo QEMU: bo ở ARMED/RUNNING mà 500 ms không nhận thông điệp hợp lệ thì về DISARMED (`LINK_TIMEOUT`). Logic chốt E-stop (vector `estop_latch`) đã kiểm ở bản Python và test host. Task watchdog kích hoạt, `output_guard`, móc panic và ngõ vào E-stop thật chưa được kiểm ở đâu; chưa có phần cứng nguồn và dừng.
+
+Căn cứ cho điều kiện 9: bảng 4.12 của [dàn ý khóa luận](autopark/docs/DAN_Y_KHOA_LUAN.md), sơ đồ dừng và bảng các đường dừng (mục 3, 3.1) của [chuẩn bị nguồn và dừng](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md), [mô phỏng firmware](autopark/docs/MO_PHONG_FIRMWARE.md). Ngưỡng đề xuất và kịch bản (chưa thử) của từng điều kiện: mục 11.2 của [ngưỡng đề xuất](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md).
 
 ## 17. Bàn giao và bước tiếp theo
 
 ### 17.1. Hồ sơ cần giữ
 
-Mã/commit, môi trường, cấu hình xe, hiệu chuẩn, nguồn dữ liệu/giấy phép, log/video đồng bộ, phép đo độc lập, kết quả cả đạt lẫn thất bại. Dataset, checkpoint và `runs/` cần bàn giao riêng vì không trong Git. Việc sao lưu `runs/`, checkpoint và dataset ra ngoài ổ D còn mở ([dàn ý khóa luận](autopark/docs/DAN_Y_KHOA_LUAN.md) mục 7, việc 3; [máy nộp đồ án](autopark/docs/MAY_NOP_DO_AN.md) mục 1).
+Mã và commit, môi trường, cấu hình xe, hiệu chuẩn, nguồn dữ liệu và giấy phép, log/video đồng bộ, phép đo độc lập, kết quả cả đạt lẫn thất bại. Dataset, checkpoint và `runs/` không nằm trong Git nên cần bàn giao riêng. Việc sao lưu `runs/`, checkpoint và dataset ra ngoài ổ D vẫn còn mở ([dàn ý khóa luận](autopark/docs/DAN_Y_KHOA_LUAN.md) mục 7, việc 3; [máy nộp đồ án](autopark/docs/MAY_NOP_DO_AN.md) mục 1).
 
 ### 17.2. Các lựa chọn còn mở
 
-Nguồn tư thế thật; gá/encoder/nguồn/E-stop; đường điều khiển laptop–bo; loại bo ESP32-S3 và chân ESC/servo/E-stop trong firmware; ngưỡng nghiệm thu; chốt firmware sau `COMMAND_TIMEOUT` (đề xuất, CHƯA LÀM); sức khỏe ToF; xe tự tiếp tục hay chờ xác nhận sau vật cản thông thường; chính sách AI bắt buộc và nhãn nháp AI; máy chạy khi nghiệm thu, camera trên cao và nơi lưu biên bản. Đọc [tổng quan](TONG_HOP_DU_AN.md) và tài liệu chuyên đề ([README firmware](autopark/firmware/esp32_vehicle/README.md) mục “CHƯA CHỐT theo bo thực”, [kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 8) trước khi thay.
+Các lựa chọn sau chưa chốt:
+
+- nguồn tư thế thật;
+- gá, encoder, nguồn, E-stop;
+- đường điều khiển giữa laptop và bo;
+- loại bo ESP32-S3 và chân ESC/servo/E-stop trong firmware;
+- ngưỡng nghiệm thu;
+- chốt firmware sau `COMMAND_TIMEOUT` (đề xuất, chưa làm);
+- sức khỏe ToF;
+- sau vật cản thông thường, xe tự tiếp tục hay chờ xác nhận;
+- chính sách AI bắt buộc và nhãn nháp AI;
+- máy chạy khi nghiệm thu, camera trên cao và nơi lưu biên bản.
+
+Trước khi thay đổi một lựa chọn, đọc [tổng quan](TONG_HOP_DU_AN.md) và tài liệu chuyên đề: [README firmware](autopark/firmware/esp32_vehicle/README.md) mục “CHƯA CHỐT theo bo thực”, [kịch bản nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) mục 8.
 
 ### 17.3. Năm việc làm tiếp
 
-Việc 1–4 làm được với thiết bị hiện có và chưa làm tính đến 30/09/2026; việc 5 cần thiết bị mới.
+Việc 1–4 làm được với thiết bị hiện có và tính đến 30/09/2026 chưa làm; việc 5 cần thiết bị mới.
 
 1. Hiệu chuẩn camera, ngoại tham và ROI.
 2. Đo sai số LiDAR/BEV bằng vị trí tham chiếu.
 3. Thu và gán nhãn tập sa bàn độc lập.
 4. Đo bàn thử trên laptop trình diễn.
-5. Khi có ESP32-S3 (đợt 3): nạp firmware đã biên dịch (29/09/2026; đã chạy trong bo ảo QEMU 30/09/2026) và làm trình tự thử trên bo từ mức M0, chỉ cắm USB, PWM tắt ([README firmware](autopark/firmware/esp32_vehicle/README.md) mục “Trình tự thử trên bo”, [mức thử](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md) mục 5.1). Nhận và đo xe (đợt 4) để mở các bước tích hợp.
+5. Khi có ESP32-S3 (đợt 3): nạp firmware đã biên dịch (29/09/2026; đã chạy trong bo ảo QEMU 30/09/2026) và làm trình tự thử trên bo từ mức M0: chỉ cắm USB, PWM tắt ([README firmware](autopark/firmware/esp32_vehicle/README.md) mục “Trình tự thử trên bo”, [mức thử](autopark/docs/GIAI_DOAN_6_CHUAN_BI.md) mục 5.1). Nhận và đo xe (đợt 4) để mở các bước tích hợp.
 
 ### 17.4. Trạng thái chuyển bước
 
@@ -542,11 +663,11 @@ Tính đến 30/09/2026: giai đoạn 0 đạt ở mức mô phỏng (20/09/2026
 - Chờ thiết bị, mới có bản nháp: GĐ 4, GĐ 6.
 - Chưa làm trên thiết bị: GĐ 7; GĐ 9 (mới có chế độ quan sát và kiểm trước START trong mô phỏng).
 
-[Bảng tiến độ từng giai đoạn](TONG_HOP_DU_AN.md) là nơi đọc số đo và kết quả; sơ đồ 8.1 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md) vẽ cùng trạng thái. Không lặp nhật ký commit trong từng dòng kế hoạch.
+[Bảng tiến độ từng giai đoạn](TONG_HOP_DU_AN.md) là nơi đọc số đo và kết quả; sơ đồ 8.1 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md) vẽ cùng trạng thái. Kế hoạch không lặp nhật ký commit trong từng dòng.
 
 ## 18. Nguồn mua đã được cung cấp
 
-Các liên kết dưới giữ từ kế hoạch gốc để đối chiếu. Lần biên tập này không kiểm giá, tồn kho, biến thể hoặc tính tương thích; không chốt lại ngân sách.
+Các liên kết dưới giữ từ kế hoạch gốc để đối chiếu. Giá, tồn kho, biến thể và tính tương thích chưa được kiểm lại; ngân sách chưa chốt lại.
 
 | Hạng mục | Link đã cung cấp | Ghi chú dùng trong kế hoạch |
 |---|---|---|
@@ -566,4 +687,7 @@ Các liên kết dưới giữ từ kế hoạch gốc để đối chiếu. L�
 | Cầu chì/đế | https://shopee.vn/product/265439065/18077814935 | Không chốt 15 A chỉ từ link. |
 | XT60 dây sẵn | https://shopee.vn/product/27693865/40306450328 | Kiểm tra tương thích đầu nối hệ nguồn. |
 
-[Bản kế hoạch trước đợt biên tập 26/09/2026](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) giữ toàn bộ danh sách thao tác, tên đầu ra dự kiến và nhật ký tiến độ cũ. Số mục 1–18 giữ như bản đó; các biên bản chuyên sâu dẫn “mục X bước N”, tên đoạn như “Khi chưa có xe” hoặc trích nguyên văn kế hoạch theo bản đó. [Bản trước đợt biên tập 30/09/2026](https://github.com/thbn12082/autopark/blob/ff4a018/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) là bản ghi trạng thái theo `9d68257`, riêng giai đoạn 5 đã cập nhật tới 30/09/2026.
+## Ghi chú về các bản cũ
+
+- [Bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) (trước 26/09/2026) giữ toàn bộ danh sách thao tác, tên đầu ra dự kiến và nhật ký tiến độ cũ. Số mục 1–18 giữ như bản đó. Các biên bản chuyên sâu dẫn “mục X bước N”, tên đoạn như “Khi chưa có xe” hoặc trích nguyên văn kế hoạch theo bản đó.
+- [Bản `ff4a018`](https://github.com/thbn12082/autopark/blob/ff4a018/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) là bản ghi trạng thái theo `9d68257`, riêng giai đoạn 5 đã cập nhật tới 30/09/2026.

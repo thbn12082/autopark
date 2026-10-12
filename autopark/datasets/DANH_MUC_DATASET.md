@@ -1,17 +1,33 @@
 # Dataset cho dự án MN300 tự đỗ
 
-Ngày khảo sát: **20/09/2026**. Phạm vi: laptop, bốn camera USB quanh xe, LiDAR 2D, free-space/vật cản, BEV và định vị. Đây là danh mục các nguồn phù hợp tìm được, không khẳng định bao quát mọi dataset trên Internet. Bộ chỉ mới công bố trong paper được tách khỏi bộ đã có đường tải. Trạng thái tải thực tế nằm trong [TAI_VA_KIEM_TRA.md](TAI_VA_KIEM_TRA.md).
+Tài liệu này là danh mục các bộ dữ liệu công khai có thể dùng cho dự án, khảo sát ngày **20/09/2026**. Phạm vi: laptop,
+bốn camera USB quanh xe, LiDAR 2D, free-space/vật cản, BEV và định vị. Đây là các nguồn phù hợp tìm được, không khẳng
+định bao quát mọi dataset trên Internet. Bộ chỉ mới công bố trong paper được tách khỏi bộ đã có đường tải. Trạng thái tải
+thực tế nằm trong [TAI_VA_KIEM_TRA.md](TAI_VA_KIEM_TRA.md); giấy phép đã đọc lại nằm trong
+[GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md).
 
-*Cập nhật 24/09/2026: ngày 22/09 đã đọc lại văn bản giấy phép của các bộ đang dùng, xem [GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md). Cột giấy phép trong bảng dưới đây (khảo sát ngày 20/09) còn thiếu hai điểm. (1) Điều khoản WoodScape cấm dùng bộ dữ liệu hoặc mô hình huấn luyện trên nó để vận hành hay hỗ trợ vận hành phương tiện. (2) Repo AVM-SS không có file LICENSE, GitHub API trả `license: null`, nghĩa là không có giấy phép nào được cấp và tác giả giữ toàn quyền.* *(Sửa 30/09/2026: ý (1) viết "cấm" là mạnh hơn văn bản. Viết đúng hơn: điều khoản WoodScape chỉ cho dùng phi thương mại (nghiên cứu, giảng dạy, benchmark, thử nghiệm cá nhân) và có câu không cho dùng mô hình huấn luyện trên nó trong vận hành phương tiện. Dự án đọc câu đó là ví dụ của việc dùng thương mại (quyết định 25/09/2026); Valeo chưa xác nhận. Xem [GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md), mục "WoodScape trong vòng điều khiển".)*
+## Tóm tắt
 
-**Chọn ban đầu:** AVM-SS cho pipeline phân đoạn quanh xe; WoodScape cho ảnh fisheye thật; DROW và các log 2D SLAM cho LiDAR. Dataset ô đỗ đứng sau vì V1 cho người dùng tự đặt đích. Mức ưu tiên bên dưới là đánh giá cho dự án này, không phải xếp hạng của tác giả.
+- **Chọn ban đầu (20/09/2026):** AVM-SS cho pipeline phân đoạn quanh xe; WoodScape cho ảnh fisheye thật; DROW và các log
+  2D SLAM cho LiDAR. Dataset ô đỗ đứng sau, vì V1 (bản đầu cần đạt) cho người dùng tự đặt đích. Mức ưu tiên trong các
+  bảng là đánh giá cho dự án này, không phải xếp hạng của tác giả.
+- **Thực tế tới 24/09/2026:** baseline huấn luyện ngày 21/09 là WoodScape, không phải AVM-SS; split của tác giả AVM-SS
+  bị bỏ; chưa có ảnh sa bàn có nhãn để chấm (mục 8).
+- **Giấy phép:** cột giấy phép trong các bảng là kết quả khảo sát ngày 20/09. Ngày 22/09 đã đọc lại văn bản giấy phép của
+  các bộ đang dùng ([GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md)); cột giấy phép còn thiếu hai điểm:
+  1. Điều khoản WoodScape chỉ cho dùng phi thương mại (nghiên cứu, giảng dạy, benchmark, thử nghiệm cá nhân) và có câu
+     không cho dùng mô hình huấn luyện trên nó trong vận hành phương tiện. Dự án đọc câu đó là ví dụ của việc dùng
+     thương mại (quyết định 25/09/2026); Valeo chưa xác nhận. Xem [GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md),
+     mục "WoodScape trong vòng điều khiển".
+  2. Repo AVM-SS không có file LICENSE, và GitHub API trả `license: null`. Nghĩa là không có giấy phép nào được cấp, tác
+     giả giữ toàn quyền.
 
 ## 1. Camera quanh xe, free-space và fisheye
 
 | ID / ưu tiên | Dataset, nguồn chính thức và đường tải | Nhãn thực có | Cách dùng và giới hạn | Truy cập / giấy phép dữ liệu |
 |---|---|---|---|---|
-| A01 / 1 | **AVM-SS / avm_seg_db** — [repo](https://github.com/Engro39/avm_dataset), [Google Drive của tác giả](https://drive.google.com/drive/folders/1izgXSHUisjdJMMLz43B8vjI9-JjqTDQL) | 6.763 ảnh 320×160; mask free space, marker, vehicle, other objects; ego bị bỏ qua. | Phù hợp nhất để làm loader, chuyển nhãn và baseline bãi đỗ. Ảnh AVM đã chiếu/ghép, không thay được hiệu chuẩn bốn camera USB. | Link công khai; README chưa nêu giấy phép dữ liệu rõ ràng. Đã kiểm tra cặp mẫu, xem mục 7. |
-| A02 / 1 | **WoodScape** — [repo](https://github.com/valeoai/WoodScape), [Drive](https://drive.google.com/drive/folders/1X5JOMEfVlaXfdNy24P8VA-jMs0yzf_HR) | Semantic 10 lớp gồm void; instance polygon hơn 40 lớp; calibration và các task khác tùy gói phát hành. | Nguồn fisheye thật quan trọng. Bản công khai có khoảng 8,2k ảnh có nhãn; không giả định bốn hướng đều có nhãn đồng thời. | Dữ liệu proprietary; MIT của code không áp dụng cho data. [Điều khoản](https://drive.google.com/file/d/12IrLnGfng6s-NogJLIvUZsCxF1NDA-FA/view). |
+| A01 / 1 | **AVM-SS / avm_seg_db** — [repo](https://github.com/Engro39/avm_dataset), [Google Drive của tác giả](https://drive.google.com/drive/folders/1izgXSHUisjdJMMLz43B8vjI9-JjqTDQL) | 6.763 ảnh 320×160; mask free space, marker, vehicle, other objects; ego bị bỏ qua. | Phù hợp nhất để làm loader, chuyển nhãn và baseline bãi đỗ. Ảnh AVM đã chiếu/ghép, không thay được hiệu chuẩn bốn camera USB. | Link công khai; README chưa nêu giấy phép dữ liệu rõ ràng (kiểm lại 22/09: không có giấy phép nào, xem Tóm tắt). Đã kiểm tra cặp mẫu, xem mục 7. |
+| A02 / 1 | **WoodScape** — [repo](https://github.com/valeoai/WoodScape), [Drive](https://drive.google.com/drive/folders/1X5JOMEfVlaXfdNy24P8VA-jMs0yzf_HR) | Semantic 10 lớp gồm void; instance polygon hơn 40 lớp; calibration và các task khác tùy gói phát hành. | Nguồn fisheye thật quan trọng. Bản công khai có khoảng 8,2k ảnh có nhãn; không giả định bốn hướng đều có nhãn đồng thời. | Dữ liệu proprietary; MIT của code không áp dụng cho data. [Điều khoản](https://drive.google.com/file/d/12IrLnGfng6s-NogJLIvUZsCxF1NDA-FA/view); chỉ dùng phi thương mại (xem Tóm tắt). |
 | A03 / 2 | **SynWoodScape** — [paper tác giả](https://arxiv.org/abs/2203.05056), [đầu mối WoodScape](https://github.com/valeoai/WoodScape) | Dữ liệu tổng hợp bốn fisheye, semantic/depth/flow và nhiều task; paper nêu 80k ảnh. | Hợp để thử hình học nhiều camera/BEV. Phân biệt bộ tổng hợp với WoodScape thật; cần xác nhận gói tải thực tế. | Chưa xác nhận đường tải toàn bộ ổn định và license riêng trong lần khảo sát; chưa coi là đã tải. |
 | A04 / 2 | **FishEye8K / FE-DETRAC** — [repo](https://github.com/MoyoG/FishEye8K), [cổng dữ liệu](https://scidm.nchc.org.tw/en/dataset/fisheye8k) | 8.000 ảnh; bounding box 5 lớp: người, xe đạp, ô tô, xe tải, bus. | Dùng detector vật thể trên ảnh méo; camera giám sát trên cao, khác camera gắn sát xe. Không có mask free-space đầy đủ. | Cổng hiện dùng tên FE-DETRAC; điều khoản công bố CC BY-NC-SA 4.0. Chọn nhãn cập nhật 01/2024 theo repo. |
 | A05 / 3 | **PAIR360** — [trang nhóm AIRLAB](https://airlabkhu.github.io/PAIR-360-Dataset/) | Panorama/fisheye, LiDAR 32 kênh, IMU/GPS, map; nhãn/depth có thành phần sinh bằng mô hình. | Tham khảo chiếu LiDAR–camera và 360°. Không coi pseudo-label là ground truth độc lập; không giống LiDAR 2D. | ODbL theo trang dự án; tải cần xin mật khẩu qua email. Chưa tải, chưa gửi email. |
@@ -28,8 +44,17 @@ Ngày khảo sát: **20/09/2026**. Phạm vi: laptop, bốn camera USB quanh xe,
 | B06 / 2 | **ACDC** — [ETH](https://acdc.vision.ee.ethz.ch/) | 4.006 ảnh sương mù, đêm, mưa, tuyết; 19 lớp, ảnh điều kiện thường tương ứng và invalid masks. | Hợp kiểm thử bất định/thiếu sáng. Invalid mask không tự tương đương lớp UNKNOWN vận hành. Điều khoản riêng, cho nghiên cứu/thử nghiệm phi thương mại. |
 | B07 / 2 | **Lost and Found** — [nguồn gốc](http://www.6d-vision.com/lostandfounddataset), [paper](https://arxiv.org/abs/1609.04653) | Vật nhỏ trên đường, nhãn obstacle/free-space và stereo. | Hữu ích cho hộp/vật thấp. Máy chủ cũ chưa xác minh tải thành công; cần giữ điều khoản nguồn gốc. Không dùng test để huấn luyện. |
 | B08 / 2 | **Fishyscapes** — [trang benchmark](https://fishyscapes.com/) | Nhãn anomaly pixel; gồm dữ liệu thật dựa trên Lost and Found và anomaly tổng hợp. | Đánh giá khả năng báo vùng lạ, không thay tập train semantic chính. Có phần benchmark giữ kín; điều khoản ảnh gốc và nhãn có thể khác nhau. |
-| B09 / 2 | **RoadAnomaly21** — [Segment Me If You Can](https://segmentmeifyoucan.com/) | Nhãn anomaly trên cảnh đường cho benchmark. | Dùng kiểm thử lỗi vật bị nhận nhầm thành nền; cần bộ đánh giá/download theo trang tác giả và giữ split. License chưa xác minh độc lập. *Cập nhật 24/09/2026:* đã tải và giải nén `dataset_AnomalyTrack.zip` vào `training/road_anomaly/`; chưa dùng để chấm. |
-| B10 / 2 | **RoadObstacle21** — [Segment Me If You Can](https://segmentmeifyoucan.com/) | Benchmark vật cản trên vùng đường. | Bổ sung vật thấp/lạ; không suy độ chính xác khoảng cách thật chỉ từ mask. License và truy cập theo benchmark (chưa xác minh văn bản gốc, xem [GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md)). *Cập nhật 24/09/2026:* đã tải và giải nén `dataset_ObstacleTrack.zip` vào `training/road_obstacle/` (hoàn tất UTC 2026-09-19T19:14, xem [TRANG_THAI_TAI_DAY_DU.md](TRANG_THAI_TAI_DAY_DU.md)); 30 ảnh validation đã dùng để chấm ngoài miền ở [HUAN_LUYEN.md](../../HUAN_LUYEN.md) phần II mục 8 và phần III, không dùng để huấn luyện. |
+| B09 / 2 | **RoadAnomaly21** — [Segment Me If You Can](https://segmentmeifyoucan.com/) | Nhãn anomaly trên cảnh đường cho benchmark. | Dùng kiểm thử lỗi vật bị nhận nhầm thành nền; cần bộ đánh giá/download theo trang tác giả và giữ split. License chưa xác minh độc lập. Đã tải (xem dưới bảng). |
+| B10 / 2 | **RoadObstacle21** — [Segment Me If You Can](https://segmentmeifyoucan.com/) | Benchmark vật cản trên vùng đường. | Bổ sung vật thấp/lạ; không suy độ chính xác khoảng cách thật chỉ từ mask. License và truy cập theo benchmark (chưa xác minh văn bản gốc, xem [GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md)). Đã tải (xem dưới bảng). |
+
+Trạng thái hai bộ Segment Me If You Can, cập nhật ngày 24/09/2026:
+
+- **RoadAnomaly21:** đã tải và giải nén `dataset_AnomalyTrack.zip` vào `training/road_anomaly/`. Lúc cập nhật bộ này chưa
+  dùng để chấm. [GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md) ghi thêm: từ muộn tối 24/09/2026 đã chấm 10 ảnh
+  `validation*` có nhãn ([HUAN_LUYEN.md](../../HUAN_LUYEN.md) mục 8).
+- **RoadObstacle21:** đã tải và giải nén `dataset_ObstacleTrack.zip` vào `training/road_obstacle/` (hoàn tất UTC
+  2026-09-19T19:14, xem [TRANG_THAI_TAI_DAY_DU.md](TRANG_THAI_TAI_DAY_DU.md)). 30 ảnh validation đã dùng để chấm ngoài
+  miền ở [HUAN_LUYEN.md](../../HUAN_LUYEN.md) mục 8 và các mục 15–19 (thử thêm AVM-SS, ACDC), không dùng để huấn luyện.
 
 ## 3. Ô đỗ và tình trạng trống/bận — tính năng mở rộng
 
@@ -82,7 +107,9 @@ Ngày khảo sát: **20/09/2026**. Phạm vi: laptop, bốn camera USB quanh xe,
 
 ## 7. Kiểm tra nhãn đã thực hiện
 
-Đã tải và xem **ảnh RGB + mask AVM-SS** do tác giả đặt trong repo, không phải ảnh tự tạo. [Nguồn ảnh](https://github.com/Engro39/avm_dataset/tree/master/images). Cặp mẫu nằm tại `samples/avm/image.jpg` và `samples/avm/gt.png`, có nguồn và SHA-256 trong `provenance.json`. Báo cáo bằng máy: [audit.json](samples/avm/audit.json).
+Đã tải và xem **ảnh RGB + mask AVM-SS** do tác giả đặt trong repo, không phải ảnh tự tạo
+([nguồn ảnh](https://github.com/Engro39/avm_dataset/tree/master/images)). Cặp mẫu nằm tại `samples/avm/image.jpg` và
+`samples/avm/gt.png`, có nguồn và SHA-256 trong `provenance.json`. Báo cáo bằng máy: [audit.json](samples/avm/audit.json).
 
 | Nhãn gốc (RGB) | Nhãn dùng trong dự án | Số pixel trong mẫu |
 |---|---|---:|
@@ -92,22 +119,56 @@ Ngày khảo sát: **20/09/2026**. Phạm vi: laptop, bốn camera USB quanh xe,
 | Other (0,255,0) | OBSTACLE = 1 | 3.440 |
 | Ego (0,0,0) | UNKNOWN/IGNORE = 255 | 6.063 |
 
-Đây là **đề xuất ánh xạ nhãn cho dự án**. Khi train, 255 là ignore index; khi đưa sang costmap, vùng không hợp lệ/chưa quan sát bị chặn. Không coi UNKNOWN là một lớp đã được mô hình học nhận ra mọi vật lạ. Đọc mask bằng OpenCV phải đổi BGR→RGB trước đối chiếu bảng màu; resize mask dùng nearest-neighbor.
+Đây là **đề xuất ánh xạ nhãn cho dự án**. Khi train, 255 là ignore index; khi đưa sang costmap, vùng không hợp lệ/chưa
+quan sát bị chặn. Không coi UNKNOWN là một lớp đã được mô hình học nhận ra mọi vật lạ. Đọc mask bằng OpenCV phải đổi
+BGR→RGB trước khi đối chiếu bảng màu; resize mask dùng nearest-neighbor.
 
-Với WoodScape, đã đọc [config mapping chính thức](https://github.com/valeoai/WoodScape/blob/master/scripts/configs/semantic_mapping_9_classes.json) và lưu tại `samples/woodscape/semantic_mapping_9_classes.json`: ID 1=road, 2=lanemarks, 3=curb, 4=person, 5=rider, 6=vehicles, 7=bicycle, 8=motorcycle, 9=traffic_sign; void không tự là free-space. File màu dùng **BGR**. Phải xác nhận đúng loại ảnh mask trong gói tải trước chuyển đổi.
+Với WoodScape, đã đọc [config mapping chính thức](https://github.com/valeoai/WoodScape/blob/master/scripts/configs/semantic_mapping_9_classes.json)
+và lưu tại `samples/woodscape/semantic_mapping_9_classes.json`: ID 1=road, 2=lanemarks, 3=curb, 4=person, 5=rider,
+6=vehicles, 7=bicycle, 8=motorcycle, 9=traffic_sign. Void không tự là free-space. File màu dùng **BGR**. Phải xác nhận
+đúng loại ảnh mask trong gói tải trước khi chuyển đổi.
 
-Kết luận kiểm tra nhãn: **AVM-SS phù hợp trực tiếp** để thử free-space/obstacle; **WoodScape phù hợp có chuyển nhãn và kiểm tra vùng void**; **PS2.0/PSV/ParkScape/PIL-park không đủ nhãn pixel vật cản**. Không suy từ tên “parking dataset” rằng bộ đó giải quyết perception quanh xe.
+Kết luận kiểm tra nhãn:
+
+- **AVM-SS phù hợp trực tiếp** để thử free-space/obstacle;
+- **WoodScape phù hợp nếu chuyển nhãn và kiểm tra vùng void**;
+- **PS2.0/PSV/ParkScape/PIL-park không đủ nhãn pixel vật cản**.
+
+Không suy từ tên “parking dataset” rằng bộ đó giải quyết perception quanh xe.
 
 ## 8. Quy trình dùng dữ liệu cho dự án
 
-1. Giữ bản gốc bất biến; ghi nguồn, ngày tải, tên release, giấy phép, dung lượng, SHA-256 và tình trạng giải nén. Không đưa ảnh đầy đủ lên Git; không tải trọng số `.pkl`/`.pth` rồi thực thi trong bước khảo sát dữ liệu.
-2. Lập manifest các cặp ảnh–nhãn. Kiểm tra số lượng, kích thước, palette, giá trị lạ, file thiếu và mẫu đại diện; không chỉ xem thumbnail.
-3. Giữ split của tác giả. Nếu cần chia mới, chia theo sequence/ngày/bãi/camera; ảnh liên tiếp hoặc ảnh gốc của bộ mở rộng không được rơi vào cả train và test.
-4. Chọn AVM-SS làm baseline nhỏ; WoodScape bổ sung sau khi xác nhận camera USB 130° là phối cảnh hay fisheye và model hiệu chuẩn. Không tự dùng thông số camera dataset cho camera thật.
-5. Test riêng vật thấp, hộp giấy, dây, mép sa bàn, phản chiếu, vật chưa có trong train. Theo dõi **obstacle bị dự đoán thành FREE** bên cạnh IoU; threshold phải được đo và chốt, chưa có kết quả AI trong giai đoạn này.
-6. Camera thấp trên MN300, sàn phòng và vật cản mô hình khác xe thật ngoài đường. Ở giai đoạn cảm biến, thu tập dữ liệu đúng gá/ánh sáng/khoảng cách và nhãn bằng tay để đánh giá chuyển miền.
-7. LiDAR 3D, depth suy ra từ AI và mask 2D không tự cung cấp khoảng cách an toàn của C1. Chỉ đưa kết quả vào costmap sau khi kiểm tra thời gian, frame, hình học và vùng không chắc chắn.
+Quy trình dưới lập ngày 20/09/2026, trước khi huấn luyện:
 
-*Cập nhật 24/09/2026:* các bước trên là quy trình lập ngày 20/09, trước khi huấn luyện. Thực tế đã khác ở ba chỗ, chi tiết trong [HUAN_LUYEN.md](../../HUAN_LUYEN.md): (bước 4) baseline huấn luyện ngày 21/09 là WoodScape, không phải AVM-SS, và `runs/ai_woodscape_rtx4000_v1/best.pt` vẫn là checkpoint tham chiếu. AVM-SS học riêng (1 seed) gọi 82,7 % pixel vật cản trên ACDC val là FREE. Trộn WoodScape + AVM-SS làm lỗi vật cản→FREE trên ACDC val tăng từ 4,1 lên 13,5 % (ba seed mỗi bên, §15–18). Câu hỏi camera USB 130° là phối cảnh hay fisheye vẫn chưa trả lời, vì chưa hiệu chuẩn camera nào ([HIEU_CHUAN_CAMERA.md](../docs/HIEU_CHUAN_CAMERA.md)). (bước 3) Split của tác giả AVM-SS bị bỏ vì khung liền kề nằm ở cả train lẫn test; đã chia lại theo khối 50 id liên tiếp (§15). (bước 5) Ngưỡng 0,15 được chọn bằng F2 trên val ngày 22/09 (§10), nhưng vẫn là tham số vận hành chưa chốt; chưa có ảnh sa bàn có nhãn để chấm. Giấy phép WoodScape hạn chế dùng mô hình huấn luyện trên nó để vận hành phương tiện: xem [GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md).
+1. Giữ bản gốc bất biến; ghi nguồn, ngày tải, tên release, giấy phép, dung lượng, SHA-256 và tình trạng giải nén. Không
+   đưa ảnh đầy đủ lên Git; không tải trọng số `.pkl`/`.pth` rồi thực thi trong bước khảo sát dữ liệu.
+2. Lập manifest các cặp ảnh–nhãn. Kiểm tra số lượng, kích thước, palette, giá trị lạ, file thiếu và mẫu đại diện; không
+   chỉ xem thumbnail.
+3. Giữ split của tác giả. Nếu cần chia mới, chia theo sequence/ngày/bãi/camera; ảnh liên tiếp hoặc ảnh gốc của bộ mở
+   rộng không được rơi vào cả train và test.
+4. Chọn AVM-SS làm baseline nhỏ; WoodScape bổ sung sau khi xác nhận camera USB 130° là phối cảnh hay fisheye và model
+   hiệu chuẩn. Không tự dùng thông số camera dataset cho camera thật.
+5. Test riêng vật thấp, hộp giấy, dây, mép sa bàn, phản chiếu, vật chưa có trong train. Theo dõi **obstacle bị dự đoán
+   thành FREE** bên cạnh IoU; threshold phải được đo và chốt, chưa có kết quả AI trong giai đoạn này.
+6. Camera thấp trên MN300, sàn phòng và vật cản mô hình khác xe thật ngoài đường. Ở giai đoạn cảm biến, thu tập dữ liệu
+   đúng gá/ánh sáng/khoảng cách và nhãn bằng tay để đánh giá chuyển miền.
+7. LiDAR 3D, depth suy ra từ AI và mask 2D không tự cung cấp khoảng cách an toàn của C1. Chỉ đưa kết quả vào costmap sau
+   khi kiểm tra thời gian, frame, hình học và vùng không chắc chắn.
 
-Các bộ dữ liệu ở đây phục vụ từng khối thuật toán. Không bộ nào tự chứng minh phanh, E-stop, độ chính xác BEV, khoảng dừng hay khả năng tự đỗ của MN300 thật.
+Tới 24/09/2026 thực tế đã khác quy trình ở ba chỗ; chi tiết trong [HUAN_LUYEN.md](../../HUAN_LUYEN.md):
+
+- **Bước 4:** baseline huấn luyện ngày 21/09 là WoodScape, không phải AVM-SS, và `runs/ai_woodscape_rtx4000_v1/best.pt`
+  vẫn là checkpoint tham chiếu. AVM-SS học riêng (1 seed) gọi 82,7 % pixel vật cản trên ACDC val là FREE. Trộn
+  WoodScape + AVM-SS làm lỗi vật cản→FREE trên ACDC val tăng từ 4,1 lên 13,5 % (ba seed mỗi bên, HUAN_LUYEN.md mục
+  15–18). Câu hỏi camera USB 130° là phối cảnh hay fisheye vẫn chưa trả lời, vì chưa hiệu chuẩn camera nào
+  ([HIEU_CHUAN_CAMERA.md](../docs/HIEU_CHUAN_CAMERA.md)).
+- **Bước 3:** split của tác giả AVM-SS bị bỏ vì khung liền kề nằm ở cả train lẫn test; đã chia lại theo khối 50 id liên
+  tiếp (HUAN_LUYEN.md mục 15).
+- **Bước 5:** ngưỡng 0,15 được chọn bằng F2 trên val ngày 22/09 (HUAN_LUYEN.md mục 10), nhưng vẫn là tham số vận hành
+  chưa chốt; chưa có ảnh sa bàn có nhãn để chấm.
+
+Giấy phép WoodScape hạn chế dùng mô hình huấn luyện trên nó để vận hành phương tiện: xem
+[GIAY_PHEP_DU_LIEU.md](../docs/GIAY_PHEP_DU_LIEU.md).
+
+Các bộ dữ liệu ở đây phục vụ từng khối thuật toán. Không bộ nào tự chứng minh phanh, E-stop, độ chính xác BEV, khoảng
+dừng hay khả năng tự đỗ của MN300 thật.

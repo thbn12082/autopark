@@ -1,37 +1,43 @@
 # BEV chiếm chỗ từ AI nhiều camera (giai đoạn 2, bước 7) — 24/09/2026
 
 > **Ghi công theo giấy phép dữ liệu:** mô hình AI và bài minh họa ở đây dùng **Valeo WoodScape Dataset**
-> (<https://github.com/valeoai/WoodScape>; địa chỉ cũ `woodscape.valeo.com` / `woodscape.valeo.ai`, kiểm 25/09/2026 dẫn
-> tới một trang không có nội dung WoodScape). Giới hạn sử dụng: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
-> *(Đổi link 25/09/2026 theo đề xuất ở GIAY_PHEP_DU_LIEU.md mục "Ghi công: link tới trang bộ dữ liệu", CHỜ CHỐT.)*
+> (<https://github.com/valeoai/WoodScape>). Địa chỉ cũ `woodscape.valeo.com` / `woodscape.valeo.ai`, kiểm ngày 25/09/2026,
+> dẫn tới một trang không có nội dung WoodScape. Giới hạn sử dụng: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
+> Link được đổi ngày 25/09/2026 theo đề xuất ở GIAY_PHEP_DU_LIEU.md mục "Ghi công: link tới trang bộ dữ liệu"; đề xuất
+> này chưa chốt.
 
-**Tình trạng (24/09/2026):** đã có phần mềm và kiểm thử trên rig tổng hợp. **Chưa chạy được trên camera của dự án**,
-vì ba thứ còn thiếu:
-
-- chưa camera nào được hiệu chuẩn (`calibration/cam_p*.json` chưa có);
-- ngoại tham trong `configs/rig/camera_rig_extrinsics_v0.json` là **GIẢ ĐỊNH — CHƯA ĐO**;
-- chưa có mặt nạ ROI cho camera dự án.
-
-*(Kiểm lại 25/09/2026 ở `54cb3e2`: ba điều trên vẫn đúng. Không có `calibration/cam_p*.json`, `configs/rig/` chỉ
-có tệp v0, `configs/roi/` chỉ có `woodscape_v1`. Công cụ đo ngoại tham và dựng ROI thì đã có và đã commit
-(`65b7127`, [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md)), còn chờ nội tham và gá camera. BEV vẫn chưa nối vào bàn
-thử, hợp nhất cảm biến hay planner.)*
-
-*(Cập nhật 25/09/2026, mã ở `b01dea4`:)* BEV nay được nối vào phiên đỗ xe như **một nguồn vật cản** qua
-`fusion/camera_ai.py` và ngăn "AI camera" (`ui/camera_dock.py`, `lidar_app --camera-ai`), sau quyết định giấy phép
-ngày 25/09/2026 của người làm khóa luận. Valeo chưa xác nhận cách đọc điều khoản. Chỉ BEV **dùng được** (mục 2,
-quy tắc 9) mới tạo vật cản, nên với ba điều còn thiếu ở trên, AI chưa tạo vật cản nào trên bàn thật. Chi tiết, mức
-bằng chứng và giới hạn: [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md).
-
-Mọi con số dưới đây là của rig tổng hợp hoặc ảnh WoodScape. Không con số nào là số đo sai số BEV trên sa bàn. Điều kiện
-"vật mẫu xuất hiện tại vị trí có thể đối chiếu trên BEV" của kế hoạch mục 6 **chưa kiểm**.
-
-*(Tối 24/09/2026:)* BEV đã được tăng tốc, và kết quả trùng từng bit với bản cũ. Ở mặc định, 4 camera mất ≈ 7–12 ms trên
-máy bàn, trước đây ≈ 60–115 ms. Laptop nộp đồ án chưa đo. Chi tiết ở mục 6b.
+Tài liệu này mô tả mô-đun BEV (bản đồ nhìn từ trên xuống): nó chiếu kết quả AI của nhiều camera xuống mặt sàn quanh xe
+và gộp thành một costmap chiếm chỗ. Tài liệu ghi quy tắc, giả định, tệp rig, cách chạy, các lần chạy, kiểm thử và những
+gì còn thiếu. Nội tham camera ở [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md), ngoại tham và ROI ở
+[NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md), việc dùng BEV làm nguồn vật cản ở [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md).
 
 Mã: [autopark/perception/bev.py](../autopark/perception/bev.py). Tệp rig:
 [configs/rig/camera_rig_extrinsics_v0.json](../configs/rig/camera_rig_extrinsics_v0.json). Kiểm thử:
 [tests/test_bev.py](../tests/test_bev.py).
+
+## Hiện trạng
+
+Theo các lần cập nhật đến 01/10/2026:
+
+- **Đã có** phần mềm và kiểm thử trên rig tổng hợp và ảnh WoodScape. Sau khi tăng tốc tối 24/09/2026, ở mặc định 4
+  camera mất ≈ 7–12 ms trên máy bàn, trước đây ≈ 60–115 ms, và kết quả trùng từng bit với bản cũ. Laptop nộp đồ án chưa
+  đo (mục 6b).
+- **Nối vào phiên đỗ.** Từ commit `b01dea4` (25/09/2026), BEV là **một nguồn vật cản** của phiên đỗ xe qua
+  `fusion/camera_ai.py` và ngăn "AI camera" (`ui/camera_dock.py`, `lidar_app --camera-ai`). Việc này theo quyết định
+  giấy phép ngày 25/09/2026 của người làm khóa luận; Valeo chưa xác nhận cách đọc điều khoản. Chi tiết, mức bằng chứng
+  và giới hạn ở [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md). `rig.bench` và `ui.rig_app` không chạy BEV.
+- **Chưa chạy được trên camera của dự án**, vì ba thứ còn thiếu:
+  - chưa camera nào được hiệu chuẩn (`calibration/cam_p*.json` chưa có);
+  - ngoại tham trong `configs/rig/camera_rig_extrinsics_v0.json` là **GIẢ ĐỊNH — CHƯA ĐO**;
+  - chưa có mặt nạ ROI cho camera dự án.
+
+  Kiểm lại ngày 25/09/2026 ở `54cb3e2`, ba điều trên vẫn đúng: không có `calibration/cam_p*.json`, `configs/rig/` chỉ có
+  tệp v0, `configs/roi/` chỉ có `woodscape_v1`. Công cụ đo ngoại tham và dựng ROI thì đã có và đã commit (`65b7127`,
+  [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md)), còn chờ nội tham và gá camera.
+- **Vì vậy AI chưa tạo vật cản nào trên bàn thật.** Chỉ BEV **dùng được** mới tạo vật cản (mục 2, đoạn "Khi nào costmap
+  bị đánh dấu không dùng được").
+- Mọi con số dưới đây là của rig tổng hợp hoặc ảnh WoodScape. Không con số nào là số đo sai số BEV trên sa bàn. Điều kiện
+  "vật mẫu xuất hiện tại vị trí có thể đối chiếu trên BEV" của kế hoạch mục 6 **chưa kiểm**.
 
 ## 1. Mô-đun làm gì
 
@@ -39,10 +45,11 @@ Mô-đun nhận kết quả AI của từng camera, tức bản đồ xác suấ
 và hợp nhất thành một `Costmap` trong hệ xe (x hướng trước, y sang trái, gốc trên sàn dưới tâm trục sau). Mỗi ô của
 costmap có một trong ba giá trị UNKNOWN / FREE / OCCUPIED.
 
-Mô-đun **không** làm các việc sau:
+Bản thân `bev.py` **không** làm các việc sau:
 
-- không nối vào bàn thử, vào hợp nhất cảm biến hay vào planner;
-- không lọc theo thời gian;
+- không tự nối vào bàn thử, vào hợp nhất cảm biến hay vào planner. Từ 25/09/2026, `fusion/camera_ai.py` gọi nó để làm
+  nguồn vật cản cho phiên đỗ (mục 8, việc 7);
+- không lọc theo thời gian. Lọc ≥ 2 trong 3 lô nằm ở `fusion/camera_ai.py` (mục 8, việc 8);
 - không dựng ảnh ghép đẹp cho giao diện. Kế hoạch bước 7 tách ảnh ghép thành một đầu ra riêng; `bev.png` ở đây là ảnh để
   kiểm quy tắc và tọa độ.
 
@@ -59,9 +66,16 @@ Mọi camera dùng chung một `GridSpec`.
 
 | Tệp | Nội dung |
 |---|---|
-| `costmap.json` | Khóa `costmap`: đúng định dạng `costmap_to_dict`, đọc được bằng `fusion.layers.read_costmap_json`. Khóa `provenance`: bitmask nguồn gốc từng ô. Khóa `category`: phân loại từng ô. Thêm `usable_for_planning` và `unusable_reasons` |
-| `stats.json` | Tham số, quy tắc, số ô theo loại, chồng lấn và xung đột giữa camera, từng camera (tư thế, nguồn nội tham, ROI, tỉ lệ pixel theo loại bằng chứng, số ô, thời gian, lý do bị bỏ), giả định |
-| `bev.png` | Ô trái: phân loại ô. Ô phải: số camera thấy mỗi ô. Lệnh `synthetic` thêm ô "sự thật" bên trái. Trên ảnh, x hướng trước ở trên, y trái ở bên trái. Chữ trên ảnh là ASCII vì cv2 không vẽ được dấu |
+| `costmap.json` | Khóa `costmap` (định dạng dưới bảng), `provenance`, `category`, `usable_for_planning`, `unusable_reasons` |
+| `stats.json` | Tham số, quy tắc, số ô theo loại, chồng lấn và xung đột giữa camera, từng camera, giả định |
+| `bev.png` | Ô trái: phân loại ô. Ô phải: số camera thấy mỗi ô |
+
+- Trong `costmap.json`, khóa `costmap` đúng định dạng `costmap_to_dict` và đọc được bằng `fusion.layers.read_costmap_json`.
+  Khóa `provenance` là bitmask nguồn gốc từng ô; khóa `category` là phân loại từng ô.
+- Phần "từng camera" của `stats.json` gồm tư thế, nguồn nội tham, ROI, tỉ lệ pixel theo loại bằng chứng, số ô, thời gian
+  và lý do bị bỏ.
+- Với `bev.png`, lệnh `synthetic` thêm ô "sự thật" bên trái. Trên ảnh, x hướng trước ở trên, y trái ở bên trái. Chữ trên
+  ảnh là ASCII vì cv2 không vẽ được dấu.
 
 ## 2. Quy tắc
 
@@ -74,14 +88,14 @@ Mọi camera dùng chung một `GridSpec`.
    - Mặc định `t_blocked = 0,50`: argmax.
    - Cả hai ngưỡng **chưa kiểm trên ảnh sa bàn**.
 2. **Chiếu xuống mặt sàn** theo đúng phép tính của `costmap.project_labels`, mô-đun này không bị sửa
-   ([costmap.py](../autopark/perception/costmap.py)). *(Tối 24/09/2026:)* `bev.py` không gọi `project_labels` mỗi khung
+   ([costmap.py](../autopark/perception/costmap.py)). Từ tối 24/09/2026, `bev.py` không gọi `project_labels` mỗi khung
    nữa. Phần chỉ phụ thuộc hình học được dựng một lần rồi nhớ, và kết quả trùng từng bit với bản cũ (mục 6b).
    - Tâm mỗi ô được chiếu vào ảnh, không nghịch đảo đa thức.
    - Nhìn từ camera theo từng phương vị, mọi ô **sau** ô OCCUPIED đầu tiên là UNKNOWN (bị che).
    - Ô xa camera hơn `max_range` là UNKNOWN.
 3. **Lưới mịn.** Mỗi ô ra được chia thành `supersample × supersample` ô con (mặc định 2 × 2) và chiếu ở lưới mịn đó.
    Vì `project_labels` chỉ lấy một pixel cho một tâm ô, lưới mịn giảm khả năng một pixel quyết định cả ô.
-   - **Gỡ FREE theo chiều ngược (thêm 24/09 sau rà soát).** Chỉ đọc pixel ở tâm ô con thì chưa đủ. Một vật mảnh nằm
+   - **Gỡ FREE theo chiều ngược (thêm ngày 24/09 sau rà soát).** Chỉ đọc pixel ở tâm ô con thì chưa đủ. Một vật mảnh nằm
      giữa các tâm có thể để ô của nó FREE dù camera thấy rõ vật. Ví dụ: cột 2 cm cách camera 0,25 m, rộng ≈ 25 px trong
      ảnh. Vệt OCCUPIED khi đó rơi sang ô xa hơn một ô. Vì vậy có thêm một lượt pixel → sàn. Mỗi pixel BLOCKED hoặc
      không chắc (trong ROI, không NaN) được chiếu xuống sàn ở tâm và bốn góc pixel. Ô con nào có một điểm như vậy rơi
@@ -136,22 +150,28 @@ Mọi camera dùng chung một `GridSpec`.
 - nội tham có `acceptance.all_pass = false`. Test `test_failed_intrinsics_acceptance_alone_blocks_planning` kiểm riêng
   lý do này. Nửa đối chứng: ngoại tham ghi đo + ROI + `all_pass` true thì `stamp.valid` là true. Nửa kia: chỉ đổi
   `all_pass` của một camera thành false thì costmap bị chặn, với đúng một lý do.
-- *(thêm 25/09/2026)* ngoại tham hay nội tham là dữ liệu TỔNG HỢP: tệp rig (hay camera trong đó) ghi `"synthetic": true`
-  — do `extrinsics_calib --allow-synthetic` ghi —, hoặc tệp nội tham mang dấu TỔNG HỢP. Lý do: "ngoại tham/nội tham là dữ
-  liệu TỔNG HỢP — không phải số đo", kể cả khi tệp ghi `"measured": true`. Test:
+- ngoại tham hay nội tham là dữ liệu TỔNG HỢP (từ 25/09/2026): tệp rig (hay camera trong đó) ghi `"synthetic": true`,
+  do `extrinsics_calib --allow-synthetic` ghi, hoặc tệp nội tham mang dấu TỔNG HỢP. Lý do ghi là "ngoại tham/nội tham là
+  dữ liệu TỔNG HỢP — không phải số đo", kể cả khi tệp ghi `"measured": true`. Test:
   `tests/test_extrinsics_calib.py::test_bev_projects_board_corners_where_the_camera_saw_them`.
 
-Ngoài ra còn các trường hợp: không camera nào có dữ liệu, dữ liệu tổng hợp, ảnh WoodScape. Hiện nay **mọi** BEV từ tệp rig
-v0 đều không dùng được. *(Cập nhật 25/09/2026:)* việc nối AI vào lập đường không còn chờ quyết định giấy phép. Người làm
+Ngoài ra costmap cũng không dùng được khi không camera nào có dữ liệu, khi dữ liệu là tổng hợp, và với ảnh WoodScape.
+Hiện nay **mọi** BEV từ tệp rig v0 đều không dùng được.
+
+**Giấy phép và nguồn vật cản (từ 25/09/2026).** Việc nối AI vào lập đường không còn chờ quyết định giấy phép. Người làm
 khóa luận đã quyết định dùng mô hình WoodScape trong vòng điều khiển; Valeo chưa xác nhận cách đọc điều khoản
 ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). `stats.json` của lệnh `snapshot` ghi ghi chú giấy phép ở `caveats` và
-dòng ghi công ở `attribution` (hằng `WOODSCAPE_LICENCE_NOTE`, `WOODSCAPE_ATTRIBUTION`), không tự chặn. Việc chặn nằm ở
-nguồn vật cản `fusion/camera_ai.py`: chỉ BEV có `stamp.valid` như trên mới được tạo vật cản, và nguồn đó chặt hơn ở hai
-chỗ. Tệp nội tham không có `acceptance.all_pass` bị chặn. Khung khác cỡ ảnh đã hiệu chuẩn cũng bị chặn
-([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3). Cũng từ 25/09/2026, `load_rig` đọc `acceptance.all_pass` qua
-`acceptance_flag`: chỉ `true` của JSON mới là đạt; chuỗi `"false"`, số `1` hay khối `acceptance` không phải object thành
-"chưa đạt" (trước đó `bool("false")` là đạt). Điều này áp cho cả lệnh `bev` lẫn nguồn vật cản; kiểm bằng tệp viết tay
-trong `tests/test_camera_ai_layer.py`.
+dòng ghi công ở `attribution` (hằng `WOODSCAPE_LICENCE_NOTE`, `WOODSCAPE_ATTRIBUTION`), nhưng không tự chặn.
+
+Việc chặn nằm ở nguồn vật cản `fusion/camera_ai.py`: chỉ BEV có `stamp.valid` như trên mới được tạo vật cản. Nguồn đó
+còn chặt hơn ở hai chỗ ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3):
+
+- tệp nội tham không có `acceptance.all_pass` bị chặn;
+- khung khác cỡ ảnh đã hiệu chuẩn cũng bị chặn.
+
+Cũng từ 25/09/2026, `load_rig` đọc `acceptance.all_pass` qua `acceptance_flag`: chỉ `true` của JSON mới là đạt. Chuỗi
+`"false"`, số `1` hay khối `acceptance` không phải object đều thành "chưa đạt"; trước đó `bool("false")` là đạt. Điều
+này áp cho cả lệnh `bev` lẫn nguồn vật cản, và được kiểm bằng tệp viết tay trong `tests/test_camera_ai_layer.py`.
 
 ## 3. Giả định mặt sàn phẳng và giới hạn với vật cao
 
@@ -172,7 +192,7 @@ kiểm chứng").
     góc pixel, nên có thể sót ô con ở giữa. Khi đó tâm ô con thường đọc chính pixel ấy, nhưng điều này chưa kiểm bằng
     test.
 
-  Phương pháp xác định biên tiếp xúc, độ sâu hay vùng không chắc chắn **CHƯA CHỌN, CHƯA ĐÁNH GIÁ**.
+  Phương pháp xác định biên tiếp xúc, độ sâu hay vùng không chắc chắn **chưa chọn, chưa đánh giá**.
 - **Độ phân giải mặt sàn giảm nhanh theo khoảng cách.** Bảng dưới là số **tính** trên rig giả định với ống kính danh
   định (ρ = f·θ, 130° chéo trên 640×480). **Chưa đo** trên camera thật.
 
@@ -181,9 +201,9 @@ kiểm chứng").
 | Camera trước/sau (cao 0,12 m, chúc 30°): cm mặt sàn theo bán kính / pixel | 0,6 | 2,4 | 5,4 | 9,5 | 21,3 |
 | Camera hông (cao 0,15 m, chúc 45°) | 0,5 | 1,9 | ngoài ảnh | ngoài ảnh | ngoài ảnh |
 
-  Vì vậy `max_range` mặc định là 2 m cho rig (lưới 6 × 6 m, ô 5 cm). Ở 2 m một pixel đã phủ gần hai ô. Test xung đột gặp
-  đúng giới hạn này: ở ≈ 1,6 m, một vết BLOCKED phẳng rộng 5 cm có thể rơi sang ô bên cạnh. Mô-đun chưa có tiêu chí
-  "độ phân giải tối thiểu" cho từng ô, chỉ có `max_range`.
+Vì vậy `max_range` mặc định là 2 m cho rig (lưới 6 × 6 m, ô 5 cm). Ở 2 m một pixel đã phủ gần hai ô. Test xung đột gặp
+đúng giới hạn này: ở ≈ 1,6 m, một vết BLOCKED phẳng rộng 5 cm có thể rơi sang ô bên cạnh. Mô-đun chưa có tiêu chí
+"độ phân giải tối thiểu" cho từng ô, chỉ có `max_range`.
 
 ## 4. Tệp ngoại tham v0 và bộ nạp rig
 
@@ -193,14 +213,14 @@ kiểm chứng").
 Các số đó đặt tay cho một xe 1/12 ≈ 0,40 × 0,20 m, ống kính 130° (số nhà bán). Kích thước xe này **khác**
 `configs/vehicle_default.json` (0,31 × 0,14 m). Cả hai đều là giả định; chưa có số đo MN300.
 
-| Cổng | Hướng (CHƯA CHỐT) | Vị trí x, y, z (m) | yaw | chúc xuống | Ghi chú |
+| Cổng | Hướng (chưa chốt) | Vị trí x, y, z (m) | yaw | chúc xuống | Ghi chú |
 |---|---|---|---:|---:|---|
 | 1 | trước | 0,33; 0; 0,12 | 0° | 30° | mép trước thân xe giả định |
 | 2 | sau | −0,07; 0; 0,12 | 180° | 30° | mép sau |
 | 3 | trái | 0,13; 0,10; 0,15 | 90° | 45° | giữa sườn trái |
 | 4 | phải | 0,13; −0,10; 0,15 | −90° | 45° | giữa sườn phải |
 
-- **Gán cổng → hướng CHƯA CHỐT.** [usb_topology.md](usb_topology.md) ghi rằng việc gán hướng sẽ làm theo cổng khi có
+- **Gán cổng → hướng chưa chốt.** [usb_topology.md](usb_topology.md) ghi rằng việc gán hướng sẽ làm theo cổng khi có
   gá. Thứ tự trong bảng chỉ là chỗ giữ chỗ.
 - **Quy ước góc.** Góc yaw là hướng trục quang chiếu xuống sàn, dương ngược chiều kim đồng hồ. Góc chúc đo dưới mặt phẳng
   ngang. Góc roll quay quanh trục quang. Khi có số đo, camera có thể ghi thẳng `quaternion_xyzw` (camera → xe, giống
@@ -232,16 +252,19 @@ Chạy từ `autopark/`. Mỗi lệnh viết trên một dòng, dán được v�
 #    configs/roi/woodscape_v1. Chạy mô hình cần torch (.venv-train); hoặc đưa --prob (P×255, cùng thứ tự).
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.bev woodscape --image datasets/training/woodscape/rgb_images/00000_FV.png --checkpoint runs/ai_woodscape_rtx4000_v1/best.pt
 
-# 4) (thêm tối 24/09/2026) Đo thời gian build_bev trên rig tổng hợp: lần đầu (gồm dựng bảng) và 15 lần sau.
+# 4) Đo thời gian build_bev trên rig tổng hợp: lần đầu (gồm dựng bảng) và 15 lần sau. Có từ tối 24/09/2026.
 #    Không cần dữ liệu, không cần thiết bị. Ghi runs/bev/bench_<ngày_giờ>/bench.json. Dùng để đo trên laptop nộp đồ án.
 #    Tùy chọn: --supersample, --grid, --max-range, --repeat, --out.
 .\.venv\Scripts\python.exe -X utf8 -m autopark.perception.bev bench
 ```
 
 `<ngày_giờ>` là tên thư mục bộ ảnh, ví dụ `20260923_165138_661`. Cấu hình sai thì lệnh in `LỖI: …` và thoát mã 2, không
-in traceback. Các trường hợp: tệp ngoại tham thiếu hay sai khối `vehicle_assumed`; mã ảnh WoodScape không có trong
-`calibration.zip` (ảnh sa bàn phải dùng lệnh `snapshot`); kho hiệu chuẩn không có hoặc không phải zip; `--drop` có tên
-lạ.
+in traceback. Các trường hợp:
+
+- tệp ngoại tham thiếu hay sai khối `vehicle_assumed`;
+- mã ảnh WoodScape không có trong `calibration.zip` (ảnh sa bàn phải dùng lệnh `snapshot`);
+- kho hiệu chuẩn không có hoặc không phải zip;
+- `--drop` có tên lạ.
 
 **Tùy chọn chung:**
 
@@ -253,11 +276,13 @@ lạ.
 | `--max-range` (m) | 2 | 12 |
 | `--supersample` | 2 | 2 |
 
-*(25/09/2026)* `--max-range` phải là số hữu hạn > 0. NaN, ±inf, 0, số âm hay chữ bị từ chối ngay lúc đọc tham số: lệnh
-in dòng `error: argument --max-range: …` của argparse (không phải `LỖI: …`), thoát mã 2, chưa tính gì và không ghi thư
-mục ra. Trước đó `--max-range nan` tính xong BEV rồi mới hỏng khi ghi JSON. Qua API (`build_bev`, `project_camera`,
-`view_geometry`, `bev_from_snapshot`), `max_range` là `None` (không giới hạn) hoặc số > 0; +inf được nhận và cho kết quả
-như `None`, nhưng `stats.json` không ghi được inf, nên muốn ghi tệp thì dùng `None`.
+**Giá trị `--max-range` (từ 25/09/2026).** `--max-range` phải là số hữu hạn > 0. NaN, ±inf, 0, số âm hay chữ bị từ chối
+ngay lúc đọc tham số: lệnh in dòng `error: argument --max-range: …` của argparse (không phải `LỖI: …`), thoát mã 2, chưa
+tính gì và không ghi thư mục ra. Trước đó `--max-range nan` tính xong BEV rồi mới hỏng khi ghi JSON.
+
+Qua API (`build_bev`, `project_camera`, `view_geometry`, `bev_from_snapshot`), `max_range` là `None` (không giới hạn)
+hoặc số > 0. +inf được nhận và cho kết quả như `None`, nhưng `stats.json` không ghi được inf, nên muốn ghi tệp thì dùng
+`None`.
 
 **Riêng với bộ ảnh bàn thử:**
 
@@ -314,7 +339,7 @@ Các số dưới đây đo lại sau bản sửa 24/09 (gỡ FREE theo chiều 
   bảng đã có sẵn, không làm chậm thấy được. Chênh lệch với bản trước nằm trong dao động giữa các lần đo, vì tải máy
   không được kiểm. Ở supersample 2 bản này **chậm hơn một chu kỳ khung** (≈ 42 ms ở 24 khung/s): mỗi camera chiếu hai
   lượt và tính vùng nhìn riêng. Lệnh dòng lệnh chỉ chạy một lần, nên thời gian nó in gồm cả việc dựng bảng
-  (`synthetic`: 365,8 ms). *(Tối 24/09/2026: đã tăng tốc, xem mục 6b.)*
+  (`synthetic`: 365,8 ms). Tối 24/09/2026 BEV đã được tăng tốc, xem mục 6b.
 - **WoodScape `00000_FV`** với checkpoint tham chiếu `ai_woodscape_rtx4000_v1` (lưới 200 × 250 ô 0,1 m, tầm 12 m):
   - free 7 904 (bản trước 8 055), occupied 64, uncertain 3 424 (3 273), occluded 9 108, unseen 29 500;
   - phần BEV, không tính suy luận: 345,9 ms cho lần chạy duy nhất. Con số này gồm việc dựng bảng pixel → ô con cho ảnh
@@ -342,16 +367,18 @@ Các số dưới đây đo lại sau bản sửa 24/09 (gỡ FREE theo chiều 
 **Kết quả:** ở mặc định (4 camera 640×480, lưới 6 × 6 m ô 5 cm, supersample 2, tầm 2 m), `build_bev` với bảng đã dựng
 mất **≈ 7,4–8,8 ms** (lần nhanh nhất) và **≈ 11,8–12,0 ms** (trung vị). Bản cũ, đo xen kẽ trong cùng tiến trình, mất
 87–104 ms (lần nhanh nhất) và ≈ 114–115 ms (trung vị). Như vậy nhanh hơn ≈ 12 lần theo lần nhanh nhất, ≈ 10 lần theo
-trung vị, và dưới một chu kỳ khung (≈ 42 ms ở 24 khung/s). **Kết quả không đổi:** mọi mảng trùng từng bit với bản cũ,
-nên không cần dung sai (phần kiểm ở cuối mục này). (Áp dụng cho `max_range` là `None` hoặc > 0. Từ 25/09/2026
-`max_range` NaN/≤ 0 bị từ chối. Trước đó NaN làm `in_view_fine`/`in_view_by`/`category` khác bản cũ, và ở cả hai bản NaN
-bỏ giới hạn tầm và tắt lượt gỡ FREE vật mảnh; chi tiết ở cuối mục này.)
+trung vị, và dưới một chu kỳ khung (≈ 42 ms ở 24 khung/s).
+
+**Kết quả không đổi:** mọi mảng trùng từng bit với bản cũ, nên không cần dung sai (phần kiểm ở cuối mục này). Điều này
+áp dụng cho `max_range` là `None` hoặc > 0. Từ 25/09/2026, `max_range` NaN/≤ 0 bị từ chối. Trước đó NaN làm
+`in_view_fine`/`in_view_by`/`category` khác bản cũ, và ở cả hai bản NaN bỏ giới hạn tầm và tắt lượt gỡ FREE vật mảnh;
+chi tiết ở cuối mục này.
 
 Mọi số ở mục này đo trên **rig tổng hợp** hoặc trên **hiệu chuẩn WoodScape với bản đồ xác suất ngẫu nhiên**, không phải
 khung camera thật. Lúc đo, **các tác tử khác đang chạy song song** trên cùng máy: 10–20 tiến trình Python, CPU cả máy
 13–40 %. Tải máy **không kiểm soát được**, nên số dao động. Chẳng hạn, lần profile đầu tối 24/09 (trước khi sửa, giờ
 chính xác không ghi; tải lúc 21:08 là 13 %) đo bản cũ 59,5 ms tốt nhất / 71,5 ms trung vị, còn lúc 21:17 bản cũ mất
-87–104 ms. **Laptop RTX 3050 Ti (máy nộp đồ án): CHƯA ĐO.** Đo bằng lệnh 4 ở mục 5.
+87–104 ms. **Laptop RTX 3050 Ti (máy nộp đồ án): chưa đo.** Đo bằng lệnh 4 ở mục 5.
 
 **Đo trước khi sửa** (cProfile, 10 lần `build_bev` ở mặc định, bản cũ):
 
@@ -408,13 +435,14 @@ camera mất ≈ 1,2–2,7 ms và phần hợp nhất ≈ 1,0–1,4 ms (số c�
 
 **Chưa nhanh hơn: khung đầu tiên.** Khung đầu vẫn mất ≈ 0,3–0,5 s cho 4 camera, ngang bản cũ, vì phải dựng bảng. Mỗi
 camera 640×480 mất ≈ 80–110 ms. Trong đó ≈ 61–67 ms là bước chiếu ≈ 615 000 tâm và góc pixel xuống sàn
-(`pixel_to_ground` của `calibration.py`, mô-đun đó không bị sửa). Khi nối vào bàn thử, bảng phải được dựng lúc khởi
-động, trước khung đầu, bằng cách gọi `build_bev` hay `view_geometry` một lần. **Việc này chưa làm**, vì BEV chưa nối
-vào bàn thử. Bảng phải dựng lại khi đổi hiệu chuẩn, lưới, supersample, tầm hay cỡ ảnh.
-*(Cập nhật 30/09/2026: từ `b01dea4` (25/09/2026), nguồn vật cản AI camera dựng trước bảng bằng
-`CameraObstacleMapper.warm_up()` (gọi `build_bev` một lần) khi ngăn AI camera bật và nguồn vật cản không bị chặn. Khi
-phát lại o03 với rig TỔNG HỢP trên máy bàn trước ngày 25/09/2026, bước này mất 297 ms
-([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2). `rig.bench` và `ui.rig_app` không chạy BEV.)*
+(`pixel_to_ground` của `calibration.py`, mô-đun đó không bị sửa). Bảng phải dựng lại khi đổi hiệu chuẩn, lưới,
+supersample, tầm hay cỡ ảnh.
+
+Khi nối vào bàn thử, bảng phải được dựng lúc khởi động, trước khung đầu, bằng cách gọi `build_bev` hay `view_geometry`
+một lần. Ngày 24/09 việc này chưa làm, vì BEV chưa nối vào bàn thử. Từ `b01dea4` (25/09/2026), nguồn vật cản AI camera dựng trước
+bảng bằng `CameraObstacleMapper.warm_up()` (gọi `build_bev` một lần) khi ngăn AI camera bật và nguồn vật cản không bị
+chặn. Khi phát lại o03 với rig TỔNG HỢP trên máy bàn trước ngày 25/09/2026, bước này mất 297 ms
+([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2; ghi nhận 30/09/2026). `rig.bench` và `ui.rig_app` không chạy BEV.
 
 **Bộ nhớ** (tính từ `ViewGeometry.nbytes()`):
 
@@ -442,21 +470,25 @@ WoodScape, nên đã được thay bằng bảng xếp theo ô con.
 - Ngoài repo, bản cũ là bản chép trong thư mục tạm. Đã chạy 10 seed × 80 cấu hình ngẫu nhiên, tổng 1 743 lần chiếu một
   camera: 6 seed trước lần sửa cuối (chặn hai ngưỡng trùng), 4 seed sau. Thêm 3 ảnh WoodScape × 4 bản đồ ngẫu nhiên, và
   mọi ô của bảng đo trên. **Tất cả trùng từng bit.**
-- **Ngoại lệ đã gặp khi rà lại (25/09/2026): `max_range` NaN.** Các phép so ở trên chỉ dùng tầm `None` hoặc > 0. Với
-  NaN, bản cũ tính `hypot <= nan` (toàn False, vùng nhìn rỗng) còn `view_geometry` tính `~(distance > nan)` (toàn
-  True). Trên rig tổng hợp với bản đồ P×255 mặc định (máy bàn, tối 24/09, bản chép của 9bcc30c trong thư mục tạm):
-  `states` trùng, nhưng `in_view_fine` khác 11 431–16 428 ô con mỗi camera, `in_view_by` khác 12 422 ô, `category` khác
-  1 240 ô. Ở **cả hai** bản, NaN bỏ giới hạn tầm (FREE tới chân trời) và tắt lượt gỡ FREE vật mảnh (`pixel_to_ground`
-  nhận tầm NaN + cạnh ô con và loại mọi pixel). Sửa: hàm `check_max_range` từ chối NaN, ≤ 0 và giá trị không phải số ở
-  `build_bev` (trước khi chiếu camera nào), `project_camera`, `view_geometry` và `bev_from_snapshot` (trước khi đọc thư
-  mục). 0 và số âm trước đây cho vùng nhìn rỗng ở cả hai bản (trùng nhau), nay cũng bị từ chối vì không có nghĩa dùng.
-  Kiểm lại sau khi sửa: NaN, 0, −1 → `ValueError`; +inf, `None`, 2 m vẫn trùng từng bit với bản cũ trên rig tổng hợp.
+- **Ngoại lệ đã gặp khi rà lại (25/09/2026): `max_range` NaN.** Các phép so ở trên chỉ dùng tầm `None` hoặc > 0.
+  - Với NaN, bản cũ tính `hypot <= nan` (toàn False, vùng nhìn rỗng), còn `view_geometry` tính `~(distance > nan)` (toàn
+    True).
+  - Trên rig tổng hợp với bản đồ P×255 mặc định (máy bàn, tối 24/09, bản chép của 9bcc30c trong thư mục tạm): `states`
+    trùng, nhưng `in_view_fine` khác 11 431–16 428 ô con mỗi camera, `in_view_by` khác 12 422 ô, `category` khác 1 240 ô.
+  - Ở **cả hai** bản, NaN bỏ giới hạn tầm (FREE tới chân trời) và tắt lượt gỡ FREE vật mảnh (`pixel_to_ground` nhận tầm
+    NaN + cạnh ô con và loại mọi pixel).
+  - Sửa: hàm `check_max_range` từ chối NaN, ≤ 0 và giá trị không phải số ở `build_bev` (trước khi chiếu camera nào),
+    `project_camera`, `view_geometry` và `bev_from_snapshot` (trước khi đọc thư mục). 0 và số âm trước đây cho vùng nhìn
+    rỗng ở cả hai bản (trùng nhau), nay cũng bị từ chối vì không có nghĩa dùng.
+  - Kiểm lại sau khi sửa: NaN, 0, −1 → `ValueError`; +inf, `None`, 2 m vẫn trùng từng bit với bản cũ trên rig tổng hợp.
 
 ## 7. Kiểm thử
 
-*(Cập nhật tối 24/09/2026, sau khi tăng tốc và sửa `max_range` NaN.)* `tests/test_bev.py` có **38 test**: 32 test cũ
-giữ nguyên, không nới, cộng 6 test mới. Lần chạy cuối lúc 21:58–22:04 tối 24/09 trên máy bàn, trong khi các tác tử khác
-đang sửa một số tệp mã và test liên quan:
+`tests/test_bev.py` có **38 test** (tối 24/09/2026, sau khi tăng tốc và sửa `max_range` NaN): 32 test cũ giữ nguyên,
+không nới, cộng 6 test mới.
+
+**Lần chạy tối 24/09/2026**, lúc 21:58–22:04 trên máy bàn, trong khi các tác tử khác đang sửa một số tệp mã và test liên
+quan:
 
 - `.venv`: 38 đạt. Cùng `test_perception_calibration`, `test_fisheye_calib`, `test_fusion`, `test_fusion_demo`,
   `test_lidar_bench_map`, `test_labels`, `test_phase1_sources`, `test_roi_tool`, `test_extrinsics_calib` (hai tệp sau
@@ -467,12 +499,13 @@ giữ nguyên, không nới, cộng 6 test mới. Lần chạy cuối lúc 21:58
   162 đạt, **6 lỗi**, cả sáu ở hai tệp đó; chạy lại hai tệp bằng `.venv` lúc 22:02 cũng 6 lỗi. Nguyên nhân là
   `extrinsics_calib.py` do tác tử khác sửa lúc 22:00:55 (lỗi `ExtrinsicsError`: nội tham TỔNG HỢP không được ghi như số
   đo), không phải `bev.py`: trước lúc đó cùng các test ấy đạt với `bev.py` hiện tại.
-  *(Cập nhật 25/09/2026: ở mã đã commit `54cb3e2`, ba tệp `test_bev`, `test_extrinsics_calib`, `test_roi_tool`
-  chạy bằng `.venv` được 86 đạt (38 + 29 + 19), 0 lỗi. Lần chạy đủ bộ test ngày 25/09 trên máy bàn: `.venv` 1 242
-  đạt, 7 bỏ qua; `.venv-train` 386 đạt (các tệp cần torch, cùng test nhãn, bàn thử, kiểm máy, hiệu chuẩn, ngoại
-  tham, ROI); 0 lỗi.)* *(Cập nhật 01/10/2026: 386 là nhóm chọn của `.venv-train`, không phải toàn bộ bộ test
-  ([TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 7); các lượt toàn bộ sau đó:
-  [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8, 9, 11, 15.)*
+
+**Các lần chạy sau.** Ngày 25/09/2026, ở mã đã commit `54cb3e2`, ba tệp `test_bev`, `test_extrinsics_calib`,
+`test_roi_tool` chạy bằng `.venv` được 86 đạt (38 + 29 + 19), 0 lỗi. Lần chạy ngày 25/09 trên máy bàn: `.venv` chạy đủ
+bộ test, 1 242 đạt, 7 bỏ qua; `.venv-train` 386 đạt; 0 lỗi. Con số 386 là nhóm chọn của `.venv-train` (các tệp cần
+torch, cùng test nhãn, bàn thử, kiểm máy, hiệu chuẩn, ngoại tham, ROI), không phải toàn bộ bộ test (ghi chú 01/10/2026;
+[TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 7). Các lượt chạy toàn bộ sau đó ở
+[CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 8, 9, 11, 15.
 
 Sáu test mới:
 
@@ -486,13 +519,16 @@ Sáu test mới:
   xen kẽ hai bản, lấy lần nhanh nhất của 5 lần. Bản mới phải nhanh hơn bản cũ **≥ 3 lần** và mất dưới 0,25 s. Đo tối
   24/09 được ≈ 8–12 lần. Ngưỡng 3 lần để trừ hao máy yếu hay bận. Test cận trên 1 s cũ vẫn giữ.
 - `test_bench_cli_writes_timing_report`: lệnh `bench` ghi `bench.json` đủ trường; `--repeat 0` thì báo `LỖI`, mã 2.
-- `test_invalid_max_range_is_rejected_at_every_entry_point` *(25/09/2026)*: `max_range` NaN (ba kiểu: `float("nan")`,
-  `math.nan`, `np.float32` NaN), 0, −1 và chữ → `ValueError` nhắc `max_range` ở `build_bev` (cả khi không camera nào có
-  bản đồ), `project_camera` (cả khi bản đồ sai cỡ: kiểm tầm trước), `view_geometry` (gọi hai lần, lỗi không bị bộ nhớ
-  đệm giữ) và `bev_from_snapshot` (thư mục không tồn tại vẫn ra lỗi tầm). `None` và +inf vẫn nhận, +inf cho đúng kết
-  quả như `None` và vùng nhìn rộng hơn tầm 2 m. Dòng lệnh `bench`/`synthetic` với `--max-range` nan, ±inf, 0, −2, chữ:
-  thoát mã 2 lúc đọc tham số, không ghi thư mục ra. Kiểm đột biến trên bản chép trong thư mục tạm (tối 24/09): **8/8 bị
-  bắt** — bỏ kiểm ở từng lối vào trong bốn lối, nhận NaN, nhận 0, dòng lệnh dùng `type=float`, dòng lệnh nhận inf.
+- `test_invalid_max_range_is_rejected_at_every_entry_point` (25/09/2026):
+  - `max_range` NaN (ba kiểu: `float("nan")`, `math.nan`, `np.float32` NaN), 0, −1 và chữ → `ValueError` nhắc
+    `max_range` ở `build_bev` (cả khi không camera nào có bản đồ), `project_camera` (cả khi bản đồ sai cỡ: kiểm tầm
+    trước), `view_geometry` (gọi hai lần, lỗi không bị bộ nhớ đệm giữ) và `bev_from_snapshot` (thư mục không tồn tại vẫn
+    ra lỗi tầm);
+  - `None` và +inf vẫn nhận; +inf cho đúng kết quả như `None` và vùng nhìn rộng hơn tầm 2 m;
+  - dòng lệnh `bench`/`synthetic` với `--max-range` nan, ±inf, 0, −2, chữ: thoát mã 2 lúc đọc tham số, không ghi thư
+    mục ra;
+  - kiểm đột biến trên bản chép trong thư mục tạm (tối 24/09): **8/8 bị bắt**. Các đột biến: bỏ kiểm ở từng lối vào
+    trong bốn lối, nhận NaN, nhận 0, dòng lệnh dùng `type=float`, dòng lệnh nhận inf.
 
 **Kiểm đột biến cho phần tăng tốc** (tối 24/09/2026). Các đột biến sửa `bev.py` của một **bản chép** trong thư mục tạm,
 không sửa repo. Bản chép không có `datasets/`, nên test WoodScape bị bỏ qua ở đó. Lượt đầu có 19 đột biến, 18 bị bắt.
@@ -606,44 +642,39 @@ Mười hai đột biến mới:
 
 1. **Hiệu chuẩn nội tham bốn camera** ([HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md)). Không có thì lệnh `snapshot`
    không chạy.
-2. **Gá camera, chốt gán cổng → hướng, đo ngoại tham.** Chưa có công cụ. *(Cập nhật 25/09/2026: nay đã có và đã
-   commit trong `65b7127`: `perception/extrinsics_calib.py` và giao diện `ui/roi_app.py`, cách làm ở
-   [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md). Mới kiểm trên ảnh TỔNG HỢP; đo thật còn chờ nội tham (việc 1) và
-   gá camera. Tệp ra dự kiến `configs/rig/camera_rig_extrinsics_v1.json`, chưa có.)* Một hướng là
-   `cv2.fisheye.solvePnP` với bảng đặt trên sàn ở vị trí đo được, nay đã cài trong `perception/extrinsics_calib.py`
-   ([NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md); ý gốc ở TONG_HOP_DU_AN.md mục 5.4 bản `9d68257`). Ghi kết quả vào một
-   tệp rig mới với `"measured": true` và `quaternion_xyzw`; giữ v0 làm hồ sơ.
-3. **Mặt nạ ROI cho camera dự án** (`roi_p<cổng>.png`): loại thân xe, dây, viền ống kính. *(Cập nhật 25/09/2026:
-   công cụ dựng ROI đã có, `perception/roi_tool.py` và thẻ "ROI" của `ui/roi_app.py` (`65b7127`,
-   NGOAI_THAM_VA_ROI.md mục 6); chưa có mặt nạ nào cho camera dự án, thư mục `configs/roi/rig_v1` chưa có.)*
+2. **Gá camera, chốt gán cổng → hướng, đo ngoại tham.** Công cụ đã có và đã commit trong `65b7127` (25/09/2026):
+   `perception/extrinsics_calib.py` và giao diện `ui/roi_app.py`, cách làm ở [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md).
+   Công cụ dùng `cv2.fisheye.solvePnP` với bảng đặt trên sàn ở vị trí đo được (ý gốc ở TONG_HOP_DU_AN.md mục 5.4 bản
+   `9d68257`). Nó mới được kiểm trên ảnh TỔNG HỢP; đo thật còn chờ nội tham (việc 1) và gá camera. Kết quả ghi vào một
+   tệp rig mới với `"measured": true` và `quaternion_xyzw`, dự kiến là `configs/rig/camera_rig_extrinsics_v1.json`, chưa
+   có. Tệp v0 giữ làm hồ sơ.
+3. **Mặt nạ ROI cho camera dự án** (`roi_p<cổng>.png`): loại thân xe, dây, viền ống kính. Công cụ dựng ROI đã có từ
+   25/09/2026: `perception/roi_tool.py` và thẻ "ROI" của `ui/roi_app.py` (`65b7127`, NGOAI_THAM_VA_ROI.md mục 6). Chưa có
+   mặt nạ nào cho camera dự án; thư mục `configs/roi/rig_v1` chưa có.
 4. **Đo sai số BEV** (kế hoạch mục 6, bước 8): đặt vật mẫu ở vị trí đo bằng thước ở trước, sau, hông và vùng giáp ranh;
    so với BEV; lập báo cáo sai số và sơ đồ vùng quan sát.
 5. Chọn và đánh giá phương pháp **biên tiếp xúc** của vật cao (mục 3). Chọn **tiêu chí độ phân giải** thay cho
    `max_range` cố định.
-6. **Tốc độ** *(cập nhật tối 24/09/2026, mục 6b)*. Ở mặc định, 4 camera mất ≈ 7,4–8,8 ms (lần nhanh nhất) và
-   ≈ 9,5–12 ms (trung vị) khi bảng đã dựng. Trước khi tăng tốc là ≈ 60–104 ms. Số này đo trên máy bàn, rig tổng hợp,
-   khi các tác tử khác đang chạy song song. Còn thiếu:
-   - **Laptop RTX 3050 Ti: CHƯA ĐO.** Chạy lệnh `bench` (mục 5, lệnh 4) trên laptop, rồi chép `bench.json` vào hồ sơ.
-     *(Cập nhật 25/09/2026: lệnh `bench` đã commit và push trong `65b7127`; laptop có nó sau `git pull`.)*
-   - **Khung đầu** vẫn mất ≈ 0,3–0,5 s để dựng bảng. Phải dựng bảng lúc khởi động khi nối vào bàn thử: CHƯA LÀM.
-     *(Cập nhật 30/09/2026: đã làm ở nguồn vật cản AI camera: `CameraObstacleMapper.warm_up()` dựng bảng khi bật, từ
-     `b01dea4`; xem mục 6b.)*
-   - Chưa đo trên khung camera thật có ROI. Chưa đo khi BEV chạy cùng bàn thử (bốn luồng camera, AI, giao diện) trong
-     một tiến trình.
-     *(Cập nhật 30/09/2026: đã đo một phần khi phát lại o03 qua ngăn AI camera với rig TỔNG HỢP (Rig, AI và ngăn chạy
-     offscreen trong một tiến trình, script gọi `tick()` thay timer; máy bàn trước, 25/09/2026): BEV 4 camera trung vị
-     5,6 ms, p95 8,0–8,1 ms; mỗi `tick()` trung vị 10,9–11,0 ms ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2).
-     Chưa đo với camera thật đang chạy, ROI thật hay trên laptop.)*
+6. **Tốc độ** (mục 6b). Ở mặc định, 4 camera mất ≈ 7,4–8,8 ms (lần nhanh nhất) và ≈ 9,5–12 ms (trung vị) khi bảng đã
+   dựng. Trước khi tăng tốc là ≈ 60–104 ms. Số này đo trên máy bàn, rig tổng hợp, khi các tác tử khác đang chạy song song.
+   Còn thiếu hoặc đã làm một phần:
+   - **Laptop RTX 3050 Ti: chưa đo.** Chạy lệnh `bench` (mục 5, lệnh 4) trên laptop, rồi chép `bench.json` vào hồ sơ.
+     Lệnh `bench` đã commit và push trong `65b7127` (25/09/2026), nên laptop có nó sau `git pull`.
+   - **Khung đầu** vẫn mất ≈ 0,3–0,5 s để dựng bảng, nên phải dựng bảng lúc khởi động. Việc này đã làm ở nguồn vật cản
+     AI camera: `CameraObstacleMapper.warm_up()` dựng bảng khi bật, từ `b01dea4` (ghi nhận 30/09/2026; mục 6b).
+   - Chưa đo trên khung camera thật có ROI. Khi BEV chạy cùng bàn thử (bốn luồng camera, AI, giao diện) trong một tiến
+     trình thì mới đo một phần: ngày 25/09/2026, phát lại o03 qua ngăn AI camera với rig TỔNG HỢP trên máy bàn trước
+     (Rig, AI và ngăn chạy offscreen trong một tiến trình, script gọi `tick()` thay timer). Kết quả: BEV 4 camera trung
+     vị 5,6 ms, p95 8,0–8,1 ms; mỗi `tick()` trung vị 10,9–11,0 ms ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 8.2;
+     ghi nhận 30/09/2026). Chưa đo với camera thật đang chạy, ROI thật hay trên laptop.
    - BEV chưa chạy song song giữa các camera. Chưa cần, vì mỗi camera ≈ 1,2–2,7 ms.
-7. **Nối vào bàn thử / hợp nhất** (`CameraSemanticLayer`, kế hoạch giai đoạn 3): chưa làm. Chờ các mục trên, và chờ
-   quyết định giấy phép WoodScape cho việc nối AI vào lập đường. *(Cập nhật 25/09/2026: phần mềm đã làm, `b01dea4`,
-   [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md). Quyết định giấy phép đã có, Valeo chưa xác nhận. Có lọc 2/3 lô trong hệ
-   bản đồ. Còn chờ mục 1–4 thì AI mới tạo được vật cản trên bàn thật. Chỉ kiểm bằng nguồn giả, rig tổng hợp và bản ghi
-   phát lại.)*
-8. Lọc theo thời gian, bù chuyển động xe giữa các camera: chưa có. Mọi stamp là lúc khung tới máy, không phải lúc phơi
-   sáng.
-   *(Cập nhật 30/09/2026: lọc theo thời gian đã có ở nguồn vật cản AI camera, ≥ 2 trong 3 lô, trong hệ bản đồ
-   (`fusion/camera_ai.py`, từ `b01dea4`); `bev.py` tự nó không lọc. Bù chuyển động xe giữa các camera và nội suy tư thế
-   về lúc chụp: chưa có.)*
+7. **Nối vào bàn thử / hợp nhất** (`CameraSemanticLayer`, kế hoạch giai đoạn 3). Phần mềm đã làm từ 25/09/2026
+   (`b01dea4`, [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)): BEV là nguồn vật cản của phiên đỗ, có lọc 2/3 lô trong hệ bản
+   đồ. Quyết định giấy phép đã có, Valeo chưa xác nhận. Phải xong việc 1–4 ở trên thì AI mới tạo được vật cản trên bàn
+   thật. Phần này mới chỉ kiểm bằng nguồn giả, rig tổng hợp và bản ghi phát lại.
+8. **Lọc theo thời gian, bù chuyển động xe giữa các camera.** Lọc theo thời gian đã có ở nguồn vật cản AI camera, ≥ 2
+   trong 3 lô, trong hệ bản đồ (`fusion/camera_ai.py`, từ `b01dea4`; ghi nhận 30/09/2026); `bev.py` tự nó không lọc. Bù
+   chuyển động xe giữa các camera và nội suy tư thế về lúc chụp: chưa có. Mọi stamp là lúc khung tới máy, không phải lúc
+   phơi sáng.
 9. AI **chưa từng được chấm trên ảnh sa bàn**. Hai ngưỡng 0,15 / 0,50 chưa kiểm trên sa bàn. Mọi lỗi của mô hình đi
    thẳng vào BEV.

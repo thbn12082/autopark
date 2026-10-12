@@ -1,54 +1,80 @@
-# Ngưỡng nghiệm thu V1 — bản đề xuất cho kế hoạch mục 16.2 (24/09/2026)
+# Ngưỡng nghiệm thu V1 — bản đề xuất cho kế hoạch mục 16.2
 
-> **Ghi công theo giấy phép dữ liệu:** các số AI trích ở mục 8 là của mô hình huấn luyện trên **Valeo WoodScape Dataset**
-> (<https://github.com/valeoai/WoodScape>; địa chỉ cũ `woodscape.valeo.com` / `woodscape.valeo.ai`, kiểm 25/09/2026 dẫn
-> tới một trang không có nội dung WoodScape). Giới hạn sử dụng: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
-> *(Đổi link 25/09/2026 theo đề xuất ở GIAY_PHEP_DU_LIEU.md mục "Ghi công: link tới trang bộ dữ liệu", CHỜ CHỐT; trước đó
-> link là `https://woodscape.valeo.com`.)*
+Tài liệu này đề xuất bộ ngưỡng để nghiệm thu V1, bản đầu tiên cần đạt của xe (10 điều kiện ở kế hoạch mục 16.4). Các
+ngưỡng chia theo bảy nhóm "cần chốt" ở mục 16.2 của [kế hoạch v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md); mỗi
+ngưỡng có mã `N-…`, con số đề xuất, căn cứ và cách đo độc lập. Tài liệu dành cho người chuẩn bị nghiệm thu và người
+duyệt ngưỡng (người dùng và giáo viên hướng dẫn, GVHD). Bộ kịch bản dùng các ngưỡng này nằm ở
+[KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md).
 
-**Kế hoạch đối chiếu:** [v3.1](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) mục 16.2 (bảy nhóm ngưỡng "cần chốt"), 16.1 (mốc
-thử khởi đầu), 16.4 (điều kiện hoàn thành V1), 13 (giai đoạn 9), 14 (định nghĩa cách đo và thành công/thất bại trước khi
-thu kết quả cuối). Bộ kịch bản dùng các ngưỡng này: [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md).
+Ngoài mục 16.2, tài liệu đối chiếu với các mục khác của kế hoạch: 16.1 (mốc thử khởi đầu), 16.4 (điều kiện hoàn thành
+V1), 13 (giai đoạn 9) và 14 (định nghĩa cách đo và thành công/thất bại trước khi thu kết quả cuối). Bản đề xuất lập ngày
+24/09/2026 và được bổ sung tới 02/10/2026.
 
-**Trạng thái: mọi ngưỡng trong tệp này là ĐỀ XUẤT – CHỜ CHỐT.** Chưa ngưỡng nào được người dùng hay GVHD duyệt. Tệp này
-**không thêm số đo mới**: mỗi ngưỡng ghi căn cứ (tệp, mục, con số) và mức của căn cứ đó; chỗ nào không có số đo thì ghi
-"chưa có số đo làm căn cứ". Kế hoạch mục 16.2 viết: "Không có đủ thông số xe/sa bàn/thực nghiệm để tự ghi một bộ ngưỡng
-cuối". Tệp này chỉ là bản nháp để chốt, không phải bộ ngưỡng cuối.
-*(Cập nhật 02/10/2026: các số mà công cụ chấm một lần chạy T5 dùng (giới hạn của N-D1, N-D2, N-D5, N-D6 (c), N-D7, N-V1,
-N-P1 … N-P3, N-P5 (c), N-P6 … N-P8, trần đổi chiều N-D6 (b) theo kịch bản và tỉ lệ 3:1 của quy tắc 3) được chép vào
-`configs/nguong_nghiem_thu.json` (`status` = `DE_XUAT_CHO_CHOT`), cùng danh sách kiểm theo từng kịch bản
-(`python -m autopark.evaluation.score_run`, [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7); các ngưỡng không
-chấm từng lần (N-D8, N-P9, N-P11, N-T…, N-L…, N-C…, N-G…, N-A…, N-K…) không có trong tệp đó. Chốt một ngưỡng có trong
-tệp JSON là sửa cả tệp này, KICH_BAN và tệp JSON đó, rồi đặt `status` = `CHOT`; tệp chi tiết của mỗi lần chấm ghi
-SHA-256 của tệp ngưỡng đã dùng. Công cụ mới chấm thử trên dữ
-liệu tổng hợp và lần chạy mô phỏng; chưa chấm lần chạy thật nào.)*
-*(Cập nhật 02/10/2026: `configs/nguong_nghiem_thu.json` có thêm `limits.N-V1.target_mps` = 0,10, vế "tốc độ mục tiêu
-≤ 0,10 m/s ở đợt đầu" của N-V1. Khóa này là tùy chọn: tệp ngưỡng không có thì T5 chỉ chấm vế tốc độ đo.)*
-*(Cập nhật 02/10/2026: trần đổi chiều N-D6 (b) trong tệp JSON còn được `run_app.py` và `ui.lidar_app` dùng làm giới hạn
-lúc Bắt đầu đỗ cho tệp sa bàn gắn kịch bản (trường `acceptance`, `application/cusp_policy.py`); DO-5 có thêm `max_cusps` 7.
-Người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất; các số vẫn ĐỀ XUẤT – CHỜ CHỐT. Mới kiểm bằng test (mô
-phỏng, bo mô phỏng, giao diện offscreen) và một lần chạy offscreen với planner thật trên `scenarios/nghiem_thu/do1.json`
-(lập đường OK 0,70 s, 1 lần đổi chiều); CHƯA THỬ với LiDAR, bo thật hay laptop.)*
+> **Ghi công theo giấy phép dữ liệu:** các số AI trích ở mục 8 là của mô hình huấn luyện trên **Valeo WoodScape
+> Dataset** (<https://github.com/valeoai/WoodScape>). Giới hạn sử dụng: [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md).
+> Link này được đổi ngày 25/09/2026 theo đề xuất ở mục "Ghi công: link tới trang bộ dữ liệu" của GIAY_PHEP_DU_LIEU.md,
+> chưa chốt. Trước đó link là `https://woodscape.valeo.com`. Khi kiểm ngày 25/09/2026, hai địa chỉ cũ
+> `woodscape.valeo.com` và `woodscape.valeo.ai` dẫn tới một trang không có nội dung WoodScape.
 
-Tình trạng làm nền (24/09/2026, theo [TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md)): chưa nhận MN300, ESP32-S3, phần nguồn và
-dừng; firmware C++ chưa nạp bo (biên dịch được từ 29/09/2026); AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape); định vị LiDAR
-mới chạy offline, chưa có tham chiếu độc lập. Mọi số đo phần cứng hiện có là trên **máy bàn** i9-14900 + RTX 4000 Ada
-(22–24/09/2026). Trên laptop RTX 3050 Ti (máy nộp đồ án) chỉ có hồ sơ mô phỏng giai đoạn 0 (20/09/2026).
-*(Cập nhật 25/09/2026, `9d68257`: câu "AI chưa nối vào costmap/planner (chờ quyết định giấy phép WoodScape)" đã lỗi thời.
-Ngày 25/09/2026 người làm khóa luận quyết định dùng mô hình WoodScape trong vòng điều khiển; Valeo chưa xác nhận cách đọc
-điều khoản ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). Phần mềm đưa AI camera vào phiên đỗ xe làm nguồn vật cản đã có
-([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)), chỉ kiểm bằng nguồn giả, rig tổng hợp và phát lại; chưa camera nào được hiệu
-chuẩn nên trên bàn thật AI chưa tạo vật cản nào.)*
-*(Cập nhật 30/09/2026: từ 29/09/2026 máy bàn là máy mới, Dell Precision 3680 cùng cấu hình; số đo 22–24/09 ở trên là của
-máy bàn trước. Trên máy mới có lượt `may_moi` ngày 29/09/2026 (LiDAR, bốn camera, AI), nay là tham chiếu `may_moi`
-([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2); cùng ngày 15:08–15:19 còn ghi LiDAR 10 s ở COM3 và chạy
-`rig.bench --lidar` 30 s bốn camera + LiDAR + AI có ghi phiên rồi phát lại
-([kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md)). Firmware đã biên dịch cho ESP32-S3
-(29/09/2026) và chạy trong bo ảo QEMU (30/09/2026, [MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)): đó là giả lập, không phải số đo phần cứng; vẫn chưa nạp bo.)*
-*(Cập nhật 02/10/2026: ngày 02/10/2026 máy bàn chạy thêm LD-1 30 phút bốn camera + LiDAR + AI, có ghi phiên (đã đo trên
-thiết bị thật; [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 5.8,
-[evidence/thiet_bi_20261002/](evidence/thiet_bi_20261002/)); các dòng N-C1 … N-C3, N-T3, N-T5, N-T6 dưới đây chép số
-của lần đó. Laptop vẫn chưa có số đo phần cứng nào.)*
+## Hiện trạng (tính đến 02/10/2026)
+
+- **Mọi ngưỡng là đề xuất, chưa chốt.** Chưa ngưỡng nào được người dùng hay GVHD duyệt. Kế hoạch mục 16.2 viết: "Không
+  có đủ thông số xe/sa bàn/thực nghiệm để tự ghi một bộ ngưỡng cuối". Vì vậy tệp này chỉ là bản nháp để chốt, không
+  phải bộ ngưỡng cuối.
+- **Tệp này không thêm số đo mới.** Mỗi ngưỡng ghi căn cứ (tệp, mục, con số) và mức của căn cứ đó (mục 0). Chỗ nào
+  không có số đo thì ghi "chưa có số đo làm căn cứ".
+- **Quyết định ngày 02/10/2026.** Người dùng đồng ý làm theo các đề xuất của đợt công cụ nghiệm thu ("làm hết"): chạy
+  nghiệm thu với xe 0,10 m/s (N-V1), tuổi tư thế 0,25 s cho nguồn chỉ từ LiDAR (N-T2), dùng trần đổi chiều N-D6 (b) làm
+  giới hạn lúc Bắt đầu đỗ, tự tắt EcoQoS (quy tắc 4) và nhận `--sim-truth` với log bo ảo QEMU ở mức mô phỏng (quy tắc
+  2). Các số vẫn là đề xuất, chưa chốt.
+- **Công cụ chấm.** Công cụ chấm một lần chạy T5 đọc bản sao các ngưỡng trong `configs/nguong_nghiem_thu.json` (phần
+  ngay dưới); T1–T15 là các công cụ nghiệm thu ở [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7. T5 mới chấm
+  thử trên dữ liệu tổng hợp và lần chạy mô phỏng, chưa chấm lần chạy thật nào.
+- **Thiết bị.** Chưa nhận MN300, ESP32-S3, phần nguồn và dừng (tình trạng 24/09/2026; hồ sơ tới 02/10/2026 không ghi
+  nhận thêm thiết bị, [TONG_HOP_DU_AN.md](../../TONG_HOP_DU_AN.md) mục 2).
+- **Firmware.** Firmware C++ biên dịch được cho ESP32-S3 từ 29/09/2026. Từ 30/09/2026 nó chạy trong bo ảo QEMU, tức
+  firmware thật chạy trong trình giả lập ([MO_PHONG_FIRMWARE.md](MO_PHONG_FIRMWARE.md)). Đó là giả lập, không phải số
+  đo phần cứng; firmware chưa nạp bo nào.
+- **AI.** Ngày 25/09/2026 người làm khóa luận quyết định dùng mô hình WoodScape trong vòng điều khiển; Valeo chưa xác
+  nhận cách đọc điều khoản ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)). Phần mềm đưa AI camera vào phiên đỗ xe làm
+  nguồn vật cản đã có ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md)), nhưng chỉ kiểm bằng nguồn giả, rig tổng hợp và phát
+  lại. Chưa camera nào được hiệu chuẩn, nên trên bàn thật AI chưa tạo vật cản nào.
+- **Định vị LiDAR.** Tới 24/09/2026 định vị LiDAR mới chạy offline. Từ 02/10/2026 có nguồn tư thế LiDAR trong phiên, ở
+  mức mô phỏng và trên bản ghi C1 đứng yên ([NGUON_TU_THE_LIDAR.md](NGUON_TU_THE_LIDAR.md)). Chưa có tham chiếu độc
+  lập.
+- **Số đo phần cứng.** Mọi số đo phần cứng hiện có là trên máy bàn:
+  - 22–24/09/2026: máy bàn trước, i9-14900 + RTX 4000 Ada.
+  - 29/09/2026: máy bàn mới, Dell Precision 3680 cùng cấu hình. Lượt `may_moi` (LiDAR, bốn camera, AI) nay là tham chiếu
+    `may_moi` ([CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 2). Cùng ngày, 15:08–15:19, máy ghi LiDAR 10 s ở COM3 và chạy
+    `rig.bench --lidar` 30 s với bốn camera + LiDAR + AI, có ghi phiên rồi phát lại
+    ([kiem_may_20260929.md](evidence/chuyen_may_20260929/kiem_may_20260929.md)).
+  - 02/10/2026: máy bàn chạy LD-1 (kịch bản chạy dài) 30 phút với bốn camera + LiDAR + AI, có ghi phiên. Đây là số đo
+    trên thiết bị thật ([KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 5.8, [evidence/thiet_bi_20261002/](evidence/thiet_bi_20261002/)).
+    Các dòng N-C1 … N-C3, N-T3, N-T5, N-T6 chép số của lần này.
+- **Laptop.** Laptop RTX 3050 Ti (máy nộp đồ án) chỉ có hồ sơ mô phỏng giai đoạn 0 (20/09/2026), chưa có số đo phần
+  cứng nào.
+
+## Bản sao ngưỡng cho công cụ chấm T5
+
+Từ 02/10/2026, các số mà công cụ chấm T5 (`python -m autopark.evaluation.score_run`) dùng để chấm một lần chạy được chép
+vào [`configs/nguong_nghiem_thu.json`](../configs/nguong_nghiem_thu.json), với `status` = `DE_XUAT_CHO_CHOT`. Tệp đó
+gồm:
+
+- giới hạn của N-D1, N-D2, N-D5, N-D6 (c), N-D7, N-V1, N-P1 … N-P3, N-P5 (c), N-P6 … N-P8;
+- trần đổi chiều N-D6 (b) theo từng kịch bản, và tỉ lệ 3:1 của quy tắc 3;
+- danh sách kiểm theo từng kịch bản;
+- khóa tùy chọn `limits.N-V1.target_mps` = 0,10, tức vế "tốc độ mục tiêu ≤ 0,10 m/s ở đợt đầu" của N-V1. Tệp ngưỡng
+  không có khóa này thì T5 chỉ chấm vế tốc độ đo.
+
+Các ngưỡng không chấm từng lần (N-D8, N-P9, N-P11, N-T…, N-L…, N-C…, N-G…, N-A…, N-K…) không có trong tệp JSON. Muốn
+chốt một ngưỡng có trong tệp JSON thì sửa cả ba nơi: tệp này, KICH_BAN_NGHIEM_THU.md và tệp JSON, rồi đặt `status` =
+`CHOT`. Tệp chi tiết của mỗi lần chấm ghi SHA-256 của tệp ngưỡng đã dùng.
+
+Trần đổi chiều N-D6 (b) trong tệp JSON còn là giới hạn lúc Bắt đầu đỗ của `run_app.py` và `ui.lidar_app`, áp cho tệp sa
+bàn gắn kịch bản (trường `acceptance`, `application/cusp_policy.py`). Riêng DO-5 có thêm `max_cusps` 7. Phần giới hạn
+này mới kiểm bằng test (mô phỏng, bo mô phỏng `SimVehicleIO` + `FirmwareModel`, giao diện offscreen) và một lần chạy
+offscreen với planner thật trên `scenarios/nghiem_thu/do1.json`: lập đường OK trong 0,70 s, 1 lần đổi chiều. Chưa thử
+với LiDAR, bo thật hay laptop.
 
 ## 0. Cách đọc
 
@@ -65,57 +91,82 @@ của lần đó. Laptop vẫn chưa có số đo phần cứng nào.)*
 | TÍNH | tính từ các số trên (phép tính ghi kèm), không phải số đo |
 | — | chưa có số đo làm căn cứ |
 
-**Hai loại ngưỡng.** *Tuyệt đối* là 0 lần vi phạm (chạm vật, tự chạy lại, ô FREE do thiếu dữ liệu…): một lần vi phạm là
-không đạt, bất kể các lần khác. *Định lượng* là giới hạn số, kiểm trên từng lần chạy hoặc trên thống kê của cả loạt.
+**Hai loại ngưỡng.** Ngưỡng *tuyệt đối* là 0 lần vi phạm (chạm vật, tự chạy lại, ô FREE do thiếu dữ liệu…): chỉ một
+lần vi phạm là không đạt, bất kể các lần khác. Ngưỡng *định lượng* là giới hạn số, kiểm trên từng lần chạy hoặc trên
+thống kê của cả loạt.
 
-Mỗi ngưỡng có mã `N-…`. Mã kịch bản (`DO-1`, `VC-1`…) ở [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md). Mã phương pháp đo
-độc lập (`R1`…`R7`) định nghĩa ở mục 2 của tệp đó.
+**Các mã.** Mỗi ngưỡng có mã `N-…`. Mã kịch bản (`DO-1`, `VC-1`…) nằm ở [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md);
+mã phương pháp đo độc lập `R1`…`R7` định nghĩa ở mục 2 của tệp đó. Ba mức thử MP (mô phỏng), BT (bàn thử) và XT (xe
+thật) định nghĩa ở mục 1.2 của tệp kịch bản. M0–M3 là bốn mức an toàn khi thử với bo ESP32-S3, từ chỉ có bo (M0) tới
+chạy trên sàn (M3); L1–L16 là các kịch bản lỗi nguồn và dừng. Cả hai ở [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md).
+TC-1 là phép kiểm tham chiếu trên cao bằng xe giả ([THAM_CHIEU_TREN_CAO.md](THAM_CHIEU_TREN_CAO.md)).
 
-**Quy tắc chung (đề xuất, CHỜ CHỐT):**
+**Quy tắc chung** (đề xuất, chưa chốt):
 
-1. **Chốt trước khi thu kết quả cuối** (kế hoạch mục 14: "Chuẩn bị bảng kịch bản, cách đo độc lập và định nghĩa thành
-   công/thất bại trước khi thu kết quả cuối"). Không nới ngưỡng sau khi xem kết quả. Muốn đổi thì ghi lý do và ngày, rồi
-   chạy lại toàn bộ kịch bản dùng ngưỡng đó.
-2. **Đo bằng tham chiếu độc lập** (kế hoạch mục 12: "không dùng cùng một đầu ra tự xác nhận chính nó"; mục 14: "Có tham
-   chiếu độc lập cho sai số vị trí/hướng/khoảng cách"). Log của hệ thống chỉ dùng để đối chiếu, không dùng làm số nghiệm thu
-   cho vị trí, hướng, khoảng hở hay quãng dừng.
-   *(02/10/2026, ĐỀ XUẤT, người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất: công cụ chấm T5 nhận
-   `--sim-truth` với log bo ảo QEMU (evidence `qemu_firmware_simulated_vehicle`, pose_source `qemu_plant_pose`, tư thế thật
-   của xe mô phỏng phía laptop) chỉ ở mức MP; mức BT và XT từ chối. Log bo ảo luôn là giả lập nên mức XT từ chối log đó.)*
-3. **Tham chiếu phải chính xác hơn ngưỡng ít nhất 3 lần** (sai số của tham chiếu ≤ 1/3 ngưỡng cần kiểm). Tỉ lệ 3:1 là quy
-   ước đề xuất, cần GVHD duyệt. Tham chiếu không đạt tỉ lệ này thì ngưỡng đó ghi "không kiểm được", không ghi "đạt". Tỉ lệ
-   áp lên giá trị **lớn nhất** của ngưỡng (như N-L1: 3 cm → tham chiếu ≤ 1 cm); phần "trung vị" của ngưỡng báo kèm sai số
-   tham chiếu, và chỉ ghi "đạt" khi tham chiếu cũng ≤ 1/3 trung vị. Sự kiện dùng làm dấu đồng bộ R7 không được là chính sự
-   kiện của ngưỡng đang kiểm (thêm tối 24/09/2026, xem N-P5).
-   *(02/10/2026, cách công cụ chấm T5 áp dụng quy tắc này: sai số tham chiếu là giá trị lớn nhất đo ở TC-1
-   (`accuracy.pos_max_m`, `yaw_max_deg` của tệp tư thế tham chiếu); chưa có TC-1 thì "không kiểm được". Kiểm thân xe
-   N-D3, N-D5 cộng thêm tầm tới góc thân xe xa nhất × sin(sai số hướng), ≈ 0,26 m với xe giả định. N-V1 dùng sai số
-   √2 × sai số vị trí / Δt; quãng dừng dùng 2 × sai số vị trí + tốc độ × sai số của mốc; thời gian N-P1 dùng sai số đồng
-   bộ của mốc cộng sai số của `t_phát_hiện`, thời gian của N-P5 (c) cộng một chu kỳ khung của tham chiếu. Không kiểm được
-   thì giá trị vẫn được ghi. Mốc `--event stop`, hay `--event code:<MÃ>` trùng quyết định dừng của phiên (hoặc cùng mã
-   với nó), là mốc vòng tròn: N-P1 ghi "không kiểm được"; mã không phải sự kiện dừng (vật chèn của gói SIM, dòng log của
-   công cụ khác) vẫn dùng làm mốc được.)*
-   *(02/10/2026, T4: biên bản TC-1 của `overhead_ref tc1` tính "dùng được cho" theo quy tắc này: ngưỡng / `reference_ratio`
-   của `configs/nguong_nghiem_thu.json` cho N-D1, N-D2, N-P2, N-P3, N-P5c, N-P6 … N-P8 và N-D5 (cộng tầm tới góc thân xe
-   như T5), N-D3 chỉ báo số; N-L1 (3 cm), N-L2 (2°), N-L3 (6 cm / 4°), N-L5 (4 cm / 3°) lấy từ bảng của tệp này và ghi
-   trong mã, vì công cụ chấm chỉ nhận mã ngưỡng của nó trong tệp ngưỡng. Không đổi ngưỡng nào; đây chỉ là báo, không phải
-   quyết định.)*
-4. **Số thời gian và hiệu năng phải đo trên đúng máy chạy khi nghiệm thu.** Máy đó CHƯA CHỐT: laptop RTX 3050 Ti là máy nộp
-   đồ án (người dùng xác nhận 24/09), còn laptop có đặt trên xe hay không là câu N1 ở
-   [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md) mục 2.1. Mọi số thời gian trích dưới đây là của máy bàn; vài phiên đo
-   khi một dự án khác chạy cùng máy ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 3).
-   *(02/10/2026: người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất: ứng dụng và công cụ đo tự tắt EcoQoS cho
-   chính tiến trình, để Windows không hạ tốc tiến trình khi cửa sổ thu nhỏ; `AUTOPARK_KEEP_ECOQOS=1` giữ mặc định của
-   Windows. Số đo thời gian ghi kèm trạng thái EcoQoS, ví dụ `resources.ecoqos` của `.rig.json`.)*
+1. **Chốt trước khi thu kết quả cuối.** Kế hoạch mục 14 yêu cầu "Chuẩn bị bảng kịch bản, cách đo độc lập và định nghĩa
+   thành công/thất bại trước khi thu kết quả cuối". Không nới ngưỡng sau khi xem kết quả. Muốn đổi thì ghi lý do và
+   ngày, rồi chạy lại toàn bộ kịch bản dùng ngưỡng đó.
+2. **Đo bằng tham chiếu độc lập.** Kế hoạch mục 12 yêu cầu "không dùng cùng một đầu ra tự xác nhận chính nó"; mục 14
+   yêu cầu "Có tham chiếu độc lập cho sai số vị trí/hướng/khoảng cách". Log của hệ thống chỉ dùng để đối chiếu, không
+   dùng làm số nghiệm thu cho vị trí, hướng, khoảng hở hay quãng dừng.
+
+   Riêng ở mức MP, công cụ chấm T5 nhận `--sim-truth` với log bo ảo QEMU (evidence `qemu_firmware_simulated_vehicle`,
+   pose_source `qemu_plant_pose`), vì tư thế trong log đó là tư thế thật của xe mô phỏng phía laptop. Mức BT và XT từ
+   chối cách này. Log bo ảo luôn là giả lập, nên ở mức XT công cụ từ chối cả chính log đó. Đây là đề xuất, đã quyết
+   ngày 02/10/2026.
+3. **Tham chiếu phải chính xác hơn ngưỡng ít nhất 3 lần**, tức sai số của tham chiếu ≤ 1/3 ngưỡng cần kiểm. Tỉ lệ 3:1
+   là quy ước đề xuất, cần GVHD duyệt. Tham chiếu không đạt tỉ lệ này thì ngưỡng đó ghi "không kiểm được", không ghi
+   "đạt". Tỉ lệ áp lên giá trị **lớn nhất** của ngưỡng, ví dụ N-L1 lớn nhất 3 cm thì tham chiếu phải ≤ 1 cm. Phần "trung
+   vị" của ngưỡng được báo kèm sai số tham chiếu, và chỉ ghi "đạt" khi tham chiếu cũng ≤ 1/3 trung vị. Sự kiện dùng làm
+   dấu đồng bộ R7 không được là chính sự kiện của ngưỡng đang kiểm (thêm tối 24/09/2026, xem N-P5).
+
+   Công cụ chấm T5 áp dụng quy tắc này như sau (02/10/2026):
+
+   - Sai số tham chiếu là giá trị lớn nhất đo ở TC-1 (`accuracy.pos_max_m`, `yaw_max_deg` của tệp tư thế tham chiếu).
+     Chưa có TC-1 thì ghi "không kiểm được". Khi không kiểm được, giá trị đo vẫn được ghi.
+   - Kiểm thân xe N-D3, N-D5: cộng thêm tầm tới góc thân xe xa nhất (≈ 0,26 m với xe giả định) × sin(sai số hướng).
+   - N-V1: sai số tham chiếu là √2 × sai số vị trí / Δt.
+   - Quãng dừng: 2 × sai số vị trí + tốc độ × sai số của mốc.
+   - Thời gian N-P1: sai số đồng bộ của mốc cộng sai số của `t_phát_hiện`. Thời gian của N-P5 (c) cộng thêm một chu kỳ
+     khung của tham chiếu.
+   - Mốc `--event stop`, hay `--event code:<MÃ>` trùng quyết định dừng của phiên (hoặc cùng mã với nó), là mốc vòng
+     tròn: N-P1 ghi "không kiểm được". Mã không phải sự kiện dừng, như vật chèn của gói SIM hay dòng log của công cụ
+     khác, vẫn dùng làm mốc được.
+
+   Biên bản TC-1 của công cụ T4 (`overhead_ref tc1`, 02/10/2026) cũng tính mục "dùng được cho" theo quy tắc này:
+
+   - N-D1, N-D2, N-P2, N-P3, N-P5c, N-P6 … N-P8 và N-D5: ngưỡng / `reference_ratio` lấy từ
+     `configs/nguong_nghiem_thu.json`; N-D5 cộng tầm tới góc thân xe như T5.
+   - N-D3: chỉ báo số.
+   - N-L1 (3 cm), N-L2 (2°), N-L3 (6 cm / 4°), N-L5 (4 cm / 3°): lấy từ bảng của tệp này và ghi trong mã, vì công cụ
+     chấm chỉ nhận mã ngưỡng của nó trong tệp ngưỡng.
+
+   Việc này không đổi ngưỡng nào; đây chỉ là báo, không phải quyết định.
+4. **Số thời gian và hiệu năng phải đo trên đúng máy chạy khi nghiệm thu.** Máy đó chưa chốt. Laptop RTX 3050 Ti là máy
+   nộp đồ án (người dùng xác nhận 24/09), còn laptop có đặt trên xe hay không là câu N1 ở
+   [GIAI_DOAN_6_CHUAN_BI.md](GIAI_DOAN_6_CHUAN_BI.md) mục 2.1. Mọi số thời gian trích dưới đây là của máy bàn; vài phiên
+   đo khi một dự án khác chạy cùng máy ([GIAI_DOAN_2_BAN_THU.md](GIAI_DOAN_2_BAN_THU.md) mục 3).
+
+   Từ 02/10/2026 (đã quyết ngày 02/10/2026), ứng dụng và công cụ đo tự tắt EcoQoS cho chính tiến trình. EcoQoS là chế
+   độ tiết kiệm của Windows 11, có thể hạ tốc tiến trình khi cửa sổ thu nhỏ. Đặt `AUTOPARK_KEEP_ECOQOS=1` để giữ mặc
+   định của Windows. Số đo thời gian ghi kèm trạng thái EcoQoS, ví dụ `resources.ecoqos` của `.rig.json`.
 5. Các ngưỡng về phản ứng (mục 3) giả định tốc độ ≤ N-V1. Đổi tốc độ vận hành thì phải xét lại cả mục 3.
 
 ## 1. Tự đỗ (dòng "Tự đỗ" của bảng 16.2)
 
-**Định nghĩa một lần đỗ THÀNH CÔNG (đề xuất):** hệ thống báo COMPLETED; **và** sai số vị trí, hướng cuối đo bằng tham chiếu
-độc lập nằm trong N-D1, N-D2; **và** thân xe nằm trong ô (N-D3, khi kịch bản có ô); **và** không chạm vật (N-D4); **và**
-không có can thiệp của người (N-D9); **và** không RUN_TIMEOUT (N-D7); **và** tốc độ đo không vượt N-V1. Một lần dừng an toàn
-đúng thiết kế là **DỪNG ĐÚNG**: đúng chức năng, nhưng không phải hoàn thành nhiệm vụ đỗ (kế hoạch mục 14 bước 4). Các loại
-kết quả khác và cách phân loại nguyên nhân: [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 1.4.
+**Một lần đỗ THÀNH CÔNG (đề xuất)** khi đủ mọi điều kiện sau:
+
+- hệ thống báo COMPLETED;
+- sai số vị trí và hướng cuối, đo bằng tham chiếu độc lập, nằm trong N-D1, N-D2;
+- thân xe nằm trong ô (N-D3), khi kịch bản có ô;
+- không chạm vật (N-D4);
+- không có can thiệp của người (N-D9);
+- không RUN_TIMEOUT (N-D7);
+- tốc độ đo không vượt N-V1.
+
+Một lần dừng an toàn đúng thiết kế là **DỪNG ĐÚNG**: hệ thống làm đúng chức năng, nhưng chưa hoàn thành nhiệm vụ đỗ (kế
+hoạch mục 14 bước 4). Các loại kết quả khác và cách phân loại nguyên nhân: [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md)
+mục 1.4.
 
 | Mã | Đại lượng | Ngưỡng đề xuất | Căn cứ | Mức | Đo bằng |
 |---|---|---|---|---|---|
@@ -131,52 +182,79 @@ kết quả khác và cách phân loại nguyên nhân: [KICH_BAN_NGHIEM_THU.md]
 
 ## 2. Tốc độ vận hành khi nghiệm thu
 
+Ngưỡng tốc độ đứng riêng vì các ngưỡng phản ứng ở mục 3 đều giả định tốc độ không vượt nó (quy tắc 5).
+
 | Mã | Đại lượng | Ngưỡng đề xuất | Căn cứ | Mức | Đo bằng |
 |---|---|---|---|---|---|
 | N-V1 | Tốc độ lớn nhất khi nghiệm thu | Tốc độ mục tiêu ≤ 0,10 m/s ở đợt đầu; tốc độ đo (trung bình trên đoạn 0,2 m) ≤ 1,2 × 0,10 m/s. Chỉ nâng lên ≤ 0,15 m/s khi đã có B4 (chạy đều), B6 (quãng dừng) ở 0,15 m/s và N-P2 đo đạt ở 0,15 m/s | Kế hoạch mục 16.1: khảo sát 0,05–0,15 m/s và "chỉ chọn tốc độ vận hành trong phần miền đã đo phù hợp với khoảng dừng và khoảng hở". `max_speed_mps` = 0,3 m/s trong cấu hình là giả định ([GIAI_DOAN_4_CHUAN_BI.md](GIAI_DOAN_4_CHUAN_BI.md) mục 1.1). Kẹp tốc độ của firmware chỉ áp lên mục tiêu, không giới hạn tốc độ thật khi chạy mạch hở (GIAO_THUC_XE.md mục 7). Vòng tốc độ mô phỏng vọt lố 26–57 % (GIAO_THUC_XE.md mục 10), nên hệ số 1,2 là đề xuất, chưa có số đo. 0,10 m/s ở giữa miền của kế hoạch; với thời gian phát hiện xấu nhất theo thiết kế 0,3 s (N-P1) xe đi 3 cm ở 0,10 m/s, 4,5 cm ở 0,15 m/s (TÍNH). Chưa có số đo xe làm căn cứ *(02/10/2026, chấm mức MP bằng công cụ T5 trên log tạm, không lưu trong repo: ở tốc độ mặc định 0,15 m/s của planner, tốc độ thật lớn nhất trên đoạn 0,2 m là 0,150 m/s ở nhánh SIM và ≈ 0,18 m/s qua bo mô phỏng (số lẻ đổi theo cấu hình bo) (vòng tốc độ vọt lố; `bai_do_xe.json`, `sa_ban_3x2_hai_hop.json`), cả hai không đạt; đặt `max_speed_mps` = 0,10 (bo mô phỏng `max_speed_mm_s` = 100) thì đạt. `tests/test_score_run.py` chỉ khóa lần `bai_do_xe.json` qua bo mô phỏng: ở 0,10 m/s mọi kiểm đạt, đề xuất THÀNH CÔNG; ở tốc độ mặc định test không ghi số tốc độ nào và không bắt buộc N-V1 hỏng. Đây là mô phỏng, không phải số đo xe)* *(Cập nhật 02/10/2026: người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất: nghiệm thu chạy với cấu hình xe riêng `configs/vehicle_nghiem_thu.json` (giống `vehicle_default.json`, chỉ `max_speed_mps` = 0,10) và bo mô phỏng `configs/vehicle_io_sim_nghiem_thu.json` (`max_speed_mm_s` = 100); mặc định không đổi. T5 nay kiểm cả vế "tốc độ mục tiêu ≤ 0,10 m/s" từ lệnh đã gửi (cột `target_speed_mps` của `commands.csv`, cột `target_speed` của RunLog gói SIM; khóa `target_mps` của tệp ngưỡng): vượt thì N-V1 không đạt dù tốc độ đo đạt; ô `v_max_do_mps` vẫn chỉ ghi tốc độ đo. Ở mức MP xe mô phỏng bị kẹp ở `max_speed_mps` nên tốc độ đo không vượt 0,10 m/s, tức N-V1 ở MP không kiểm vọt lố của vòng tốc độ ([GIAO_THUC_XE.md](GIAO_THUC_XE.md) mục 10: đỉnh 0,150–0,154 m/s với mục tiêu 0,10 m/s khi xe mô phỏng là `vehicle_default.json`); công cụ tự ghi chú điều này, và đo B7 trên xe là bắt buộc. Câu "ở tốc độ mặc định test không ghi số tốc độ nào và không bắt buộc N-V1 hỏng" ở trên đã cũ: nay `tests/test_score_run.py` khóa tốc độ mặc định → N-V1 không đạt vì mục tiêu ≈ 0,15 m/s (xác định), THẤT BẠI; 0,10 m/s và đúng hai tệp nghiệm thu mà giao diện dùng → THÀNH CÔNG. Chỉ là mô phỏng. Firmware C++ (bo ảo QEMU, ESP32-S3) biên dịch cứng `max_speed_mm_s` = 300 nên với xe nghiệm thu START ở VehicleIO bị từ chối (LIMITS_MISMATCH) tới khi có bản firmware 100 mm/s: CHƯA LÀM)* | KH, TK, MP, TÍNH | R3 (video bên hông có thước; tốc độ = quãng / khoảng thời gian **thật** giữa hai khung), hoặc R1 |
 
 ## 3. Phản ứng với vật cản và lỗi (dòng "Phản ứng lỗi")
 
-**Bốn mốc thời gian dùng chung:** `t_vật` là lúc vật vào hành lang thân xe (đọc từ video R3); `t_phát_hiện` là lúc phiên
-phát sự kiện dừng đầu tiên (`Session.safety_events[0]`: `MAP_CHANGED`, `STALE_POSE`, `STALE_TELEMETRY`…); `t_lệnh_dừng` là
-dòng STOP đầu tiên trong `commands.csv`; `t_đứng_yên` là khung video đầu tiên xe không còn dịch chuyển (R3), đối chiếu với
-telemetry.
-*(02/10/2026, cách công cụ chấm T5 lấy các mốc: `t_đứng_yên` là mẫu tham chiếu đầu tiên cách vị trí dừng ≤ 3 mm; vị trí
-dừng là trung vị của cửa sổ 0,5 s đầu tiên sau mốc mà mọi vị trí đã làm trơn trong đó cách trung vị ≤ 1 cm, và quãng dừng
-đo tới cuối cửa sổ đó (tham số ĐỀ XUẤT, mới chỉnh trên dữ liệu tổng hợp). `t_phát_hiện` là dòng `session_stop` có action
-STOP đầu tiên của `events.csv` (T13, đoạn dưới). Với bo chạy theo thời gian thực, thời điểm đó là `t_io` − t0 của dòng
-(lúc phiên quyết định), không phải `t_session` của dòng: khi giao diện khựng, phiên chạy dồn bước nên `t_session` là thời
-gian bước, sớm hơn lúc quyết định tới cả quãng khựng; bo mô phỏng và nhánh SIM dùng `t_session`. Log ghi trước T13: dòng
-`handling` = `stop` đầu tiên nếu không muộn hơn dòng STOP đầu của `commands.csv`, không thì chính dòng STOP đó (±20 ms;
-bo thời gian thực cũng lấy `t_io` của dòng). Lần dừng đầu do người (USER_STOP) không phải phát hiện: N-P1 là "không kiểm
-được" nếu người dừng trước khi hết ngưỡng, "không đạt" nếu sau.)*
+Mục này đặt ngưỡng cho cách xe phản ứng khi gặp vật cản, mất dữ liệu hay lỗi: phát hiện trong bao lâu, dừng trong quãng
+bao xa, và không tự chạy lại. Mọi ngưỡng ở đây giả định tốc độ ≤ N-V1 (quy tắc 5).
 
-Ở mã hiện tại (đọc tối 24/09/2026) sự kiện dừng của phiên **không** được ghi ra tệp nào khi chạy qua `VehicleIO`:
-`events.csv` chỉ có sự kiện của `VehicleIO` và lớp nối (`START_CHECK`, `VEHICLE_STOPPED`, `TELEMETRY_STALE`…); công cụ T13
-ở [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7. Tới khi có T13, lấy xấp xỉ `t_phát_hiện` ≈ dòng STOP đầu tiên của
-`commands.csv`: nhịp điều khiển 20 ms, nên sự kiện nằm trong [t_STOP − 20 ms, t_STOP] (thử trên bo mô phỏng tối 24/09/2026,
-script tạm: `MAP_CHANGED` 0,750 s, STOP đầu 0,760 s). Không dùng dòng `VEHICLE_STOPPED` của `events.csv`: đó là bo báo đã
-rời RUNNING sau lệnh dừng của laptop (0,78 s trong cùng lần thử), muộn hơn `t_lệnh_dừng`. Ở nhánh SIM (xe ảo của bàn thử), `safety_events.json`
-của gói `export_run` có mã và thời điểm phiên.
-*(Cập nhật 02/10/2026: T13 và T9 đã có, mới kiểm với bo mô phỏng và cổng serial giả. Qua `VehicleIO`, mỗi quyết định dừng
-của phiên là một dòng `handling` = `session_stop` trong `events.csv` (cột `t_session`, `t_io`, `t_perf`), nên
-`t_phát_hiện` là dòng `session_stop` có action STOP đầu tiên, không cần xấp xỉ bằng dòng STOP đầu của `commands.csv`. Thử
-lại trên bo mô phỏng ngày 02/10/2026 (script tạm, không lưu trong repo): `MAP_CHANGED` 0,795 s, STOP đầu 0,800 s,
-`VEHICLE_STOPPED` 0,83 s. `t_perf` là `perf_counter` thô của laptop, cùng đồng hồ với dấu đồng bộ T14 (đoạn dưới). Gói
-`export_run` của lần chạy qua `VehicleIO` nay cũng có `safety_events.json` với mã và thời điểm phiên, như nhánh SIM.)*
+**Bốn mốc thời gian dùng chung:**
 
-Hiệu giữa một mốc video và một mốc log chỉ tính được khi video và log đã đồng bộ (R7). R7 hiện CHƯA CÓ (tối 24/09/2026):
-cách tạm bằng E-stop không dùng được với mã hiện tại ([KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 2.1). Tới khi
-có T7 hoặc T14, phần thời gian đo giữa video và log của N-P1, N-P7, N-P8, N-P9 chưa chấm được. Chưa đồng bộ được thì chỉ
-kiểm các ngưỡng đo hoàn toàn bằng video: N-P2, N-P3, và phần quãng của N-P5–N-P8.
-*(Cập nhật 02/10/2026: T14 đã có ([KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 2.5, 7): nút "Dấu đồng bộ · F8" của
-`ui.app` và `ui.lidar_app`, `rig.bench --sync-mark`, nút "Dấu đồng bộ (F8)" của `ui.rig_app`. Lần chạy có dấu đồng bộ đầu
-và cuối thì phần thời gian video–log của N-P1, N-P7, N-P8, N-P9 chấm được; sai số là ± một khung video mỗi dấu cộng độ
-trễ hiển thị của màn hình (CHƯA ĐO). Bo chạy theo thời gian thực đổi `t_io` sang `perf_counter` đúng bằng khóa `clock` của
-`link.json`; ở nhánh SIM và bo mô phỏng, công cụ chấm T5 đổi qua dòng mốc gần nhất (dòng CLOCK của tệp dấu đồng bộ; với
-bo mô phỏng cả dòng `events.csv` có `t_perf`) với sai số ĐỀ XUẤT 0,1 s + 5 % khoảng cách tới mốc (giây thật, nhân hệ số
-tốc độ chạy khi phiên chạy khác 1×), nên ở bản BT với xe ảo N-P1 (cần sai số ≤ 0,133 s) thường là "không kiểm được".
-T14 chỉ kiểm offscreen; CHƯA THỬ với màn hình và camera thật. T7 vẫn chưa có.)*
+- `t_vật`: lúc vật vào hành lang thân xe, đọc từ video R3.
+- `t_phát_hiện`: lúc phiên phát sự kiện dừng đầu tiên (`Session.safety_events[0]`: `MAP_CHANGED`, `STALE_POSE`,
+  `STALE_TELEMETRY`…).
+- `t_lệnh_dừng`: dòng STOP đầu tiên trong `commands.csv`.
+- `t_đứng_yên`: khung video đầu tiên mà xe không còn dịch chuyển (R3), đối chiếu với telemetry.
+
+**Lấy `t_phát_hiện` từ log.** Từ 02/10/2026, khi chạy qua `VehicleIO`, mỗi quyết định dừng của phiên được ghi thành một
+dòng `handling` = `session_stop` trong `events.csv`, với các cột `t_session`, `t_io`, `t_perf` (công cụ T13). Vì vậy
+`t_phát_hiện` là dòng `session_stop` đầu tiên có action STOP, không cần xấp xỉ bằng dòng STOP đầu của `commands.csv`.
+`t_perf` là `perf_counter` thô của laptop, cùng đồng hồ với dấu đồng bộ T14 (xem dưới). Gói `export_run` của lần chạy
+qua `VehicleIO` nay cũng có `safety_events.json` với mã và thời điểm phiên, giống ở nhánh SIM (xe ảo của bàn thử). T13
+và T9 mới kiểm với bo mô phỏng và cổng serial giả.
+
+Log ghi trước khi có T13 thì khác. Ở mã đọc tối 24/09/2026, sự kiện dừng của phiên không được ghi ra tệp nào khi chạy
+qua `VehicleIO`: `events.csv` chỉ có sự kiện của `VehicleIO` và lớp nối (`START_CHECK`, `VEHICLE_STOPPED`,
+`TELEMETRY_STALE`…). Với các log đó, lấy xấp xỉ `t_phát_hiện` ≈ dòng STOP đầu tiên của `commands.csv`. Nhịp điều
+khiển là 20 ms, nên sự kiện nằm trong [t_STOP − 20 ms, t_STOP]. Không dùng dòng `VEHICLE_STOPPED` của `events.csv`: đó
+là lúc bo báo đã rời RUNNING sau lệnh dừng của laptop, muộn hơn `t_lệnh_dừng`.
+
+Hai lần thử trên bo mô phỏng cho thấy thứ tự các mốc:
+
+| Lần thử trên bo mô phỏng | `MAP_CHANGED` | STOP đầu trong `commands.csv` | `VEHICLE_STOPPED` |
+|---|---|---|---|
+| Tối 24/09/2026, script tạm | 0,750 s | 0,760 s | 0,78 s |
+| 02/10/2026, script tạm không lưu trong repo | 0,795 s | 0,800 s | 0,83 s |
+
+**Cách công cụ chấm T5 lấy các mốc** (02/10/2026):
+
+- `t_đứng_yên` là mẫu tham chiếu đầu tiên cách vị trí dừng ≤ 3 mm. Vị trí dừng là trung vị của cửa sổ 0,5 s đầu tiên
+  sau mốc mà trong cửa sổ đó mọi vị trí đã làm trơn cách trung vị ≤ 1 cm. Quãng dừng đo tới cuối cửa sổ này. Các tham
+  số này là đề xuất, mới chỉnh trên dữ liệu tổng hợp.
+- `t_phát_hiện` là dòng `session_stop` có action STOP đầu tiên của `events.csv`. Với bo chạy theo thời gian thực, thời
+  điểm đó lấy theo `t_io` − t0 của dòng (lúc phiên quyết định), không theo `t_session` của dòng. Lý do: khi giao diện
+  khựng, phiên chạy dồn bước, nên `t_session` là thời gian bước và có thể sớm hơn lúc quyết định tới cả quãng khựng. Bo
+  mô phỏng và nhánh SIM dùng `t_session`.
+- Với log ghi trước T13: lấy dòng `handling` = `stop` đầu tiên nếu nó không muộn hơn dòng STOP đầu của `commands.csv`,
+  không thì lấy chính dòng STOP đó (±20 ms). Bo thời gian thực cũng lấy `t_io` của dòng.
+- Lần dừng đầu do người (USER_STOP) không phải là phát hiện. Khi đó N-P1 ghi "không kiểm được" nếu người dừng trước khi
+  hết ngưỡng, "không đạt" nếu dừng sau.
+
+**Đồng bộ video với log (R7).** Hiệu giữa một mốc video và một mốc log chỉ tính được khi video và log đã đồng bộ. Tối
+24/09/2026 chưa có R7: cách tạm bằng E-stop không dùng được với mã lúc đó ([KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md)
+mục 2.1). Từ 02/10/2026 có công cụ T14 tạo dấu đồng bộ (kịch bản mục 2.5, 7):
+
+- nút "Dấu đồng bộ · F8" của `ui.app` và `ui.lidar_app`;
+- lệnh `rig.bench --sync-mark`;
+- nút "Dấu đồng bộ (F8)" của `ui.rig_app`.
+
+Lần chạy có dấu đồng bộ ở đầu và ở cuối thì chấm được phần thời gian video–log của N-P1, N-P7, N-P8, N-P9. Sai số là ±
+một khung video cho mỗi dấu, cộng độ trễ hiển thị của màn hình (chưa đo). T14 mới kiểm offscreen, chưa thử với màn hình
+và camera thật. Công cụ T7 vẫn chưa có. Lần chạy không có dấu đồng bộ thì chỉ kiểm được các ngưỡng đo hoàn toàn bằng
+video: N-P2, N-P3 và phần quãng của N-P5–N-P8.
+
+Công cụ chấm T5 đổi đồng hồ như sau:
+
+- Bo chạy theo thời gian thực: đổi `t_io` sang `perf_counter` đúng bằng khóa `clock` của `link.json`.
+- Nhánh SIM và bo mô phỏng: đổi qua dòng mốc gần nhất. Dòng mốc là dòng CLOCK của tệp dấu đồng bộ; với bo mô phỏng còn
+  có các dòng `events.csv` có `t_perf`. Sai số đề xuất là 0,1 s + 5 % khoảng cách tới mốc, tính bằng giây thật và nhân
+  hệ số tốc độ khi phiên chạy khác 1×. Vì vậy ở mức BT với xe ảo, N-P1 (cần sai số ≤ 0,133 s) thường là "không kiểm
+  được".
 
 | Mã | Đại lượng | Ngưỡng đề xuất (ở tốc độ ≤ N-V1) | Căn cứ | Mức | Đo bằng |
 |---|---|---|---|---|---|
@@ -194,10 +272,11 @@ T14 chỉ kiểm offscreen; CHƯA THỬ với màn hình và camera thật. T7 v
 
 ## 4. Dữ liệu còn mới và độ trễ (dòng "Camera" và "Phản ứng lỗi"; kế hoạch mục 12)
 
-**Nguyên tắc tuyệt đối** (TK, đã có test tổng hợp và mô phỏng, chưa kiểm trên xe): lớp bắt buộc bị cũ thì bản đồ hợp nhất
-không hợp lệ và mọi ô bị chặn (GIAI_DOAN_3_CHUAN_BI.md mục 1); không có dữ liệu thì không bao giờ là FREE
-([BEV.md](BEV.md) mục 2; GIAI_DOAN_3_CHUAN_BI.md mục 2 quy tắc 1). Kế hoạch mục 12: "Dữ liệu cần thiết bị cũ/mất thì không
-cho tiếp tục mù".
+Mỗi nguồn dữ liệu có một giới hạn tuổi; quá giới hạn thì dữ liệu bị coi là cũ. **Nguyên tắc tuyệt đối:** lớp bắt buộc
+bị cũ thì bản đồ hợp nhất không hợp lệ và mọi ô bị chặn (GIAI_DOAN_3_CHUAN_BI.md mục 1). Không có dữ liệu thì không
+bao giờ là FREE ([BEV.md](BEV.md) mục 2; GIAI_DOAN_3_CHUAN_BI.md mục 2 quy tắc 1). Kế hoạch mục 12 ghi: "Dữ liệu cần
+thiết bị cũ/mất thì không cho tiếp tục mù". Nguyên tắc này là giá trị thiết kế (TK), đã có test tổng hợp và mô phỏng,
+chưa kiểm trên xe.
 
 | Mã | Nguồn dữ liệu | Giới hạn đề xuất | Giá trị trong mã (TK) | Số đo làm căn cứ | Ghi chú |
 |---|---|---|---|---|---|
@@ -214,6 +293,9 @@ cho tiếp tục mù".
 
 ## 5. Định vị (dòng "Định vị")
 
+Các ngưỡng cho định vị bằng LiDAR, từ điều kiện trước (khoảng cách đo so với thước) tới định vị khi xe chạy và điều kiện
+START của nguồn tư thế LiDAR.
+
 | Mã | Đại lượng | Ngưỡng đề xuất | Căn cứ | Mức | Đo bằng |
 |---|---|---|---|---|---|
 | N-L0 | Khoảng cách LiDAR so với thước (điều kiện trước của định vị) | Sai số ≤ 30 mm; hướng lệch ≤ 5°; 8–12 Hz; tia/vòng trong ±5 % của 5 kHz ÷ tần số; không trống quá 3 chu kỳ | Ngưỡng "đạt" đã đề xuất cho bảy lần đặt hộp p01–p06, p08 ở [GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 6 (chưa làm) | TK | `lidar.bench record --expected-distance --expected-angle` rồi `lidar.bench report` |
@@ -228,6 +310,9 @@ cho tiếp tục mù".
 
 ## 6. Camera (dòng "Camera")
 
+Các ngưỡng cho bốn camera: số khung tốt, khoảng mất khung, độ lệch thời gian trong bộ ảnh, độ trễ và nhận đúng camera
+theo hướng.
+
 | Mã | Đại lượng | Ngưỡng đề xuất | Căn cứ | Mức | Đo bằng |
 |---|---|---|---|---|---|
 | N-C1 | Khung tốt/s mỗi camera, ở mode đã chốt, chạy cùng LiDAR + AI | ≥ 20 khung/s trong mọi cửa sổ 10 s của phiên 30 phút | 640×480 + LiDAR + AI: 23,8–23,9 khung/s (u01 120 s, u04 600 s), 23,85 (o02 120 s). Trong đợt khung hỏng, cổng 1 còn 17,6 khung tốt/s (u03) (GIAI_DOAN_2_BAN_THU.md mục 3.1): ngưỡng này bắt được đợt như vậy. Phiên 30 phút: kế hoạch mục 16.1 *(02/10/2026, LD-1 lần 3 trên máy bàn, 30 phút có ghi phiên: mỗi camera 23,85 khung/s TB, ≥ 23 khung tốt trong mọi giây đủ (chuỗi theo giây `series` của `.rig.json` đầy đủ, ngoài git); [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 5.8)* | ĐO-MB, KH | LD-1 (`rig.bench`, `.rig.json`) |
@@ -238,31 +323,42 @@ cho tiếp tục mù".
 
 ## 7. Hình học và BEV (dòng "Hình học")
 
+Các ngưỡng cho ảnh nhìn từ trên xuống (BEV) dựng từ camera: sai số vị trí trên mặt sàn, và quy tắc không bao giờ coi
+vùng chưa thấy là FREE.
+
 | Mã | Đại lượng | Ngưỡng đề xuất | Căn cứ | Mức | Đo bằng |
 |---|---|---|---|---|---|
 | N-G1 | Sai số vị trí điểm chân vật trên BEV so với thước | ≤ 5 cm trong vùng ≤ 1 m quanh thân xe; xa hơn 1 m chỉ báo số, chưa đặt ngưỡng | Chưa có số đo làm căn cứ: BEV chưa chạy trên camera dự án ([BEV.md](BEV.md) mục 8). 5 cm bằng một ô costmap. Độ phân giải mặt sàn **tính** trên rig giả định ≈ 9,5 cm/pixel ở 2 m với camera trước (TONG_HOP_DU_AN.md mục 4.12), nên xa hơn 1 m khó đạt | — | NT-2 với R2 |
 | N-G2 | Chênh lệch vị trí cùng một vật giữa hai camera ở vùng chồng lấn | ≤ 5 cm | Chưa có số đo làm căn cứ | — | NT-2 |
 | N-G3 | Vùng chưa quan sát, bị che, dưới thân xe, hoặc của camera thiếu dữ liệu | Tuyệt đối: 0 ô FREE | Quy tắc BEV ([BEV.md](BEV.md) mục 2): 32 test và 23 đột biến bị bắt trên rig tổng hợp *(cập nhật 25/09/2026: nay `tests/test_bev.py` có 38 test, đếm bằng `--collect-only` ở HEAD `54cb3e2`; 32 test cũ giữ nguyên, thêm các lượt đột biến cho phần tăng tốc, [BEV.md](BEV.md) mục 7; vẫn chỉ rig tổng hợp)*. Kế hoạch mục 6: vùng chưa quan sát giữ UNKNOWN | TK, TH | NT-5 |
 
-**Định nghĩa `UNKNOWN` đề xuất** (kế hoạch 16.2 yêu cầu định nghĩa): một ô là UNKNOWN khi (1) chưa cảm biến nào quan sát
-được nó; (2) số đo của nó không hợp lệ hoặc đã cũ quá giới hạn ở mục 4; (3) nó bị che khuất sau một vật; (4) dự đoán AI
-thiếu tin cậy (0,15 < p(BLOCKED) < 0,50, hai ngưỡng hiện có của [BEV.md](BEV.md) mục 2)
-*(cập nhật 30/09/2026: 0,15–0,50 là mặc định của lệnh `bev`; nguồn vật cản AI camera trong phiên đỗ (từ `b01dea4`) dùng
-`t_free` 0,05 và `t_blocked` 0,15, nên ở đó vùng không chắc là 0,05 < p < 0,15 và p ≥ 0,15 đã là OCCUPIED; xem N-A4)*;
-(5) LiDAR mới chạm nó ở 1 trong 3 vòng gần nhất (GIAI_DOAN_3_CHUAN_BI.md mục 2 quy tắc 1). UNKNOWN chặn lập đường như
-vật cản. Đây không phải một lớp của mô hình AI (kế hoạch 16.2: thêm tên lớp không bảo đảm nhận ra mọi vật lạ).
+**Định nghĩa `UNKNOWN` đề xuất** (kế hoạch 16.2 yêu cầu có định nghĩa này). Một ô là UNKNOWN khi:
+
+1. chưa cảm biến nào quan sát được nó;
+2. số đo của nó không hợp lệ hoặc đã cũ quá giới hạn ở mục 4;
+3. nó bị che khuất sau một vật;
+4. dự đoán AI thiếu tin cậy, tức p(BLOCKED) nằm giữa hai ngưỡng `t_free` và `t_blocked`. Lệnh `bev` mặc định dùng
+   0,15 < p(BLOCKED) < 0,50 ([BEV.md](BEV.md) mục 2). Nguồn vật cản AI camera trong phiên đỗ (từ commit `b01dea4`) dùng
+   `t_free` 0,05 và `t_blocked` 0,15, nên ở đó vùng không chắc là 0,05 < p < 0,15, còn p ≥ 0,15 đã là OCCUPIED (xem
+   N-A4);
+5. LiDAR mới chạm nó ở 1 trong 3 vòng gần nhất (GIAI_DOAN_3_CHUAN_BI.md mục 2 quy tắc 1).
+
+UNKNOWN chặn lập đường như vật cản. Đây không phải một lớp của mô hình AI: kế hoạch 16.2 lưu ý rằng thêm tên lớp không
+bảo đảm nhận ra mọi vật lạ.
 
 ## 8. AI (dòng "AI")
 
-**Điều kiện áp dụng:** mục này chỉ có nghĩa khi hướng giấy phép WoodScape cho phép nối AI vào costmap/planner
-([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md); TONG_HOP_DU_AN.md mục 5.1, việc người dùng quyết định). Nếu không nối AI, điều
-kiện V1 thứ ba ("AI/CV cung cấp thông tin cục bộ cho planner, có đo sai số/nhầm lẫn", kế hoạch 16.4) không đạt được với mô
-hình hiện tại; người dùng cần chọn hướng khác (huấn luyện lại không dùng WoodScape, v.v.). Mọi số dưới đây là trên **bộ dữ
-liệu công khai**; chưa có ảnh sa bàn nào có nhãn (TONG_HOP_DU_AN.md mục 4.2, 4.7).
-*(Cập nhật 25/09/2026: về phía giấy phép, mục này nay áp dụng: người làm khóa luận đã quyết định nối AI vào vòng điều khiển
-ngày 25/09/2026 (cách đọc A), Valeo chưa xác nhận. Còn điều kiện tập chấm sa bàn có nhãn, và hiệu chuẩn thật để AI tạo được
-vật cản ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3). Câu "nếu không nối AI" ở trên nay là phương án dự phòng khi cách
-đọc bị phản bác.)*
+Mọi số trong mục này là trên **bộ dữ liệu công khai**; chưa có ảnh sa bàn nào có nhãn (TONG_HOP_DU_AN.md mục 4.2, 4.7).
+
+**Điều kiện áp dụng.** Mục này chỉ có nghĩa khi AI được nối vào costmap/planner, và việc đó phụ thuộc hướng giấy phép
+WoodScape ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md); TONG_HOP_DU_AN.md mục 5.1, việc người dùng quyết định). Ngày
+25/09/2026 người làm khóa luận quyết định nối AI vào vòng điều khiển (cách đọc A), nên về phía giấy phép mục này nay áp
+dụng; Valeo chưa xác nhận cách đọc đó. Còn thiếu hai điều kiện: tập chấm sa bàn có nhãn, và hiệu chuẩn thật để AI tạo
+được vật cản ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3).
+
+Phương án dự phòng, khi cách đọc giấy phép bị phản bác và AI không được nối: điều kiện V1 thứ ba ("AI/CV cung cấp thông
+tin cục bộ cho planner, có đo sai số/nhầm lẫn", kế hoạch 16.4) không đạt được với mô hình hiện tại. Khi đó người dùng
+cần chọn hướng khác, ví dụ huấn luyện lại không dùng WoodScape.
 
 | Mã | Đại lượng | Ngưỡng đề xuất | Căn cứ | Mức | Đo bằng |
 |---|---|---|---|---|---|
@@ -273,9 +369,9 @@ vật cản ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 3). Câu "nếu kh
 
 ## 9. Điều khiển (dòng "Điều khiển") — chưa đề xuất số
 
-Kế hoạch 16.2 ghi nhóm này "Cần chốt trên xe thật", và điều kiện chuyển bước giai đoạn 5 đòi "số đo sai số bám tốc độ/góc
-ở miền thử nghiệm". Chưa có xe, encoder hay AS5600, nên tệp này **không đề xuất số**; chỉ liệt kê đại lượng và thời điểm
-chốt.
+Kế hoạch 16.2 ghi nhóm này "Cần chốt trên xe thật", và điều kiện chuyển bước của giai đoạn 5 đòi "số đo sai số bám tốc
+độ/góc ở miền thử nghiệm". Chưa có xe, encoder hay AS5600, nên tệp này **không đề xuất số** cho nhóm này. Bảng dưới chỉ
+liệt kê đại lượng và thời điểm chốt.
 
 | Mã | Đại lượng | Ngưỡng | Chốt sau | Số của mô phỏng để tham khảo (không phải căn cứ) |
 |---|---|---|---|---|
@@ -287,8 +383,10 @@ chốt.
 
 ## 10. Số lần lặp và tỉ lệ thành công (N-D8)
 
-Số dưới đây là **phép tính thống kê**, không phải số đo: cận dưới một phía 95 % của tỉ lệ thành công thật theo
-Clopper–Pearson, khi quan sát k lần đạt trong n lần (tính bằng script tạm ngày 24/09/2026, không lưu trong repo).
+Mục này tính cần bao nhiêu lần chạy để khẳng định một tỉ lệ thành công, rồi đề xuất số lần lặp cho từng nhóm kịch bản.
+Số trong bảng dưới là **phép tính thống kê**, không phải số đo: cận dưới một phía 95 % của tỉ lệ thành công thật theo
+Clopper–Pearson, khi quan sát k lần đạt trong n lần. Phép tính làm bằng script tạm ngày 24/09/2026, không lưu trong
+repo.
 
 | n lần | k đạt | Cận dưới 95 % |
 |---:|---:|---:|
@@ -303,24 +401,27 @@ Clopper–Pearson, khi quan sát k lần đạt trong n lần (tính bằng scri
 | 30 | 29 | 0,851 |
 | 59 | 59 | 0,950 |
 
-Muốn khẳng định tỉ lệ thành công ≥ 90 % (cận dưới 95 %) cần 29 lần đạt liên tiếp không lần hỏng; ≥ 95 % cần 59 lần. Với
-thời gian của một đồ án, V1 **không chứng minh được độ tin cậy cao**; nó chỉ chứng minh hệ thống làm được lặp lại trong
-điều kiện đã khai báo. Khóa luận phải viết đúng như vậy.
+Muốn khẳng định tỉ lệ thành công ≥ 90 % (cận dưới 95 %) cần 29 lần đạt liên tiếp, không lần hỏng nào; ≥ 95 % cần 59
+lần. Với thời gian của một đồ án, V1 **không chứng minh được độ tin cậy cao**. Nó chỉ chứng minh hệ thống làm được lặp
+lại trong điều kiện đã khai báo, và khóa luận phải viết đúng như vậy.
 
-Đề xuất (CHỜ CHỐT):
+Đề xuất số lần lặp (chưa chốt):
 
-- **Kịch bản đỗ (nhóm DO):** mỗi biến thể ≥ 10 lần (DO-2: 5 tư thế × 3 lần; DO-3, DO-4b, DO-5, DO-6: 5 lần mỗi biến thể,
-  vì khó hơn và tốn thời gian hơn). Biến thể 10 lần đạt khi ≥ 9 / 10 thành công; biến thể 5 lần đạt khi 5 / 5. Tuyệt đối:
-  0 lần chạm (N-D4). Báo thêm tỉ lệ gộp của cả nhóm kèm cận dưới ở bảng trên.
-- **Kịch bản an toàn** (VC-1 … VC-5, nhóm CB, AT-1 … AT-3): ≥ 10 lần mỗi kịch bản; kịch bản có nhiều biến thể thì chia
-  cho các biến thể, mỗi biến thể ≥ 3 lần. Đạt khi mọi lần đều đạt (10 / 10). Một lần không dừng, dừng quá ngưỡng hay tự
-  chạy lại là không đạt: sửa rồi làm lại **cả loạt**. Với E-stop ở mức trên sàn (M3), số lần có thể ít hơn vì hao mòn cơ
-  khí: CHƯA CHỐT.
+- **Kịch bản đỗ (nhóm DO):** mỗi biến thể ≥ 10 lần; DO-2 làm 5 tư thế × 3 lần. Riêng DO-3, DO-4b, DO-5, DO-6 làm 5 lần
+  mỗi biến thể, vì khó hơn và tốn thời gian hơn. Biến thể 10 lần đạt khi ≥ 9 / 10 thành công; biến thể 5 lần đạt khi
+  5 / 5. Tuyệt đối: 0 lần chạm (N-D4). Báo thêm tỉ lệ gộp của cả nhóm, kèm cận dưới theo bảng trên.
+- **Kịch bản an toàn** (VC-1 … VC-5, nhóm CB, AT-1 … AT-3): ≥ 10 lần mỗi kịch bản. Kịch bản có nhiều biến thể thì chia
+  số lần cho các biến thể, mỗi biến thể ≥ 3 lần. Đạt khi mọi lần đều đạt (10 / 10). Một lần không dừng, dừng quá ngưỡng
+  hay tự chạy lại là không đạt: sửa rồi làm lại **cả loạt**. Với E-stop ở mức trên sàn (M3), số lần có thể ít hơn vì
+  hao mòn cơ khí; điều này chưa chốt.
 - **Kịch bản từ chối** (nhóm DI): ≥ 3 lần mỗi biến thể; đạt khi 3 / 3.
-- **Mọi lần chạy được đánh số trước và ghi hết**, kể cả thất bại và lần hủy (kế hoạch mục 14: "Không chỉ chọn các lần demo
-  thành công"). Lần hủy vì lỗi dụng cụ đo (ví dụ video không ghi) được ghi KHÔNG TÍNH kèm lý do, và phải chạy bù.
+- **Mọi lần chạy được đánh số trước và ghi hết**, kể cả thất bại và lần hủy. Kế hoạch mục 14 yêu cầu "Không chỉ chọn
+  các lần demo thành công". Lần hủy vì lỗi dụng cụ đo (ví dụ video không ghi) được ghi KHÔNG TÍNH kèm lý do, và phải
+  chạy bù.
 
 ## 11. Ánh xạ về kế hoạch
+
+Hai bảng dưới cho biết mỗi nhóm ngưỡng và mỗi điều kiện V1 của kế hoạch ứng với mã nào ở tệp này, và còn thiếu gì.
 
 ### 11.1. Bảng 16.2
 
@@ -328,17 +429,20 @@ thời gian của một đồ án, V1 **không chứng minh được độ tin c
 |---|---|---|
 | Camera | N-C1 … N-C5, N-T4 … N-T6 | Số trên máy nghiệm thu; LED đo trễ; mode camera đã chốt (hiện 640×480) |
 | Hình học | N-G1 … N-G3 | Hiệu chuẩn nội tham bốn camera, ngoại tham đo, ROI ([BEV.md](BEV.md) mục 8) |
-| AI | N-A1 … N-A4 | Quyết định giấy phép WoodScape; tập chấm sa bàn có nhãn *(25/09/2026: quyết định giấy phép đã có, Valeo chưa xác nhận; còn tập chấm sa bàn và hiệu chuẩn thật)* |
-| Định vị | N-L0 … N-L5, N-T2, N-T7 *(02/10/2026: thêm N-L6 … N-L8)* | Bảy lần đặt hộp; tham chiếu độc lập (DV-1, DV-2); nguồn tư thế trong phiên *(02/10/2026: nguồn tư thế LiDAR trong phiên có ở mức MP và trên bản ghi C1 đứng yên; còn gá LiDAR đo trên xe và LiDAR gá trên xe chạy)* |
+| AI | N-A1 … N-A4 | Tập chấm sa bàn có nhãn; hiệu chuẩn thật. Giấy phép WoodScape đã quyết 25/09/2026, Valeo chưa xác nhận |
+| Định vị | N-L0 … N-L8, N-T2, N-T7 | Bảy lần đặt hộp; tham chiếu độc lập (DV-1, DV-2); đo gá LiDAR trên xe; thử LiDAR gá trên xe chạy |
 | Điều khiển | N-K1 … N-K5, N-V1 | MN300, encoder, AS5600, ESP32-S3; bảng B2–B8 |
 | Tự đỗ | N-D1 … N-D9, N-V1 | Tất cả ở trên, cộng tham chiếu trên cao đã kiểm (TC-1) |
 | Phản ứng lỗi | N-P1 … N-P11, N-T1, N-T3, N-T9, N-T10 | Giai đoạn 6 (nguồn và dừng) phải đạt trước khi thử trên sàn; chính sách sau vật cản thông thường |
+
+N-L6 … N-L8 được thêm ngày 02/10/2026. Nguồn tư thế LiDAR trong phiên, trước đây còn thiếu ở dòng Định vị, đã có từ
+02/10/2026 ở mức mô phỏng và trên bản ghi C1 đứng yên.
 
 ### 11.2. Điều kiện V1 (16.4)
 
 | Điều kiện V1 | Ngưỡng liên quan | Kịch bản ([KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md)) |
 |---|---|---|
-| 1. Bản đồ/định vị LiDAR hoạt động trong khu vực thử | N-L0 … N-L5, N-T2, N-T3, N-T7 *(02/10/2026: thêm N-L6 … N-L8)* | DV-1, DV-2, DV-3 |
+| 1. Bản đồ/định vị LiDAR hoạt động trong khu vực thử | N-L0 … N-L8, N-T2, N-T3, N-T7 | DV-1, DV-2, DV-3 |
 | 2. Bốn camera cùng hoạt động, hiệu chuẩn đúng gá | N-C1 … N-C5, N-G1, N-G2 | LD-1, NT-2 |
 | 3. AI/CV cung cấp thông tin cục bộ cho planner, có đo sai số/nhầm lẫn | N-A1 … N-A4, N-G3, N-T4 … N-T6 | NT-1 … NT-5 |
 | 4. Chọn vị trí/hướng, xem trước, ra lệnh bắt đầu | N-P11 | DO-1, DI-1 … DI-4 |
@@ -353,12 +457,25 @@ thời gian của một đồ án, V1 **không chứng minh được độ tin c
 
 | Việc | Ai | Ghi chú |
 |---|---|---|
-| Duyệt từng mã N-…: giữ, sửa số, hay bỏ | Người dùng + GVHD | Ghi ngày chốt cạnh từng mã; sau đó điền bảng 16.2 của kế hoạch (tệp kế hoạch không thuộc phạm vi tệp này) *(02/10/2026: sửa cả `configs/nguong_nghiem_thu.json` của công cụ chấm T5, xem đầu tệp)* |
-| Chọn máy chạy khi nghiệm thu; đo lại N-T4 … N-T7, N-C1 … N-C3 trên máy đó | Người dùng | Quy tắc chung 4 *(02/10/2026: LD-1 30 phút trên máy bàn đã đo N-T4 … N-T6 và N-C1 … N-C3 (N-T7 không thuộc LD-1), [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 5.8; laptop CHƯA ĐO)* |
-| Chọn một trong hai phương án N-T2 (tuổi tư thế) | Người dùng, khi nối định vị LiDAR vào phiên | Ảnh hưởng tới việc có cần encoder/IMU nội suy *(02/10/2026: người dùng giao quyết định 02/10/2026 ('làm hết'), theo đề xuất: 0,25 s cho nguồn chỉ LiDAR; ĐỀ XUẤT, dùng cho nghiệm thu tới khi chốt)* |
-| Mất camera có làm xe dừng không (N-P9) | Người dùng | Lớp camera và lớp ToF đang là lớp tùy chọn (GIAI_DOAN_6_CHUAN_BI.md mục 6). *(25/09/2026: với AI camera đã nối vào phiên, ô "AI bắt buộc" của ngăn AI camera là chỗ chọn: mặc định tắt, AI không dùng được lúc chạy chỉ cảnh báo; tích thì dừng xe; [AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 5, ĐỀ XUẤT – CHỜ CHỐT)* |
+| Duyệt từng mã N-…: giữ, sửa số, hay bỏ | Người dùng + GVHD | Ghi ngày chốt cạnh từng mã, rồi điền bảng 16.2 của kế hoạch (tệp kế hoạch không thuộc phạm vi tệp này). Mã có trong `configs/nguong_nghiem_thu.json` thì sửa cả tệp đó (xem phần "Bản sao ngưỡng cho công cụ chấm T5") |
+| Chọn máy chạy khi nghiệm thu; đo lại N-T4 … N-T7, N-C1 … N-C3 trên máy đó | Người dùng | Quy tắc chung 4. LD-1 30 phút trên máy bàn (02/10/2026) đã đo N-T4 … N-T6 và N-C1 … N-C3; N-T7 không thuộc LD-1 (kịch bản mục 5.8). Laptop chưa đo |
+| Chọn một trong hai phương án N-T2 (tuổi tư thế) | Người dùng, khi nối định vị LiDAR vào phiên | Ảnh hưởng tới việc có cần encoder/IMU nội suy. Đã chọn 0,25 s cho nguồn chỉ LiDAR (quyết ngày 02/10/2026); vẫn là đề xuất, dùng cho nghiệm thu tới khi chốt |
+| Mất camera có làm xe dừng không (N-P9) | Người dùng | Lớp camera và lớp ToF đang là lớp tùy chọn (GIAI_DOAN_6_CHUAN_BI.md mục 6). Chỗ chọn là ô "AI bắt buộc" của ngăn AI camera, xem dưới bảng |
 | Sau vật cản thông thường: xe tự tiếp tục hay chờ xác nhận | Người dùng | Kế hoạch 17.2; ảnh hưởng VC-5 |
-| Hướng giấy phép WoodScape | Người dùng | Quyết định mục 8 có áp dụng không. *(25/09/2026: đã quyết định dùng mô hình WoodScape trong vòng điều khiển, nên mục 8 áp dụng về phía giấy phép; Valeo chưa xác nhận; [GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md))* |
-| Tỉ lệ độ chính xác 3:1 và số lần lặp ở mục 10 | Người dùng + GVHD | Tỉ lệ áp lên giá trị lớn nhất (quy tắc 3). Nếu không dựng được tham chiếu hướng ≤ 0,67° (thước thẳng ≥ 0,65 m) thì phương án khác là nới N-L2 thành trung vị ≤ 1,5°, lớn nhất ≤ 3° (tham chiếu ≤ 1°) và sửa theo N-L3 (6°), N-L5 (lớn nhất 4°); cách này kiểm độ lệch +4,33° (N-L4, N-D2) kém hơn nên không ưu tiên |
-| Công cụ còn thiếu cho phép đo: GPIO gỡ lỗi khi xếp khung FAULT trong firmware (N-P5(a)) *(cập nhật 02/10/2026: ghi sự kiện dừng của phiên (T13), dấu đồng bộ video–log (T14) và nút CLEAR_FAULT (T15) đã có, cùng công cụ chấm T5; mới kiểm bằng test với bo mô phỏng, cổng serial giả và giao diện offscreen; T14 CHƯA THỬ với màn hình và camera thật)* | Người phát triển | [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7; lần chạy không có dấu đồng bộ đầu và cuối (T14) thì N-P1, N-P7 … N-P9 chưa chấm được phần thời gian video–log |
-| Đo các số còn thiếu trước khi chốt: B1–B8 (GIAI_DOAN_4_CHUAN_BI.md), N-L0 (đặt hộp), DV-1, DV-2, TC-1 (kiểm tham chiếu trên cao), LED đo trễ camera | Người dùng (cần người thao tác) | DV-1, DV-2 và TC-1 làm được ngay với LiDAR và camera đang có |
+| Hướng giấy phép WoodScape | Người dùng | Quyết định mục 8 có áp dụng không. Ngày 25/09/2026 đã quyết dùng mô hình WoodScape trong vòng điều khiển, nên mục 8 áp dụng về phía giấy phép; Valeo chưa xác nhận ([GIAY_PHEP_DU_LIEU.md](GIAY_PHEP_DU_LIEU.md)) |
+| Tỉ lệ độ chính xác 3:1 và số lần lặp ở mục 10 | Người dùng + GVHD | Tỉ lệ áp lên giá trị lớn nhất (quy tắc 3). Có phương án dự phòng cho N-L2, xem dưới bảng |
+| Công cụ còn thiếu cho phép đo: GPIO gỡ lỗi khi xếp khung FAULT trong firmware (N-P5 (a)) | Người phát triển | [KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 7. Các công cụ đo khác đã có, xem dưới bảng |
+| Đo các số còn thiếu trước khi chốt: B1–B8 (GIAI_DOAN_4_CHUAN_BI.md), N-L0 (đặt hộp), DV-1, DV-2, TC-1 (kiểm tham chiếu trên cao), LED đo trễ camera | Người dùng (cần người thao tác) | DV-1, DV-2 làm được ngay với LiDAR đang có; TC-1 làm được khi đã chọn camera trên cao (công cụ T4 đã có) |
+
+Ghi chú cho bảng trên:
+
+- **Ô "AI bắt buộc" (N-P9).** Từ 25/09/2026 AI camera đã nối vào phiên, nên việc mất camera có làm xe dừng hay không
+  được chọn ở ô "AI bắt buộc" của ngăn AI camera. Mặc định ô này tắt: AI không dùng được lúc chạy thì chỉ cảnh báo. Tích
+  ô thì xe dừng. Cách này là đề xuất, chưa chốt ([AI_DIEU_KHIEN_XE.md](AI_DIEU_KHIEN_XE.md) mục 5).
+- **Phương án dự phòng cho tham chiếu hướng.** Nếu không dựng được tham chiếu hướng ≤ 0,67° (thước thẳng ≥ 0,65 m),
+  có thể nới N-L2 thành trung vị ≤ 1,5°, lớn nhất ≤ 3° (cần tham chiếu ≤ 1°), rồi sửa theo N-L3 (6°) và N-L5 (lớn nhất
+  4°). Cách này kiểm độ lệch +4,33° (N-L4, N-D2) kém hơn, nên không ưu tiên.
+- **Công cụ đo đã có.** Ghi sự kiện dừng của phiên (T13), dấu đồng bộ video–log (T14), nút CLEAR_FAULT (T15) và công
+  cụ chấm T5 có từ 02/10/2026. Chúng mới kiểm bằng test với bo mô phỏng, cổng serial giả và giao diện offscreen; T14
+  chưa thử với màn hình và camera thật. Lần chạy không có dấu đồng bộ ở đầu và ở cuối (T14) thì chưa chấm được phần
+  thời gian video–log của N-P1, N-P7 … N-P9.

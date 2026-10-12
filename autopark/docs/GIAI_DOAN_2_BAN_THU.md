@@ -1,40 +1,99 @@
 # Giai đoạn 2 — bàn thử chạy chung bốn camera, LiDAR và AI (23/09/2026)
 
-Máy bàn i9-14900 + RTX 4000 Ada, Windows 11, **chưa phải laptop RTX 3050 Ti mang đi nộp đồ án**. Bốn camera "HD Camera" qua hub UGREEN
-(bus-powered, nhánh USB 2.0), RPLIDAR C1 trên COM4, mô hình AI tham chiếu `runs/ai_woodscape_rtx4000_v1/best.pt`. Số đo trong tệp này làm trên máy bàn dùng tới 25/09/2026; máy bàn từ 29/09/2026 là máy khác cùng cấu hình, LiDAR ở COM3 ([chuyển máy](CHUYEN_MAY_BAN.md)).
-Camera nằm trên bàn, chưa gá, chưa hiệu chuẩn. Kế hoạch v3.1 [bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), giai đoạn 2 "Khi đủ bốn camera" *(cập nhật 30/09/2026: [bản hiện tại](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) gọi là mục 6, đoạn "Có đồ", không đánh số bước)*:
+Tài liệu này mô tả bàn thử của giai đoạn 2: bốn camera, LiDAR và AI chạy chung trong một tiến trình, cách đo, các số đo
+chính thức và những lỗi tìm ra trong lúc đo. Đọc khi cần số FPS, khung hỏng, độ lệch thời gian, thời gian AI hay tài
+nguyên của bàn thử, hoặc khi chạy lại `rig.bench` / `ui.rig_app` (lệnh ở cuối tệp). Ghi và phát lại một phiên bàn thử
+nằm ở [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md).
+
+**Thiết bị và mức bằng chứng:**
+
+- Máy bàn i9-14900 + RTX 4000 Ada, Windows 11, **chưa phải laptop RTX 3050 Ti mang đi nộp đồ án**. Số đo trong tệp này
+  làm trên máy bàn dùng tới 25/09/2026. Máy bàn từ 29/09/2026 là máy khác cùng cấu hình, LiDAR ở COM3
+  ([chuyển máy](CHUYEN_MAY_BAN.md)); phép chạy dài ngày 02/10/2026 ở cuối mục 3.5 làm trên máy này.
+- Bốn camera "HD Camera" qua hub UGREEN (bus-powered, nhánh USB 2.0), RPLIDAR C1 trên COM4, mô hình AI tham chiếu
+  `runs/ai_woodscape_rtx4000_v1/best.pt`.
+- Camera nằm trên bàn, chưa gá, chưa hiệu chuẩn.
+
+**Đối chiếu kế hoạch.** Kế hoạch v3.1
+[bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md), giai đoạn 2
+"Khi đủ bốn camera". [Bản hiện tại](../../KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) gọi phần này là mục 6, đoạn "Có đồ",
+không đánh số bước. Tài liệu này trả lời:
 
 - bước 2: *"Ghi FPS/độ trễ/mất hình riêng từng camera; chạy đồng thời với LiDAR và AI, không chỉ thử mở bốn cửa sổ."*
 - bước 5: *"Đồng bộ ở mức phần mềm và ghi sai lệch thời gian còn lại."*
 - và phần còn thiếu của giai đoạn 1 bước 3: *"thời gian suy luận, độ trễ, … CPU/GPU và nhiệt trong một phiên thử"*.
 
+## Tóm tắt
+
+Theo số đo ngày 23–24/09/2026 trên máy bàn trước, cộng phép chạy dài ngày 02/10/2026 trên máy bàn hiện tại.
+
+- **Chạy chung được ở 640×480.** Bốn camera + LiDAR + AI chạy trong một tiến trình. Ở phiên 10 phút u04: mỗi camera
+  ≈ 23,9 khung tốt/s, 6 khung hỏng trên 57227 khung tốt, AI 23,1 bộ/s, LiDAR 6006 vòng, mất 0 vòng (mục 3, 4).
+- **Phát hiện chính:** khi bốn camera chạy chung qua hub, khung MJPEG bị cắt cụt gần hết ở 720p/1080p và từng đợt ở 480p
+  (cổng 1). Bộ dò loại các khung này; bàn thử nay mặc định 640×480 (mục 2). Nguyên nhân chưa chứng minh.
+- **Đồng bộ (bước 5):** ở 480p, độ lệch trong bộ ảnh trung vị 15,0 ms, p95 24,1 ms (u01). Điểm giữa vòng LiDAR sớm hơn
+  mốc bộ ảnh ≈ 80 ms (mục 3.2, 4).
+- **Không chờ camera chậm** (mục 10): từ 24/09/2026 mỗi camera được chờ theo nhịp của chính nó. Trên phần cứng quy tắc
+  này không bỏ camera khỏe nào (o01, o02); nhánh bỏ camera lỡ nhịp mới kiểm bằng mô phỏng và test.
+- **AI làm nóng mọi cỡ lô** trước bộ ảnh đầu, vì lần đầu gặp mỗi cỡ lô AI mất 1,2–1,7 s (mục 10.3).
+- **Phép chạy dài LD-1** (30 phút, có ghi phiên) chạy đủ ở lần 3 ngày 02/10/2026, nhưng chưa tính là đạt (cuối
+  mục 3.5).
+- **Chưa đo:** độ trễ từ sự kiện thật tới lúc khung về máy; mọi số trên laptop RTX 3050 Ti (mục 4, 9).
+
 ## 1. Đã viết gì
 
 | Việc | Mã | Kiểm |
 |---|---|---|
-| `MultiCameraManager` mà kế hoạch giai đoạn 2 yêu cầu: mỗi camera một luồng, vòng đệm có giới hạn (3 khung), chọn camera theo **cổng hub** (index OpenCV đổi sau khởi động lại), ghép bộ ảnh theo thời gian (mốc = khung mới nhất của camera chậm nhất, mỗi camera chọn khung gần mốc nhất), **bỏ bộ ảnh lệch quá ngưỡng** (mặc định 60 ms), bộ chỉ "mới" khi mọi camera có khung mới, hoặc sau giới hạn chờ camera chậm (từ 24/09, mục 10) | `video/multicam.py` | test với camera giả, gồm phép thử tất định cho quy tắc bỏ bộ lệch |
-| Suy luận theo lô cho nhiều camera, cùng tiền xử lý với `predict.py`, đo thời gian từng khâu (tiền xử lý / mạng / hậu xử lý, có đồng bộ CUDA) | `perception/live.py` | test: kết quả theo lô trùng `predict_image` tới 1e−5 |
-| Điều phối: luồng LiDAR, luồng AI (lấy bộ mới nhất, không xếp hàng, đổi mô hình lúc chạy), luồng tài nguyên 1 Hz (CPU tiến trình và máy, RAM, GPU tải/VRAM/nhiệt độ/công suất qua NVML; từ 02/10/2026 cả trạng thái EcoQoS của tiến trình: `.rig.json` → `resources.ecoqos` lúc chốt số và `series[].resources.ecoqos` mỗi giây; `meta.json` của bản ghi `--record` có khóa `ecoqos`, [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 3), chuỗi số đo theo giây | `rig/core.py` | test chạy trọn với camera, LiDAR, AI giả |
+| `MultiCameraManager`: mỗi camera một luồng, ghép bộ ảnh theo thời gian, **bỏ bộ ảnh lệch quá ngưỡng** | `video/multicam.py` | test với camera giả, gồm phép thử tất định cho quy tắc bỏ bộ lệch |
+| Suy luận theo lô cho nhiều camera, đo thời gian từng khâu | `perception/live.py` | test: kết quả theo lô trùng `predict_image` tới 1e−5 |
+| Điều phối: luồng LiDAR, luồng AI, luồng tài nguyên 1 Hz, chuỗi số đo theo giây | `rig/core.py` | test chạy trọn với camera, LiDAR, AI giả |
 | Lệnh đo không giao diện: khởi động, bỏ phần làm nóng, đo T giây, ghi `<tên>.rig.json` | `rig/bench.py` | test ghi json |
-| Giao diện trực tiếp: bốn ô camera có lớp tô AI (xanh FREE, đỏ BLOCKED), bản đồ LiDAR, bảng số đo, chọn mô hình, kéo ngưỡng (nút 0,15 an toàn / 0,50), bật tắt AI và lớp tô, **chụp bộ ảnh** (ảnh gốc bốn camera + xác suất + ảnh tô + vòng LiDAR + siêu dữ liệu) | `ui/rig_app.py` | test offscreen với nguồn giả |
-| `UsbCameraSource` đếm riêng khung cũ và đọc hỏng; **loại khung MJPEG bị cắt cụt hoặc có dải xé** (bộ giải mã tô phần thiếu bằng vân khối 8×8 lặp lại, mục 2) và đếm riêng từng loại; `camera_bench` cũng đếm | `video/sources.py::truncated_rows`, `torn_bands`, `video/camera_bench.py` | test với ảnh hỏng tổng hợp; bộ dò chạy trên ảnh hỏng thật (bắt đúng hai ảnh) và ảnh sạch (không bắt nhầm); các khung bị bắt trong phiên chẩn đoán được xem bằng mắt (mục 2.2) |
-| Cài PySide6, pyserial, pygrabber, comtypes, psutil, nvidia-ml-py vào `.venv-train` để một tiến trình chạy được cả GPU lẫn giao diện; extra `rig` trong `pyproject.toml` | | |
+| Giao diện trực tiếp, có **chụp bộ ảnh** (mục 7) | `ui/rig_app.py` | test offscreen với nguồn giả |
+| Nguồn camera đếm khung cũ, đọc hỏng; **loại khung MJPEG bị cắt cụt hoặc có dải xé** (mục 2) | `video/sources.py::truncated_rows`, `torn_bands`, `video/camera_bench.py` | test với ảnh hỏng tổng hợp; chạy trên ảnh hỏng thật và ảnh sạch (mục 2.2) |
+| Môi trường: thêm gói vào `.venv-train`; extra `rig` trong `pyproject.toml` | | |
 
-Mọi stamp dùng chung một đồng hồ `time.perf_counter` cho mọi luồng, kể cả driver LiDAR (`time.monotonic` của Python
-3.12 trên Windows chỉ có bước 15,6 ms — mục 6). Stamp camera là lúc `read()` trả khung về Python (đã gồm chờ và
-giải mã), **không phải lúc phơi sáng**; stamp LiDAR là lúc byte cuối của vòng quét tới máy. Vì vậy mọi độ lệch và
-độ trễ dưới đây là **độ lệch lúc đến và độ trễ trong máy**. Độ trễ từ sự kiện thật tới lúc khung về máy chưa đo
-(cần LED nháy hoặc đồng hồ quay bằng camera).
+Chi tiết từng khối:
+
+- **`MultiCameraManager`** là phần kế hoạch giai đoạn 2 yêu cầu. Mỗi camera một luồng với vòng đệm có giới hạn
+  (3 khung). Camera được chọn theo **cổng hub**, vì index OpenCV đổi sau khởi động lại. Bộ ảnh ghép theo thời gian: mốc là
+  khung mới nhất của camera chậm nhất, mỗi camera chọn khung gần mốc nhất. Bộ lệch quá ngưỡng (mặc định 60 ms) bị bỏ. Bộ
+  chỉ "mới" khi mọi camera có khung mới, hoặc sau giới hạn chờ camera chậm (từ 24/09, mục 10).
+- **Suy luận theo lô** dùng cùng tiền xử lý với `predict.py`. Nó đo thời gian tiền xử lý / mạng / hậu xử lý, có đồng bộ
+  CUDA.
+- **Điều phối:** luồng AI lấy bộ mới nhất, không xếp hàng, đổi được mô hình lúc chạy. Luồng tài nguyên 1 Hz ghi CPU của
+  tiến trình và của máy, RAM, GPU (tải, VRAM, nhiệt độ, công suất qua NVML). Từ 02/10/2026 luồng này ghi cả trạng thái
+  EcoQoS của tiến trình (EcoQoS là chế độ tiết kiệm của Windows 11, có thể hạ tốc tiến trình): `.rig.json` có
+  `resources.ecoqos` lúc chốt số và `series[].resources.ecoqos` mỗi giây; `meta.json` của bản ghi `--record` có khóa
+  `ecoqos` ([GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 3).
+- **Giao diện:** bốn ô camera có lớp tô AI (xanh FREE, đỏ BLOCKED), bản đồ LiDAR, bảng số đo, chọn mô hình, kéo ngưỡng
+  (nút 0,15 an toàn / 0,50), bật tắt AI và lớp tô. Nút chụp bộ ảnh lưu ảnh gốc bốn camera, xác suất, ảnh tô, vòng LiDAR
+  và siêu dữ liệu.
+- **Nguồn camera** `UsbCameraSource` đếm riêng khung cũ và đọc hỏng. Nó loại khung MJPEG bị cắt cụt hoặc có dải xé (bộ
+  giải mã tô phần thiếu bằng vân khối 8×8 lặp lại, mục 2) và đếm riêng từng loại; `camera_bench` cũng đếm. Bộ dò bắt
+  đúng hai ảnh hỏng thật và không bắt nhầm ảnh sạch; các khung bị bắt trong phiên chẩn đoán được xem bằng mắt (mục 2.2).
+- **Môi trường:** cài PySide6, pyserial, pygrabber, comtypes, psutil, nvidia-ml-py vào `.venv-train` để một tiến trình
+  chạy được cả GPU lẫn giao diện; thêm extra `rig` trong `pyproject.toml`.
+
+**Đồng hồ và ý nghĩa của stamp.** Mọi luồng dùng chung một đồng hồ `time.perf_counter`, kể cả driver LiDAR. Lý do:
+`time.monotonic` của Python 3.12 trên Windows chỉ có bước 15,6 ms (mục 6). Stamp camera là lúc `read()` trả khung về
+Python, đã gồm chờ và giải mã; đó **không phải lúc phơi sáng**. Stamp LiDAR là lúc byte cuối của vòng quét tới máy. Vì
+vậy mọi độ lệch và độ trễ dưới đây là **độ lệch lúc đến và độ trễ trong máy**. Độ trễ từ sự kiện thật tới lúc khung về
+máy chưa đo; muốn đo cần LED nháy hoặc đồng hồ quay bằng camera.
 
 ## 2. Phát hiện chính: khung MJPEG bị cắt cụt khi bốn camera chạy chung qua hub — gần hết khung ở 720p/1080p, từng đợt ở 480p
+
+Khi nhiều camera chạy chung qua hub, một phần khung MJPEG tới máy không đủ dữ liệu, và bộ giải mã tô phần thiếu bằng vân
+xám. Mục này nói cách nhận ra loại khung đó, bộ dò đã viết, và khi nào khung bị cắt.
 
 ### 2.1. Thấy gì
 
 Ảnh chụp giao diện lúc 14:57 (720p, [evidence/rig/giao_dien_720p_thr015.jpg](evidence/rig/giao_dien_720p_thr015.jpg))
 có hai ô camera bị hỏng nửa dưới. Ảnh gốc đã lưu cho thấy từ một dòng trở xuống, ảnh là **một khối 8×8 xám lặp lại**
-(R = B, trung bình ≈ 129), phía trên thường có vài vệt xé ngang. Đây là dấu hiệu của khung MJPEG **bị cắt cụt**: dữ liệu
-khung tới máy không đủ, và bộ giải mã tô phần còn thiếu. Khung như vậy vẫn là "khung mới", nên mọi số FPS trước đó đều
-tính nó như khung tốt, và AI đã chấm cả những khung này (vùng vân bị gọi gần như toàn bộ là FREE, xem mục 2.4).
+(R = B, trung bình ≈ 129); phía trên thường có vài vệt xé ngang. Đây là dấu hiệu của khung MJPEG **bị cắt cụt**: dữ liệu
+khung tới máy không đủ, và bộ giải mã tô phần còn thiếu.
+
+Khung như vậy vẫn là "khung mới". Vì thế mọi số FPS trước đó đều tính nó như khung tốt, và AI đã chấm cả những khung
+này. Vùng vân bị AI gọi gần như toàn bộ là FREE (mục 2.4).
 
 ![Khung bị cắt ở cổng 1 cạnh khung nguyên vẹn của cổng 2](evidence/rig/khung_bi_cat_720p.jpg)
 
@@ -45,10 +104,10 @@ tính nó như khung tốt, và AI đã chấm cả những khung này (vùng v�
 - `truncated_rows`: 8 dòng đáy lặp y hệt khi dịch 8 điểm ảnh (> 90 % số điểm), **và** có kết cấu bên trong chu kỳ
   (điểm kề bên ít trùng). Điều kiện sau loại vùng phẳng hay cháy sáng: vùng như vậy cũng lặp y hệt nhưng không phải hỏng.
   Camera này cháy sáng thành RGB 251/255/251 chứ không phải 255/255/255, nên không thể dựa vào giá trị 255.
-- `torn_bands`: một hàng khối có đoạn vân tô chạy liền tới mép phải, dài ít nhất 64 điểm. Đây là dải xé giữa ảnh, khi
-  mất dữ liệu giữa khung rồi bộ giải mã bắt lại được.
-- Khung hỏng mà driver trả lại lần nữa (trùng byte với lần đọc trước) được tính là **khung cũ**, không tính thêm một khung
-  hỏng. `camera_bench` cũng làm như vậy.
+- `torn_bands`: một hàng khối có đoạn vân tô chạy liền tới mép phải, dài ít nhất 64 điểm. Đây là dải xé giữa ảnh, xảy
+  ra khi mất dữ liệu giữa khung rồi bộ giải mã bắt lại được.
+- Khung hỏng mà driver trả lại lần nữa (trùng byte với lần đọc trước) được tính là **khung cũ**, không tính thêm một
+  khung hỏng. `camera_bench` cũng làm như vậy.
 
 Chi phí đo trên khung sạch 720p: cả hai bộ dò cộng lại khoảng 0,2 ms một khung.
 
@@ -66,12 +125,16 @@ Kiểm trên 1086 khung đã lưu (`runs/rig_bench/20260923_v3/corpus/`, `d01_di
 - Đã xem bằng mắt dải đáy của 18 khung bị bắt (6 khung mỗi cổng 1, 3, 4) và hai khung nguyên cỡ. Khung nào cũng có vân
   xám ở đáy, kể cả các khung chỉ bị tô 8 dòng: [evidence/rig/day_khung_bi_cat.jpg](evidence/rig/day_khung_bi_cat.jpg).
 - Trong các tập này chưa gặp khung nào **chỉ** có dải xé mà đáy nguyên. Một vòng kiểm tra độc lập (mục 8) dựng được
-  trường hợp đó từ một dải xé thật của cổng 1, và bộ dò mới bắt được nó. Sau đó, ở 480p, đã gặp khung như vậy thật (mục 2.4).
-- Giới hạn còn lại: nếu bộ giải mã tô bằng màu phẳng, hoặc khung bị cắt giữa hàng khối cuối, hoặc dải xé bắt đầu cách mép
-  phải dưới 64 điểm, thì bộ dò bỏ sót. **Không có phép thử độc lập bằng byte thô**: OpenCV/DirectShow trên máy này vẫn trả
-  ảnh đã giải mã dù đặt `CAP_PROP_CONVERT_RGB = 0` (kể cả khi đưa vào lúc mở), nên chưa kiểm được dấu kết thúc JPEG của từng khung.
+  trường hợp đó từ một dải xé thật của cổng 1, và bộ dò mới bắt được nó. Sau đó, ở 480p, đã gặp khung như vậy thật
+  (mục 2.4).
+- Giới hạn còn lại: bộ dò bỏ sót nếu bộ giải mã tô bằng màu phẳng, hoặc khung bị cắt giữa hàng khối cuối, hoặc dải xé bắt
+  đầu cách mép phải dưới 64 điểm. **Không có phép thử độc lập bằng byte thô**: OpenCV/DirectShow trên máy này vẫn trả ảnh
+  đã giải mã dù đặt `CAP_PROP_CONVERT_RGB = 0` (kể cả khi đưa vào lúc mở), nên chưa kiểm được dấu kết thúc JPEG của từng
+  khung.
 
 ### 2.3. Khi nào khung bị cắt — chỉ đọc camera, không AI, không LiDAR (`runs/rig_bench/20260923_v3/raw/`)
+
+Các phiên dưới đây chỉ đọc camera, để tách lỗi khung khỏi tải của AI và LiDAR.
 
 | Phiên | Camera chạy cùng lúc | Độ phân giải | Thời lượng | Khung bị cắt / khung mới — cổng 1 | cổng 2 | cổng 3 | cổng 4 | Khung tốt/s cổng 1 / 2 / 3 / 4 |
 |---|---|---|---:|---|---|---|---|---|
@@ -89,16 +152,18 @@ Kiểm trên 1086 khung đã lưu (`runs/rig_bench/20260923_v3/corpus/`, `d01_di
 
 Đọc bảng:
 
-- **Chạy một mình thì không camera nào bị cắt**, kể cả cổng 1: cổng 1 và 2 ở bảng này, cả bốn cổng ở tập "từng camera một mình" mục 2.2. Thêm camera ở 720p thì cổng 1 và cổng 4 bị cắt gần hết
-  khung, cổng 3 dao động (0–70 %). Riêng **cổng 2 chưa từng bị cắt ở 720p**, dù mở theo thứ tự nào.
+- **Chạy một mình thì không camera nào bị cắt**, kể cả cổng 1. Điều này đúng cho cổng 1 và 2 ở bảng này, và cho cả bốn
+  cổng ở tập "từng camera một mình" của mục 2.2.
+- Thêm camera ở 720p thì cổng 1 và cổng 4 bị cắt gần hết khung, cổng 3 dao động (0–70 %). Riêng **cổng 2 chưa từng bị
+  cắt ở 720p**, dù mở theo thứ tự nào.
 - **Ở 1080p**, ba trên bốn camera bị cắt gần hết khung.
 - **Ở 640×480, phiên này (15 s) cả bốn camera không bị cắt khung nào** và đều đạt ≈ 24 khung/s. Các phiên 480p khác ở
   mục 2.4 cho thấy 480p không phải lúc nào cũng sạch.
 - Thứ tự mở không cứu được cổng 1 (r08).
 - Giả thuyết hợp với số liệu nhất: bốn camera dùng chung **băng thông USB 2.0 của hub** (cả bốn ở nhánh USB 2.0 của hub
-  UGREEN, docs/usb_topology.md). Camera nào có khung JPEG lớn hơn thì mất đuôi khung. **Chưa chứng minh**: chưa đo được
-  kích thước khung, chưa thử tách camera ra nhiều cổng gốc, chưa thử nguồn ngoài cho hub. Vì sao cổng 2 luôn nguyên cũng
-  chưa rõ: có thể do khung cảnh nó nhìn cho ảnh JPEG nhỏ hơn, hoặc do cách nó được cấp băng thông.
+  UGREEN, docs/usb_topology.md). Camera nào có khung JPEG lớn hơn thì mất đuôi khung. Giả thuyết này **chưa chứng minh**:
+  chưa đo được kích thước khung, chưa thử tách camera ra nhiều cổng gốc, chưa thử nguồn ngoài cho hub. Vì sao cổng 2 luôn
+  nguyên cũng chưa rõ. Có thể khung cảnh nó nhìn cho ảnh JPEG nhỏ hơn, hoặc do cách nó được cấp băng thông.
 
 ### 2.4. 640×480: ít hơn hẳn, nhưng không hết — mọi phiên bốn camera 480p ngày 23/09 theo giờ
 
@@ -123,38 +188,42 @@ Kiểm trên 1086 khung đã lưu (`runs/rig_bench/20260923_v3/corpus/`, `d01_di
 | xong 16:47 | a17 | chỉ camera | 30 s | 1 / 717 (0,1 %) | 0 / 717 | 0 / 718 | 0 / 716 |
 | xong 16:50 | f02 | chỉ camera | 120 s | 1035 / 2863 (36,2 %) | 0 / 2864 | 0 / 2864 | 0 / 2856 |
 
-"Khung hỏng" = bị cắt đáy hoặc có dải xé. Cộng mọi phiên trên: cổng 1 hỏng 1418 / 31142 khung,
-cổng 2 0 / 31153, cổng 3 0 / 31158, cổng 4 6 / 31115.
+"Khung hỏng" là khung bị cắt đáy hoặc có dải xé. Cộng mọi phiên trên: cổng 1 hỏng 1418 / 31142 khung, cổng 2
+0 / 31153, cổng 3 0 / 31158, cổng 4 6 / 31115.
 
 - **Phần lớn thời gian 480p sạch**, nhưng **cổng 1 có những đợt 26–36 % khung hỏng** (u03 xong 16:28, f02 từ 16:48 tới
   16:50), xen giữa các đợt sạch hoàn toàn. Chưa rõ vì sao đợt hỏng bắt đầu hay dừng.
 - **Chưa tìm ra nguyên nhân.** Hai đợt hỏng đều rơi vào phiên chỉ có camera, nhưng các phiên chỉ có camera khác đều sạch
-  hoặc gần sạch. Bảy phiên xen kẽ (a01–a07: chỉ camera / thêm bốn tiến trình bận CPU / thêm LiDAR, mỗi điều kiện hai–ba
+  hoặc gần sạch. Bảy phiên xen kẽ a01–a07 (chỉ camera / thêm bốn tiến trình bận CPU / thêm LiDAR, mỗi điều kiện hai–ba
   lần) đều sạch, nên phép thử này **không tái hiện được** đợt hỏng. Vì vậy chưa nói được CPU rảnh hay LiDAR có liên quan
   hay không. Chạy ngay sau một phiên 720p cũng sạch (a12, a16). Lúc đó máy dùng chế độ nguồn "Balanced", USB selective
   suspend bật, quản lý nguồn liên kết PCIe ở mức tiết kiệm tối đa. Không đổi thiết lập nào.
-- **Khung hỏng ở 480p là thật:** đã xem bằng mắt trong phiên f02 — đáy có dải vân xám 8 hoặc 16 dòng
-  ([evidence/rig/day_khung_bi_cat_480p.jpg](evidence/rig/day_khung_bi_cat_480p.jpg)), và một khung **chỉ có dải xé** ở dòng
-  248–255, đáy nguyên ([evidence/rig/khung_xe_480p.jpg](evidence/rig/khung_xe_480p.jpg)). Đây là lần đầu thấy loại khung
-  chỉ bị xé; `torn_bands` bắt được nó.
-- Khi đợt hỏng tới, nguồn camera loại các khung đó, nên **AI không nhận khung hỏng** (trừ khung lọt bộ dò, mục 2.2).
+- **Khung hỏng ở 480p là thật.** Đã xem bằng mắt trong phiên f02: đáy có dải vân xám 8 hoặc 16 dòng
+  ([evidence/rig/day_khung_bi_cat_480p.jpg](evidence/rig/day_khung_bi_cat_480p.jpg)). Có một khung **chỉ có dải xé** ở
+  dòng 248–255, đáy nguyên ([evidence/rig/khung_xe_480p.jpg](evidence/rig/khung_xe_480p.jpg)). Đây là lần đầu thấy loại
+  khung chỉ bị xé; `torn_bands` bắt được nó.
+- Khi đợt hỏng tới, nguồn camera loại các khung đó, nên **AI không nhận khung hỏng**, trừ khung lọt bộ dò (mục 2.2).
   Nhưng cổng 1 chỉ còn ≈ 15–18 khung tốt/s, và vì bộ ảnh chỉ "mới" khi mọi camera có khung mới, cả chuỗi xử lý chậm theo.
-- *Cập nhật 24/09/2026:* nếu khung hỏng lọt tới AI thì không chỉ là nhiễu. Trên hai khung bị cắt của bộ ảnh 14:57 (720p,
-  `runs/rig_snapshots/20260923_145753_910`, mô hình `ai_woodscape_rtx4000_v1`, chụp trước khi có bộ lọc), mô hình gọi
-  gần như toàn bộ vân khối ở đáy là FREE. Ở ngưỡng 0,5: cổng 1 có 450 551 / 450 560 pixel của 352 dòng đáy, cổng 4 có
-  419 840 / 419 840 pixel của 328 dòng đáy ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md), mục 2, bước 4). Ở ngưỡng 0,15
-  (ngưỡng lúc chụp) cũng vậy: 450 281 / 450 560 và 419 839 / 419 840 (đo lại 24/09 từ `prob_blocked_p1.png`,
-  `prob_blocked_p4.png` của bộ ảnh đó). Tức vùng hỏng thành **vùng trống giả**, theo hướng không an toàn. Mới đo trên
-  hai khung mà bộ dò bắt được; chưa đo trên khung thật sự lọt bộ dò (tô màu phẳng, cắt giữa hàng khối; mục 2.2).
+- **Nếu khung hỏng lọt tới AI, vùng hỏng thành vùng trống giả** (đo ngày 24/09/2026). Bộ ảnh lúc 14:57 (720p,
+  `runs/rig_snapshots/20260923_145753_910`, mô hình `ai_woodscape_rtx4000_v1`) được chụp trước khi có bộ lọc và có hai
+  khung bị cắt. Trên hai khung đó, mô hình gọi gần như toàn bộ vân khối ở đáy là FREE:
+  - ở ngưỡng 0,5: cổng 1 có 450 551 / 450 560 pixel của 352 dòng đáy, cổng 4 có 419 840 / 419 840 pixel của 328 dòng đáy
+    ([GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md), mục 2, bước 4);
+  - ở ngưỡng 0,15 (ngưỡng lúc chụp) cũng vậy: 450 281 / 450 560 và 419 839 / 419 840, đo lại ngày 24/09 từ
+    `prob_blocked_p1.png`, `prob_blocked_p4.png` của bộ ảnh đó.
+
+  Lỗi này theo hướng không an toàn. Mới đo trên hai khung mà bộ dò bắt được; chưa đo trên khung thật sự lọt bộ dò (tô màu
+  phẳng, cắt giữa hàng khối; mục 2.2).
 
 **Hệ quả:** `rig.bench` và giao diện nay **mặc định 640×480**. Mô hình AI vốn thu ảnh về 512×384, nên 480p gần như không
 mất gì cho AI. 720p và 1080p vẫn chạy được bằng `--width/--height`, và cột "cắt" cho biết mất bao nhiêu khung.
 
 ## 3. Số đo chính thức — loạt `runs/rig_bench/20260923_v3/` (bộ dò khung hỏng đã bật)
 
-Bốn phiên, camera MJPG phơi sáng tự động, bỏ 5 s khởi động, mô hình `ai_woodscape_rtx4000_v1`, bỏ bộ lệch hơn 60 ms, hub
-bus-powered. Trong lúc đo, một dự án khác trên cùng máy (công cụ mô phỏng bán dẫn) chạy ba tiến trình Python, mỗi cái ≈ 1
-lõi. Không đụng tới chúng, và mỗi phiên có ghi CPU cả máy. "Khung tốt/s" là số khung đã qua cả hai bộ dò.
+Loạt này gồm bốn phiên, camera MJPG phơi sáng tự động, bỏ 5 s khởi động, mô hình `ai_woodscape_rtx4000_v1`, bỏ bộ lệch
+hơn 60 ms, hub bus-powered. "Khung tốt/s" là số khung đã qua cả hai bộ dò. Trong lúc đo, một dự án khác trên cùng máy
+(công cụ mô phỏng bán dẫn) chạy ba tiến trình Python, mỗi cái ≈ 1 lõi. Không đụng tới chúng, và mỗi phiên có ghi CPU cả
+máy.
 
 ### 3.1. Camera
 
@@ -174,13 +243,17 @@ lõi. Không đụng tới chúng, và mỗi phiên có ghi CPU cả máy. "Khun
 | u03 | 1054 | 0 | 0 | 24,1 / 56,4 / 59,6 ms | — | — |
 | u04 | 13887 | 0 | 1 | 33,9 / 34,2 / 61,8 ms | -18,6 [-81,4; 46,4] ms | -68,4 ms |
 
-"Bộ thiếu camera" là bộ ghép khi có camera không có khung tốt nào trong 0,5 s. AI vẫn chấm bộ đó với các camera còn lại,
-và ô camera thiếu trên giao diện báo đỏ. Vòng LiDAR dài 100,3 ms (10 Hz).
+Cách đọc các cột:
+
+- "Bộ thiếu camera" là bộ ghép khi có camera không có khung tốt nào trong 0,5 s. AI vẫn chấm bộ đó với các camera còn
+  lại, và ô camera thiếu trên giao diện báo đỏ.
+- "Cuối vòng − mốc" là stamp lúc gói chứa điểm cuối của vòng LiDAR mới nhất tới máy, trừ mốc bộ ảnh, lấy ngay lúc ghép
+  bộ. Vòng LiDAR dài 100,3 ms (10 Hz).
+
 Bốn camera chạy tự do, không có đồng bộ phần cứng, nên pha giữa chúng đổi theo từng lần mở. Vì vậy độ lệch trong bộ khác
-nhau giữa các phiên (trung vị 15,0 ms ở u01, 33,9 ms ở u04), nhưng
-khi không camera nào mất khung thì gần như luôn dưới một chu kỳ khung (≈ 42 ms ở 24 khung/s). Khi một camera mất khung
-thì khung gần mốc nhất của nó có thể xa hơn (u03: p95 56,4 ms). Tuổi kết quả AI ở u04 lớn hơn u01 cũng vì pha.
-"Cuối vòng − mốc" là stamp lúc gói chứa điểm cuối của vòng mới nhất tới máy, trừ mốc bộ ảnh, lấy ngay lúc ghép bộ.
+nhau giữa các phiên: trung vị 15,0 ms ở u01, 33,9 ms ở u04. Khi không camera nào mất khung, độ lệch gần như luôn dưới một
+chu kỳ khung (≈ 42 ms ở 24 khung/s). Khi một camera mất khung, khung gần mốc nhất của nó có thể xa hơn (u03: p95 56,4 ms).
+Tuổi kết quả AI ở u04 lớn hơn u01 cũng vì pha.
 
 ### 3.3. AI (lô bốn ảnh trên GPU, fp16)
 
@@ -216,53 +289,58 @@ Nhiệt độ CPU không đọc được: Windows không cho khi không có quy�
 | 8 | 23,9 / 23,9 / 23,9 / 23,9 | 0 | 23,2 | 14,4 ms | 47 °C | 0,80 |
 | 9 | 23,9 / 23,9 / 23,9 / 23,8 | 1 | 23,2 | 13,9 ms | 47 °C | 0,80 |
 
-*(Cập nhật 02/10/2026: phép chạy dài LD-1 — 30 phút, bốn camera 480p + LiDAR + AI, có ghi phiên `--record` — đã chạy ba
-lần trên máy bàn hiện tại (LiDAR ở COM3), không người ở cạnh; đã đo trên thiết bị thật. Lần 3 (17:23–17:54, mã đợt 2 với
-driver C1 đã sửa) ĐẠT 1800 s: mỗi camera 23,85 khung/s, 0 khung hỏng, hở lớn nhất 87–118 ms; 42 751 bộ ảnh, lệch trong
-bộ trung vị 25,1 / p95 31,7 / max 54,1 ms; LiDAR 18 015 vòng, 10,008 Hz, 0 lỗi; AI 23,75 bộ/s, một lô trung vị 25,3 /
-p95 39,7 / max 202 ms; CPU tiến trình 1,21 lõi (max 2,56), RAM 1,57 GB; ghi 171 702 khung, 4,44 MB/s, bỏ 0; EcoQoS off
-(công cụ tự tắt). Lần 1 chết ở t ≈ 1050 s (exit 127, nguyên nhân CHƯA RÕ); lần 2 chạy đủ 1800 s nhưng LiDAR 0 vòng vì
-lỗi xả bộ đệm cổng, đã sửa driver ([GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 2). Đây là máy bàn, không phải
-laptop nộp đồ án; camera nhìn gì lúc đó không ai kiểm. Chi tiết: [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 12; bằng
-chứng [evidence/thiet_bi_20261002/](evidence/thiet_bi_20261002/).)*
+**Phép chạy dài LD-1 trên máy bàn hiện tại (02/10/2026).** LD-1 là kịch bản nghiệm thu chạy 30 phút bốn camera 480p +
+LiDAR + AI, có ghi phiên `--record`. Nó đã chạy ba lần trên máy bàn hiện tại (LiDAR ở COM3), không người ở cạnh; đây là
+số đo trên thiết bị thật.
 
-*(Cập nhật 06/10/2026: nguyên nhân exit 127 của LD-1 lần 1 đã rõ, kiểm trên máy tính — một phiên tác tử Claude khác
-trên cùng máy (dự án khác) dừng tiến trình bằng `Stop-Process -Force`; mã Windows là 0xFFFFFFFF (mã của
-`Stop-Process -Force`; mã 32 bit của lượt 02/10 không được ghi), Git Bash báo 127. Chi tiết:
-[CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 16.)*
+- **Lần 1** chết ở t ≈ 1050 s với exit 127. Ngày 06/10/2026 đã rõ nguyên nhân, kiểm trên máy tính: một phiên tác tử Claude
+  khác trên cùng máy, làm dự án khác, dừng tiến trình bằng `Stop-Process -Force`. Mã Windows là 0xFFFFFFFF (mã của
+  `Stop-Process -Force`; mã 32 bit của lượt 02/10 không được ghi), Git Bash báo 127.
+- **Lần 2** chạy đủ 1800 s nhưng LiDAR 0 vòng vì lỗi xả bộ đệm cổng. Driver đã được sửa
+  ([GIAI_DOAN_1_LIDAR.md](GIAI_DOAN_1_LIDAR.md) mục 2).
+- **Lần 3** (17:23–17:54, mã đợt 2 với driver C1 đã sửa) chạy đủ 1800 s:
+  - mỗi camera 23,85 khung/s, 0 khung hỏng, hở lớn nhất 87–118 ms;
+  - 42 751 bộ ảnh, lệch trong bộ trung vị 25,1 / p95 31,7 / max 54,1 ms;
+  - LiDAR 18 015 vòng, 10,008 Hz, 0 lỗi;
+  - AI 23,75 bộ/s, một lô trung vị 25,3 / p95 39,7 / max 202 ms;
+  - CPU tiến trình 1,21 lõi (max 2,56), RAM 1,57 GB;
+  - ghi 171 702 khung, 4,44 MB/s, bỏ 0; EcoQoS off (công cụ tự tắt).
+
+Đây là máy bàn, không phải laptop nộp đồ án, và camera nhìn gì lúc đó không ai kiểm. Vì vậy lượt này chưa tính là đạt
+LD-1 ([KICH_BAN_NGHIEM_THU.md](KICH_BAN_NGHIEM_THU.md) mục 5.8). Chi tiết: [CHUYEN_MAY_BAN.md](CHUYEN_MAY_BAN.md) mục 12
+(nguyên nhân lần 1: mục 16); bằng chứng [evidence/thiet_bi_20261002/](evidence/thiet_bi_20261002/).
 
 ## 4. Đọc kết quả
 
 - **Cấu hình dùng được hiện nay là 640×480, kèm bộ dò khung hỏng.** 480p chưa chắc sạch (mục 2.4), nhưng khung hỏng bị
-  loại và đếm. Bốn camera, LiDAR và AI chạy chung
-  (120 s ở u01, 600 s ở u04): 0 và 6 khung hỏng trên
-  11447 và 57227 khung tốt. AI chấm 23,8 bộ/s (u01), kết quả có mặt
-  34,8 ms (trung vị) sau khi khung cũ nhất trong bộ tới máy.
-  LiDAR 6006 vòng trong 10 phút, mất 0 vòng,
-  và mọi luồng tắt sạch (`stop_alive` = []).
-- **720p qua hub này không dùng được cho bốn camera**: ở u02 các cổng có 1431 / 0 / 0 / 1430
-  khung bị cắt (cổng 1 / 2 / 3 / 4) trong 60 s, và khung tốt/s còn 0,0 / 23,9 / 23,8 / 0,0.
+  loại và đếm. Bốn camera, LiDAR và AI chạy chung 120 s ở u01 và 600 s ở u04: 0 và 6 khung hỏng trên 11447 và 57227
+  khung tốt. AI chấm 23,8 bộ/s (u01); kết quả có mặt 34,8 ms (trung vị) sau khi khung cũ nhất trong bộ tới máy. LiDAR
+  6006 vòng trong 10 phút, mất 0 vòng, và mọi luồng tắt sạch (`stop_alive` = []).
+- **720p qua hub này không dùng được cho bốn camera.** Ở u02 các cổng có 1431 / 0 / 0 / 1430 khung bị cắt (cổng
+  1 / 2 / 3 / 4) trong 60 s, và khung tốt/s còn 0,0 / 23,9 / 23,8 / 0,0.
 - **Giới hạn của chuỗi xử lý là camera chậm nhất.** Quy tắc "bộ mới khi mọi camera có khung mới" làm số bộ/s bằng tốc độ
-  của camera chậm nhất. Ở 480p khi không có đợt hỏng, camera nào cũng ≈ 24 khung/s, nên AI chấm được ≈ 23–24 bộ/s.
-  Trong đợt hỏng của cổng 1 (u03), camera đó còn 17,6 khung tốt/s.
-- **Sai lệch thời gian còn lại (bước 5):** trong bộ ảnh ở 480p, trung vị 15,0 ms, p95
-  24,1 ms (u01). Giữa LiDAR và bộ ảnh, điểm giữa vòng quét sớm hơn mốc bộ ảnh
-  80 ms (trung vị), dao động trong khoảng một vòng quét.
-  Hợp nhất cảm biến phải bù sai lệch cỡ 100 ms này khi xe chạy; khi xe đứng yên thì không quan trọng.
-- **Chưa đo:** độ trễ từ sự kiện thật tới lúc khung tới máy (cần LED nháy), và mọi số trên laptop RTX 3050 Ti (máy nộp đồ án) (xem ghi chú cuối mục 9).
+  của camera chậm nhất. Ở 480p khi không có đợt hỏng, camera nào cũng ≈ 24 khung/s, nên AI chấm được ≈ 23–24 bộ/s. Trong
+  đợt hỏng của cổng 1 (u03), camera đó còn 17,6 khung tốt/s.
+- **Sai lệch thời gian còn lại (bước 5):** trong bộ ảnh ở 480p, trung vị 15,0 ms, p95 24,1 ms (u01). Giữa LiDAR và bộ
+  ảnh, điểm giữa vòng quét sớm hơn mốc bộ ảnh 80 ms (trung vị), dao động trong khoảng một vòng quét. Hợp nhất cảm biến
+  phải bù sai lệch cỡ 100 ms này khi xe chạy; khi xe đứng yên thì không quan trọng.
+- **Chưa đo:** độ trễ từ sự kiện thật tới lúc khung tới máy (cần LED nháy), và mọi số trên laptop RTX 3050 Ti (máy nộp
+  đồ án; xem ghi chú cuối mục 9).
 
 ## 5. Loạt v2 (`runs/rig_bench/20260923_v2/`, t01–t09, trước khi có bộ dò khung hỏng) — phần nào còn dùng được
 
-Loạt v2 chạy trước khi biết có khung bị cắt. Theo phép thử ở mục 2.3, ở 720p/1080p phần lớn khung của cổng 1 và cổng 4
-là khung bị cắt. Vì vậy:
+Loạt v2 chạy trước khi biết có khung bị cắt. Theo phép thử ở mục 2.3, ở 720p/1080p phần lớn khung của cổng 1 và cổng 4 là
+khung bị cắt. Vì vậy:
 
-- **Không còn đúng:** mọi số "FPS" và mọi chữ "sạch" của camera ở 720p/1080p. Các nhận định cũ sai là: "cổng 1 là chiếc
-  duy nhất rớt khung" (thực ra cổng 1 gửi đủ khung nhưng phần lớn bị cắt), và "ở 1080p cổng 2–4 sạch 23,9 fps" (ở r09,
-  cổng 3 và 4 bị cắt gần hết khung). Cột FPS dưới đây giữ lại chỉ để đối chiếu.
+- **Không còn đúng:** mọi số "FPS" và mọi chữ "sạch" của camera ở 720p/1080p. Hai nhận định cũ sai:
+  - "cổng 1 là chiếc duy nhất rớt khung": thực ra cổng 1 gửi đủ khung nhưng phần lớn bị cắt;
+  - "ở 1080p cổng 2–4 sạch 23,9 fps": ở r09, cổng 3 và 4 bị cắt gần hết khung.
+
+  Cột FPS dưới đây giữ lại chỉ để đối chiếu.
 - **Vẫn dùng được**, vì không phụ thuộc nội dung ảnh: thời gian AI từng khâu, tuổi kết quả, độ lệch stamp trong bộ ảnh,
   LiDAR so với bộ ảnh, CPU/GPU/nhiệt, và phép thử khoảng chuyển luồng 0,5 ms (t07, t08: không cải thiện gì).
-- 480p (t05) không có khung cũ nào ở cổng 2–4 và AI chấm 23,8 bộ/s. Kết quả này hợp với phần lớn
-  các phiên 480p ở mục 2.4, nhưng t05 chưa kiểm khung bị cắt.
+- 480p (t05) không có khung cũ nào ở cổng 2–4 và AI chấm 23,8 bộ/s. Kết quả này hợp với phần lớn các phiên 480p ở
+  mục 2.4, nhưng t05 chưa kiểm khung bị cắt.
 
 | Phiên | Cấu hình | Thời lượng | "FPS TB" cổng 1 / 2 / 3 / 4 (**gồm cả khung bị cắt**) | Khung cũ cổng 1 / 2 / 3 / 4 | CPU máy TB |
 |---|---|---:|---|---|---:|
@@ -309,13 +387,12 @@ là khung bị cắt. Vì vậy:
 | t08 | 1,06 / 1,39 | 1494 MB | 22 / 79 % | 1459 MB | 48 → 45 (48) °C | 27,7 W | 6 % |
 | t09 | 1,09 / 1,50 | 1483 MB | 18 / 82 % | 1464 MB | 46 → 48 (49) °C | 31,5 W | 6 % |
 
-Phiên t09 (720p, 10 phút): AI 14,6 ms/lô suốt 10 phút, nhiệt GPU
-46 → 48 °C, LiDAR 6005 vòng không mất vòng nào.
-Hai phiên đầu t01, t02 trùng lúc dự án mô phỏng bán dẫn chạy 6 tiến trình (CPU cả máy 41 % và 27 %).
+Phiên t09 (720p, 10 phút): AI 14,6 ms/lô suốt 10 phút, nhiệt GPU 46 → 48 °C, LiDAR 6005 vòng không mất vòng nào. Hai
+phiên đầu t01, t02 trùng lúc dự án mô phỏng bán dẫn chạy 6 tiến trình (CPU cả máy 41 % và 27 %).
 
-**Phiên chẩn đoán d01** (720p, bốn camera + LiDAR + AI, 60 s, xong lúc 16:02) chạy bằng bản đầu của bộ dò, khi đó đọc lại khung hỏng
-còn bị tính thêm một lần cắt. Nên chỉ dùng d01 làm bằng chứng hình ảnh (khung bị bắt được lưu và xem lại), không dùng
-làm tỉ lệ. Tỉ lệ đúng nằm ở mục 2.3 và u02.
+**Phiên chẩn đoán d01** (720p, bốn camera + LiDAR + AI, 60 s, xong lúc 16:02) chạy bằng bản đầu của bộ dò. Khi đó đọc lại
+một khung hỏng còn bị tính thêm một lần cắt. Vì vậy chỉ dùng d01 làm bằng chứng hình ảnh (khung bị bắt được lưu và xem
+lại), không dùng làm tỉ lệ. Tỉ lệ đúng nằm ở mục 2.3 và u02.
 
 ## 6. Loạt đầu (`runs/rig_bench/20260923/`, s01–s07) — chỉ dùng được một phần
 
@@ -324,44 +401,51 @@ Loạt đầu chạy bằng bản mã trước vòng kiểm tra thứ nhất. Ha
 1. **Đồng hồ `time.monotonic`** trên Python 3.12/Windows có bước 15,6 ms, nên mọi số độ lệch, tuổi khung và LiDAR − bộ
    ảnh của s01–s07 bị làm tròn thô. Không dùng các số đó.
 2. **Thống kê giữ GIL:** luồng chuỗi số đo sắp xếp lại toàn bộ mảng thời gian mỗi giây, chiếm GIL, làm nghẽn luồng camera
-   và luồng AI. Ở 1080p, mạng AI đo được 37,1 ms/lô; sau khi sửa (t06) còn
-   9,2 ms.
+   và luồng AI. Ở 1080p, mạng AI đo được 37,1 ms/lô; sau khi sửa (t06) còn 9,2 ms.
 
-Phiên 10 phút s07 cho cùng kết luận ổn định: AI 15,4 ms/lô, nhiệt GPU
-43 → 47 °C.
+Phiên 10 phút s07 cho cùng kết luận ổn định: AI 15,4 ms/lô, nhiệt GPU 43 → 47 °C.
 
 ## 7. Giao diện trực tiếp
 
 `python -m autopark.ui.rig_app --lidar` mở một cửa sổ:
 
-- Bốn ô camera theo cổng hub, có lớp tô AI (xanh = mô hình gọi là FREE, đỏ = BLOCKED theo ngưỡng đang chọn). Góc trên mỗi
-  ô ghi FPS, số khung cũ, số khung bị cắt/xé, tỉ lệ BLOCKED. Camera không có khung tốt trong 0,5 s thì ô báo đỏ.
+- Bốn ô camera theo cổng hub, có lớp tô AI: xanh là ô mô hình gọi là FREE, đỏ là BLOCKED theo ngưỡng đang chọn. Góc trên
+  mỗi ô ghi FPS, số khung cũ, số khung bị cắt/xé, tỉ lệ BLOCKED. Camera không có khung tốt trong 0,5 s thì ô báo đỏ.
 - Bản đồ LiDAR, bảng số đo trực tiếp, chọn mô hình, kéo ngưỡng (nút 0,15 an toàn / 0,50), bật tắt AI và lớp tô.
-- Nút "Chụp bộ ảnh" lưu ảnh gốc bốn camera, xác suất, ảnh tô, vòng LiDAR lấy **cùng lúc** với khung, và siêu dữ liệu. Siêu
-  dữ liệu gồm nguồn (bộ AI đồng bộ hay khung rời), tuổi từng khung, số khung bị cắt/xé tới lúc chụp, và một con số thô
-  `bottom_repeat_share` để lọc lại ảnh khi gán nhãn.
+- Nút "Chụp bộ ảnh" lưu ảnh gốc bốn camera, xác suất, ảnh tô, vòng LiDAR lấy **cùng lúc** với khung, và siêu dữ liệu.
+  Siêu dữ liệu gồm nguồn (bộ AI đồng bộ hay khung rời), tuổi từng khung, số khung bị cắt/xé tới lúc chụp, và một con số
+  thô `bottom_repeat_share` để lọc lại ảnh khi gán nhãn.
 
 ![Giao diện ở 480p](evidence/rig/giao_dien_480p_thr015.jpg)
 
-Mô hình chưa từng được chấm trên ảnh sa bàn: lớp tô là để **nhìn** mô hình làm gì, không phải bằng chứng.
+Mô hình chưa từng được chấm trên ảnh sa bàn. Lớp tô là để **nhìn** mô hình làm gì, không phải bằng chứng.
 
 ## 8. Kiểm tra độc lập
 
-**Vòng 1** (20 agent, 4 lăng kính, mỗi phát hiện một agent hoài nghi cố bác bỏ): 16 phát hiện, cả 16 được xác nhận và đã
-sửa trước loạt v2. Gồm: đồng hồ bước 15,6 ms; thống kê giữ GIL; LiDAR − bộ ảnh lấy sau suy luận; chuỗi "theo giây" thực
-ra là tích lũy; đổi mô hình hai lần liên tiếp chạy nhầm mô hình; ảnh chụp không ghi được vào thư mục tên tiếng Việt;
-LiDAR có thể không dừng; AI lỗi mà giao diện không báo; ảnh 4:3 bị méo.
+**Vòng 1** (20 agent, 4 lăng kính; mỗi phát hiện có một agent hoài nghi cố bác bỏ): 16 phát hiện, cả 16 được xác nhận và
+đã sửa trước loạt v2. Gồm:
+
+- đồng hồ bước 15,6 ms;
+- thống kê giữ GIL;
+- LiDAR − bộ ảnh lấy sau suy luận;
+- chuỗi "theo giây" thực ra là tích lũy;
+- đổi mô hình hai lần liên tiếp chạy nhầm mô hình;
+- ảnh chụp không ghi được vào thư mục tên tiếng Việt;
+- LiDAR có thể không dừng;
+- AI lỗi mà giao diện không báo;
+- ảnh 4:3 bị méo.
 
 **Vòng 2** (11 agent, 3 lăng kính: bộ dò, tích hợp, test): 8 phát hiện, 7 được xác nhận và đã sửa, 1 bị bác:
 
 - **Bộ dò:** sàn trắng cháy sáng (RGB 251/255/251) bị báo là khung bị cắt, nên mọi khung bị loại. Nay dùng phép thử kết
   cấu thay cho phép thử giá trị 0/255. Dải xé giữa ảnh với đáy nguyên thì lọt; nay có `torn_bands`.
-- **Tích hợp:** driver trả lại một khung bị cắt thì bị đếm thêm một khung cắt thay vì khung cũ (lệch với `camera_bench`);
-  trường "truncated_rows" trong ảnh chụp luôn bằng 0 vì kiểm lại đúng phép thử vừa qua (nay thay bằng con số thô);
-  đặt lại số đo có thể xen với dòng chuỗi theo giây (nay có khóa).
-- **Test:** hai phép chặn của bộ dò có thể bị xóa mà không test nào hỏng; thứ tự "khung tốt làm mốc" chưa được test.
-  Nay mỗi phép có test riêng. Ba bản cố tình làm hỏng mã (bỏ phép thử kết cấu, bỏ `torn_bands`, đổi lại thứ tự khung cũ)
-  đều làm test hỏng.
+- **Tích hợp:**
+  - driver trả lại một khung bị cắt thì bị đếm thêm một khung cắt thay vì khung cũ (lệch với `camera_bench`);
+  - trường "truncated_rows" trong ảnh chụp luôn bằng 0, vì kiểm lại đúng phép thử vừa qua (nay thay bằng con số thô);
+  - đặt lại số đo có thể xen với dòng chuỗi theo giây (nay có khóa).
+- **Test:** hai phép chặn của bộ dò có thể bị xóa mà không test nào hỏng; thứ tự "khung tốt làm mốc" chưa được test. Nay
+  mỗi phép có test riêng. Ba bản cố tình làm hỏng mã (bỏ phép thử kết cấu, bỏ `torn_bands`, đổi lại thứ tự khung cũ) đều
+  làm test hỏng.
 - **Bị bác:** "fps_mean đổi nghĩa mà tên không đổi". Không có mã nào đọc lẫn số cũ và số mới; mục 5 ghi rõ số v2 gồm cả
   khung bị cắt.
 
@@ -371,45 +455,50 @@ Ngoài hai vòng trên: vòng LiDAR trong ảnh chụp trước đây được l
 ## 9. Việc còn lại
 
 1. **Tách camera ra nhiều cổng gốc** (hai camera qua hub, hai camera cắm thẳng vào máy) rồi chạy lại bốn camera 720p, đọc
-   cột khung bị cắt. Nếu hết bị cắt thì nguyên nhân là băng thông dùng chung qua hub. Thử thêm nguồn ngoài cho hub.
-   Chưa có sơ đồ cổng USB của laptop RTX 3050 Ti (máy nộp đồ án). Ghi sơ đồ cổng của nó như
-   [usb_topology.md](usb_topology.md) rồi mới dùng kết quả này để chọn 480p hay đổi cách đi dây (sửa 24/09/2026: bản
-   trước khẳng định laptop có ít cổng hơn mà chưa có căn cứ). Cùng phép thử đó xem đợt
-   hỏng của cổng 1 ở 480p (mục 2.4) có hết không; đổi chỗ camera cổng 1 với cổng 2 để tách "camera" với "cổng hub".
+   cột khung bị cắt. Nếu hết bị cắt thì nguyên nhân là băng thông dùng chung qua hub. Thử thêm nguồn ngoài cho hub. Cùng
+   phép thử đó, xem đợt hỏng của cổng 1 ở 480p (mục 2.4) có hết không; đổi chỗ camera cổng 1 với cổng 2 để tách "camera"
+   với "cổng hub". Chưa có sơ đồ cổng USB của laptop RTX 3050 Ti (máy nộp đồ án): cần ghi sơ đồ cổng của nó như
+   [usb_topology.md](usb_topology.md), rồi mới dùng kết quả này để chọn 480p hay đổi cách đi dây.
 2. Đo trên laptop RTX 3050 Ti (máy nộp đồ án) bằng cùng lệnh `rig.bench`, ghi cấu hình và số cổng USB gốc. Đo độ trễ từ
    sự kiện thật tới lúc khung tới máy (LED nháy).
 3. Hiệu chuẩn bốn camera, gá lên rig, rồi mới chiếu kết quả AI xuống sàn và hợp nhất với LiDAR (giai đoạn 2, bước 4–8).
-   *Cập nhật 24/09/2026:* công cụ hiệu chuẩn nội tham cho bước 4 (bảng in sẵn, giao diện chụp, hiệu chuẩn fisheye) đã có,
-   xem [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md). Công cụ mới kiểm trên ảnh tổng hợp; chưa in bảng, chưa hiệu chuẩn
-   camera nào. Ngoại tham (vị trí/hướng camera so với rig) chưa có công cụ, chưa làm (HIEU_CHUAN_CAMERA.md mục 6).
-   *Cập nhật 25/09/2026:* công cụ ngoại tham và ROI đã có (`perception/extrinsics_calib.py`, `perception/roi_tool.py`,
-   giao diện `ui/roi_app.py`; commit `65b7127`; [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md)), mã chiếu kết quả AI
-   xuống sàn cũng đã có (`perception/bev.py`, commit `1d2b857`; [BEV.md](BEV.md)). Công cụ ngoại tham và ROI mới kiểm
-   trên ảnh tổng hợp; BEV kiểm trên rig tổng hợp và ảnh WoodScape. Chưa đo ngoại tham, chưa dựng ROI cho camera nào;
-   BEV chưa chạy với hiệu chuẩn thật trên camera dự án (mới thử bộ lọc khung hỏng trên hai bộ ảnh thật với nội tham
-   danh định, [BEV.md](BEV.md) mục 6), chưa hợp nhất với LiDAR.
+   Hiện trạng các công cụ:
+   - Ngày 24/09/2026 có công cụ hiệu chuẩn nội tham cho bước 4 (bảng in sẵn, giao diện chụp, hiệu chuẩn fisheye), xem
+     [HIEU_CHUAN_CAMERA.md](HIEU_CHUAN_CAMERA.md). Công cụ mới kiểm trên ảnh tổng hợp; chưa in bảng, chưa hiệu chuẩn camera
+     nào.
+   - Ngày 25/09/2026 có công cụ ngoại tham và ROI (`perception/extrinsics_calib.py`, `perception/roi_tool.py`, giao diện
+     `ui/roi_app.py`; commit `65b7127`; [NGOAI_THAM_VA_ROI.md](NGOAI_THAM_VA_ROI.md)). Cùng ngày có mã chiếu kết quả AI
+     xuống sàn (`perception/bev.py`, commit `1d2b857`; [BEV.md](BEV.md)).
+   - Công cụ ngoại tham và ROI mới kiểm trên ảnh tổng hợp; BEV kiểm trên rig tổng hợp và ảnh WoodScape. Chưa đo ngoại
+     tham, chưa dựng ROI cho camera nào. BEV chưa chạy với hiệu chuẩn thật trên camera dự án; mới thử bộ lọc khung hỏng
+     trên hai bộ ảnh thật với nội tham danh định ([BEV.md](BEV.md) mục 6). Chưa hợp nhất với LiDAR.
 4. Dùng nút "Chụp bộ ảnh" ở 480p để thu ảnh sa bàn ở độ cao thật, gán nhãn, chấm các mô hình (HUAN_LUYEN.md mục 18).
-   *Cập nhật 24/09/2026:* chụp, nhập, gán nhãn, split theo phiên và tách tập chấm theo
-   [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md). Lúc nhập, công cụ tự đánh dấu khung hỏng (`truncated_rows`, `torn_bands`,
-   `bottom_repeat_share` > 0,2, khung cũ), thay cho việc lọc tay bằng `bottom_repeat_share` trong `meta.json` (khung
-   sạch ≤ 0,13); lý do "chỉ `bottom_repeat_share`" vẫn nên xem lại bằng mắt (GAN_NHAN_SA_BAN.md mục 9). Ảnh dành để
-   chấm phải chụp vào thư mục riêng (`--snapshots runs/rig_snapshots_cham`), không vào `runs/rig_snapshots`. Chưa gán
-   nhãn ảnh thật nào.
+   Từ 24/09/2026, chụp, nhập, gán nhãn, split theo phiên và tách tập chấm làm theo [GAN_NHAN_SA_BAN.md](GAN_NHAN_SA_BAN.md):
+   - Lúc nhập, công cụ tự đánh dấu khung hỏng (`truncated_rows`, `torn_bands`, `bottom_repeat_share` > 0,2, khung cũ),
+     thay cho việc lọc tay bằng `bottom_repeat_share` trong `meta.json` (khung sạch ≤ 0,13). Khung bị đánh dấu chỉ vì
+     `bottom_repeat_share` vẫn nên xem lại bằng mắt (GAN_NHAN_SA_BAN.md mục 9).
+   - Ảnh dành để chấm phải chụp vào thư mục riêng (`--snapshots runs/rig_snapshots_cham`), không vào `runs/rig_snapshots`.
+   - Chưa gán nhãn ảnh thật nào.
 5. Nếu cần một phép thử độc lập cho bộ dò: đọc byte MJPEG thô (ví dụ qua FFmpeg dshow hoặc Media Foundation) để kiểm dấu
    kết thúc JPEG của từng khung.
 
-*Cập nhật 24/09/2026, người dùng xác nhận:* máy bàn i9-14900 + RTX 4000 Ada là máy phát triển chính; laptop i7-12700H + RTX 3050 Ti (4 GB VRAM) là máy mang đi nộp và trình diễn đồ án. Mọi số đo đến nay là trên máy bàn; số dùng cho khóa luận phải đo lại trên laptop.
+**Vai trò hai máy** (người dùng xác nhận ngày 24/09/2026): máy bàn i9-14900 + RTX 4000 Ada là máy phát triển chính;
+laptop i7-12700H + RTX 3050 Ti (4 GB VRAM) là máy mang đi nộp và trình diễn đồ án. Mọi số đo đến nay là trên máy bàn; số
+dùng cho khóa luận phải đo lại trên laptop.
 
 ## 10. Không chờ camera chậm (24/09/2026)
 
-**Vấn đề.** Quy tắc cũ "bộ mới khi mọi camera có khung mới" làm cả chuỗi chậm theo camera chậm nhất. Ở mục 2.4, trong
-đợt hỏng, cổng 1 chỉ còn ≈ 15–18 khung tốt/s.
+**Vấn đề.** Quy tắc cũ "bộ mới khi mọi camera có khung mới" làm cả chuỗi chậm theo camera chậm nhất. Ở mục 2.4, trong đợt
+hỏng, cổng 1 chỉ còn ≈ 15–18 khung tốt/s.
 
-**Quy tắc mới, mặc định bật** (`--max-wait-ms 60` của `rig.bench` và `rig_app`; `--max-wait-ms 0` là quy tắc cũ):
+Mục này mô tả bản đầu của quy tắc chờ (đo lúc 12:13–12:22 ngày 24/09). Sau phiên `may_moi` lúc 15:25 cùng ngày, ngưỡng
+chung theo camera nhanh nhất được thay bằng ngưỡng riêng theo nhịp của từng camera (mục 10.1). Các khái niệm và trường
+json dưới đây vẫn dùng; chỗ đổi nêu ở mục 10.1.
+
+**Quy tắc chờ, mặc định bật** (`--max-wait-ms 60` của `rig.bench` và `rig_app`; `--max-wait-ms 0` là quy tắc cũ):
 
 - Khi một số camera đã có khung mới mà camera khác chưa có, bàn thử chờ tối đa L = max(60 ms; 1,5 × chu kỳ khung đo được
-  của camera nhanh nhất), tức ≈ 62 ms ở 24 khung/s. Hết hạn thì ghép bộ không có camera đó. *(Cập nhật 24/09/2026: ngưỡng
-  chung theo camera nhanh nhất đã bị thay bằng ngưỡng riêng theo nhịp của từng camera, xem mục 10.1.)*
+  của camera nhanh nhất), tức ≈ 62 ms ở 24 khung/s. Hết hạn thì ghép bộ không có camera đó.
 - Camera bị bỏ vì chậm gọi là **"chậm"** (`lagging`), khác với camera **"thiếu"**: camera thiếu là không có khung tốt nào
   trong 0,5 s.
 - AI chỉ chấm các camera có trong bộ. Giao diện giữ lớp tô cũ của camera chậm và ghi "chậm: … cách đây X ms"; lớp tô cũ
@@ -418,8 +507,8 @@ Ngoài hai vòng trên: vòng LiDAR trong ảnh chụp trước đây được l
   `prob_batch_id`. Ảnh và xác suất lưu cùng nhau luôn thuộc CÙNG một khung.
 - `rig.bench` ghi `sets_partial_wait`, `lagging_per_port`, `wait_limit_ms`, `sets_regrouped` và chuỗi theo giây tương ứng.
 
-**Chu kỳ khung** được ước lượng từ thời điểm tới của mọi khung camera gửi, kể cả khung bị cắt/xé. Lý do: nhịp thật xen
-kẽ ≈ 31 ms và ≈ 48 ms (GIAI_DOAN_1_CAMERA.md mục 4.1). Vòng kiểm tra độc lập thứ hai đã bắt lỗi của bản đầu: bộ ước lượng
+**Chu kỳ khung** được ước lượng từ thời điểm tới của mọi khung camera gửi, kể cả khung bị cắt/xé. Lý do: nhịp thật xen kẽ
+≈ 31 ms và ≈ 48 ms (GIAI_DOAN_1_CAMERA.md mục 4.1). Vòng kiểm tra độc lập thứ hai đã bắt lỗi của bản đầu: bộ ước lượng
 tưởng chu kỳ là ≈ 31 ms nên bỏ camera KHỎE khỏi khoảng nửa số bộ. Lỗi đã sửa. Phát lại khoảng cách khung đo thật (phiên
 m04) cho 100 % bộ đủ bốn camera. Ngoài ra còn hai quy tắc phụ, đều là lựa chọn thiết kế chỉ kiểm bằng đồng hồ giả: quy
 tắc "đáng chờ" dự đoán khung sắp tới, và quy tắc gom lại camera lệch pha (`sets_regrouped`).
@@ -435,31 +524,34 @@ tắt):
 | w04 | 1280×720 | tắt (`--max-wait-ms 0`) | 60 s | 23,85 / 23,85 / 23,85 / 23,85 | 0 | 23,85 | 0 | 0 | 25,6 / 26,1 ms | 62,6 / 65,3 ms |
 | w05 | 640×480 | bật, ngưỡng 62,4 ms | 120 s | 23,85 / 23,85 / 23,85 / 23,85 | 0 | 23,84 | 0 | 0 | 22,2 / 24,1 ms | 36,9 / 40,5 ms |
 
-- **Không bỏ nhầm camera khỏe.** Với bốn camera khỏe, quy tắc bật không tạo bộ thiếu camera nào trong 7155 bộ. Số bộ/s
-  bằng lúc tắt.
-- **Tuổi kết quả AI thấp hơn khi bật,** ≈ 37–42 ms ở cả ba phiên bật, so với ≈ 62 ms ở cả hai phiên tắt. Chưa giải thích được cơ chế. Độ lệch
-  trong bộ lại đổi theo pha giữa các camera mỗi lần mở (mục 3.2), nên chưa coi đây là lợi ích đã chứng minh.
-- **Lợi ích chính CHƯA thấy trên phần cứng.** Lợi ích chính là AI không chậm theo camera đang có đợt hỏng, nhưng không phiên
-  nào có camera chậm.
-- **Lúc đo, camera nhìn vào chỗ tối** (gầm bàn, chân màn hình; cổng 2 gần như đen), khác hẳn cảnh thảm hoa văn ngày 23/09.
-  Vì vậy cả 720p cũng không có khung bị cắt nào. Đây thêm một dấu hiệu khung bị cắt phụ thuộc cảnh, tức phụ thuộc kích
-  thước JPEG. Nó **không** phải bằng chứng 720p đã dùng được.
+- **Không bỏ nhầm camera khỏe khi bốn camera cùng nhịp.** Với bốn camera khỏe, quy tắc bật không tạo bộ thiếu camera nào
+  trong 7155 bộ. Số bộ/s bằng lúc tắt. Khi các camera khác nhịp thì bản này có bỏ nhầm (mục 10.1).
+- **Tuổi kết quả AI thấp hơn khi bật:** ≈ 37–42 ms ở cả ba phiên bật, so với ≈ 62 ms ở cả hai phiên tắt. Chưa giải thích
+  được cơ chế. Độ lệch trong bộ lại đổi theo pha giữa các camera mỗi lần mở (mục 3.2), nên chưa coi đây là lợi ích đã
+  chứng minh.
+- **Lợi ích chính chưa thấy trên phần cứng.** Lợi ích chính là AI không chậm theo camera đang có đợt hỏng, nhưng không
+  phiên nào có camera chậm.
+- **Lúc đo, camera nhìn vào chỗ tối** (gầm bàn, chân màn hình; cổng 2 gần như đen), khác hẳn cảnh thảm hoa văn ngày
+  23/09. Vì vậy cả 720p cũng không có khung bị cắt nào. Đây thêm một dấu hiệu khung bị cắt phụ thuộc cảnh, tức phụ thuộc
+  kích thước JPEG. Nó **không** phải bằng chứng 720p đã dùng được.
 - **Nhược điểm đã biết, từ mô phỏng:** khi nhịp từng camera trôi pha độc lập, mỗi cổng khỏe vẫn bị bỏ 0,2–2,7 % số bộ.
-  Chưa sửa. Cần một phiên thật có camera chậm để đo lợi ích và mức bỏ nhầm; so với loạt `20260923_v3` thì phải chạy
-  `--max-wait-ms 0`. *(Cập nhật 24/09/2026: với quy tắc ở mục 10.1, cùng loại mô phỏng không bỏ "chậm" camera khỏe nào;
-  còn lại 2,1–2,5 % số bộ bị để dành để gom lại pha. Dòng "Không bỏ nhầm camera khỏe" ở trên chỉ đúng khi bốn camera
-  cùng nhịp: mục 10.1.)*
+  Với quy tắc ở mục 10.1, cùng loại mô phỏng không bỏ "chậm" camera khỏe nào; còn lại 2,1–2,5 % số bộ bị để dành để gom
+  lại pha. Cần một phiên thật có camera chậm để đo lợi ích và mức bỏ nhầm; muốn so với loạt `20260923_v3` thì phải chạy
+  `--max-wait-ms 0`.
 
-### 10.1. Cập nhật 24/09/2026 (sau phiên `may_moi` lúc 15:25): xét mỗi camera theo nhịp của chính nó
+### 10.1. Xét mỗi camera theo nhịp của chính nó (24/09/2026, sau phiên `may_moi` lúc 15:25)
 
-**Phát hiện trên phần cứng.** Phiên `runs/may_moi_20260924_may_ban/m02_720p_chi_camera.rig.json` (máy bàn, 1280×720,
-chỉ camera, 30 s, quy tắc ở trên; bản sao số ở
-[evidence/may_ban/tham_chieu_20260924.json](evidence/may_ban/tham_chieu_20260924.json)): cổng 1 chạy 29,3 khung/s (phơi
-sáng tự động), cổng 2–4 chạy 23,85 khung/s, cả bốn 0 khung bị cắt/xé. Quy tắc ở trên bỏ camera 24 khung/s **khỏe** ở 263
-/ 855 bộ (cổng 2 / 3 / 4: 106 / 137 / 106), 28,5 bộ/s. Ở 640×480 (m01, 120 s, cả bốn ≈ 23,85 khung/s) nó bỏ camera khỏe
-ở 3 / 2861 bộ. Nguyên nhân: ngưỡng chung và điều kiện "khung thuộc nhóm sau" đều tính theo chu kỳ của camera **nhanh**
-nhất. Khung đúng lượt của camera 24 khung/s thường tới sau khung của camera 29 khung/s hơn 34 ms, nên bị coi là thuộc
-nhóm sau. Vì vậy dòng "Không bỏ nhầm camera khỏe" ở trên chỉ đúng khi bốn camera cùng nhịp.
+**Phát hiện trên phần cứng.** Phiên `runs/may_moi_20260924_may_ban/m02_720p_chi_camera.rig.json` chạy trên máy bàn,
+1280×720, chỉ camera, 30 s, với quy tắc ở mục 10. Bản sao số ở
+[evidence/may_ban/tham_chieu_20260924.json](evidence/may_ban/tham_chieu_20260924.json).
+
+- Cổng 1 chạy 29,3 khung/s (phơi sáng tự động), cổng 2–4 chạy 23,85 khung/s, cả bốn 0 khung bị cắt/xé.
+- Quy tắc ở mục 10 bỏ camera 24 khung/s **khỏe** ở 263 / 855 bộ (cổng 2 / 3 / 4: 106 / 137 / 106), 28,5 bộ/s.
+- Ở 640×480 (m01, 120 s, cả bốn ≈ 23,85 khung/s) nó bỏ camera khỏe ở 3 / 2861 bộ.
+
+Nguyên nhân: ngưỡng chung và điều kiện "khung thuộc nhóm sau" đều tính theo chu kỳ của camera **nhanh** nhất. Khung đúng
+lượt của camera 24 khung/s thường tới sau khung của camera 29 khung/s hơn 34 ms, nên bị coi là thuộc nhóm sau. Vì vậy
+kết luận "không bỏ nhầm camera khỏe" ở mục 10 chỉ đúng khi bốn camera cùng nhịp.
 
 **Quy tắc mới** (người dùng duyệt 24/09; mô tả đầy đủ ở docstring đầu `autopark/video/multicam.py`):
 
@@ -467,23 +559,23 @@ nhóm sau. Vì vậy dòng "Không bỏ nhầm camera khỏe" ở trên chỉ đ
   ở 15 khung/s. Chu kỳ vẫn đo từ mọi lần khung tới, kể cả khung bị cắt/xé.
 - Camera đang chờ bị bỏ khỏi bộ khi có một trong bốn điều sau:
   - khung mới cũ nhất đã chờ quá L của nó;
-  - khung "đúng lượt" dự đoán của nó đã trễ quá nửa chu kỳ của nó, tức không có khung tốt mới trong ≈ 1,5 chu kỳ của nó
-    (khung đúng lượt đoán theo khung mới của các camera **cùng nhịp** với nó, sửa tối 24/09, mục 10.2);
+  - khung "đúng lượt" dự đoán của nó đã trễ quá nửa chu kỳ của nó, tức không có khung tốt mới trong ≈ 1,5 chu kỳ của nó.
+    Khung đúng lượt được đoán theo khung mới của các camera **cùng nhịp** với nó (sửa tối 24/09, mục 10.2);
   - khung đúng lượt đã tới nhưng hỏng: bỏ ngay, không chờ thêm;
   - nó không có lần tới nào (tốt hay hỏng) trong 2,5 chu kỳ của nó (treo): thôi chờ nó ở mọi bộ cho tới lần tới kế.
-- Camera khỏe mà chậm hơn (phơi sáng dài) **không** bị bỏ: nó định nhịp cả chuỗi, khung dư của camera nhanh không vào bộ
-  nào. Hệ quả: một camera chậm cố định (ví dụ 8 khung/s ở chỗ tối) làm AI chậm theo, như quy tắc cũ. Quy tắc chờ chỉ giúp
-  khi một camera lỡ nhịp của chính nó.
+- Camera khỏe mà chậm hơn (phơi sáng dài) **không** bị bỏ. Nó định nhịp cả chuỗi, và khung dư của camera nhanh không vào
+  bộ nào. Hệ quả: một camera chậm cố định (ví dụ 8 khung/s ở chỗ tối) làm AI chậm theo, như quy tắc cũ. Quy tắc chờ chỉ
+  giúp khi một camera lỡ nhịp của chính nó.
 - Khi các camera khác nhịp (chu kỳ chênh quá 15 %), mốc bộ và quy tắc gom lại camera lệch pha chỉ xét các camera cùng
   nhịp với camera chậm nhất.
 - `--max-wait-ms 0` vẫn đúng quy tắc cũ. Tên trường json giữ nguyên. Từ bản này, `wait_limit_ms` là ngưỡng riêng **lớn
   nhất** trong các camera của bộ. Mỗi camera có thêm `period_ms`: nhịp đo được lúc lấy số.
 
-**Đã kiểm trong mô phỏng** (đồng hồ giả, phát lại khoảng cách khung **thật** đo ngày 23/09 trong
-`runs/camera_bench/20260923`; pha ngẫu nhiên, 6 hạt, mỗi lần 20 s; **không** phải số đo phần cứng). "Bỏ" gồm cả bộ bị
+**Đã kiểm trong mô phỏng.** Mô phỏng dùng đồng hồ giả, phát lại khoảng cách khung **thật** đo ngày 23/09 trong
+`runs/camera_bench/20260923`; pha ngẫu nhiên, 6 hạt, mỗi lần 20 s. Đây **không** phải số đo phần cứng. "Bỏ" gồm cả bộ bị
 để dành để gom lại pha; tỉ lệ là của cổng tệ nhất.
 
-| Kịch bản | Quy tắc ở trên | Quy tắc mới | Tắt chờ |
+| Kịch bản | Quy tắc ở mục 10 | Quy tắc mới | Tắt chờ |
 |---|---|---|---|
 | 720p: cổng 1 29,3 khung/s + cổng 2–4 23,85 khung/s | camera khỏe bị bỏ 12,4–18,3 % số bộ; 27,1–29,2 bộ/s | 0–0,42 % (chỉ cổng 1); 23,85–23,90 bộ/s | 0 %; 21,6–23,9 bộ/s |
 | 480p: bốn camera (m04) | 0–0,21 % | 0–0,21 % (chỉ để dành) | 0 % |
@@ -492,18 +584,19 @@ nhóm sau. Vì vậy dòng "Không bỏ nhầm camera khỏe" ở trên chỉ đ
 | Cổng 2 treo 0,3 s | chỉ cổng 2 bị bỏ; 23,85 bộ/s | như bên trái | 22,4–23,5 bộ/s |
 | Nhịp Markov 31/48 ms tổng hợp, pha trôi | bỏ "chậm" 1,2–2,1 %; tính cả để dành 2,7–2,9 % | bỏ "chậm" 0 %; để dành 2,1–2,5 % | 0 %; 21,9–22,3 bộ/s |
 
-- **Chỗ còn kém tắt chờ:** khi các camera khác nhịp, độ lệch trong bộ lớn hơn vài ms. Ở kịch bản 720p: trung vị 17–29 ms,
-  p95 31–46 ms, so với 15–28 / 28–40 ms khi tắt.
+- **Chỗ còn kém tắt chờ:** khi các camera khác nhịp, độ lệch trong bộ lớn hơn vài ms. Ở kịch bản 720p: trung vị
+  17–29 ms, p95 31–46 ms, so với 15–28 / 28–40 ms khi tắt.
 - **Test:** `tests/test_multicam_rig.py`. Khoảng cách khung thật đã chép vào test vì `runs/` bị git-ignore. Các test gồm:
   camera chậm hơn định nhịp; khung đúng lượt bị hỏng; camera 15 khung/s bị treo; luồng thật với FakeCamera có khung hỏng.
-- **Chưa đo trên phần cứng:** chưa chạy lại `rig.bench` hay `may_moi` sau bản này. Sẽ đo lại ở 720p, khi cổng 1 chạy 29,3
-  khung/s. Số `lagging_per_port`, `sets_partial_wait`, `wait_limit_ms` của w01–w05 và m01/m02 là của quy tắc ở trên. Các
-  hệ số 1,5, nửa chu kỳ, 2,5 và 15 % là lựa chọn thiết kế, **chưa** đo trên phần cứng.
-  *(Cập nhật 25/09/2026: đã chạy lại trên máy bàn tối 24/09: `rig.bench` o01, o02 ở mục 10.3, và lệnh `may_moi` đầy
-  đủ lúc 19:08 cho tham chiếu mới [evidence/may_ban/tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json);
-  tệp này và mã quy tắc mới vào git ở commit `bfcbfc2`. Các hệ số trên vẫn chưa đo trên phần cứng: không phiên đo trực
-  tiếp nào (o01, o02, o03, o07, `may_moi` 19:08) có camera lỡ nhịp; hai lượt phát lại bản ghi o03 là o05 và o06 mỗi lượt có
-  một bộ bỏ cổng 3 ở giây đầu (`lagging_per_port`; mục 10.3 và [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 7).)*
+- **Đo lại trên phần cứng.** Lúc viết mục này chưa chạy lại `rig.bench` hay `may_moi`; dự định đo lại ở 720p, khi cổng 1
+  chạy 29,3 khung/s. Tối 24/09 đã chạy lại trên máy
+  bàn: `rig.bench` o01, o02 (mục 10.3), và lệnh `may_moi` đầy đủ lúc 19:08 cho tham chiếu mới
+  [evidence/may_ban/tham_chieu_20260924_toi.json](evidence/may_ban/tham_chieu_20260924_toi.json). Tệp này và mã quy tắc
+  mới vào git ở commit `bfcbfc2`.
+- **Các hệ số 1,5, nửa chu kỳ, 2,5 và 15 % là lựa chọn thiết kế, chưa đo trên phần cứng.** Không phiên đo trực tiếp nào
+  (o01, o02, o03, o07, `may_moi` 19:08) có camera lỡ nhịp. Hai lượt phát lại bản ghi o03 là o05 và o06 mỗi lượt có một bộ
+  bỏ cổng 3 ở giây đầu (`lagging_per_port`; mục 10.3 và [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 7). Số
+  `lagging_per_port`, `sets_partial_wait`, `wait_limit_ms` của w01–w05 và m01/m02 là của quy tắc ở mục 10.
 - **Tên trường json:** json ghi từ bản này có `policy.wait_rule = "own_cadence"` và `policy.wait_periods_of_own = 1,5`
   (số chu kỳ của **chính từng camera**). Khóa cũ `policy.wait_periods_of_fastest` vẫn được ghi cùng giá trị để trình đọc
   cũ không hỏng. Json ghi trước đó (w01–w05, m01/m02) không có `wait_rule`, và ở đó 1,5 là số chu kỳ của camera nhanh
@@ -512,29 +605,29 @@ nhóm sau. Vì vậy dòng "Không bỏ nhầm camera khỏe" ở trên chỉ đ
 
 ### 10.2. Sửa sau vòng kiểm tra độc lập (tối 24/09/2026)
 
-Hai lỗi của bản ở mục 10.1, người kiểm tra tìm ra và tái hiện bằng đồng hồ giả; cả hai đã sửa trong
+Người kiểm tra tìm ra hai lỗi của bản ở mục 10.1 và tái hiện bằng đồng hồ giả; cả hai đã sửa trong
 `autopark/video/multicam.py`. **Không** lỗi nào được đo trên phần cứng.
 
-1. **Đoán khung "đúng lượt" theo camera nhanh.** Khung đúng lượt của camera đang chờ được đoán gần khung mới cũ nhất
-   của **mọi** camera. Khi các camera khác nhịp, khung đó thường là khung dư chưa dùng của camera nhanh (29,3 khung/s),
-   tới sớm hơn nhóm của camera 24 khung/s. Camera 24 khung/s vừa mất một khung hỏng (bị bỏ ngay, đúng) thì ở bộ kế bị so
-   với đúng lượt nó vừa lỡ. Nó bị bỏ thêm một bộ dù khung tốt kế của nó đúng hạn, rồi bị ghép trễ một chu kỳ mãi.
-   - **Sửa:** khung đúng lượt đoán gần khung mới cũ nhất của các camera **cùng nhịp** với nó (chu kỳ chênh ≤ 15 %). Không
-     camera nào cùng nhịp đã có khung mới (ví dụ một camera 15 khung/s giữa các camera 24 khung/s) thì như cũ. Khi mọi
-     camera cùng nhịp, kết quả y hệt bản trước.
+1. **Đoán khung "đúng lượt" theo camera nhanh.** Khung đúng lượt của camera đang chờ được đoán gần khung mới cũ nhất của
+   **mọi** camera. Khi các camera khác nhịp, khung đó thường là khung dư chưa dùng của camera nhanh (29,3 khung/s), tới
+   sớm hơn nhóm của camera 24 khung/s. Giả sử camera 24 khung/s vừa mất một khung hỏng (bị bỏ ngay, đúng). Ở bộ kế, nó bị
+   so với đúng lượt nó vừa lỡ, nên bị bỏ thêm một bộ dù khung tốt kế của nó đúng hạn, rồi bị ghép trễ một chu kỳ mãi.
+   - **Sửa:** khung đúng lượt được đoán gần khung mới cũ nhất của các camera **cùng nhịp** với nó (chu kỳ chênh ≤ 15 %).
+     Nếu không camera nào cùng nhịp đã có khung mới (ví dụ một camera 15 khung/s giữa các camera 24 khung/s) thì như cũ.
+     Khi mọi camera cùng nhịp, kết quả y hệt bản trước.
    - **Mô phỏng** (đồng hồ giả, không phải số đo phần cứng): cổng 1 29,3 + cổng 2–4 23,85 khung/s trên lưới đều, cổng 4
      hỏng 36 % khung theo đợt 1 s, 4 hạt × 3 pha × 20 s: **1169 → 982** bộ bỏ cổng 4 cho 981 khung hỏng. Cùng kịch bản
-     trên khoảng cách khung thật (6 hạt × 20 s): 580 → 513 bộ cho 481 khung hỏng; phần dư ≈ 7 % chưa phân tích hết, dồn
-     ở 2 / 6 hạt. Sáu kịch bản của bảng mục 10.1 cho **đúng** các số cũ sau khi sửa.
-   - **Còn lại, đã biết:** camera cùng nhịp mà lệch pha ≈ nửa chu kỳ so với nhóm thì ghép nhóm tự nó mơ hồ; một khung
-     hỏng ở đó vẫn có thể làm nó thiếu ở hai bộ.
+     trên khoảng cách khung thật (6 hạt × 20 s): 580 → 513 bộ cho 481 khung hỏng; phần dư ≈ 7 % chưa phân tích hết, dồn ở
+     2 / 6 hạt. Sáu kịch bản của bảng mục 10.1 cho **đúng** các số cũ sau khi sửa.
+   - **Còn lại, đã biết:** camera cùng nhịp mà lệch pha ≈ nửa chu kỳ so với nhóm thì việc ghép nhóm tự nó mơ hồ; một
+     khung hỏng ở đó vẫn có thể làm nó thiếu ở hai bộ.
 2. **Đọc "lần tới gần nhất" không cùng lúc với vòng đệm.** Quy tắc "khung đúng lượt đã tới nhưng hỏng" đọc lần tới gần
    nhất sau khi đã chụp vòng đệm. Nếu khung **tốt** tới giữa hai lần đọc, lần tới đó không có khung trong ảnh chụp, và
    camera khỏe bị coi là có khung hỏng rồi bị bỏ.
    - **Sửa:** chụp vòng đệm và lần tới gần nhất trong **cùng** một lần giữ khóa.
    - **Bằng chứng:** tái hiện tất định. Người kiểm tra còn tái hiện bằng luồng thật khi ép `sys.setswitchinterval`
      ≤ 100 µs: bỏ camera khỏe ở 157 / 326 và 178 / 339 bộ; với bản chụp cùng khóa: 0 / 286. Ở 1 ms và 5 ms (mặc định)
-     không thấy lần nào trong 4 × 286 bộ. Tần suất trên phần cứng **CHƯA ĐO**.
+     không thấy lần nào trong 4 × 286 bộ. Tần suất trên phần cứng chưa đo.
 
 **Test mới** (`tests/test_multicam_rig.py`):
 
@@ -547,13 +640,14 @@ Hai lỗi của bản ở mục 10.1, người kiểm tra tìm ra và tái hiệ
   **hay hỏng**": khung hỏng vẫn tính là có tới.
 - Đột biến đã thử trên bản sao: bỏ mốc cùng nhịp, đọc lại lần tới riêng, hệ số treo 4,0, bỏ quy tắc treo, chỉ xét khung
   tốt khi xét treo. Mỗi đột biến làm ít nhất một test trên hỏng.
-- **Chưa đo lại trên phần cứng** lúc viết mục này. Kết quả đo lại ở mục 10.3.
+- Lúc viết mục này chưa đo lại trên phần cứng; kết quả đo lại ở mục 10.3.
 
 ### 10.3. Đo lại trên phần cứng (tối 24/09/2026, máy bàn)
 
-Cùng máy, hub, bốn camera ở cổng 1–4, LiDAR COM4, cùng chỗ đặt camera như phiên `may_moi` lúc 15:25. Mã: HEAD 2bd37b6 cùng
-các thay đổi **chưa commit** ở mục 10.1–10.2 và ở [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) *(cập nhật 25/09/2026: các thay đổi đó nay nằm trong commit `bfcbfc2`, đã push; tệp bằng chứng không ghi hash mã nên không đối chiếu được bản đã chạy với đúng bản commit)*. Tệp gốc nằm ở
-`runs/rig_bench/20260924_own/` (git-ignore). Bản rút gọn trong git:
+Cùng máy, hub, bốn camera ở cổng 1–4, LiDAR COM4, cùng chỗ đặt camera như phiên `may_moi` lúc 15:25. Mã: HEAD 2bd37b6
+cộng các thay đổi lúc đó **chưa commit** ở mục 10.1–10.2 và ở [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md). Các thay
+đổi đó nay nằm trong commit `bfcbfc2` (đã push). Tệp bằng chứng không ghi hash mã, nên không đối chiếu được bản đã chạy
+với đúng bản commit. Tệp gốc nằm ở `runs/rig_bench/20260924_own/` (git-ignore). Bản rút gọn trong git:
 [evidence/rig/cho_nhip_rieng_ghi_phat_lai_20260924.json](evidence/rig/cho_nhip_rieng_ghi_phat_lai_20260924.json).
 
 | Phiên | Cấu hình | Khung tốt/s cổng 1 / 2 / 3 / 4 | Bộ | Bộ bỏ camera khỏe | Độ lệch bộ trung vị / p95 / max (ms) |
@@ -563,36 +657,40 @@ các thay đổi **chưa commit** ở mục 10.1–10.2 và ở [GHI_PHAT_LAI_BA
 | m01 (15:25, quy tắc cũ) | 480p + LiDAR + AI, 120 s | 23,85 cả bốn | 2861 | 3 (cổng 2) | 27,8 / 28,0 / 41,2 |
 | **o02** (quy tắc mới) | 480p + LiDAR + AI, 120 s | 23,85 cả bốn | 2862 | **0** | 23,1 / 23,3 / 25,8 |
 
-- Ở 720p cổng 1 lại chạy 29,3 khung/s, cổng 2–4 chạy 23,85 khung/s, đúng điều kiện đã làm quy tắc cũ hỏng. Quy tắc mới
-  không bỏ camera khỏe nào trong 715 bộ, 23,8 bộ/s: camera 24 khung/s định nhịp, 164 khung dư của cổng 1 không vào bộ nào.
-  Camera chạy ≈ 29 khung/s không cố định một cổng: ngày 23/09 là cổng 3 (s01–s07, t01, t02), nay là cổng 1
+- Ở 720p cổng 1 lại chạy 29,3 khung/s và cổng 2–4 chạy 23,85 khung/s, đúng điều kiện đã làm quy tắc cũ hỏng. Quy tắc mới
+  không bỏ camera khỏe nào trong 715 bộ, 23,8 bộ/s: camera 24 khung/s định nhịp, 164 khung dư của cổng 1 không vào bộ
+  nào.
+- Camera chạy ≈ 29 khung/s không cố định một cổng: ngày 23/09 là cổng 3 (s01–s07, t01, t02), nay là cổng 1
   ([GIAI_DOAN_1_CAMERA.md](GIAI_DOAN_1_CAMERA.md) mục 4.1). Quy tắc mới không giả định cổng nào nhanh.
-  Cái giá là độ lệch trong bộ lớn hơn (trung vị 28,5 so với 24,5 ms, max 52,8 so với 40,3 ms), như mô phỏng mục 10.1 đã
-  báo. Cả bốn camera 0 khung bị cắt/xé ở 720p, vì camera nhìn chỗ tối như lúc 15:25. Đây **không** phải bằng chứng 720p
-  dùng được.
+- Cái giá là độ lệch trong bộ lớn hơn (trung vị 28,5 so với 24,5 ms, max 52,8 so với 40,3 ms), như mô phỏng mục 10.1 đã
+  báo.
+- Cả bốn camera 0 khung bị cắt/xé ở 720p, vì camera nhìn chỗ tối như lúc 15:25. Đây **không** phải bằng chứng 720p dùng
+  được.
 - Ở 480p AI chấm 23,85 bộ/s, một lô trung vị 12,1 ms (p95 14,5, max 20,8). LiDAR 10,008 Hz, 0 lỗi.
 - **Chưa thử trên phần cứng:** camera thật bị cắt/xé khung hay bị treo giữa phiên. Hai phiên này không có khung hỏng nào,
   nên nhánh "bỏ camera lỡ nhịp" chỉ được kiểm bằng mô phỏng và test.
 
-**Phát hiện kèm theo: lần đầu gặp một cỡ lô, AI mất 1,2–1,7 s.** Đo 24/09 trên máy bàn, LiveSegmenter 640×480, cùng
+**Phát hiện kèm theo: lần đầu gặp một cỡ lô, AI mất 1,2–1,7 s.** Đo ngày 24/09 trên máy bàn, LiveSegmenter 640×480, cùng
 một tiến trình, chạy lần lượt các lô 4, 4, 3, 3, 2, 1, 4, 3 ảnh: 1665, 18, 1444, 15, 1431, 1265, 17, 15 ms. Lô đầu
 **mỗi** cỡ phải trả phần khởi tạo, không chỉ lô đầu của phiên. Hệ quả:
 
 - Khi phát lại ([GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 7), lô đầu làm 34 / 34 / 67 / 34 khung đầu của cổng
-  1 / 2 / 3 / 4 không vào bộ nào (o04; phần dư ≈ 33 khung của cổng 3 chưa tách nguyên nhân). Sau đó một bộ thiếu camera ở giây đầu gây thêm một lần AI đứng 1,27 s (o05).
-- Ở phiên thật trước đây chưa thấy AI đứng như thế: m01 có 3 lô thiếu camera trong cửa sổ đo mà lô chậm nhất chỉ 20,2 ms.
-  Giải thích có lý nhưng **chưa kiểm**: lô thiếu camera đầu tiên rơi vào 5 s làm nóng, lúc chưa biết nhịp camera. Nếu một cỡ
-  lô xuất hiện lần đầu giữa phiên, ví dụ hai camera cùng lỡ nhịp, AI sẽ đứng ≈ 1,4 s.
+  1 / 2 / 3 / 4 không vào bộ nào (o04); phần dư ≈ 33 khung của cổng 3 chưa tách nguyên nhân. Sau đó một bộ thiếu camera ở
+  giây đầu gây thêm một lần AI đứng 1,27 s (o05).
+- Ở phiên thật trước đây chưa thấy AI đứng như thế: m01 có 3 lô thiếu camera trong cửa sổ đo mà lô chậm nhất chỉ
+  20,2 ms. Giải thích có lý nhưng **chưa kiểm**: lô thiếu camera đầu tiên rơi vào 5 s làm nóng, lúc chưa biết nhịp camera.
+  Nếu một cỡ lô xuất hiện lần đầu giữa phiên, ví dụ hai camera cùng lỡ nhịp, AI sẽ đứng ≈ 1,4 s.
 - **Sửa** (`AIWorker.warm_up` trong `autopark/rig/core.py`, cả phiên thật lẫn phát lại): ngay sau khi nạp mô hình, trước
   bộ ảnh đầu, chạy một lô ảnh đen cho mỗi cỡ lô n, n−1, …, 1. `rig.bench` chờ xong việc này rồi mới tính 5 s làm nóng.
   Json ghi `ai.warm_up_ms`. Trên máy bàn: [1682, 1444, 1468, 1283] ms, tức AI sẵn sàng chậm hơn ≈ 4,2 s so với trước.
   Phiên thật o07 (480p + LiDAR + AI, 30 s) sau sửa: 715 bộ, 0 bỏ camera, 23,87 bộ/s, lô chậm nhất 18,3 ms. Phát lại o06:
   xem [GHI_PHAT_LAI_BAN_THU.md](GHI_PHAT_LAI_BAN_THU.md) mục 7.
-- Laptop RTX 3050 Ti: thời gian làm nóng **CHƯA ĐO**.
+- Laptop RTX 3050 Ti: thời gian làm nóng chưa đo.
 
 ## Cách chạy
 
-Từ thư mục `autopark`, trong `.venv-train` (có torch cho AI và PySide6 cho giao diện; dựng lại môi trường bằng `cai_dat_train.cmd`, tệp khóa `requirements-train.lock`, [README](../README.md) mục 5):
+Chạy từ thư mục `autopark`, trong `.venv-train` (có torch cho AI và PySide6 cho giao diện). Dựng lại môi trường bằng
+`cai_dat_train.cmd`, tệp khóa `requirements-train.lock` ([README](../README.md) mục 5).
 
 ```powershell
 .\.venv-train\Scripts\python.exe -X utf8 -m autopark.ui.rig_app --lidar
@@ -603,10 +701,20 @@ Từ thư mục `autopark`, trong `.venv-train` (có torch cho AI và PySide6 ch
 .\.venv-train\Scripts\python.exe -X utf8 -m pytest tests/test_multicam_rig.py tests/test_rig_app_ui.py tests/test_perception_live.py tests/test_truncated_frames.py
 ```
 
-`--lidar` không kèm giá trị dùng cổng LiDAR trong `configs/thiet_bi.json`; `--lidar COMx` ghi đè ([chuyển máy](CHUYEN_MAY_BAN.md)).
+`--lidar` không kèm giá trị thì dùng cổng LiDAR trong `configs/thiet_bi.json`; `--lidar COMx` ghi đè
+([chuyển máy](CHUYEN_MAY_BAN.md)).
 
-Mặc định 640×480 (mục 2.3–2.4) và không chờ camera chậm quá ≈ 62 ms (mục 10; từ 24/09/2026 là ngưỡng riêng theo nhịp từng camera, ≈ 63 ms ở 24 khung/s, mục 10.1); dòng thứ hai mở 720p để xem khung bị cắt; dòng thứ năm tắt quy tắc chờ để so với loạt 20260923_v3. Trong giao diện: chọn mô hình ở hộp "Mô hình" (lượt nền WoodScape đứng đầu), kéo ngưỡng BLOCKED hoặc bấm "0,15 (an toàn)",
-"Chụp bộ ảnh" lưu vào `runs/rig_snapshots/<thời điểm>/` (ảnh gốc `cam_p<cổng>.png`, `prob_blocked_p<cổng>.png`,
-`overlay_p<cổng>.jpg`, `meta.json` có stamp, mô hình, ngưỡng và vòng LiDAR). Camera luôn được gọi theo cổng hub; nếu
-một cổng không có camera, ô đó báo lỗi mở thay vì làm hỏng cả giao diện. Giao diện tranh CPU với camera, nên số đo
-có hồ sơ lấy bằng `rig.bench`.
+Các dòng lệnh trên:
+
+- Mặc định là 640×480 (mục 2.3–2.4) và không chờ camera chậm quá ngưỡng (mục 10). Từ 24/09/2026 ngưỡng này là ngưỡng
+  riêng theo nhịp từng camera, ≈ 63 ms ở 24 khung/s (mục 10.1); bản đầu dùng ≈ 62 ms chung.
+- Dòng thứ hai mở 720p để xem khung bị cắt.
+- Dòng thứ năm tắt quy tắc chờ để so với loạt 20260923_v3.
+
+Trong giao diện:
+
+- Chọn mô hình ở hộp "Mô hình" (lượt nền WoodScape đứng đầu); kéo ngưỡng BLOCKED hoặc bấm "0,15 (an toàn)".
+- "Chụp bộ ảnh" lưu vào `runs/rig_snapshots/<thời điểm>/`: ảnh gốc `cam_p<cổng>.png`, `prob_blocked_p<cổng>.png`,
+  `overlay_p<cổng>.jpg`, `meta.json` có stamp, mô hình, ngưỡng và vòng LiDAR.
+- Camera luôn được gọi theo cổng hub. Nếu một cổng không có camera, ô đó báo lỗi mở thay vì làm hỏng cả giao diện.
+- Giao diện tranh CPU với camera, nên số đo có hồ sơ lấy bằng `rig.bench`.
