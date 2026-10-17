@@ -1,374 +1,337 @@
-# Huấn luyện và đánh giá AI nhận thức
+# AI trong AutoPark: hiểu mô hình và chạy một thử nghiệm
 
-Tài liệu này ghi cách huấn luyện và đánh giá mô hình AI phân đoạn ảnh của AutoPark. Mô hình xếp mỗi pixel ảnh camera vào vùng trống (FREE) hoặc vật cản (BLOCKED). Tài liệu dành cho người cần biết mô hình học trên dữ liệu nào, tốt đến đâu, yếu ở đâu và chạy lại thế nào. Cách AI được dùng trong phiên đỗ nằm ở [AI camera trong vòng điều khiển](autopark/docs/AI_DIEU_KHIEN_XE.md).
+AI của dự án nhận ảnh camera và dự đoán **pixel nào là vùng trống, pixel nào là vật cản**. Phần tìm đường sau đó dùng thông tin môi trường để chọn lộ trình cho xe. Vì vậy, học nhánh AI bắt đầu từ ảnh và nhãn, rồi mới tới việc đưa kết quả vào phiên đỗ.
 
-## Tóm tắt
+Tài liệu này dành cho người làm dữ liệu, mô hình hoặc đánh giá. Để chạy mô phỏng đỗ xe lần đầu, dùng [Hướng dẫn chạy](autopark/README.md). Để nối AI với phiên đỗ, xem [AI tạo vật cản](autopark/docs/AI_DIEU_KHIEN_XE.md).
 
-Trạng thái tính đến 30/09/2026:
+Các kết quả dưới đây lấy từ các đợt thử **21–29/09/2026**, với phần đối chiếu hồ sơ ngày 30/09. Ngày biên tập lại tài liệu: **17/10/2026**. Đọc số đo cùng máy, tập dữ liệu và điều kiện ghi bên cạnh.
 
-- **Checkpoint tham chiếu** vẫn là `runs/ai_woodscape_rtx4000_v1/best.pt`: L-RASPP + MobileNetV3-Large, học trên WoodScape (mục 1, 18).
-- **Trên WoodScape nội bộ** mô hình cho kết quả tốt: test mIoU 0,9692 ở ngưỡng 0,50 (mục 1). Đây là split nội bộ, không phải test chính thức.
-- **Điểm yếu đã thấy:** bỏ sót vật nhỏ và yếu ở cảnh tối (mục 8, 14).
-- **Chưa làm:** chưa chấm bằng ảnh sa bàn có nhãn, chưa đo trên laptop trình diễn (mục 6).
-- **Ngưỡng:** 0,50 tối đa mIoU; 0,15 tối đa F2 của BLOCKED, ưu tiên ít bỏ sót, và là ngưỡng mà AI camera trong phiên đỗ dùng (mục 10).
-- **Nguồn số liệu:** các đợt 21–24/09/2026 trên máy bàn trước. Ngày 29/09/2026 checkpoint được chấm lại trên máy bàn hiện tại và cho cùng số val tới bốn chữ số thập phân (mục 2.1).
+## Bạn cần biết trước
 
-Nghiên cứu sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. Ngày 25/09 người làm khóa luận quyết định dùng mô hình trong vòng điều khiển; Valeo chưa xác nhận cách diễn giải điều khoản. Quyết định này không áp dụng cho checkpoint dùng AVM-SS hoặc nhãn nháp AI. [Hồ sơ giấy phép](autopark/docs/GIAY_PHEP_DU_LIEU.md).
+- Mô hình tham chiếu là **L-RASPP + MobileNetV3-Large**, lưu ở `runs/ai_woodscape_rtx4000_v1/best.pt`.
+- Dataset, cache ảnh đã xử lý và tệp `.pt` nằm ngoài Git. Cần lấy chúng riêng hoặc chuẩn bị và huấn luyện lại.
+- Mô hình có điểm tốt trên tập WoodScape nội bộ, nhưng đã thấy lỗi với vật nhỏ và cảnh tối. Chưa chấm trên ảnh sa bàn có nhãn.
+- Ngưỡng 0,50 cho điểm mIoU tốt nhất trong phép quét đã làm; ngưỡng 0,15 giảm bỏ sót vật cản và được dùng trong nhánh AI camera của phiên đỗ. Ngưỡng cho nghiệm thu sa bàn còn cần chốt.
 
-## Cách đọc báo cáo
+Nếu mới nhận việc, đọc mục 1–4 rồi làm một lượt **kiểm dữ liệu → train thử một epoch → chấm validation**. Các mục 8–19 dùng khi so sánh mô hình hoặc tái hiện nghiên cứu cũ.
 
-- **FREE:** pixel được dự đoán là vùng trống; chưa bảo đảm thân xe đi qua được.
-- **BLOCKED:** pixel vật cản/vùng bị chặn.
-- **IGNORE = 255:** không tính vào loss và chỉ số.
-- **mIoU:** trung bình mức trùng khớp của hai lớp; càng cao càng tốt.
-- **Recall vật cản:** tỷ lệ pixel vật cản được phát hiện.
-- **Vật cản → FREE:** tỷ lệ bỏ sót pixel vật cản; cần theo dõi cùng từng loại vật.
-- **FREE → vật cản:** báo nhầm vùng trống; làm hệ thống thận trọng hơn nhưng có thể dừng không cần thiết.
-- **Seed:** giá trị điều khiển ngẫu nhiên khi huấn luyện. Trung bình ± độ lệch chuẩn ở đây phản ánh dao động giữa các seed, không phải sai số do cỡ tập ảnh.
+## Các từ cần hiểu
 
-Muốn chạy lại, xem mục 4 và 19.
+| Từ | Ý nghĩa trong tài liệu |
+|---|---|
+| FREE / BLOCKED / IGNORE | Vùng trống / vật cản / pixel bỏ qua khi học và chấm; IGNORE có giá trị 255 |
+| Train / validation / test | Tập để học / tập để chọn mô hình và ngưỡng / tập đánh giá cuối sau khi chốt |
+| Checkpoint | Tệp trọng số đã học; `best.pt` là bản tốt nhất theo validation |
+| Baseline | Mô hình dùng làm mốc so sánh |
+| Epoch / batch | Một lượt qua tập train / nhóm ảnh xử lý cùng lúc |
+| mIoU | Trung bình độ trùng giữa vùng dự đoán và nhãn đúng của các lớp |
+| Recall vật cản | Tỷ lệ pixel vật cản thật được phát hiện |
+| Precision vật cản | Tỷ lệ đúng trong số pixel mà mô hình gọi là vật cản |
+| Bỏ sót | Pixel vật cản bị gọi thành FREE |
+| Báo nhầm | Pixel FREE bị gọi thành vật cản |
+| Seed | Giá trị khởi tạo ngẫu nhiên; chạy nhiều seed để xem kết quả ổn định đến đâu |
 
-## 1. Kết quả baseline
+Ví dụ: mô hình nhận ra hầu hết một chiếc xe lớn vẫn có thể bỏ sót hộp nhỏ trước bánh xe. Do đó cần xem ảnh sai và lỗi theo loại vật, cùng với điểm trung bình. Thuật ngữ khác ở [bảng tra](autopark/docs/THUAT_NGU.md).
 
-Mô hình: **L-RASPP + MobileNetV3-Large**, hai lớp, đầu vào 512×384, 30 epoch.
+## 1. Kết quả mô hình làm mốc
 
-| Tập nội bộ | Số ảnh | mIoU | IoU FREE | IoU BLOCKED | Recall vật cản | Precision vật cản | Vật cản → FREE |
+L-RASPP + MobileNetV3-Large được chỉnh để dự đoán hai lớp, dùng ảnh đầu vào 512×384 và huấn luyện 30 epoch.
+
+| Tập nội bộ | Ảnh | mIoU | IoU FREE | IoU BLOCKED | Recall vật cản | Precision vật cản | Bỏ sót |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Validation | 1.235 | 0,9700 | 0,9741 | 0,9659 | 0,9830 | 0,9824 | 1,70% |
 | Test | 1.235 | 0,9692 | 0,9735 | 0,9650 | 0,9825 | 0,9818 | 1,75% |
 
-Các số này ở ngưỡng 0,50. Tập test của checkpoint nền được chấm ở 0,50 ngày 21/09 và thêm ở 0,15 ngày 22/09. Vì vậy không mô tả toàn bộ lịch sử là “chỉ chấm test một lần”.
+Bảng dùng ngưỡng 0,50. Đây là cách chia dữ liệu nội bộ của dự án. Nhóm ảnh được suy ra từ thời gian chụp và ảnh gần trùng; chưa có mã chuyến ghi xác nhận, nên vẫn có thể có cùng tuyến phố trong nhiều tập. Điểm này chưa chứng minh kết quả trên sa bàn.
 
-Đây là split nội bộ, không phải test chính thức WoodScape. Nhóm ảnh được suy ra từ timestamp và ảnh gần trùng, chưa có recording ID xác nhận, nên không loại trừ cùng một tuyến phố xuất hiện ở nhiều tập. Kết quả chưa chứng minh khả năng tổng quát hóa sang sa bàn.
+Lịch sử đã chấm tập test của mô hình nền hai lần: ngưỡng 0,50 ngày 21/09 và 0,15 ngày 22/09. Khi báo cáo, giữ đúng lịch sử này.
 
-## 2. Dữ liệu, cấu hình và quá trình huấn luyện
-
-**Từ dữ liệu tới checkpoint tham chiếu và các phép chấm.** Sơ đồ theo đúng các lệnh trong `autopark/perception/`; số chi tiết ở các mục 2.2–2.7, 8–12 và 15–18.
+## 2. Dữ liệu và cách mô hình được tạo ra
 
 ```mermaid
-flowchart TD
-    WS["WoodScape: 8.234 ảnh fisheye và polygon, ngoài Git"] --> MAP["Ánh xạ nhãn woodscape_binary_v1.json: FREE 0, BLOCKED 1, IGNORE 255"]
-    MAP --> PREP["prepare.py: letterbox 512×384, nhóm chống rò rỉ theo timestamp và ảnh gần trùng"]
-    PREP --> FRZ["Split đóng băng trong Git: 5.764 / 1.235 / 1.235 ảnh"]
-    FRZ --> VER["verify_cache: băm lại ảnh gốc, dựng lại 256 mẫu, ghi TRANSFER_READY.json"]
-    VER --> BEN["benchmark.py: thử batch 8 / 16 / 32, chọn 16"]
-    BEN --> TRN["train.py: L-RASPP MobileNetV3, khởi tạo torchvision COCO_WITH_VOC_LABELS_V1, AMP, 30 epoch, không đọc test"]
-    TRN --> CK["best.pt tham chiếu ai_woodscape_rtx4000_v1, SHA-256 0459c3f4…0ccc, ngoài Git"]
-    VER --> XTR["11 lượt khác: 2 seed, 1 trọng số lớp, 8 lượt có AVM-SS qua prepare_extra"]
-    XTR --> CMP{"Có lượt nào vượt nền trên ACDC và RO21 chưa dùng để học?"}
-    CMP -->|Không| CK
-    CK --> VAL["evaluate val, --sweep: 0,50 theo mIoU, 0,15 theo F2"]
-    VAL --> TST["evaluate test --final-test: 2 lần, ghi test_evaluations.jsonl"]
-    CK --> EXT["evaluate_external: ACDC, RoadObstacle21, RoadAnomaly21"]
-    CK --> ONX["export_onnx: opset 17, 12,9 MB, khớp PyTorch, chưa dùng khi chạy"]
-    CK --> RE["29/09/2026 máy bàn hiện tại: chấm lại val mIoU 0,9700, train thử 1 epoch"]
-    CK -.-> SAB["Chấm trên ảnh sa bàn tô tay"]
-    CK -.-> LAP["Đo AI trên laptop RTX 3050 Ti"]
-    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
-    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
-    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
-    class WS,MAP,PREP,FRZ,VER,BEN,TRN,CK,XTR,CMP,VAL,TST,EXT,ONX,RE daco
-    class SAB,LAP chuaLam
+flowchart LR
+    A["Ảnh WoodScape và nhãn"] --> B["Đổi nhãn về FREE/BLOCKED/IGNORE"]
+    B --> C["Chia train, validation, test và kiểm dữ liệu"]
+    C --> D["Huấn luyện bằng tập train"]
+    D --> E["Chọn checkpoint và ngưỡng bằng validation"]
+    E --> F["Chấm tập test và dữ liệu khác"]
 ```
 
-Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị.
-
-Mọi ô xanh là việc trên máy tính với ảnh lưu sẵn, không phải trên xe. Validation và test không cập nhật gradient; trainer không đọc test. Tập test của checkpoint nền được chấm đúng hai lần (mục 1), sau khi đã chốt mô hình. Kết quả test không được dùng để chỉnh ngược lại mô hình hay ngưỡng (mục 4). Hai ô đỏ là việc chưa làm (mục 6). Xem thêm sơ đồ 5.1 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
+Mô hình dự đoán nhãn ảnh. Để dùng trong phiên đỗ, còn cần hiệu chuẩn camera, chiếu về mặt sàn và kiểm dữ liệu còn mới.
 
 ### 2.1. Môi trường
 
-Các lượt huấn luyện, đánh giá và đo độ trễ của tài liệu này (21–24/09/2026) chạy trên máy bàn trước, dùng tới 25/09/2026: i9-14900, RTX 4000 Ada 20 GB, RAM 64 GB, Windows 11; Python 3.12.10. Máy bàn hiện tại (từ 29/09/2026, Dell Precision 3680) có cùng CPU, GPU và RAM. Trên máy này chưa chạy lại lượt huấn luyện đủ 30 epoch, chưa chấm test và chưa đo lại độ trễ của mục 12. Vì vậy các số của tài liệu là của máy bàn trước, trừ bảng dưới. [Biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md).
+Các lượt chính ngày 21–24/09 chạy trên máy bàn i9-14900, RTX 4000 Ada 20 GB, RAM 64 GB, Windows 11, Python 3.12.10. Máy Dell Precision 3680 dùng từ 29/09 có cùng CPU, GPU và RAM, nhưng mỗi máy vẫn cần đo lại.
 
-**Kiểm lại trên máy bàn hiện tại, 29/09/2026 15:08–15:19.** Mã `b37e9ee`; hồ sơ gốc ở `autopark/runs/kiem_may_20260929/` (ngoài Git); [tóm tắt](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md).
+Ngày 29/09, trên máy mới, nhóm đã kiểm cache, chấm validation, dự đoán một ảnh và train thử một epoch. Validation mIoU vẫn là 0,9700; lượt train thử có 360 update trong 102,7 s. Chưa chạy lại đủ 30 epoch hoặc phép đo độ trễ mục 12 trên máy đó. [Biên bản kiểm máy](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) lưu số chi tiết.
 
-| Lệnh | Kết quả | Đối chiếu |
-|---|---|---|
-| `verify_cache` | Đạt trong 29,9 s: manifest trùng bản đóng băng, 8.234 cặp ảnh và nhãn gốc đúng SHA-256, 256 mẫu dựng lại trùng từng bit | Như mục 2.2 |
-| `evaluate` val, checkpoint tham chiếu, ngưỡng 0,50 | mIoU 0,9700, bỏ sót 1,70%, báo nhầm 1,33%; không ảnh nào trùng tập train | Trùng mục 1 tới bốn chữ số thập phân (chi tiết dưới bảng) |
-| `predict` một ảnh (`00000_FV.png`), ngưỡng 0,15 | Chạy được trên CUDA | Chỉ kiểm lệnh |
-| `train --set epochs=1`, cấu hình lượt nền | 360 update, 102,7 s, val mIoU 0,9505; VRAM đỉnh 1,92 / 2,55 GB; không đọc test | Chỉ kiểm pipeline, không phải kết quả mô hình |
-| `rig.bench`, bốn camera thật + LiDAR + AI, 640×480, 30 s | 716 lô AI, 23,86 bộ/s, lô trung vị 15,3 ms, 0 khung hỏng | Khớp lượt `may_moi` cùng ngày (dưới bảng) |
-| Bước `ai` của `rig.may_moi`: lô 4 ảnh ngẫu nhiên 640×480 | Lượt 15:15: trung vị 12,7 ms, p95 21,8 ms. Ba lần lặp 15:19: trung vị 11,0 / 10,8 / 10,8 ms | Lượt 12:59 cùng ngày, tham chiếu `may_moi`: 10,8 / 12,1 ms ([biên bản chuyển máy](autopark/docs/CHUYEN_MAY_BAN.md) mục 2) |
+Dùng môi trường `.venv-train` riêng, cài bằng `autopark/cai_dat_train.cmd` theo [Hướng dẫn chạy, mục 5](autopark/README.md). Script dùng bộ thư viện khóa trong `requirements-train.lock`, bản PyTorch CUDA 12.8 và Python 3.12. Máy cần driver NVIDIA phù hợp cho đường chạy GPU này. Lần đầu dùng trọng số khởi tạo Torchvision có thể cần mạng để tải chúng.
 
-Chi tiết đối chiếu:
+### 2.2. Dữ liệu đã kiểm
 
-- **`evaluate` val:** kết quả trùng từng pixel với lần chấm val ngày 22/09/2026 trên máy bàn trước. Chỉ khi so với lần chấm 21/09 mới lệch 2 trên 113.096.842 pixel. Lần 21/09 còn chấm bằng argmax, trước khi đổi quy tắc hòa 0,5 (mục 13). Nguồn: [tóm tắt](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.4.
-- **`rig.bench`:** cùng máy, cùng ngày, lượt `may_moi` lúc 15:15 (120 s) được 23,87 bộ/s, lô trung vị 15,3 ms ([tóm tắt](autopark/docs/evidence/chuyen_may_20260929/kiem_may_20260929.md) mục 2.9). Trên máy bàn trước, phiên u01 ngày 23/09 (120 s, trước khi đổi quy tắc chờ camera ngày 24/09) được 23,8 bộ/s, 16,4 ms ([bàn thử](autopark/docs/GIAI_DOAN_2_BAN_THU.md) mục 3.3).
+Cache WoodScape có **8.234 ảnh**, chia **5.764 train / 1.235 validation / 1.235 test**. Hồ sơ đã kiểm mã băm ảnh/nhãn gốc, nhóm giữa các tập, giá trị nhãn và dựng lại 256 mẫu để so từng bit.
 
-**Cài môi trường AI.** Dùng `autopark\cai_dat_train.cmd` theo [hướng dẫn môi trường AI](autopark/README.md) và `requirements-train.lock`; không chép nguyên venv từ máy khác. Nếu `.venv-train` chép sang mà không chạy được, script đổi tên nó thành `.venv-train.hong-tu-may-cu` rồi tạo mới. Máy chưa có trọng số pretrained của Torchvision trong `%USERPROFILE%\.cache\torch` thì lần train, benchmark hay `--resume` đầu tiên cần mạng. Máy bàn hiện tại đã có tệp này từ lượt train thử ngày 29/09/2026.
+Pixel tập train gồm FREE 27,4%, BLOCKED 18,0%, IGNORE 54,6%. Trong phần pixel được học, FREE và BLOCKED chiếm khoảng 60:40.
 
-### 2.2. Dữ liệu đã xác minh
+Tệp có trong Git: [manifest chia tập](autopark/datasets/frozen_splits/woodscape_binary_v1/manifest.json) và [quy tắc đổi nhãn](autopark/configs/woodscape_binary_v1.json). Ảnh gốc và cache cần lấy theo [Hướng dẫn dữ liệu](autopark/datasets/TAI_VA_KIEM_TRA.md).
 
-WoodScape có 8.234 ảnh dùng trong cache: **5.764 train / 1.235 val / 1.235 test**. Đã kiểm manifest, hash ảnh/nhãn, split không giao nhau theo nhóm, mapping và giá trị mask. Đã dựng lại 256 mẫu khớp cache từng bit.
+### 2.3. Luồng huấn luyện
 
-Pixel train: FREE 27,4%, BLOCKED 18,0%, IGNORE 54,6%; trong pixel hợp lệ, tỷ lệ khoảng 60:40. [Manifest đóng băng](autopark/datasets/frozen_splits/woodscape_binary_v1/manifest.json), [mapping](autopark/configs/woodscape_binary_v1.json).
+Chương trình lấy trọng số có sẵn của Torchvision rồi thay đầu phân lớp thành hai lớp. Khi xoay, lật hoặc đổi kích thước ảnh để học, nhãn được biến đổi cùng ảnh. Phần ngoài ảnh mang nhãn IGNORE.
 
-### 2.3. Pipeline
+Sau mỗi đợt đánh giá, chương trình chọn `best.pt` theo validation mIoU. `latest.pt` dùng để tiếp tục một lượt bị dừng. `status.json` ghi lượt đang chạy, đã dừng, thất bại hay hoàn tất. Trainer chỉ dùng train và validation trong quá trình học.
 
-Nạp trọng số phân đoạn chính thức của Torchvision, rồi thay cả hai đầu phân lớp thành hai lớp. Augment ảnh và mask dùng cùng biến đổi; vùng ngoài ảnh thành IGNORE.
+### 2.4. Kiểm thử luồng dữ liệu và huấn luyện
 
-Trainer dùng AMP, AdamW và ghi checkpoint nguyên tử; chọn `best.pt` theo validation mIoU. Trainer không đọc test. `latest.pt` phục vụ tiếp tục chạy; `status.json` phân biệt running/stopped/failed/completed.
+Các test kiểm chia tập, đổi nhãn, mẫu toàn IGNORE và việc dừng/tiếp tục giữa epoch. Hồ sơ 21/09 có 29 test đạt; đến commit `54cb3e2`, hai tệp liên quan có 30 test. Đây là các mốc lịch sử. Khi sửa mã mới, chạy lại test tương ứng trong `autopark/tests/test_perception_data.py` và `test_perception_training.py` bằng môi trường AI.
 
-### 2.4. Kiểm thử pipeline
+### 2.5. Chọn số ảnh xử lý mỗi lần
 
-Hồ sơ 21/09 ghi 29 test đạt cho dữ liệu và huấn luyện, gồm resume giữa epoch khớp trọng số trên CPU, loss toàn IGNORE, mapping và tách tập. Đến `54cb3e2` hai tệp liên quan có 30 test. Đây là số theo từng thời điểm.
+Đã đo batch 8/16/32 trên GPU tham chiếu: lần lượt 200/247/226 ảnh train mỗi giây. Chọn **batch 16**, với VRAM giữ chỗ đỉnh 2,38 GB trong phép đo đó. Trên GPU khác, chạy benchmark lại trước khi chọn.
 
-### 2.5. Chọn batch bằng phép đo
+Tùy chọn `channels_last` từng làm chậm trên máy thử nên đã bỏ. Kết quả này phụ thuộc tổ hợp phần cứng và thư viện.
 
-Trên GPU tham chiếu, batch 8/16/32 đạt tương ứng 200/247/226 ảnh train mỗi giây. Chọn **batch 16**; đỉnh VRAM giữ chỗ trong phép benchmark đó là 2,38 GB.
+### 2.6. Kiểm trước khi train dài
 
-`channels_last` từng làm train chậm trên tổ hợp phần mềm của máy bàn trước nên đã bỏ. Không suy rộng kết quả đó sang mọi GPU hay phần mềm.
+Nhóm đã thử cho mô hình học thuộc 32 ảnh, dừng/tiếp tục trên GPU và xem ảnh dự đoán. Những bước này phát hiện lỗi luồng dữ liệu và lưu checkpoint. Chúng chưa đo khả năng nhận biết trên ảnh mới.
 
-### 2.6. Kiểm trước lượt dài
+### 2.7. Lượt huấn luyện chính
 
-Đã thử overfit 32 ảnh, STOP/resume trên GPU và xem ảnh dự đoán để kiểm luồng. Các phép thử này kiểm pipeline, không dùng làm độ chính xác mô hình.
+Cấu hình gốc ở [train_woodscape_rtx4000_baseline.json](autopark/configs/train_woodscape_rtx4000_baseline.json). Những giá trị cần khi tái hiện:
 
-### 2.7. Lượt chính
+| Tham số | Giá trị |
+|---|---|
+| Seed, batch | 20260920, 16 |
+| Bộ tối ưu | AdamW; tốc độ học backbone 1e-4, đầu phân lớp 1e-3; weight decay 1e-4 |
+| Lịch tốc độ học | Warmup 300 update, sau đó poly 0,9 |
+| Tính toán | AMP fp16, giới hạn gradient 10, patience 8 |
+| Kết quả lượt gốc | 30 epoch, 10.800 update, 901 s; epoch tốt nhất 30 |
+| Bộ nhớ GPU | Đỉnh 1,92 GB cấp phát / 2,76 GB giữ chỗ |
 
-Seed 20260920; batch 16; AdamW backbone LR 1e-4/head LR 1e-3, weight decay 1e-4; warmup 300 update rồi poly 0,9; clip 10; AMP fp16; patience 8.
+Có một update bị AMP bỏ qua, không ghi nhận loss vô hạn. Cấu hình đầy đủ sau khi điền mặc định nằm trong `config_resolved.json` của từng lượt.
 
-30 epoch, 10.800 update, 901 giây; epoch tốt nhất là 30. Đỉnh VRAM 1,92 GB cấp phát / 2,76 GB giữ chỗ. Một update bị AMP bỏ qua; không ghi loss vô hạn.
+### 2.8. Kết quả khác nhau theo camera
 
-[Cấu hình trong repo](autopark/configs/train_woodscape_rtx4000_baseline.json). Cấu hình đã giải đầy đủ nằm ở `config_resolved.json` của run.
+Ở test, ngưỡng 0,50: mIoU camera trước/sau/trái/phải là 0,9757 / 0,9706 / 0,9593 / 0,9590. Tỷ lệ bỏ sót tương ứng 1,21 / 1,76 / 2,52 / 2,52%.
 
-### 2.8. Khác biệt giữa các camera
+Ảnh tệ nhất `00105_RV` sai 35,06% pixel và bỏ sót 46,9% pixel vật cản. Hồ sơ cho thấy nhãn gốc thiếu vùng thân xe (`ego_vehicle`), khiến thân xe và viền ảnh bị gọi là vật cản. Khi gặp điểm thấp bất thường, kiểm cả nhãn đúng dùng để chấm. Nguồn: `runs/ai_woodscape_rtx4000_v1/eval_test/per_image.csv`, ngoài Git.
 
-Test @0,50: mIoU FV 0,9757; RV 0,9706; MVL 0,9593; MVR 0,9590. Bỏ sót vật cản tương ứng 1,21 / 1,76 / 2,52 / 2,52%.
+## 3. Các giới hạn cần hiểu khi dùng kết quả
 
-Ảnh test tệ nhất (00105_RV) sai 35,06% pixel và bỏ sót 46,9% pixel vật cản. Nguyên nhân chính nằm ở nhãn gốc: ảnh này là 1 trong 2 ảnh RV (trên 1.986) không có polygon `ego_vehicle`, nên thân xe và viền ảnh bị gán là vật cản. Số trung bình không đại diện cho mọi ảnh. Nguồn: `runs/ai_woodscape_rtx4000_v1/eval_test/per_image.csv` (ngoài Git).
+WoodScape là ảnh đường phố từ camera góc rộng trên ô tô. Camera USB, vật nhỏ và ánh sáng trên sa bàn có thể khác nhiều. Một pixel FREE cũng chưa nói được toàn thân xe có đi qua đó hay không.
 
-## 3. Giới hạn
+Điểm phân đoạn chưa bao gồm sai số hiệu chuẩn, phép chiếu, vị trí xe và độ trễ toàn hệ thống. Khi đưa AI vào phiên đỗ, phải kiểm thêm các phần này.
 
-Dữ liệu huấn luyện là đường phố chụp từ camera fisheye trên ô tô, không phải camera USB của xe mô hình. FREE có thể gồm mặt phẳng mà xe không nên đi vào; vật nhỏ hoặc tối dễ bị bỏ sót. Độ chính xác pixel chưa bao gồm sai số hiệu chuẩn, phép chiếu, vị trí xe và độ trễ.
+## 4. Tự chạy một lượt thử
 
-## 4. Chạy lại baseline
+Mở PowerShell trong **`autopark/` có `pyproject.toml`**. Cần cài `.venv-train`, có ảnh WoodScape gốc và cache ở đúng vị trí theo mục 2.2.
 
-Chạy từ thư mục `autopark` chứa `pyproject.toml`, sau khi có dataset và cache:
-
-```powershell
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.verify_cache
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.benchmark --config configs/train_woodscape_rtx4000_baseline.json --out runs/ai_luot_moi/benchmark.json
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.train --config configs/train_woodscape_rtx4000_baseline.json --out runs/ai_luot_moi
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.evaluate --checkpoint runs/ai_luot_moi/best.pt --split val --out runs/ai_luot_moi/eval_val
-```
-
-Chỉ chấm test sau khi chốt mô hình. Lệnh chấm test yêu cầu `--split test --final-test` và ghi lịch sử chấm. Không dùng kết quả test để chỉnh tiếp mô hình hay ngưỡng.
-
-Dừng có kiểm soát: tạo tệp rỗng `STOP` trong thư mục run. Bỏ tệp STOP trước khi tiếp tục:
+Đầu tiên kiểm môi trường và tệp dữ liệu:
 
 ```powershell
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.train --out runs/ai_luot_moi --resume runs/ai_luot_moi/latest.pt
+.\.venv-train\Scripts\python.exe -c "import torch; print('CUDA:', torch.cuda.is_available())"
+Test-Path datasets/prepared/woodscape_binary_v1/manifest.json
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.verify_cache
 ```
 
-Dùng thư mục mới cho lượt mới; trainer từ chối ghi đè run đã có `status.json`.
+Đường chạy GPU cần `CUDA: True`. `Test-Path` cần trả `True`; bước `verify_cache` phải hoàn tất thành công. Nếu thiếu dữ liệu, quay lại hướng dẫn chuẩn bị dữ liệu trước khi train.
 
-## 5. Sản phẩm cần bàn giao
+**Lượt đầu chỉ kiểm luồng bằng một epoch.** Chọn tên thư mục chưa tồn tại:
 
-`best.pt`, `latest.pt`, `config_resolved.json`, `run_manifest.json`, `status.json`, `source.zip`, lịch sử đánh giá test, metrics và ảnh lỗi. Các tệp run và checkpoint không nằm trong Git.
+```powershell
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --config configs/train_woodscape_rtx4000_baseline.json --out runs/ai_lan_dau --set epochs=1
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate --checkpoint runs/ai_lan_dau/best.pt --split val --out runs/ai_lan_dau/eval_val
+```
 
-## 6. Chưa làm
+Kết quả cần thấy: thư mục run có `best.pt`, `latest.pt`, `status.json`; thư mục đánh giá có `metrics.json`. Đọc trạng thái hoàn tất và xem ảnh dự đoán. Điểm của một epoch chỉ dùng kiểm luồng.
 
-- Chưa chấm trên ảnh sa bàn có nhãn.
-- Chưa đo hiệu năng AI trực tiếp trên laptop trình diễn.
-- Chưa nghiệm thu AI tạo vật cản trên camera và gá thật.
+Khi đã kiểm được luồng, tái hiện lượt đầy đủ bằng thư mục mới:
 
-## 7. Bước tiếp theo
+```powershell
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.benchmark --config configs/train_woodscape_rtx4000_baseline.json --out runs/ai_luot_moi/benchmark.json
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --config configs/train_woodscape_rtx4000_baseline.json --out runs/ai_luot_moi
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate --checkpoint runs/ai_luot_moi/best.pt --split val --out runs/ai_luot_moi/eval_val
+```
 
-Thu ảnh đúng góc và độ cao camera của dự án, gán nhãn một tập đánh giá độc lập, chấm các checkpoint và ngưỡng, rồi mới chọn cho sa bàn. [Quy trình nhãn](autopark/docs/GAN_NHAN_SA_BAN.md).
+Chỉ chấm test sau khi chốt mô hình và ngưỡng. Lệnh đánh giá test yêu cầu `--split test --final-test` và lưu lịch sử chấm. Kết quả test dùng báo cáo cuối; chọn mô hình/ngưỡng bằng validation.
 
-## 8. Đánh giá trên dữ liệu khác
+Muốn dừng có lưu trạng thái, tạo tệp rỗng `STOP` trong thư mục run. Trước khi tiếp tục, bỏ tệp STOP rồi chạy:
 
-Baseline @0,50, chấm tại độ phân giải nhãn gốc:
+```powershell
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --out runs/ai_luot_moi --resume runs/ai_luot_moi/latest.pt
+```
 
-| Tập | Ảnh | mIoU | Vật cản → FREE |
+Mỗi lượt mới dùng thư mục mới. Trainer từ chối ghi đè lượt đã có `status.json`.
+
+## 5. Bàn giao một thử nghiệm gồm những gì?
+
+Gửi đường dẫn tới thư mục run và phần giải thích ngắn: thay gì, vì sao, dữ liệu nào, kết quả tốt/xấu ở đâu. Giữ `best.pt`, `latest.pt`, `config_resolved.json`, `run_manifest.json`, `status.json`, `source.zip`, lịch sử chấm test, chỉ số và ảnh lỗi.
+
+Các tệp lớn nằm ngoài Git; ghi rõ nơi người khác có thể lấy và cách kiểm lại. Chỉ đưa bản tóm tắt nhỏ vào Git theo [Hướng dẫn tham gia](CONTRIBUTING.md).
+
+## 6. Những phép kiểm còn thiếu
+
+Chưa chấm trên ảnh sa bàn có nhãn, chưa đo AI trên laptop trình diễn, chưa nghiệm thu AI tạo vật cản với camera đã hiệu chuẩn và gá lên xe.
+
+## 7. Việc nên làm tiếp
+
+Thu ảnh đúng camera, vị trí gá và ánh sáng của dự án. Tạo một tập nhãn độc lập bằng [quy trình gán nhãn](autopark/docs/GAN_NHAN_SA_BAN.md), rồi so các checkpoint và ngưỡng trên tập đó. Đây là bước để biết mô hình nào phù hợp sa bàn.
+
+## 8. Mô hình gặp ảnh khác dữ liệu học thì sao?
+
+Mô hình nền, ngưỡng 0,50, chấm ở độ phân giải nhãn gốc:
+
+| Bộ ảnh | Số ảnh | mIoU | Bỏ sót vật cản |
 |---|---:|---:|---:|
-| ACDC val_ref, trời quang | 203 | 0,966 | 1,59% |
-| ACDC val, thời tiết xấu | 406 | 0,908 | 4,42% |
+| ACDC trời quang (`val_ref`) | 203 | 0,966 | 1,59% |
+| ACDC thời tiết xấu (`val`) | 406 | 0,908 | 4,42% |
 | ACDC ban đêm | 106 | 0,899 | 8,38% |
-| RoadObstacle21 val | 30 | 0,520 | 31,7% |
+| RoadObstacle21 validation | 30 | 0,520 | 31,7% |
 
-Mapping của ACDC để sidewalk/terrain và vùng invalid ở IGNORE. Vì thế bảng không chứng minh mô hình phân biệt được vỉa hè với đường. Khi coi sidewalk/terrain là BLOCKED, lỗi bỏ sót trên ACDC val tăng lên 14,5%.
+Mapping ACDC bỏ qua vỉa hè/địa hình và vùng invalid. Nếu tính vỉa hè/địa hình là BLOCKED, bỏ sót trên ACDC val tăng lên 14,5%. Trong thời tiết xấu, tỷ lệ bỏ sót pixel xe là 12,4%, người 6,4%, xe hai bánh khoảng 19%. Trên RoadObstacle21 có vật nhỏ, mô hình không thấy vật trong 11/30 ảnh.
 
-Ở ACDC thời tiết xấu, baseline bỏ sót pixel xe 12,4%, người 6,4%, xe hai bánh khoảng 19%. Chỉ số gộp 4,42% che mất khác biệt giữa các loại vật.
+RoadAnomaly21 chỉ có 10 ảnh validation có nhãn được chấm; 100 ảnh test không có nhãn công khai chỉ được đếm. Nền ảnh chưa được định nghĩa là FREE, nên phép chấm chỉ đo recall vật bất thường:
 
-RoadObstacle21 có vật nhỏ: baseline không thấy vật trong 11/30 ảnh. Không suy rộng kết quả trời quang sang mọi miền ảnh.
-
-**RoadAnomaly21:** chấm 10 ảnh validation có nhãn; 100 ảnh test không có nhãn công khai nên chỉ được đếm. Nhãn nền ở đây không có nghĩa FREE, nên chỉ chấm recall của vật bất thường:
-
-| Ngưỡng | Recall, trung bình ± độ lệch chuẩn ba seed | Vật bất thường → FREE |
+| Ngưỡng | Recall, trung bình ± độ lệch chuẩn ba seed | Bỏ sót |
 |---|---:|---:|
 | 0,50 | 89,6 ± 1,2% | 10,4 ± 1,2% |
 | 0,15 | 94,5 ± 0,4% | 5,5 ± 0,4% |
 
-Cách chấm này không định nghĩa mIoU, precision hay báo động giả, nên không so với bảng xếp hạng SMIYC. Recall cao trên vật lớn không chứng minh phát hiện tốt vật nhỏ. Kết quả đợt này được ghi ở thư mục tạm, chưa lưu đủ hồ sơ vào `runs/`.
+Phép chấm này không có mIoU, precision hay báo động giả để so với bảng xếp hạng SMIYC. Hồ sơ đợt RoadAnomaly21 chưa được lưu đủ vào `runs/`.
 
-`evaluate.py` mặc định `--train-overlap refuse`: từ chối khi trùng tập train hoặc không kiểm được nguồn manifest. Đổi sang `warn` thì phải giữ cảnh báo trong kết quả. Kiểm không trùng train vẫn không biến một tập từng dùng để chọn checkpoint thành tập đánh giá độc lập.
+Công cụ `evaluate` mặc định `--train-overlap refuse`: từ chối khi trùng tập train hoặc không kiểm được nguồn manifest. Nếu dùng `warn`, giữ cảnh báo trong báo cáo. Tập đã dùng để chọn checkpoint cần được ghi đúng vai trò đó.
 
-## 9. Độ dao động giữa seed
+## 9. Kết quả có ổn định giữa các lần học?
 
-| Seed | Val mIoU tốt nhất | Test mIoU | Test vật cản → FREE |
+Ngưỡng 0,50:
+
+| Seed | Val mIoU tốt nhất | Test mIoU | Test bỏ sót |
 |---|---:|---:|---:|
 | 20260920 | 0,9700 | 0,9692 | 1,75% |
 | 20260921 | 0,9706 | 0,9693 | 1,79% |
 | 20260922 | 0,9702 | 0,9693 | 1,77% |
 
-Ngưỡng 0,50. Trung bình test mIoU 0,9693 ± 0,0001. Khi so mô hình, cần nhiều seed và xem cả lỗi theo lớp; không kết luận từ một cải thiện nhỏ của một lượt.
+Trung bình test mIoU là 0,9693 ± 0,0001. Độ lệch chuẩn ở đây mô tả dao động giữa các seed. Khi đánh giá một thay đổi nhỏ, chạy nhiều seed và xem cả lỗi theo lớp.
 
-## 10. Ngưỡng quyết định
+## 10. Ngưỡng quyết định ảnh hưởng thế nào?
 
-**Một pixel được phân loại như thế nào?**
+Mô hình trả xác suất BLOCKED cho từng pixel. Với bộ phân lớp hai lớp, xác suất từ ngưỡng trở lên được gọi là BLOCKED. Hạ ngưỡng làm mô hình gọi nhiều pixel là vật cản hơn.
 
-```mermaid
-flowchart TD
-    I["Ảnh đầu vào"] --> P["Mạng trả xác suất BLOCKED"]
-    P --> Q{"Xác suất lớn hơn hoặc bằng ngưỡng?"}
-    Q -->|Có| B["BLOCKED: dự đoán vật cản"]
-    Q -->|Không| F["FREE: ứng viên vùng trống"]
-    B --> E["So với nhãn thật để tính bỏ sót / báo nhầm"]
-    F --> E
-```
+Quét ngưỡng trên validation ngày 22/09 cho hai lựa chọn: **0,50** tối đa mIoU; **0,15** tối đa F2 của BLOCKED, ưu tiên giảm bỏ sót. Trên validation ở 0,15, bỏ sót 0,63% và báo nhầm 3,10%.
 
-Sơ đồ mô tả phân lớp ảnh. Muốn thành vật cản trên bản đồ còn cần hiệu chuẩn, ROI, phép chiếu BEV và kiểm thời gian dữ liệu; FREE trên ảnh chưa cho phép xe đi qua.
-
-Ngưỡng được chọn bằng cách quét trên validation ngày 22/09/2026:
-
-- chọn theo F2 của BLOCKED, ưu tiên recall, cho **0,15**. Trên val ở 0,15, bỏ sót 0,63% và báo nhầm 3,10%;
-- chọn theo mIoU cho 0,50.
-
-Nguồn: `eval_val_sweep/threshold_sweep.json` và `eval_val_thr015/metrics.json` trong `runs/ai_woodscape_rtx4000_v1/` (ngoài Git).
-
-| Tập, checkpoint nền | Bỏ sót @0,50 → @0,15 | Báo nhầm FREE @0,50 → @0,15 |
+| Tập, mô hình nền | Bỏ sót: 0,50 → 0,15 | Báo nhầm: 0,50 → 0,15 |
 |---|---:|---:|
 | WoodScape test | 1,75% → 0,69% | 1,37% → 3,09% |
 | ACDC val | 4,42% → 2,28% | 3,47% → 7,70% |
 | RoadObstacle21 | 31,7% → 18,2% | 4,57% → 7,79% |
 
-Cột báo nhầm là tỷ lệ pixel FREE bị gọi là vật cản. Trên WoodScape test ở 0,15, tỷ lệ này là 2.001.596 / 64.749.995 pixel = 3,09% (`runs/ai_woodscape_rtx4000_v1/eval_test_thr015/metrics.json`, ngoài Git). Các bản trước ngày 30/09/2026 ghi 3,97%; đó là 1 − precision BLOCKED, không phải tỷ lệ này.
+Báo nhầm ở đây là tỷ lệ pixel FREE bị gọi thành vật cản. Số đúng của WoodScape test ở 0,15 là **3,09%** (2.001.596/64.749.995 pixel). Các bản cũ trước 30/09 ghi 3,97% do dùng `1 − precision`, một đại lượng khác. Nguồn: `eval_val_sweep/threshold_sweep.json`, `eval_val_thr015/metrics.json`, `eval_test_thr015/metrics.json` trong run tham chiếu, ngoài Git.
 
-Hạ ngưỡng giảm bỏ sót nhưng tăng báo nhầm. 0,15 chưa phải ngưỡng nghiệm thu trên sa bàn. Ngăn AI camera dùng 0,15 làm ngưỡng BLOCKED. Đừng nhầm với `t_free=0,15` của cấu hình BEV mặc định: ở đó 0,15 có ý nghĩa khác. [AI camera](autopark/docs/AI_DIEU_KHIEN_XE.md).
+| Nơi dùng | Ngưỡng mặc định |
+|---|---|
+| `evaluate`, `predict`, `evaluate_external` | BLOCKED 0,50 |
+| Lớp tô AI của giao diện bàn thử | 0,50; có lựa chọn 0,15 để quan sát |
+| Nhập nhãn nháp AI | 0,50 |
+| AI camera trong phiên đỗ | `t_free=0,05`, `t_blocked=0,15` |
+| Công cụ BEV | `t_free=0,15`, `t_blocked=0,50` |
 
-**Ngưỡng nào được dùng ở đâu?** Mỗi công cụ có ngưỡng mặc định riêng. Xác suất đúng bằng ngưỡng BLOCKED (`--threshold`, `t_blocked`) luôn tính là BLOCKED. Riêng `t_free` (lệnh `bev`, `camera_ai`) thì xác suất đúng bằng `t_free` tính là FREE.
+Với hai ngưỡng BEV/camera AI: xác suất ≤ `t_free` thành FREE, ≥ `t_blocked` thành BLOCKED, phần ở giữa là UNKNOWN. Vì thế số 0,15 ở hai cấu hình trên có vai trò khác nhau. Ngưỡng nghiệm thu sa bàn còn chờ dữ liệu để chốt. Xem [AI tạo vật cản](autopark/docs/AI_DIEU_KHIEN_XE.md) và [BEV](autopark/docs/BEV.md).
 
-```mermaid
-flowchart LR
-    SW["evaluate --sweep trên val WoodScape, 22/09/2026"] --> MI["Tối đa mIoU: 0,50, tức argmax"]
-    SW --> F2["Tối đa F2 của BLOCKED: 0,15, ưu tiên ít bỏ sót"]
-    MI --> EVP["evaluate, predict, evaluate_external: mặc định 0,50"]
-    MI --> OVL["rig_app lớp tô: mặc định 0,50, nút 0,15, chỉ để nhìn"]
-    MI --> LBL["labels import, nhãn nháp: mặc định 0,5"]
-    F2 --> CAI["camera_ai trong phiên đỗ: t_blocked 0,15, t_free 0,05"]
-    BEVC["Lệnh bev: t_free 0,15, t_blocked 0,50, ở đây 0,15 là ngưỡng FREE"]
-    CAI --> UNC["Giữa t_free và t_blocked là UNKNOWN, không bao giờ FREE"]
-    BEVC --> UNC
-    CAI -.-> ACC["Ngưỡng nghiệm thu trên sa bàn: CHƯA CHỐT, cần tập chấm tô tay"]
-    classDef daco fill:#dff0d8,stroke:#3c763d,color:#1b3a1b
-    classDef giaLap fill:#fcf8e3,stroke:#8a6d3b,color:#4d3b12
-    classDef chuaLam fill:#f2dede,stroke:#a94442,color:#4d1a1a,stroke-dasharray: 4 3
-    class SW,MI,F2,EVP,OVL,LBL daco
-    class CAI,BEVC,UNC giaLap
-    class ACC chuaLam
-```
+## 11. Tăng trọng số vật cản khi học
 
-Xanh: đã có và đã kiểm/đo · Vàng: chỉ trong mô phỏng/giả lập · Đỏ viền đứt: chưa làm hoặc chưa thử trên thiết bị.
+Lượt dùng trọng số lớp khoảng 0,83/1,26 giảm bỏ sót validation từ 1,70% xuống 1,35% ở ngưỡng 0,50. Mô hình nền chỉ cần hạ ngưỡng về 0,40 đã cho 1,36%, gần tương đương. Lượt thêm trọng số chưa tạo lý do thay mô hình nền nên không chấm test cho nó.
 
-Các ô vàng: ngăn AI camera mới chạy với nguồn giả, rig tổng hợp và bản ghi phát lại, vì chưa có hiệu chuẩn camera thật (mục 18). Lệnh `bev` mới chạy trên rig tổng hợp và ảnh WoodScape ([BEV.md](autopark/docs/BEV.md)). Mã: `perception/engine.py` (`decide`), `fusion/camera_ai.py`, `perception/bev.py`, `ui/rig_app.py`, `perception/labels.py`. Ngưỡng nghiệm thu đề xuất: [NGUONG_NGHIEM_THU_DE_XUAT.md](autopark/docs/NGUONG_NGHIEM_THU_DE_XUAT.md). Xem thêm sơ đồ 5.7 trong [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
+## 12. Tốc độ chạy và định dạng ONNX
 
-## 11. Loss có trọng số lớp
+Mô hình đã xuất sang ONNX opset 17, 12,9 MB. So 16 ảnh validation với PyTorch: lệch logit tối đa 7×10⁻⁵, kết quả argmax trùng 99,9999%.
 
-Lượt WoodScape có trọng số lớp khoảng 0,83/1,26 giảm bỏ sót validation từ 1,70% xuống 1,35% ở ngưỡng 0,50. Baseline hạ ngưỡng về 0,40 cho 1,36%, gần tương đương. Lượt này chưa tạo lý do thay checkpoint nền, nên không chấm test cho nó.
-
-## 12. Độ trễ và ONNX
-
-Đã xuất ONNX opset 17, 12,9 MB. Đối chiếu 16 ảnh val: lệch logit tối đa 7×10⁻⁵, argmax trùng 99,9999%.
-
-Bảng dưới là thời gian trung vị (p50) mỗi ảnh sau khi làm nóng, đo ngày 22/09/2026 trên máy bàn trước (i9/RTX 4000 Ada, dùng tới 25/09/2026) khi GPU rảnh. Mỗi cách chạy đo 200 lượt; riêng Torch CPU 40 lượt, còn đầu-cuối 1280×966 là 100 lượt.
+Thời gian trung vị mỗi ảnh sau khi làm nóng, đo ngày 22/09 trên máy bàn i9/RTX 4000 Ada khi GPU rảnh:
 
 | Cách chạy | Thời gian/ảnh |
 |---|---:|
 | ONNX Runtime CPU fp32 | 7,6 ms |
-| Torch CPU fp32 | 23,6 ms |
-| Torch CUDA fp32 | 4,4 ms |
-| Torch CUDA fp16 | 5,5 ms |
-| Tiền xử lý → mạng fp16 → softmax về CPU, ảnh 1280×966 | 7,8 ms |
+| PyTorch CPU fp32 | 23,6 ms |
+| PyTorch CUDA fp32 | 4,4 ms |
+| PyTorch CUDA fp16 | 5,5 ms |
+| Tiền xử lý → mạng fp16 → xác suất về CPU, ảnh 1280×966 | 7,8 ms |
 
-Đây không phải độ trễ từ sự kiện ngoài đời tới quyết định của xe. Chưa đo trên laptop RTX 3050 Ti; tải GPU làm số thay đổi. [Đo máy trình diễn](autopark/docs/MAY_NOP_DO_AN.md). Trên máy bàn hiện tại chưa chạy lại phép đo này. Máy đó chỉ có độ trễ lô 4 ảnh 640×480 của lệnh kiểm máy mới và bàn thử (mục 2.1); đó là phép đo khác.
+Mỗi cách đo 200 lượt; riêng PyTorch CPU 40 lượt và phép đo cả chuỗi 100 lượt. Các số này chưa tính đủ độ trễ từ cảnh thật đến quyết định của xe. Chưa đo lại phép này trên máy bàn sau 29/09 hoặc laptop RTX 3050 Ti. [Hướng dẫn kiểm laptop](autopark/docs/MAY_NOP_DO_AN.md).
 
-## 13. Kiểm thử và các sửa đổi sau baseline
+## 13. Các sửa đổi sau lượt học đầu
 
-Hồ sơ 22/09 ghi 260 test đạt, 4 bỏ qua ở môi trường mô phỏng và 65 test nhận thức đạt. Đó là lượt lịch sử, không phải tổng hiện tại.
+Đã sửa các nhóm lỗi về che khuất bản đồ, kích thước nhãn/hiệu chuẩn, xác suất đúng 0,5, thời gian/ảnh cũ, lật nhãn và giá trị scan. Hồ sơ 22/09 ghi 260 test đạt, 4 bỏ qua ở môi trường mô phỏng và 65 test nhận thức đạt; dùng chúng như số của đợt đó.
 
-Các nhóm sửa gồm che khuất costmap, kích thước mask/calibration, xác suất hòa 0,5, timestamp/ảnh cũ, mirror nhãn, giá trị scan và phân tích theo lớp. Môi trường AI hiện đã có PySide6 và Shapely, nên nhận xét cũ “không chạy được mô phỏng vì thiếu Shapely” đã lỗi thời.
+Môi trường AI đã khai báo PySide6 và Shapely để chạy cả phần mô phỏng. Khi sửa mã, cài đúng môi trường và chạy lại nhóm test liên quan.
 
-## 14. Kết luận đánh giá mở rộng
+## 14. Kết luận từ các phép đánh giá ngoài tập học
 
-Baseline dùng được làm mốc so sánh. Cảnh tối, vỉa hè và vật nhỏ là các điểm yếu đã thấy. Hạ ngưỡng là một cách đánh đổi giữa bỏ sót và báo nhầm, không giải quyết sai miền dữ liệu. Cần ảnh sa bàn để quyết định cho dự án.
+Mô hình nền là mốc so sánh hữu ích. Vật nhỏ, cảnh tối và khác biệt giữa đường phố với sa bàn là các điểm cần kiểm tiếp. Hạ ngưỡng giúp giảm bỏ sót nhưng tăng báo nhầm; vẫn cần ảnh sa bàn để quyết định cấu hình dùng trong dự án.
 
-## 15. Thử thêm AVM-SS và ACDC
+## 15. Thử thêm dữ liệu AVM-SS và ACDC
 
-| Cache | Train / val / test | Điều cần biết |
+Các lượt này giữ kiến trúc và cách biến đổi ảnh, thay dữ liệu hoặc trọng số lớp theo cấu hình từng lượt.
+
+| Cache | Train / val / test | Điều cần nhớ |
 |---|---:|---|
-| WoodScape | 5.764 / 1.235 / 1.235 | Split nội bộ theo nhóm suy ra |
-| AVM-SS | 4.713 / 1.050 / 1.000 | Chia lại theo khối 50 ID; vẫn còn dấu hiệu ảnh gần trùng |
+| WoodScape | 5.764 / 1.235 / 1.235 | Nhóm ảnh được suy ra khi chia tập |
+| AVM-SS | 4.713 / 1.050 / 1.000 | Chia theo khối 50 ID; còn dấu hiệu ảnh gần trùng |
 | ACDC | 1.600 / 406 / 0 | Train/val có thể cùng chuỗi GoPro |
-| WoodScape + AVM | 10.477 / 2.285 / 2.235 | Val ghép dùng chọn checkpoint |
-| WoodScape + AVM + ACDC | 12.077 / 2.691 / 2.235 | ACDC val không còn là đánh giá ngoài miền độc lập |
+| WoodScape + AVM | 10.477 / 2.285 / 2.235 | Validation ghép dùng chọn checkpoint |
+| WoodScape + AVM + ACDC | 12.077 / 2.691 / 2.235 | ACDC val đã tham gia chọn mô hình |
 
-Giữ nguyên kiến trúc và augment; mỗi lượt chỉ thay dữ liệu hoặc trọng số lớp như ghi trong lượt đó.
+## 16. So sánh các nhóm mô hình
 
-## 16. Kết quả các nhóm mô hình
+Ngưỡng 0,50. Nhóm ba seed ghi trung bình ± độ lệch chuẩn; lượt một seed chưa có số dao động.
 
-Ngưỡng 0,50. Nhóm ba seed ghi trung bình ± độ lệch chuẩn; các lượt một seed không có ước lượng dao động.
-
-| Nhóm | Seed | ACDC val mIoU | ACDC vật cản → FREE | RO21 recall |
+| Nhóm | Số seed | ACDC val mIoU | ACDC bỏ sót | RO21 recall |
 |---|---:|---:|---:|---:|
 | WoodScape nền | 3 | 0,914 ± 0,005 | 4,1 ± 0,4% | 67,0 ± 2,3% |
 | AVM riêng | 1 | 0,209 | 82,7% | 34,1% |
 | WoodScape + AVM | 3 | 0,781 ± 0,021 | 13,5 ± 2,8% | 63,0 ± 1,6% |
 | WoodScape + AVM + ACDC | 1 | 0,983* | 0,5%* | 48,8% |
-| WoodScape + AVM, trọng số | 3 | 0,790 ± 0,105 | 11,2 ± 9,2% | 69,6 ± 3,1% |
+| WoodScape + AVM, có trọng số | 3 | 0,790 ± 0,105 | 11,2 ± 9,2% | 69,6 ± 3,1% |
 
-*Lượt học ACDC có liên hệ chuỗi với ACDC val, nên không trích số này như khả năng tổng quát hóa ngoài miền. AVM val của lượt trộn cũng đã dùng để chọn checkpoint, không phải tập kiểm tra cuối độc lập.
+*Lượt học ACDC có liên hệ chuỗi với ACDC val; các số có dấu sao không đo khả năng tổng quát hóa sang dữ liệu độc lập. AVM val của lượt trộn cũng đã dùng để chọn checkpoint.*
 
-### 16.1. Kết quả theo loại vật
+### 16.1. Xem theo loại vật
 
-Trộn AVM làm lỗi trên ACDC tăng ở tường, nhà, cây và xe lớn. Dùng trọng số giảm bỏ sót người và ô tô, nhưng làm báo nhầm và dao động cao. Bảng theo 11 lớp và từng seed được giữ trong [báo cáo gốc, mục 16](https://github.com/thbn12082/autopark/blob/9d68257/HUAN_LUYEN.md).
+Trộn AVM làm lỗi ACDC tăng ở tường, nhà, cây và xe lớn. Thêm trọng số giảm bỏ sót người và ô tô nhưng tăng báo nhầm và dao động. Bảng đủ 11 lớp và từng seed ở [báo cáo gốc, mục 16](https://github.com/thbn12082/autopark/blob/9d68257/HUAN_LUYEN.md).
 
-## 17. Diễn giải
+## 17. Cách hiểu kết quả trộn dữ liệu
 
-AVM giúp với ảnh nhìn từ trên xuống của chính miền AVM, nhưng các lượt trộn làm kết quả ACDC xấu hơn baseline. Chênh recall RO21 giữa một số nhóm còn nhỏ so với dao động và cỡ tập 30 ảnh, chưa đủ để kết luận cải thiện chung.
+AVM có ích trên chính kiểu ảnh nhìn từ trên xuống của AVM. Các lượt trộn đã thử lại làm ACDC xấu hơn mô hình nền. Một số chênh lệch recall trên RO21 còn nhỏ so với dao động giữa seed và cỡ tập chỉ 30 ảnh, nên chưa đủ kết luận cải thiện chung.
 
-### 17.1. Đổi ngưỡng và trọng số có khắc phục được không?
+### 17.1. Đổi ngưỡng và trọng số
 
-Ở 0,15, bỏ sót ACDC của nhóm nền là 2,2 ± 0,2%, nhóm trộn là 7,1 ± 1,5%, nhóm trộn có trọng số là 6,5 ± 6,1%. Trọng số không ổn định giữa các seed và chưa giải quyết tác động của dữ liệu khác miền.
+Ở ngưỡng 0,15, bỏ sót ACDC của nhóm nền là 2,2 ± 0,2%; nhóm trộn 7,1 ± 1,5%; nhóm trộn có trọng số 6,5 ± 6,1%. Thêm trọng số chưa cho kết quả ổn định. Khi kết luận, xem nhiều seed, từng loại vật và từng điều kiện ánh sáng.
 
-Không kết luận từ riêng seed đầu cho ban đêm, cũng không kết luận từ recall gộp.
+## 18. Mô hình đang được giữ làm tham chiếu
 
-## 18. Checkpoint tham chiếu và giới hạn sử dụng
+Giữ **`runs/ai_woodscape_rtx4000_v1/best.pt`**. Các lượt thêm dữ liệu chưa chứng minh vượt nền trên cả ACDC và RO21 độc lập với việc học/chọn mô hình.
 
-Giữ **`runs/ai_woodscape_rtx4000_v1/best.pt`**. Không lượt thêm dữ liệu nào chứng minh vượt nền trên cả ACDC và RO21 chưa dùng để học hay chọn mô hình.
+Khi có ảnh sa bàn, tạo tập chấm tô tay từ đầu, tách khỏi huấn luyện. Nhãn chỉnh từ dự đoán mô hình nền có thể thiên về mô hình đó, nên không dùng làm căn cứ duy nhất để so các mô hình.
 
-Khi có ảnh sa bàn, so các nhóm bằng tập tô tay từ đầu, tách khỏi huấn luyện. Không dùng nhãn sửa từ dự đoán của mô hình nền để kết luận mô hình nền tốt hơn mô hình khác.
+AI đã chạy trực tiếp để quan sát trên bàn thử. Nhánh biến AI thành vật cản trong phiên đỗ mới được kiểm bằng nguồn giả, dữ liệu tổng hợp và phát lại. Camera thật chưa hiệu chuẩn nên nhánh này còn bị chặn.
 
-AI đã chạy trực tiếp để quan sát trên bàn thử: trên máy bàn trước từ 23/09/2026, trên máy bàn hiện tại ngày 29/09/2026 (mục 2.1). Nhánh AI tạo vật cản trong phiên đỗ mới kiểm bằng nguồn giả, rig tổng hợp và replay. Vì chưa có hiệu chuẩn camera thật nên nhánh này vẫn bị chặn.
+Nghiên cứu dùng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. Quyết định nội bộ ngày 25/09 cho dùng mô hình WoodScape trong vòng điều khiển được lưu tại [Hồ sơ giấy phép](autopark/docs/GIAY_PHEP_DU_LIEU.md); Valeo chưa xác nhận cách diễn giải điều khoản. Quyết định đó không áp dụng cho checkpoint dùng AVM-SS hoặc nhãn nháp AI.
 
-## 19. Chạy lại thử nghiệm mở rộng
+## 19. Chạy lại thử nghiệm thêm dữ liệu
 
-Cần dữ liệu thô tương ứng và môi trường AI. Lệnh PowerShell, chạy từ thư mục có `pyproject.toml`:
+Cần dữ liệu thô tương ứng theo [Hướng dẫn tải](autopark/datasets/TAI_VA_KIEM_TRA.md), cache WoodScape và môi trường AI. Chạy từ thư mục có `pyproject.toml`:
 
 ```powershell
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.prepare_extra avm --out datasets/prepared/avm_ss_binary_v1
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.prepare_extra acdc --out datasets/prepared/acdc_binary_v1
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.prepare_extra combine --caches datasets/prepared/woodscape_binary_v1 datasets/prepared/avm_ss_binary_v1 --out datasets/prepared/ws_avm_v1
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.train --config configs/train_woodscape_rtx4000_baseline.json --out runs/ai_ws_avm_moi --set prepared_manifest=datasets/prepared/ws_avm_v1/manifest.json --set seed=20260922
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.evaluate_external --checkpoint runs/ai_ws_avm_moi/best.pt --dataset acdc --split val --out runs/ai_ws_avm_moi/eval_acdc
-./.venv-train/Scripts/python.exe -X utf8 -m autopark.perception.evaluate_external --checkpoint runs/ai_ws_avm_moi/best.pt --dataset road_obstacle --out runs/ai_ws_avm_moi/eval_ro21
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.prepare_extra avm --out datasets/prepared/avm_ss_binary_v1
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.prepare_extra acdc --out datasets/prepared/acdc_binary_v1
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.prepare_extra combine --caches datasets/prepared/woodscape_binary_v1 datasets/prepared/avm_ss_binary_v1 --out datasets/prepared/ws_avm_v1
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.train --config configs/train_woodscape_rtx4000_baseline.json --out runs/ai_ws_avm_moi --set prepared_manifest=datasets/prepared/ws_avm_v1/manifest.json --set seed=20260922
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate_external --checkpoint runs/ai_ws_avm_moi/best.pt --dataset acdc --split val --out runs/ai_ws_avm_moi/eval_acdc
+.\.venv-train\Scripts\python.exe -X utf8 -m autopark.perception.evaluate_external --checkpoint runs/ai_ws_avm_moi/best.pt --dataset road_obstacle --out runs/ai_ws_avm_moi/eval_ro21
 ```
 
-Để chấm ngưỡng thấp, thêm `--threshold 0.15` và chọn thư mục kết quả khác. Với RoadAnomaly21 dùng `--dataset road_anomaly`. Với lượt có trọng số dùng `--set class_weights=train_inverse_frequency` và một thư mục run mới.
+Thêm `--threshold 0.15` và chọn thư mục kết quả khác để chấm ngưỡng thấp. RoadAnomaly21 dùng `--dataset road_anomaly`. Thử trọng số lớp bằng `--set class_weights=train_inverse_frequency` với thư mục run mới.
 
-**Lưu ý tái hiện ACDC.** Chuỗi `purpose` trong mapping cũ ghi “EVALUATION ONLY”; chuỗi này đã lỗi thời vì tệp còn được dùng để tạo cache train. Đừng sửa tùy tiện nội dung hay kiểu xuống dòng của [mapping](autopark/configs/acdc_cityscapes_to_binary_v1.json). Hash tính trên nguyên byte, gồm cả LF/CRLF, nên một thay đổi có thể làm cache hay checkpoint không khớp dù ánh xạ lớp giống nhau. Hồ sơ gốc được dựng từ checkout CRLF.
+Mapping ACDC cũ có chuỗi `purpose` là `EVALUATION ONLY`, dù hiện còn được dùng tạo cache train. Khi tái hiện hồ sơ cũ, giữ nguyên byte của [tệp mapping](autopark/configs/acdc_cityscapes_to_binary_v1.json), kể cả kiểu xuống dòng: hash của cache/checkpoint phụ thuộc chúng. Hồ sơ gốc được tạo từ checkout CRLF.
 
-## Ghi chú về các bản cũ
+## Tra hồ sơ cũ
 
-- [Bản `9d68257`](https://github.com/thbn12082/autopark/blob/9d68257/HUAN_LUYEN.md) (trước 26/09/2026) giữ bảng đầy đủ theo camera/lớp/seed, đường dẫn các lượt, chẩn đoán hiệu năng và lịch sử sửa lỗi. Các mục 1–19 giữ số thứ tự như bản đó để tài liệu khác dẫn được.
-- [Bản `ff4a018`](https://github.com/thbn12082/autopark/blob/ff4a018/HUAN_LUYEN.md) là bản ngay trước 30/09/2026. Các bản trước ngày đó đọc sai hai số từ hồ sơ; nay đã sửa theo tệp kết quả: tỷ lệ báo nhầm ở ngưỡng 0,15 trên test (mục 10) và ảnh test tệ nhất (mục 2.8).
+Các mục 1–19 giữ số để các tài liệu khác còn dẫn được. Bản `9d68257` lưu bảng chi tiết theo camera/lớp/seed; bản `ff4a018` là trước các sửa số liệu ngày 30/09; bản `8be69fb` là trước lần viết lại hướng dẫn này. Có thể đọc từng bản bằng lịch sử Git.
