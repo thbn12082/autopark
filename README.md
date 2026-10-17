@@ -1,98 +1,82 @@
-# AutoPark — bắt đầu từ đây
+# AutoPark — từ bài toán đỗ xe đến các thuật toán giải quyết nó
 
-AutoPark là dự án làm **xe mô hình tự đỗ vào chỗ người dùng chọn**. Ví dụ: trên một sa bàn có vài xe đang đỗ, bạn chọn ô trống, phần mềm tìm đường tiến/lùi rồi điều khiển xe đi vào ô đó.
+Một chiếc xe đang ở lối đi, bên cạnh là hàng xe đã đỗ. Người dùng chọn một ô trống và muốn xe tự lùi vào đó. Xe phải biết mình đang ở đâu, chỗ nào có vật cản, nên đánh lái thế nào và khi nào phải dừng.
 
-Bạn có thể tham gia phần mềm ngay bằng máy tính Windows. Bản mô phỏng chạy được mà chưa cần xe, LiDAR, camera hay GPU NVIDIA.
+**AutoPark nghiên cứu cách ghép những lời giải nhỏ đó thành một hệ thống tự đỗ cho xe mô hình.** Mục tiêu đầu tiên là đỗ ở tốc độ thấp trên sa bàn có giới hạn, với vị trí và hướng đỗ do người dùng chọn.
 
-## Nếu đây là lần đầu bạn mở dự án
+## Vì sao “đi từ A đến B” lại khó?
 
-Làm theo ba bước này:
+Nếu chỉ là một chấm trên mặt phẳng, ta có thể nối vị trí đầu với vị trí cuối. Nhưng một chiếc xe có những ràng buộc khác:
 
-1. **Cài và chạy một lượt đỗ:** mở [Hướng dẫn chạy](autopark/README.md), làm mục 1–3. Bạn sẽ thấy xe di chuyển trên sa bàn.
-2. **Hiểu đoạn mã vừa chạy:** đọc mục 1–3 của [Sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md). Tài liệu chỉ ra tệp nào xử lý giao diện, tìm đường và điều khiển xe.
-3. **Làm thay đổi đầu tiên:** theo [Hướng dẫn tham gia](CONTRIBUTING.md). Có bài tập sửa một sa bàn, cách kiểm kết quả và quy trình gửi thay đổi.
+- Xe có chiều dài và bề rộng. Tâm xe đi qua được chưa chắc đầu xe, đuôi xe đi qua được.
+- Xe không thể trượt ngang vào ô. Góc lái có giới hạn, nên đôi khi phải tiến ra rồi mới lùi vào.
+- Xe cần đến đúng **vị trí lẫn hướng**, và phải đứng yên ở cuối lượt đỗ.
+- Vị trí đo được luôn có sai số; dữ liệu cảm biến cũng có độ trễ.
+- Một vật mới có thể xuất hiện sau khi đường đã được tính.
 
-Gặp từ lạ như *tư thế xe*, *BEV*, *VehicleIO* hay *checkpoint*, tra [Thuật ngữ](autopark/docs/THUAT_NGU.md). Bạn có thể đọc tài liệu từng mảng khi bắt đầu làm mảng đó.
+Chính các ràng buộc này quyết định cách chọn thuật toán. Một lời giải tốt phải vừa tìm được đường, vừa giúp chiếc xe thực sự đi theo đường đó trong điều kiện thông tin không hoàn hảo.
 
-## Hiện tại làm được gì?
+![Toàn cảnh: cảm nhận, định vị, lập đường và điều khiển nối thành vòng phản hồi](autopark/docs/images/toan-canh.svg)
 
-Hồ sơ thiết bị và kết quả thử gần nhất được ghi tới **06/10/2026**. Bộ hướng dẫn này được biên tập ngày **17/10/2026**, dựa trên mã tại `8be69fb`.
+*Sơ đồ mô tả cách tổ chức hệ thống mục tiêu. Mức đã thử của từng phần được trình bày ở cuối trang.*
 
-| Mảng | Bạn có thể làm gì? | Mức đã kiểm chứng |
+## Tách một bài toán lớn thành sáu câu hỏi
+
+| Câu hỏi | Cách AutoPark tiếp cận | Vì sao cần phần này? |
 |---|---|---|
-| Mô phỏng đỗ xe | Mở sa bàn, chọn chỗ đỗ, tìm đường, xem trước, cho xe chạy và thử dừng | Đã chạy trọn phiên trên máy tính |
-| LiDAR và bốn camera USB | Đọc, xem, ghi và phát lại dữ liệu cảm biến | Đã thử thiết bị thật trên bàn; cần có thiết bị hoặc bản ghi để làm lại |
-| AI camera | Phân ảnh thành vùng trống và vật cản | Đã chạy trên ảnh và bàn thử; chưa hiệu chuẩn camera để dùng trong phiên đỗ thật |
-| Firmware ESP32-S3 | Kiểm logic điều khiển trên máy tính; chạy firmware trong QEMU | Đã kiểm bằng mô phỏng/giả lập; chưa nạp vào bo thật |
-| Xe tự đỗ ngoài đời | Mục tiêu của dự án | Chưa có lượt chạy trên xe thật; V1 chưa đạt điều kiện nghiệm thu |
+| Xung quanh xe có gì? | LiDAR đo hình học; camera và AI bổ sung thông tin từ ảnh | Hai nguồn nhìn môi trường theo những cách khác nhau |
+| Xe đang ở đâu và quay hướng nào? | Khớp vòng quét LiDAR với bản đồ tĩnh, kiểm chéo bằng chuyển động giữa các vòng quét | Điều khiển chỉ có ý nghĩa khi biết tư thế hiện tại của xe |
+| Đường nào xe có thể đi? | Thử nhiều cách tìm đường có xét tiến/lùi, góc lái và toàn thân xe | Khoảng trống hình học chưa đủ để xe quay vào được |
+| Đường tìm được có bám được không? | Cho mô hình xe và bộ điều khiển chạy thử đường ứng viên | Phát hiện đường hợp lệ về hình học nhưng khó thực hiện |
+| Trong lúc chạy phải sửa lệnh ra sao? | Kết hợp góc lái dự kiến với phản hồi sai lệch vị trí/hướng | Bù sai số tích lũy thay vì giả sử xe luôn đi đúng |
+| Khi nào phải ngừng chạy? | Giám sát vật cản, độ mới dữ liệu, phản hồi và trạng thái bo | Một đường từng đúng có thể không còn an toàn |
 
-Xe MN300, bo ESP32-S3 và một số linh kiện còn thiếu theo hồ sơ trên. Xem [Tổng quan và công việc tiếp theo](TONG_HOP_DU_AN.md) để biết phần nào cần người, dữ liệu hoặc thiết bị.
+Các phần này dùng chung một cách biểu diễn môi trường và một định nghĩa vị trí xe. Nếu camera đặt vật cản sai chỗ hoặc bộ định vị báo xe lệch vài centimet, thuật toán tìm đường tốt đến đâu cũng có thể đưa ra quyết định sai.
 
-## Một lần đỗ diễn ra như thế nào?
+## Vì sao dùng nhiều thuật toán thay vì một thuật toán “tự lái” duy nhất?
 
-```mermaid
-flowchart LR
-    A["Chọn ô đỗ"] --> B["Xác định vị trí xe và vật cản"]
-    B --> C["Tìm đường tiến/lùi"]
-    C --> D["Kiểm tra và xem trước"]
-    D --> E["Điều chỉnh tốc độ, góc lái"]
-    E --> F["Đến đích hoặc dừng khi có lỗi"]
-```
+Dự án chọn cách chia hệ thống thành các phần có vai trò rõ. AI giúp đọc ảnh; thuật toán hình học xét xe có chạm vật không; bộ tìm đường quyết định chuỗi tiến/lùi; bộ điều khiển biến đường đó thành tốc độ và góc lái.
 
-Trong mô phỏng, chương trình biết vị trí xe từ xe ảo. Khi dùng xe thật, hệ thống phải đo vị trí đó bằng cảm biến. Đây là một phần việc còn đang phát triển.
+Cách tổ chức này cho phép hỏi chính xác **lỗi xuất hiện ở đâu**. Xe suýt chạm cột có thể vì không nhận ra cột, định vị sai, kiểm thiếu phần đầu xe hoặc bám đường kém. Những nguyên nhân đó cần những cách sửa khác nhau.
 
-Laptop xử lý ảnh, dữ liệu LiDAR và tìm đường. Bo ESP32-S3 dự kiến nhận lệnh từ laptop để điều khiển động cơ và bộ lái. **AI chỉ giúp nhận biết môi trường**; phần tìm đường và bám đường nằm ở các mô-đun khác.
+Đó cũng là lý do hệ thống chưa đặt mục tiêu cho một mạng học trực tiếp từ ảnh ra lệnh lái. Với phạm vi xe mô hình trên sa bàn, các phần tách rõ giúp giải thích hành vi và kiểm tra từng giả định. Đây là lý do thiết kế phù hợp phạm vi dự án, chưa phải kết luận rằng cách này luôn tốt hơn các hệ thống học đầu-cuối.
 
-## Mở đúng thư mục
+## Vì sao việc tìm đường cần nhiều cách thử?
 
-Tên `autopark` xuất hiện ở nhiều cấp thư mục. Nhìn các tệp dưới đây để biết bạn đang ở đâu:
+Một ô đỗ rộng có thể được giải nhanh bằng vài động tác tiến/lùi. Một khe hẹp hoặc lối vào bị chắn có thể buộc xe đi vòng và đổi chiều nhiều lần.
 
-```text
-<gốc kho mã>/                   ← có .git và README bạn đang đọc
-├── README.md
-├── CONTRIBUTING.md             ← cách tham gia và làm thay đổi đầu tiên
-├── TONG_HOP_DU_AN.md            ← tiến độ, phần còn thiếu, việc tiếp theo
-├── KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md
-├── HUAN_LUYEN.md                ← nhánh AI
-└── autopark/                   ← chạy lệnh Python tại đây
-    ├── pyproject.toml          ← danh sách thư viện cần cài
-    ├── run_app.py              ← mở ứng dụng
-    ├── autopark/               ← mã Python
-    ├── tests/                  ← kiểm thử tự động
-    ├── scenarios/              ← sa bàn mẫu
-    ├── configs/                ← cấu hình xe, cảm biến và AI
-    ├── firmware/               ← mã cho bo ESP32-S3
-    └── docs/                   ← tài liệu chuyên đề và bằng chứng
-```
+Vì vậy AutoPark dùng một **chuỗi các bộ tìm đường**: bắt đầu bằng cách tìm trên lưới với các động tác gộp, tăng mức tìm kiếm khi cần, rồi thử RRT-Connect kết hợp đường Reeds–Shepp và Hybrid A* mịn. Mỗi cách có ưu, nhược điểm riêng; đường tìm được còn phải qua bước thử bám đường.
 
-Sau khi cài xong theo hướng dẫn, mở PowerShell ở thư mục có `pyproject.toml` và chạy:
+![Các bộ tìm đường được thử theo thứ tự, cùng chịu kiểm tra khả năng bám đường](autopark/docs/images/thu-tu-tim-duong.svg)
 
-```powershell
-.\.venv\Scripts\python.exe run_app.py scenarios\bai_do_xe.json
-```
+Đây là một lựa chọn thực dụng: dùng cách nhanh cho bài dễ, dành phần tính toán còn lại cho bài khó. Hết thời gian tìm kiếm chỉ có nghĩa chưa tìm được lời giải được chấp nhận trong lượt đó, chưa chứng minh ô đỗ không thể vào.
 
-Giữ cấu hình mô phỏng, bấm **Tìm đường đỗ**, rồi **Bắt đầu đỗ**. Nếu dùng **Xem trước** để quan sát lộ trình, hãy bấm **Kết thúc xem trước** trước khi bắt đầu đỗ. Cách thao tác và xử lý lỗi ở mục 3 của [Hướng dẫn chạy](autopark/README.md).
+Đọc tiếp [Vì sao chọn các thuật toán tìm và bám đường?](autopark/docs/THUAT_TOAN_DUONG_DI.md) để hiểu từng cách bằng ví dụ.
 
-## Chọn phần bạn muốn làm
+## Một tình huống cho thấy các phần phải phối hợp
 
-| Bạn muốn làm gì? | Đọc tiếp | Vị trí mã chính |
-|---|---|---|
-| Giao diện, tương tác với sa bàn | [Bài tập đầu tiên](CONTRIBUTING.md) | `autopark/autopark/ui/` |
-| Tìm đường và điều khiển xe mô phỏng | [Sơ đồ hệ thống, mục 2–3](autopark/docs/SO_DO_HE_THONG.md) | `planning/`, `control/`, `simulation/` trong gói Python |
-| LiDAR, bản đồ, định vị | [Nhóm tài liệu LiDAR](autopark/docs/README.md#lidar-va-vi-tri-xe) | `autopark/autopark/lidar/` |
-| Camera và AI | [Huấn luyện AI](HUAN_LUYEN.md), [nhóm tài liệu camera](autopark/docs/README.md#camera-va-ai) | `video/`, `perception/`, `fusion/` trong gói Python |
-| Giao tiếp với bo và firmware | [Sơ đồ hệ thống, mục 6](autopark/docs/SO_DO_HE_THONG.md) | `autopark/autopark/transport/`, `autopark/firmware/` |
-| Kiểm thử và đánh giá kết quả | [Hướng dẫn tham gia](CONTRIBUTING.md), [nghiệm thu](autopark/docs/KICH_BAN_NGHIEM_THU.md) | `autopark/tests/`, `autopark/autopark/evaluation/` |
+Giả sử xe đã tìm được đường lùi vào ô. Khi xe đang lùi, một hộp nhỏ được đặt gần đầu xe — phần đầu đang quét ra ngoài do đánh lái.
 
-## Những điều cần biết trước khi làm tiếp
+LiDAR hoặc camera phải phát hiện được thay đổi. Hệ thống cần đưa hộp về đúng vị trí trên bản đồ, xét nó với **toàn thân xe và đường còn lại**, rồi quyết định dừng nếu đường không còn dùng được. Sau khi đứng yên, hệ thống đánh giá lại và chờ một đường mới. Tiếp tục đi theo đường cũ chỉ vì trước đó đã tìm thành công là một quyết định sai.
 
-- **Thông số xe mẫu là giả định.** Chúng giúp kiểm phần mềm; cần đo xe thật trước khi đưa lên xe.
-- **Dữ liệu lớn nằm ngoài Git.** Dataset, trọng số AI, môi trường Python và phần lớn bản ghi trong `runs/` cần lấy riêng. Clone mã là đủ để bắt đầu mô phỏng.
-- **Cấu hình thiết bị phụ thuộc máy.** `autopark/configs/thiet_bi.json` đang ghi COM3 và đường dẫn QEMU/PlatformIO ở `D:/xetulai/_platformio/...`. Khi làm phần cứng hoặc bo ảo, chỉnh theo máy của bạn; chạy mô phỏng cơ bản chưa cần các đường dẫn này.
-- **Kết quả phải ghi rõ cách thử.** Test phần mềm đạt, giả lập chạy được và xe thật đỗ được là ba kết quả khác nhau. Khi báo tiến độ, ghi lệnh chạy và loại dữ liệu/thiết bị đã dùng.
+![Khi đường cũ không còn dùng được, xe dừng trước khi đánh giá và lập lại](autopark/docs/images/an-toan.svg)
 
-Danh sách đầy đủ nằm trong [Mục lục tài liệu](autopark/docs/README.md). [Kế hoạch triển khai](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) giải thích các giai đoạn và điều kiện hoàn thành V1; [báo cáo giai đoạn 0](BAO_CAO_GIAI_DOAN_0.md) lưu kết quả mô phỏng ban đầu.
+## Nên đọc tiếp theo thứ tự nào?
 
-## Dữ liệu và ghi công
+1. [Một lần đỗ xe diễn ra như thế nào?](autopark/README.md) — theo một ví dụ từ lúc chọn ô đến lúc đứng yên trong ô.
+2. [Cảm nhận và định vị](autopark/docs/CAM_NHAN_VA_DINH_VI.md) — vì sao cần LiDAR, camera, bản đồ và kiểm độ tin cậy.
+3. [Tìm và bám đường](autopark/docs/THUAT_TOAN_DUONG_DI.md) — xe chuyển động thế nào, vì sao dùng lưới, RRT, Reeds–Shepp và phản hồi.
+4. [AI giải quyết phần nào của bài toán?](HUAN_LUYEN.md) — phân đoạn ảnh, chọn mô hình, chọn ngưỡng và khoảng cách từ dữ liệu đường phố tới sa bàn.
+5. [Toàn bộ hệ thống bằng lưu đồ](autopark/docs/SO_DO_HE_THONG.md) — xem lại cách các phần nối với nhau.
 
-Nhánh AI sử dụng **[Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape)**. Phạm vi sử dụng, điều khoản và các quyết định của dự án được lưu trong [Hồ sơ giấy phép dữ liệu](autopark/docs/GIAY_PHEP_DU_LIEU.md). Kiểm tra hồ sơ này trước khi dùng thêm dữ liệu hoặc chia sẻ mô hình.
+[Từ điển thuật ngữ](autopark/docs/THUAT_NGU.md) giải thích các khái niệm ngay bằng ví dụ đỗ xe. [Tham gia giải quyết bài toán](CONTRIBUTING.md) gợi ý cách chọn một vấn đề, đặt giả thuyết và thiết kế phép kiểm.
+
+## Ý tưởng đã được chứng minh đến đâu?
+
+Theo hồ sơ kỹ thuật tới **06/10/2026**, phần mềm đã hoàn thành các lượt đỗ trong mô phỏng. LiDAR, bốn camera và AI đã chạy trên bàn thử. Firmware đã chạy trong trình giả lập QEMU. **Chưa có bằng chứng xe MN300 cùng bo ESP32-S3 thật hoàn thành lượt tự đỗ.**
+
+Nguồn tư thế LiDAR còn thất bại ở một số ca mô phỏng; camera chưa có bộ hiệu chuẩn thật để dùng trong phiên đỗ; các ngưỡng nghiệm thu còn cần chốt. Bản viết ngày **17/10/2026** giải thích lựa chọn dựa trên mã và hồ sơ hiện có, không bổ sung kết quả chạy xe thật.
+
+[Tổng hợp các lựa chọn và giới hạn](TONG_HOP_DU_AN.md) nối từng ý tưởng với phần đã kiểm chứng. [Lộ trình triển khai](KE_HOACH_TRIEN_KHAI_XE_TU_DO_v3.1.md) giải thích vì sao cần chứng minh các phần nhỏ trước khi ghép chúng lên xe.
+
+Nhánh AI sử dụng [Valeo WoodScape Dataset](https://github.com/valeoai/WoodScape); các điều khoản và quyết định sử dụng được lưu trong [hồ sơ dữ liệu](autopark/docs/GIAY_PHEP_DU_LIEU.md).

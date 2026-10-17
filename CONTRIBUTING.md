@@ -1,279 +1,99 @@
-# Tham gia phát triển AutoPark
+# Cách tham gia giải quyết bài toán AutoPark
 
-Bạn có thể đóng góp ngay bằng máy tính, chưa cần xe hay cảm biến. Mục tiêu của buổi đầu là **mở được mô phỏng, tự tạo một sa bàn riêng, tìm đúng mã/test và chuẩn bị một thay đổi nhỏ để người khác xem lại**.
+Bạn có thể đóng góp cho AutoPark bằng cách hiểu một vấn đề nhỏ, đề xuất cách giải và giúp cả nhóm biết cách giải ấy có hiệu quả hay không. Đo một đặc tính của xe, giải thích một thuật toán bằng hình, tìm một tình huống khó hoặc chỉ ra một giả định chưa đúng đều là đóng góp có giá trị.
 
-Trước khi làm, hoàn thành mục 1–4 trong [hướng dẫn cài đặt và chạy](autopark/README.md). Nếu gặp từ lạ, tra [thuật ngữ](autopark/docs/THUAT_NGU.md); nếu muốn biết các phần nối nhau thế nào, đọc phần 1–3 của [sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md).
+Trước hết, đọc [giới thiệu dự án](README.md) và [hệ thống qua sơ đồ](autopark/docs/SO_DO_HE_THONG.md). Điều cần nắm là chuỗi **cảm nhận → bản đồ và tư thế → lập đường → bám đường → chuyển động → quan sát lại**. Khi xe làm chưa tốt, tìm xem mắt xích nào đang thiếu thông tin hoặc dựa trên một giả định sai.
 
-## 1. Nhận biết đúng thư mục
+## 1. Bắt đầu từ một tình huống cụ thể
 
-```text
-autopark/                       ← gốc kho Git
-├── README.md                   ← giới thiệu và đường vào tài liệu
-├── CONTRIBUTING.md             ← hướng dẫn này
-├── TONG_HOP_DU_AN.md            ← tiến độ, việc đã có và còn thiếu
-└── autopark/                   ← thư mục chạy Python, có pyproject.toml
-    ├── autopark/               ← mã nguồn Python
-    │   ├── domain/             ← kiểu dữ liệu: xe, tư thế, sa bàn
-    │   ├── application/        ← điều phối phiên đỗ và liên kết bo
-    │   ├── planning/           ← tìm đường
-    │   ├── control/            ← bám đường
-    │   ├── simulation/         ← xe và phản hồi mô phỏng
-    │   ├── lidar/, video/      ← đọc, xử lý cảm biến
-    │   ├── perception/, fusion/← AI, bản đồ, hợp nhất vật cản
-    │   ├── transport/         ← giao thức và I/O với bo
-    │   ├── storage/           ← nạp/lưu sa bàn và gói chạy
-    │   ├── evaluation/        ← chấm, so sánh, phát lại, thử lỗi
-    │   └── ui/                ← giao diện PySide6
-    ├── configs/               ← thông số và cấu hình
-    ├── scenarios/             ← sa bàn JSON dùng chung
-    ├── tests/                 ← kiểm thử Python
-    ├── docs/                  ← tài liệu kỹ thuật và bằng chứng
-    ├── firmware/esp32_vehicle/← firmware C++
-    └── runs/                  ← kết quả thử cá nhân, Git bỏ qua
-```
+“Làm AI tốt hơn” hay “đỗ chính xác hơn” quá rộng để biết cần làm gì. Một câu hỏi cụ thể giúp chọn dữ liệu và thuật toán phù hợp hơn:
 
-Lệnh `git` có thể chạy từ trong kho. **Các lệnh Python ở hướng dẫn này chạy tại thư mục có `pyproject.toml`**. Nếu đang ở gốc Git:
-
-```powershell
-cd .\autopark
-Test-Path .\pyproject.toml
-.\.venv\Scripts\python.exe --version
-```
-
-Kết quả cần thấy là `True` và phiên bản Python. Dùng `python.exe` trong `.venv` để tránh chạy nhầm Python của máy khác; không cần Activate.
-
-## 2. Tạo nhánh riêng trước khi sửa
-
-Trước tiên kiểm tra thay đổi đang có:
-
-```powershell
-git status --short
-```
-
-Nếu lệnh không in tệp nào, cây làm việc đang sạch. Cập nhật `main`, rồi tạo nhánh cho việc mới:
-
-```powershell
-git switch main
-git pull --ff-only
-git switch -c docs/huong-dan-sa-ban
-```
-
-Nếu có tệp đã sửa, xác định chúng thuộc việc nào và lưu công việc đó trước khi cập nhật `main`; không đưa nhầm công việc của người khác vào commit. Nếu `pull --ff-only` báo hai nhánh đã phân kỳ, dừng cập nhật và so các commit với người phụ trách, không dùng lệnh ép ghi đè. Có thể xem bằng `git log --oneline --graph --decorate --all -n 20`.
-
-Tên nhánh có thể là `fix/ten-loi`, `feat/ten-chuc-nang`, `docs/ten-tai-lieu` hoặc `test/ten-tinh-huong`.
-
-Khi cần làm hai việc song song, có thể tạo một thư mục làm việc riêng. Lệnh sau chạy **tại gốc Git** và dùng một đường dẫn chưa tồn tại:
-
-```powershell
-git worktree add ..\autopark-thu-sa-ban -b feat/thu-sa-ban
-```
-
-Thư mục mới có mã của nhánh riêng; môi trường `.venv` và `runs/` của thư mục cũ không tự chuyển sang. Cài môi trường ở worktree mới theo [README chạy](autopark/README.md). Không cần dùng worktree cho thay đổi nhỏ thông thường.
-
-## 3. Bài đầu tiên: tạo và chạy sa bàn của bạn
-
-Bài này chỉ dùng SIM và dữ liệu trong kho. Mọi kết quả thử đặt trong `runs/`, nên chưa làm thay đổi sa bàn chung.
-
-### Bước 1: tạo bản sao bằng hàm của dự án
-
-Chạy tại thư mục có `pyproject.toml`:
-
-```powershell
-@'
-from pathlib import Path
-from autopark.storage.scenario_store import load_scenario, save_scenario
-
-target = Path("runs/lam_quen/sa_ban_cua_toi.json")
-if target.exists():
-    raise SystemExit("Da co tep bai tap; dung ten khac hoac tiep tuc tep hien co.")
-
-scenario = load_scenario("scenarios/sa_ban_3x2_hai_hop.json")
-scenario.name = "sa_ban_cua_toi"
-scenario.notes = "Bai lam quen: xe va kich thuoc deu la mo phong."
-save_scenario(scenario, target)
-
-loaded = load_scenario(target)
-assert loaded.vehicle_config_path.is_file()
-print("Da tao:", target)
-print("Cau hinh xe:", loaded.vehicle_config)
-'@ | .\.venv\Scripts\python.exe -X utf8 -
-```
-
-Kết quả cần có `runs\lam_quen\sa_ban_cua_toi.json` và dòng cấu hình xe `../../configs/vehicle_default.json`. Hàm `save_scenario` tự sửa đường dẫn khi chuyển sa bàn sang thư mục khác. Nếu chỉ sao chép JSON bằng tay, đường dẫn `../configs/...` cũ sẽ trỏ sai.
-
-### Bước 2: hiểu các trường trước khi sửa
-
-Mở tệp vừa tạo bằng trình soạn thảo. Đây là schema đang được `Scenario.from_dict` và `load_scenario` đọc:
-
-| Trường | Nghĩa và đơn vị |
+| Tình huống | Câu hỏi có thể nhận làm |
 | --- | --- |
-| `schema_version` | Hiện là `1`; phiên bản khác sẽ bị từ chối |
-| `name`, `notes` | Tên sa bàn và mô tả mục đích |
-| `vehicle_config` | Đường dẫn cấu hình xe, tương đối với chính tệp JSON |
-| `bounds` | `xmin`, `ymin`, `xmax`, `ymax`: biên sa bàn theo mét |
-| `start` | `x`, `y`: tâm trục sau theo mét; `yaw_deg`: hướng xe theo độ |
-| `goal` | Tư thế đích; `tolerance_cm` theo cm, `tolerance_deg` theo độ |
-| `obstacles` | Các hình chữ nhật: `id`, `cx`, `cy`, `width`, `height`, `yaw_deg` |
-| `seed` | Số nguyên giúp tái hiện các thành phần ngẫu nhiên |
+| Vật nhỏ nằm thấp hơn mặt phẳng quét LiDAR | Camera có phát hiện được vật đó đủ sớm trước khi xe đến gần? |
+| Hai đoạn tường giống nhau | Bộ định vị có nhận ra khi có nhiều vị trí cùng phù hợp? |
+| Khe đỗ rất hẹp | Đường tìm được có để đủ khoảng hở cho sai số thực tế? |
+| Xe vào cua đúng nhưng trôi khỏi đường | Nguyên nhân là tư thế trễ, góc lái chậm hay phần sửa sai quá yếu? |
+| Vật cản xuất hiện lúc xe đang lùi | Xe nhận biết sau bao lâu và còn đi thêm bao xa? |
+| Mô phỏng đỗ được, xe thật chưa rõ | Giả định nào về kích thước, góc lái và chuyển động chưa được đo? |
 
-`id` vật cản phải khác nhau; `width` và `height` phải dương; các số phải hữu hạn. Một số sa bàn khác có `slot` và `mode`: khi có ô đỗ, chương trình tính lại đích từ ô và chế độ đỗ. Bài đầu tiên dùng tệp không có `slot` để dễ thấy tác dụng của việc đổi `goal`.
+Một bài toán phù hợp cho người mới có phạm vi đủ nhỏ để giải thích bằng một hình và có kết quả quan sát được. Có thể chỉ cần làm rõ nguyên nhân trước khi đề xuất thay thuật toán.
 
-Trường `acceptance` chỉ dành cho sa bàn gắn kịch bản nghiệm thu. Chưa cần thêm trường đó trong bài học này; nó sẽ kéo theo quy tắc giới hạn đổi chiều riêng.
+## 2. Mỗi đề xuất cần có mạch lập luận
 
-### Bước 3: chạy trước, rồi đổi đúng một chi tiết
+![Đi từ câu hỏi, giả thuyết và thước đo đến so sánh, phân tích thất bại rồi cải tiến](autopark/docs/images/chu-trinh-cai-tien.svg)
 
-Đảm bảo biến offscreen không còn trong shell mở ứng dụng:
+*Đặt câu hỏi và cách đo trước giúp nhóm tránh thay đổi nhiều thứ rồi không biết yếu tố nào tạo ra kết quả.*
 
-```powershell
-Remove-Item Env:QT_QPA_PLATFORM -ErrorAction SilentlyContinue
-.\.venv\Scripts\python.exe -X utf8 run_app.py runs\lam_quen\sa_ban_cua_toi.json
-```
+Một đề xuất dễ trao đổi thường trả lời sáu ý:
 
-Trong cửa sổ, chọn **SIM** rồi làm theo thứ tự:
+1. **Vấn đề:** xe gặp khó trong tình huống nào, ảnh hưởng tới kết quả gì?
+2. **Giả thuyết:** nguyên nhân có thể là gì, bằng chứng nào khiến ta nghĩ vậy?
+3. **Cách giải:** thuật toán hoặc thay đổi nào xử lý đúng nguyên nhân ấy?
+4. **Đánh đổi:** cách giải có thể làm tăng độ trễ, báo nhầm hay chi phí tính toán ra sao?
+5. **Cách đánh giá:** so với phương án nào, trên tình huống nào, bằng thước đo nào?
+6. **Giới hạn kết luận:** đã kiểm ở mô phỏng, bàn thử hay xe thật; còn điều gì chưa biết?
 
-1. Bấm **Tìm đường đỗ** và chờ trạng thái **Sẵn sàng**.
-2. Bấm **Xem trước** để xem xe mô phỏng đi theo đường.
-3. Bấm **Kết thúc xem trước** để trở về **Sẵn sàng**.
-4. Bấm **Bắt đầu đỗ** và theo dõi lý do kết thúc.
+Ví dụ, nếu muốn lọc vật cản qua nhiều ảnh liên tiếp, cần giải thích rằng bộ lọc nhằm loại bỏ nhận định thoáng qua. Đồng thời phải xét việc vật thật cũng cần chờ thêm ảnh mới được xác nhận. Một cách lọc bớt báo nhầm nhưng khiến xe thấy vật quá muộn có thể không phù hợp với bài đỗ.
 
-Đọc lời giải thích nếu chương trình không tìm được đường. Việc cửa sổ mở đúng sa bàn và báo trạng thái rõ ràng là bước kiểm đầu tiên; tìm được đường còn phụ thuộc đầu bài và hạn tính toán.
+## 3. Ví dụ: giúp xe nhận ra một vật thấp
 
-Đóng ứng dụng, tăng `width` của `hop_1` từ `0.3` lên `0.4`, rồi mở lại bằng cùng lệnh. So sánh đường đi, số lần đổi chiều và kết quả. Nếu không có đường hợp lệ, giữ thông báo để giải thích thay vì nới dung sai chỉ để màn hình báo đạt.
+**Tình huống minh họa:** đặt một khối thấp cạnh đường lùi vào ô đỗ. Mặt quét LiDAR đi phía trên khối, còn camera vẫn nhìn thấy nó. Câu hỏi là camera có bổ sung được thông tin hữu ích cho quyết định dừng hay không. Đây là một đề bài nghiên cứu, chưa phải kết quả dự án đã đạt.
 
-Ở cuối bài, bạn nên trả lời được: xe đang tránh vật nào, đích đặt ở tâm trục sau hay tâm thân xe, và một lần chạy kết thúc vì tới đích hay vì dừng do lỗi.
+![Bằng chứng từ LiDAR và camera được kiểm chất lượng, đưa về bản đồ và chuyển thành vật cản](autopark/docs/images/cam-nhan.svg)
 
-### Bước 4: kiểm tra phần nạp/lưu và ghi lại phát hiện
+### Quan sát và giả thuyết
 
-```powershell
-.\.venv\Scripts\python.exe -X utf8 -m pytest tests\test_scenario_store.py -q
-git status --short
-```
+Trước tiên cần phân biệt ba khả năng: camera không nhìn thấy khối, mô hình nhìn thấy nhưng không đánh dấu là vật cản, hoặc mô hình đánh dấu đúng nhưng chiếu xuống bản đồ sai vị trí. Ba lỗi này dẫn tới ba cách giải khác nhau. Huấn luyện thêm ảnh không sửa được lỗi gá camera sai góc.
 
-Test cần có `passed`, không có `FAILED` hay `ERROR`. `runs/lam_quen/` không xuất hiện trong danh sách cần commit vì Git bỏ qua thư mục này. Test trên kiểm logic nạp/lưu; nó không tự chứng minh sa bàn mới đỗ được.
+Một giả thuyết có thể là: “Khối nhỏ bị bỏ sót vì chỉ chiếm ít điểm ảnh; hạ ngưỡng nhận vật cản có thể tăng số lần phát hiện, nhưng sẽ tăng báo nhầm trên bóng đổ.” Giả thuyết này nêu cả lợi ích lẫn cái giá cần kiểm.
 
-Một đóng góp đầu tiên có thể là sửa một bước hướng dẫn khó hiểu sau khi làm bài. Nếu tìm được lỗi phần mềm, giữ JSON tái hiện, mô tả hành vi mong đợi và thực tế; sau đó thêm test hồi quy phù hợp. Khi sa bàn mới đáng dùng chung, đặt bản đã kiểm vào `scenarios/` bằng `save_scenario` và ghi mục đích rõ ràng.
+### Đề xuất phép so sánh
 
-## 4. Chọn phần việc và test đúng chỗ
+So sánh phương án hiện tại với phương án thay đổi ngưỡng trên **cùng một tập cảnh**. Giữ các điều kiện khác như vị trí camera, ánh sáng và bộ lọc thời gian như nhau. Nếu đồng thời đổi ngưỡng, hiệu chuẩn và bộ lọc, sẽ khó biết yếu tố nào thực sự cải thiện kết quả.
 
-Các đường dẫn sau tính từ thư mục có `pyproject.toml`:
+Tập cảnh cần có khối thật ở nhiều khoảng cách và hướng, cùng những cảnh không có khối nhưng có bóng hoặc họa tiết dễ gây nhầm. Tách những cảnh dùng để lựa chọn phương án khỏi những cảnh dùng để đánh giá cuối cùng. Các ảnh liền nhau của cùng một lần ghi rất giống nhau; chia chúng sang hai nhóm có thể khiến kết quả trông tốt hơn khả năng gặp cảnh mới.
 
-| Việc muốn làm | Mã cần đọc | Test nên bắt đầu |
+### Đo điều liên quan đến bài toán đỗ
+
+| Thước đo | Giúp trả lời điều gì? |
+| --- | --- |
+| Số tình huống có vật nhưng bị bỏ sót | Còn những vật nào xe không nhận ra? |
+| Số tình huống trống nhưng báo có vật | Xe có phải dừng không cần thiết? |
+| Thời gian từ lúc vật xuất hiện đến lúc bản đồ có vật | Hệ thống có nhận ra đủ sớm? |
+| Sai lệch vị trí và kích thước trên bản đồ | Đường tránh có đi đúng chỗ, hay vẫn quệt vào mép vật? |
+| Khoảng cách xe còn cách vật khi quyết định dừng | Phát hiện có còn kịp cho chuyển động hiện tại? |
+
+Đếm đúng, sai trên ảnh chỉ trả lời một phần. Để đánh giá việc dừng xe còn cần kiểm cả phép chiếu ảnh xuống mặt đất, độ trễ xử lý và quãng dừng thực tế. Camera chưa đủ hiệu chuẩn chỉ có thể hỗ trợ một số kết luận về ảnh; chưa đủ để kết luận về vị trí vật trên sa bàn.
+
+### Viết kết luận có phạm vi
+
+Một kết luận hữu ích có dạng: “Trong các cảnh đã đánh giá, phương án mới phát hiện thêm được nhóm vật nhỏ ở xa, nhưng tăng báo nhầm khi có bóng. Kết quả hiện đo trên ảnh ghi lại; chưa biết độ trễ của toàn luồng và chưa thử dừng trên xe.” Khi có số liệu, ghi rõ số tình huống và số lần đúng, sai bên cạnh nhận xét.
+
+Nếu phương án không tốt hơn, giữ lại những cảnh làm nó thất bại. Chúng giúp nhóm hiểu giới hạn của mô hình và tránh lặp lại một hướng đã thử.
+
+## 4. Những hướng đóng góp không đòi hỏi bắt đầu từ mã nguồn
+
+| Hướng tham gia | Sản phẩm có thể đóng góp | Vì sao nhóm cần? |
 | --- | --- | --- |
-| JSON, cấu hình xe | `domain/types.py`, `storage/scenario_store.py` trong gói `autopark/` | `test_scenario_store.py`, `test_vehicle_acceptance.py` |
-| Thân xe, biên và va chạm | `autopark/geometry/` | `test_geometry.py`, `test_fast_collision.py` |
-| Thuật toán tìm đường | `autopark/planning/parking.py`, `portfolio.py` | `test_planning.py`, `test_portfolio_validation.py`, `test_planner_hard_cases.py` |
-| Bám đường và xe mô phỏng | `autopark/control/tracker.py`, `simulation/` | `test_tracker.py`, `test_vehicle_model.py`, `test_phase0.py` |
-| Trạng thái phiên, dừng | `autopark/application/session.py` | `test_session.py`, `test_session_run.py`, `test_runtime_safety.py` |
-| Giao diện | `autopark/ui/` | `test_ui_smoke.py` và tệp `test_*_ui.py` của ngăn đang sửa |
-| LiDAR và tư thế | `autopark/lidar/`, `application/lidar_pose_source.py` | `test_lidar_protocol.py`, `test_lidar_pose_estimator.py`, `test_session_lidar_pose.py` |
-| AI thành vật cản | `autopark/fusion/camera_ai.py`, `perception/bev.py` | `test_camera_ai_layer.py`, `test_bev.py`, `test_camera_dock_ui.py` |
-| Giao thức/bo | `autopark/transport/`, `firmware/esp32_vehicle/` | `test_transport_protocol.py`, `test_transport_firmware_model.py`, `test_session_vehicle.py` |
-| Ghi/phát lại | `autopark/storage/run_store.py`, `rig/` | `test_run_store_vehicle.py`, `test_rig_replay.py`, `test_session_recording.py` |
+| Giải thích ý tưởng | Một hình kèm ví dụ về bán kính quay, sai số hướng hoặc khớp quét | Giúp người mới cùng hiểu các giả định |
+| Đo xe và cơ cấu | Kích thước, góc lái thực tế, độ trễ, phản ứng khi đổi chiều | Thay thông số giả định bằng số đo |
+| Cảm nhận | Bộ cảnh có vật nhỏ, bóng, che khuất và mô tả điều kiện | Phát hiện điểm yếu của LiDAR và camera |
+| Định vị | Các cảnh lặp, hành lang, ít mốc và số đo tham chiếu | Kiểm lúc nào hệ thống phải báo thiếu tin cậy |
+| Lập đường | Một sa bàn khó với giải thích vì sao khó | So sánh khả năng tìm đường và khoảng hở |
+| Điều khiển | So sánh sai số khi thêm trễ hoặc đổi tốc độ | Biết bộ bám nhạy với điều kiện nào |
+| Kiểm chứng | Tiêu chí rõ, cách đo độc lập và mô tả các lần thất bại | Giúp kết luận có thể được người khác kiểm tra lại |
 
-Tìm tên thật trong mã bằng `rg`, ví dụ:
+Nếu muốn tìm hiểu thuật toán trước khi chọn hướng, đọc [cảm nhận và định vị](autopark/docs/CAM_NHAN_VA_DINH_VI.md) hoặc [thuật toán tìm và bám đường](autopark/docs/THUAT_TOAN_DUONG_DI.md). [Tổng hợp dự án](TONG_HOP_DU_AN.md) cho biết câu hỏi nào đang cần bằng chứng tiếp theo.
 
-```powershell
-rg -n 'def start_run|class SessionState' autopark\application\session.py
-rg -n 'STALE_POSE' autopark tests
-```
+## 5. Các nguyên tắc giúp nhóm hiểu kết quả giống nhau
 
-Theo cách tổ chức đang có: mã chung vào mô-đun tương ứng, test tên `test_*.py` ở `tests/`, dữ liệu thử tạo bằng `tmp_path` hoặc fixture nhỏ. Không đặt thao tác mở thiết bị thật ngay khi import một mô-đun. Tệp cấu hình dùng tên có nghĩa và giữ đơn vị rõ trong khóa; tài liệu tiếng Việt viết UTF-8.
+**Phân biệt điều dự định với điều đã đo.** “Có thuật toán”, “đạt trong mô phỏng”, “đo được trên bàn” và “đạt trên xe thật” là bốn mức khác nhau. Một bo ảo xử lý lệnh dừng đúng chưa cho biết motor thật sẽ dừng trong bao lâu.
 
-## 5. Chạy kiểm tra và đọc kết quả
+**Giữ nguồn và tuổi dữ liệu.** Một tọa độ từ mô phỏng, một tọa độ ước lượng bằng LiDAR và một tọa độ tham chiếu có ý nghĩa khác nhau. Một số đo cũ không thành số đo mới chỉ vì vẫn hiện trên màn hình.
 
-Ví dụ kiểm thay đổi hình học/sa bàn:
+**Giữ những trường hợp chưa biết.** Khi không quan sát được một vùng, ghi là chưa biết. Khi không có tham chiếu độc lập, chưa kết luận độ chính xác thật. Điều này giúp nhóm biết bước đo tiếp theo cần bổ sung gì.
 
-```powershell
-.\.venv\Scripts\python.exe -X utf8 -m pytest tests\test_geometry.py tests\test_scenario_store.py -q
-```
+**Tôn trọng khả năng dừng của hệ thống.** Với thiết kế hiện tại, đường mất hiệu lực hoặc dữ liệu không đủ tin dẫn đến dừng và đánh giá lại. Đề xuất chạy tiếp trong tình huống ấy là thay đổi giả định của hệ thống, cần lý do và bằng chứng tương ứng.
 
-Với test giao diện, đặt offscreen **chỉ trong shell chạy test** và xóa ngay sau đó. `finally` bảo đảm biến được xóa kể cả khi lệnh gặp vấn đề:
-
-```powershell
-$env:QT_QPA_PLATFORM = 'offscreen'
-try {
-    .\.venv\Scripts\python.exe -X utf8 -m pytest tests\test_ui_smoke.py -q
-    $testExitCode = $LASTEXITCODE
-} finally {
-    Remove-Item Env:QT_QPA_PLATFORM -ErrorAction SilentlyContinue
-}
-Write-Host "Ma thoat pytest: $testExitCode"
-```
-
-- `passed`: điều kiện test được thỏa mãn; mã thoát mong đợi là `0`.
-- `failed`: hành vi không khớp điều kiện test; đọc tên test và assertion đầu tiên.
-- `error`: lỗi chuẩn bị/chạy test, chẳng hạn thiếu thư viện.
-- `skipped`: test không chạy. Cần đọc lý do, không tính như đã kiểm thành công.
-
-Môi trường cơ bản có thể thiếu torch hoặc QEMU nên một số nhóm sẽ bỏ qua. Để xem lý do bỏ qua, thêm `-rs`. Nhóm `planner_budget` kiểm thời gian thực, không chạy dưới coverage tracing; tránh đo khi máy đang bận. Số test thay đổi theo mã và môi trường, không dùng một tổng số cũ làm mục tiêu.
-
-Khi cần kiểm rộng hơn, dùng quy trình trong [README chạy](autopark/README.md). Nếu lưu báo cáo để review, đặt JUnit vào `runs/`, ví dụ thêm `--junitxml=runs/kiem_tra.xml`, đồng thời ghi mã thoát và đầu ra lỗi. Một báo cáo có nhiều test đạt chưa đủ nếu tiến trình bị crash khi thoát.
-
-Với sửa tài liệu đơn giản, ưu tiên đọc thử các lệnh/đường dẫn liên quan và `git diff --check`; không cần tạo test chỉ để khẳng định văn bản tồn tại. Với sửa lỗi hành vi, test nên tái hiện tình huống gây lỗi và kiểm kết quả người dùng cần.
-
-## 6. Giữ đúng ranh giới của hệ thống
-
-Các quy tắc này ảnh hưởng trực tiếp đến việc xe có được phép chạy:
-
-- `Session` điều phối phiên; giao diện không tự bỏ qua kiểm tra để gửi lệnh ra bo.
-- Planner chỉ trả đường dùng được khi qua điều kiện nhận; đường ngoài dung sai không đổi nhãn thành thành công.
-- `OBSERVE` tính và ghi lệnh đề xuất, không ARM/COMMAND. QEMU vẫn đi cùng xe mô phỏng.
-- Dữ liệu cũ hoặc thiếu không được thay âm thầm bằng giá trị “có vẻ hợp lý”. Nguồn tư thế và số đo phải ghi rõ nguồn.
-- Camera thiếu hiệu chuẩn/ROI không được tạo vật cản như dữ liệu đã đo. Camera không được xóa hộp vật cản của LiDAR/người dùng.
-- Sau lỗi, không tự chạy tiếp chỉ vì dữ liệu quay lại. Giữ nguyên yêu cầu đánh giá và bắt đầu lại của phiên/bo.
-
-Muốn thay một quy tắc, mô tả tác động và thêm bằng chứng phù hợp trong thay đổi để người review có thể đánh giá. Chi tiết nằm trong [sơ đồ hệ thống](autopark/docs/SO_DO_HE_THONG.md), [giao thức xe](autopark/docs/GIAO_THUC_XE.md) và tài liệu chuyên đề của phần đang sửa.
-
-## 7. Ghi kết quả sao cho người khác kiểm lại được
-
-| Cách viết | Nghĩa đúng |
-| --- | --- |
-| Đã có mã | Chức năng được cài đặt, chưa nói đã kiểm |
-| Đã qua test với nguồn giả | Logic được kiểm trong điều kiện test |
-| Đã chạy mô phỏng/QEMU | Có kết quả với xe/bo giả lập, chưa phải xe thật |
-| Đã đo bàn thử | Ghi rõ thiết bị thật, máy, cấu hình, ngày và log |
-| Đã đạt trên xe | Chỉ dùng khi đủ tiêu chí và bằng chứng thực tế tương ứng |
-
-Tối thiểu ghi: mục đích; commit (`git rev-parse --short HEAD`); cây làm việc có sửa hay không; lệnh; môi trường; cấu hình/seed; kết quả; giới hạn; vị trí log. Ví dụ: “Test nguồn tư thế giả đạt; chưa thử C1 gắn trên xe.”
-
-Kết quả thử cá nhân ở `runs/`. Bằng chứng cần chia sẻ được chọn lọc vào `docs/evidence/` theo cấu trúc đợt đang dùng; giữ cả kết quả hỏng quan trọng để giải thích vấn đề. Không tự đưa toàn bộ video, checkpoint, dữ liệu thô, `.venv` hoặc tệp máy cá nhân vào Git.
-
-`configs/thiet_bi.json` được theo dõi trong kho nhưng chứa cổng/đường dẫn theo máy. Kiểm diff kỹ để không vô tình đổi cấu hình chung sang đường dẫn riêng. Thông số giả định, ngưỡng đề xuất và trạng thái `measured` phải đi cùng căn cứ khi thay đổi.
-
-## 8. Chuẩn bị thay đổi để review
-
-Tại gốc Git, xem phạm vi và lỗi khoảng trắng:
-
-```powershell
-git status --short
-git diff --stat
-git diff --check
-git diff
-```
-
-Chỉ thêm những tệp thuộc việc đang làm. Ví dụ nếu bạn sửa hướng dẫn này:
-
-```powershell
-git add CONTRIBUTING.md
-git diff --cached
-git commit -m "docs: lam ro bai tap tao sa ban cho nguoi moi"
-```
-
-Chỉ chạy `git add` với tên tệp thực tế đã kiểm. Khi sẵn sàng chia sẻ và tài khoản có quyền ghi vào kho, đẩy **nhánh vừa tạo**:
-
-```powershell
-git push -u origin docs/huong-dan-sa-ban
-```
-
-Thay tên nhánh nếu bạn đã chọn tên khác. Mở kho dự án trên GitHub, chọn **Compare & pull request**, đặt nhánh đích (`base`) là `main` và nhánh nguồn (`compare`) là nhánh của bạn. Điền mô tả rồi tạo PR để nhóm xem lại trước khi hợp nhất.
-
-Nếu chưa có quyền ghi, bạn có thể xin quyền từ chủ kho hoặc chọn **Fork** trên GitHub để có bản sao trong tài khoản của mình. Với cách fork, thêm địa chỉ bản sao bằng `git remote add fork <URL-kho-fork-cua-ban>`, đẩy bằng `git push -u fork docs/huong-dan-sa-ban`, rồi mở PR từ nhánh đó vào `main` của kho gốc. Thay phần `<URL-kho-fork-cua-ban>` bằng URL GitHub thực tế trước khi chạy.
-
-Một PR dễ review cần có:
-
-1. **Vấn đề và kết quả:** người dùng gặp gì, sau thay đổi hành vi thế nào.
-2. **Cách kiểm:** lệnh đã chạy và kết quả, kèm ảnh nếu thay giao diện.
-3. **Mức bằng chứng:** mô phỏng, nguồn giả, QEMU hay thiết bị thật; phần nào chưa kiểm.
-4. **Tài liệu/cấu hình bị ảnh hưởng:** người khác cần đổi bước chạy hay tham số nào.
-
-Nếu đổi hành vi được mô tả trong tài liệu, sửa phần hướng dẫn tương ứng cùng đợt. Dùng từ cụ thể, giải thích thuật ngữ lần đầu và đặt lệnh cạnh kết quả cần thấy. Một người mới phải có thể làm lại các bước mà không cần biết lịch sử cuộc trò chuyện.
+**Mô tả đủ để người khác hiểu lại.** Một đóng góp nên kèm hình tình huống, điều kiện quan sát, phương án so sánh, thước đo, kết quả và giới hạn. Người đọc cần thấy được vì sao nhóm chọn cách giải ấy, kể cả khi chưa đọc mã nguồn.
