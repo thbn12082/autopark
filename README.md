@@ -2,6 +2,8 @@
 
 Người lái đưa xe tới chỗ khó và chọn **vị trí, hướng đích gần**. Xe tự đánh lái, tiến/lùi một đoạn ngắn rồi dừng; người lái chọn bước tiếp từ nơi vừa dừng. Bài toán gồm cua hẹp, qua cửa, lách cột và chỉnh xe vào khe. Đỗ xe là một ứng dụng gần; dẫn xe qua cả bãi, tìm ô tự động và đi tới đích xa nằm ngoài phạm vi.
 
+**Trạng thái 28/10/2026:** chặng 1 — bộ đánh giá phần mềm/mô phỏng — đã hoàn tất. Bộ 44 tình huống qua ba seed đạt 132/132 kỳ vọng, gồm đến đích, từ chối và dừng được chấm riêng. [Kết quả và các chặng còn lại](autopark/docs/KIEM_THU_VA_LO_TRINH.md); bước tiếp theo là firmware/phản hồi thật, đo xe và hiệu chuẩn.
+
 ## Chạy thử
 
 Cần Python 3.11 trở lên. Windows: chạy `autopark/cai_dat.cmd` lần đầu, sau đó mở `autopark/chay_app.cmd`. Hoặc từ thư mục `autopark/`:
@@ -30,6 +32,8 @@ Mặc định mở **Cua 90 độ trong lối hẹp**. Nhấp sàn hoặc kéo x
 Đây là **tham số thử có thể điều chỉnh trên xe mô hình giả định**, không phải trần sản phẩm hay ngưỡng nghiệm thu. Đường phải qua kiểm giới hạn, vùng quét và khả năng bám; trong lượt còn kiểm quãng đường/mép vùng có xét phanh.
 
 Đã có mô phỏng, bàn thử cảm biến và firmware QEMU. **Chưa chạy thao tác này trên xe thật.** Kịch bản cũ thiếu `maneuver` hoặc dùng `slot` còn đọc/chấm được nhưng bị từ chối khi thực hiện/runtime replay.
+
+[Chạy bộ đánh giá và đọc báo cáo](autopark/docs/VAN_HANH.md#danh-gia-mo-phong): một lệnh chạy hàng loạt, xuất JSON/CSV và tái hiện từng lượt đã ghi.
 
 ## Tài liệu
 

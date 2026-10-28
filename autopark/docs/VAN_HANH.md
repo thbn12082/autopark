@@ -31,9 +31,32 @@ Gói cơ bản: PySide6, NumPy, Shapely. Extras `".[dev]"` cho pytest, `".[lidar
 
 `schema_version: 1`; các trường chính là `name`, `bounds`, `start`, `goal`, `maneuver`. `vehicle_config` và `obstacles` có mặc định. Đường tệp xe tương đối với kịch bản. [Mẫu](../scenarios/thao_tac_cua_hep.json).
 
-Nội bộ dùng m, s, rad; JSON dùng `yaw_deg`, `tolerance_cm`, `tolerance_deg`. `maneuver` có `max_goal_distance_m`, `area_half_extent_m`, `max_path_length_m` (hữu hạn >0) và `max_cusps` (nguyên ≥0). `maneuver: {}` nhận mặc định.
+Nội bộ dùng m, s, rad; JSON kịch bản dùng `yaw_deg`, `tolerance_cm`, `tolerance_deg`. `maneuver` có `max_goal_distance_m`, `area_half_extent_m`, `max_path_length_m` (hữu hạn >0) và `max_cusps` (nguyên ≥0). `maneuver: {}` nhận mặc định.
 
 `Scenario(...)` trong Python tự có giới hạn. JSON thiếu/null `maneuver` cho `None` để nhận diện lịch sử. Parser vẫn hiểu `slot`; Session/planner từ chối kịch bản đó, kể cả khi thêm giới hạn. Đổi xe/đích/vật cản cần tính đường lại.
+
+<a id="danh-gia-mo-phong"></a>
+## Chạy và đọc bộ đánh giá
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.maneuver_bench run --seeds 0,1,2
+.\.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.maneuver_bench list
+.\.venv\Scripts\python.exe -X utf8 -m autopark.evaluation.maneuver_bench replay runs/TEN_LUOT/cases/CASE_ID_seed_0
+```
+
+Lệnh `run` ở trên chạy 44 ca × 3 seed và in đường dẫn thư mục mới trong `runs/`; không ghi đè lượt cũ. Dùng `--case ID` để chọn ca, `--out runs/TEN_MOI` để đặt đích lưu, hoặc `--case-file DUONG_DAN/case.json` để chạy một snapshot riêng. Với `--case-file`, seed lấy trong tệp: bỏ các tùy chọn `--case`/`--seeds`. Thay các tên mẫu bằng tệp/thư mục thực tế.
+
+| Tệp | Dùng để làm gì? |
+|---|---|
+| `summary.json`, `summary.csv` | Kết quả và lý do đạt/không đạt của từng ca |
+| `summary_groups.csv` | Mẫu số và tỷ lệ theo kỳ vọng, nhóm tình huống, seed |
+| `manifest.json` | Môi trường, dấu vân tay mã nguồn, cấu hình và các đầu bài |
+| `cases/ID_seed_N/` | `case.json` chứa xe/kịch bản/phản hồi/lỗi/tiêu chí; `parameters.json`, `execution.json`, `result.json` giữ tham số, quyết định và kết quả |
+| `legs/leg_01/`, `leg_02/` trong mỗi ca | Trace JSON/CSV, quỹ đạo, sự kiện, log và kết quả; leg 2 chỉ có khi chọn đích tiếp |
+
+Trong trace, `x`/`y` dùng mét; các hậu tố `_m`, `_s`, `_rad`, `_deg` chỉ đơn vị của trường tương ứng. `pass_rate` là tỷ lệ 0–1; `null`/không có nghĩa là chưa đo hoặc không áp dụng, không phải 0. `clock_s` vẫn tăng trong khoảng quan sát sau dừng, còn `sim_time_s` đứng yên; các trường `*_wall_elapsed_s` là thời gian thực trên máy.
+
+Mã thoát của `run`: 0 đạt tiêu chí đã cấu hình; 1 có ca không đạt hoặc mã nguồn đổi giữa lượt; 2 lỗi tham số/tệp. Replay dùng quỹ đạo/mốc đã lưu, mã 0 nghĩa **tái hiện khớp**, kể cả ca gốc `FAIL`. Thêm `--replan` để tìm lại từ đầu vào cố định: mã 0 lúc này nghĩa **lượt mới đạt kỳ vọng**, không phải khớp bản ghi. Ca không có quỹ đạo chỉ replay quyết định, không chứng minh lại thời gian hết hạn. [Cách chấm và mốc kết quả](KIEM_THU_VA_LO_TRINH.md#bo-mo-phong).
 
 ## Chế độ và cảm biến
 
@@ -70,6 +93,8 @@ Thay `PHIEN` bằng thư mục thật. `--session-replay` dùng một đồng h�
 ## Phát triển
 
 Mã ở `autopark/`: `application` quản lý phiên; `planning/geometry/control/simulation` xử lý chuyển động; `lidar/perception/fusion/rig` xử lý cảm biến; `transport` nối firmware; `storage/evaluation/ui` lưu, chấm và giao diện.
+
+Thư mục `maneuver_suite_*` dùng `maneuver_bench replay` ở trên; gói xuất từ giao diện dùng `evaluation.replay`, bản ghi cảm biến dùng công cụ rig tương ứng.
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/test_maneuver.py tests/test_maneuver_rollout_limits.py tests/test_runtime_safety.py

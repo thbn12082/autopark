@@ -1,0 +1,465 @@
+{
+  "schema_version": 1,
+  "domain": "simulation_only",
+  "hardware_acceptance": false,
+  "campaign_created_utc": "2026-10-28T07:36:16.430197+00:00",
+  "command_from_autopark": ".venv/Scripts/python.exe -X utf8 -m autopark.evaluation.maneuver_bench run --seeds 0,1,2",
+  "source": {
+    "algorithm": "sha256_sorted_python_sources",
+    "sha256": "6d35bc480f1d141d981003db9e6a18da59378d48f3419ff122d8a66970ebf4f9",
+    "file_count": 157
+  },
+  "source_unchanged_during_campaign": true,
+  "environment": {
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "packages": {
+      "numpy": "2.5.3",
+      "shapely": "2.1.2",
+      "pytest": "9.1.1",
+      "PySide6": "6.11.2"
+    },
+    "ecoqos": "off"
+  },
+  "cases_per_seed": 44,
+  "base_cases": 26,
+  "robustness_cases": 18,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "overall": {
+    "total": 132,
+    "passed": 132,
+    "failed": 0,
+    "pass_rate": 1.0,
+    "outcomes": {
+      "completed": 90,
+      "refused": 18,
+      "stopped": 24
+    }
+  },
+  "by_expected": {
+    "complete": {
+      "total": 90,
+      "passed": 90,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 90
+      }
+    },
+    "refuse": {
+      "total": 18,
+      "passed": 18,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "refused": 18
+      }
+    },
+    "stop": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "stopped": 24
+      }
+    }
+  },
+  "by_family": {
+    "boundary_perturbation": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 3
+      }
+    },
+    "braking_sensitivity": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "stopped": 3
+      }
+    },
+    "clearance_perturbation": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 3
+      }
+    },
+    "columns": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 6
+      }
+    },
+    "corner": {
+      "total": 18,
+      "passed": 18,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 18
+      }
+    },
+    "correction": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 6
+      }
+    },
+    "doorway": {
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 15
+      }
+    },
+    "fault_data_loss": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "stopped": 3
+      }
+    },
+    "fault_obstacle": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "stopped": 3
+      }
+    },
+    "fault_recovery": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "stopped": 3
+      }
+    },
+    "fault_user_stop": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "stopped": 3
+      }
+    },
+    "feedback_combined": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 6
+      }
+    },
+    "feedback_delay": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 3
+      }
+    },
+    "feedback_dropout": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 3
+      }
+    },
+    "feedback_noise": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 9
+      }
+    },
+    "followup": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 3
+      }
+    },
+    "invalid_request": {
+      "total": 18,
+      "passed": 18,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "refused": 18
+      }
+    },
+    "next_maneuver": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 3,
+        "stopped": 9
+      }
+    },
+    "slot": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 12
+      }
+    }
+  },
+  "by_seed": {
+    "0": {
+      "total": 44,
+      "passed": 44,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 30,
+        "refused": 6,
+        "stopped": 8
+      }
+    },
+    "1": {
+      "total": 44,
+      "passed": 44,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 30,
+        "refused": 6,
+        "stopped": 8
+      }
+    },
+    "2": {
+      "total": 44,
+      "passed": 44,
+      "failed": 0,
+      "pass_rate": 1.0,
+      "outcomes": {
+        "completed": 30,
+        "refused": 6,
+        "stopped": 8
+      }
+    }
+  },
+  "followup_legs": {
+    "required": 15,
+    "completed": 15
+  },
+  "completed_legs_including_followup": 105,
+  "sampled_metrics": {
+    "physics_dt_s": 0.005,
+    "continuous_collision_proof": false,
+    "max_completed_position_error_m": 0.00994663371036068,
+    "max_completed_yaw_error_deg": 3.496854176152084,
+    "min_whole_body_obstacle_clearance_m": 0.013339487980635667,
+    "min_local_boundary_clearance_m": 0.03541504869616152,
+    "max_actual_reversals_per_leg": 3,
+    "max_stop_delay_s": 0.38,
+    "max_stop_distance_m": 0.022305000000000005
+  },
+  "regression": {
+    "tests": 278,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "junit_sha256": "d85744d2abbfb7bb4f9a2001c699c16065374086ce217331a736120aff5832a3"
+  },
+  "nominal_replays": [
+    {
+      "case_id": "correction_left_two_cusps",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "completed",
+      "original_verdict": "PASS",
+      "replayed_verdict": "PASS",
+      "decision_only_legs": [],
+      "report_sha256": "2994637fade05d94d99045932e0b5de4cdcd9027539043f094cb9fa3f64adc51"
+    },
+    {
+      "case_id": "fault_data_loss_recovery",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "stopped",
+      "original_verdict": "PASS",
+      "replayed_verdict": "PASS",
+      "decision_only_legs": [],
+      "report_sha256": "938cbff1c90d6628a87e0233c4d900a2fe7c1fe8447f7866e253c138c3fd14c4"
+    },
+    {
+      "case_id": "fault_user_stop",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "stopped",
+      "original_verdict": "PASS",
+      "replayed_verdict": "PASS",
+      "decision_only_legs": [],
+      "report_sha256": "4c2c8aa0e1530768714ba10d0a974327c06c0a2b81abcd599aa57f736844b43c"
+    },
+    {
+      "case_id": "next_after_feedback_recovery",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "stopped",
+      "original_verdict": "PASS",
+      "replayed_verdict": "PASS",
+      "decision_only_legs": [],
+      "report_sha256": "2932d705a2fc680dd26968661c1b069f43053a16713933c1558f1e3df94eb69c"
+    },
+    {
+      "case_id": "next_after_obstacle_stop",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "stopped",
+      "original_verdict": "PASS",
+      "replayed_verdict": "PASS",
+      "decision_only_legs": [],
+      "report_sha256": "a271a84888c7b9713e13368217281cfd9299ecd59f38e30022dd46e2b3a5e2d0"
+    },
+    {
+      "case_id": "refuse_goal_overlap",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "refused",
+      "original_verdict": "PASS",
+      "replayed_verdict": "PASS",
+      "decision_only_legs": [
+        1
+      ],
+      "report_sha256": "bc0c83458124fc10e01a0c077ca2e5400c997036dc56021f14296fe9bb072f6f"
+    },
+    {
+      "case_id": "robust_rotated_feedback",
+      "seed": 1,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "completed",
+      "original_verdict": "PASS",
+      "replayed_verdict": "PASS",
+      "decision_only_legs": [],
+      "report_sha256": "d4413b8632e0496fbe453c6d1deffc5a6ab3c963794a359111691830fe364115"
+    },
+    {
+      "case_id": "turn_left_forward",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "completed",
+      "original_verdict": "PASS",
+      "replayed_verdict": "PASS",
+      "decision_only_legs": [],
+      "report_sha256": "164af5668013eeb4cf3060850943f46ebdbda2777799eb0477fad5fea0ced687"
+    },
+    {
+      "case_id": "turn_left_reverse",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "completed",
+      "original_verdict": "PASS",
+      "replayed_verdict": "PASS",
+      "decision_only_legs": [],
+      "report_sha256": "b4c6407aa3c5c9a2daadaadd3d36bd591f3577209182a2c5f8547d0968f05270"
+    }
+  ],
+  "deliberate_failure_probes": [
+    {
+      "case_id": "probe_planner_budget_exhausted",
+      "verdict": "FAIL",
+      "actual_outcome": "timeout",
+      "timeout_scope": "planner_budget",
+      "result_sha256": "5e343a80f0835b69ae56f464672c23ed4322ffd74c1282c45be85b74f4d0499d"
+    },
+    {
+      "case_id": "probe_simulation_budget_exhausted",
+      "verdict": "FAIL",
+      "actual_outcome": "timeout",
+      "timeout_scope": "simulation_budget",
+      "result_sha256": "c0b1ce776395742228331ad129e4726749289376bf2e1db529b054b05ed3578f"
+    }
+  ],
+  "failure_replays": [
+    {
+      "case_id": "probe_planner_budget_exhausted",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "timeout",
+      "original_verdict": "FAIL",
+      "replayed_verdict": "FAIL",
+      "decision_only_legs": [
+        1
+      ],
+      "report_sha256": "9c6d06bb2877549f444e34fdd7eef4ee1639317b91ec551feffcb88d821e64fb"
+    },
+    {
+      "case_id": "probe_simulation_budget_exhausted",
+      "seed": 0,
+      "match": true,
+      "source_changed": false,
+      "original_outcome": "timeout",
+      "original_verdict": "FAIL",
+      "replayed_verdict": "FAIL",
+      "decision_only_legs": [],
+      "report_sha256": "43375e48591b3410c5fce25fa3e5bac3e980ab16fb5952ee8ab5f673bf5967ad"
+    }
+  ],
+  "raw_artifacts": {
+    "campaign": "runs/maneuver_suite_stage1_final_v2_20261028",
+    "tracked_in_git": false,
+    "summary_json_sha256": "977a0be2df5c2539280b442721b7efc23969c5cd586addb1f088fe76c4394d0f",
+    "manifest_json_sha256": "ebba7419c7e7982c3b2d0cf0b35baff42bb217e55da603d417aec3bedf9d5809",
+    "summary_csv_sha256": "c0eb626f66cc9647fc56dbee3da105bca4cfbe9c0baef0a41698fff79e99e32e",
+    "summary_groups_csv_sha256": "b52ab32a345389be1ec9e53301f099b4d953e618ce2b81541d290e2b514062f5"
+  },
+  "limits": [
+    "Fixed simulation fixtures and perturbation levels, not a physical-vehicle acceptance test.",
+    "PASS includes completion, valid refusal and expected stop; those denominators remain separate.",
+    "Planner timeouts with no trajectory are decision replays, not new searches or infeasibility proofs.",
+    "Timing budgets can vary with machine load; full case snapshots and raw traces remain in runs/."
+  ]
+}

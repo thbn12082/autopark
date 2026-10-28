@@ -22,6 +22,12 @@ Bộ bám kết hợp góc lái dự kiến với hiệu chỉnh lệch ngang/h�
 
 `TIMEOUT`/`NO_PATH` chỉ nói lượt tìm chưa có đường được nhận; `MANEUVER_LIMIT` là vi phạm phạm vi, `TRACKING_FAILED` là thử bám không đạt.
 
+## Đánh giá độc lập trong mô phỏng
+
+`maneuver_cases` và `maneuver_robustness` tạo đầu bài có seed theo [contract](../autopark/evaluation/maneuver_suite_spec.py). `maneuver_bench` chạy Session ở SIM, ghi quỹ đạo, trạng thái mỗi 5 ms và sự kiện; `maneuver_score` tự dựng hình xe/vật cản và kiểm giao nhau bằng SAT, độc lập với bộ kiểm hình học của planner. Truth mô phỏng phục vụ chấm; bộ điều khiển vẫn nhận phản hồi đã cấu hình trễ/nhiễu/mất mẫu.
+
+Kết quả không dựa riêng vào cờ hoàn thành: còn xét tư thế cuối, khoảng hở, chiều dài/đổi chiều, nguyên nhân dừng và khoảng quan sát sau dừng. Replay đóng băng quỹ đạo/mốc sự kiện; đổi mã nguồn được báo riêng. Kiểm hình học lấy mẫu chưa phải chứng minh liên tục hoặc phép đo cảm biến thật. [Kết quả chặng 1](KIEM_THU_VA_LO_TRINH.md#bo-mo-phong).
+
 ## Cảm nhận và định vị
 
 | Nguồn | Vai trò | Giới hạn |

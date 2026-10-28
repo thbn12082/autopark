@@ -1,6 +1,12 @@
 # Dữ liệu, giấy phép và bằng chứng
 
-Dữ liệu lớn/checkpoint thường ở `datasets/`, `runs/`, `recordings/` ngoài Git. Giữ manifest, phiên bản, ảnh/scan gốc và điều kiện đo. Tệp trong [evidence/](evidence/) là bằng chứng theo ngày, không phải bộ kết quả của hướng mới.
+Dữ liệu lớn/checkpoint thường ở `datasets/`, `runs/`, `recordings/` ngoài Git. Giữ manifest, phiên bản, ảnh/scan gốc và điều kiện đo. [evidence/](evidence/) gồm bằng chứng có ngày: phân biệt kết quả thao tác gần mới với các hồ sơ tự đỗ/bàn thử lịch sử.
+
+## Bằng chứng chặng 1 hiện tại
+
+[Snapshot 28/10/2026](evidence/maneuver_suite_stage1_20261028.json) ghi mẫu số từng loại kết quả, số đo lấy mẫu, dấu vân tay mã nguồn, kiểm thử hồi quy và replay của bộ thao tác gần. [Cách đọc kết quả](KIEM_THU_VA_LO_TRINH.md#bo-mo-phong) giữ riêng đến đích, từ chối, dừng và các probe cố ý thất bại.
+
+Trace và báo cáo đầy đủ ở `runs/maneuver_suite_stage1_final_v2_20261028/` trên máy chạy; không đưa vào Git. Khi lấy repo sang máy khác, dùng [lệnh chạy bộ đánh giá](VAN_HANH.md#danh-gia-mo-phong) để tạo dữ liệu mới. Snapshot này chỉ là bằng chứng mô phỏng, không bổ sung số đo xe hay chất lượng AI thật.
 
 ![Ảnh gốc giao diện bàn thử bốn camera có lớp AI và LiDAR](evidence/rig/giao_dien_480p_thr015.jpg)
 

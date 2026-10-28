@@ -2,6 +2,8 @@
 
 Cấu hình xe/cảm biến hiện còn giả định; chưa có thao tác trên xe thật. [Hồ sơ thiết bị và số đo có ngày](DU_LIEU_VA_GIAY_PHEP.md) giữ nguồn đối chiếu.
 
+Sau [chặng 1 mô phỏng đã hoàn tất](KIEM_THU_VA_LO_TRINH.md), ưu tiên chặng 2–4: firmware/phản hồi thật, đo xe/phanh và hiệu chuẩn cảm biến được chọn. Firmware hiện tắt PWM mặc định và `read_inputs()` chưa đọc tốc độ/góc lái; cần hoàn thiện và kiểm trên thiết bị trước khi đáp ứng điều kiện chạy. Kết quả mô phỏng không mở các chặn START của xe thật.
+
 ## Xe, LiDAR và hệ tọa độ
 
 ![Hệ tọa độ và kích thước xe mô hình giả định từ cấu hình](images/he-truc-va-kich-thuoc.svg)
