@@ -16,15 +16,15 @@
 <text x="52.00" y="158.00" font-size="17" fill="#536d80" font-weight="600" text-anchor="start">TRÊN MÁY TÍNH</text>
 <rect x="52" y="185" width="290" height="116" rx="15" fill="white" stroke="#126ba3" stroke-width="1.8"/>
 <text x="72.00" y="219.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Nguồn cảm biến</text>
-<text x="72.00" y="250.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">LiDAR / camera / telemetry.</text>
-<text x="72.00" y="278.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Có timestamp và cờ hợp lệ.</text>
+<text x="72.00" y="250.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">LiDAR, ảnh và phản hồi.</text>
+<text x="72.00" y="278.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Có thời gian và độ hợp lệ.</text>
 <rect x="52" y="346" width="290" height="116" rx="15" fill="white" stroke="#126ba3" stroke-width="1.8"/>
-<text x="72.00" y="380.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Timestamp &amp; tư thế</text>
+<text x="72.00" y="380.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Thời gian và tư thế</text>
 <text x="72.00" y="411.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Neo hệ; kiểm tuổi dữ liệu.</text>
-<text x="72.00" y="439.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Khớp map; kiểm odometry.</text>
+<text x="72.00" y="439.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Bản đồ + đo chuyển động.</text>
 <path d="M197.00,301.00 L197.00,346.00" fill="none" stroke="#126ba3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#blue)"/>
 <rect x="52" y="507" width="290" height="144" rx="15" fill="#f5f0fa" stroke="#7652aa" stroke-width="1.8"/>
-<text x="72.00" y="541.00" font-size="22" fill="#7652aa" font-weight="600" text-anchor="start">Camera → AI → BEV</text>
+<text x="72.00" y="541.00" font-size="22" fill="#7652aa" font-weight="600" text-anchor="start">Camera và AI</text>
 <text x="72.00" y="572.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Chiếu từ ảnh xuống sàn.</text>
 <text x="72.00" y="600.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Trống / vật / chưa rõ.</text>
 <text x="72.00" y="628.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Không phát lệnh lái.</text>
@@ -32,7 +32,7 @@
 <rect x="414" y="346" width="290" height="116" rx="15" fill="white" stroke="#126ba3" stroke-width="1.8"/>
 <text x="434.00" y="380.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Bản đồ / hợp nhất</text>
 <text x="434.00" y="411.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Vật LiDAR + AI + người dùng.</text>
-<text x="434.00" y="439.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">FREE camera không xóa vật.</text>
+<text x="434.00" y="439.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Giữ vật LiDAR / người dùng.</text>
 <path d="M342.00,404.00 L414.00,404.00" fill="none" stroke="#126ba3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#blue)"/>
 <path d="M342.00,579.00 L376.00,579.00 L376.00,435.00 L414.00,435.00" fill="none" stroke="#126ba3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#blue)"/>
 <rect x="414" y="185" width="290" height="116" rx="15" fill="white" stroke="#126ba3" stroke-width="1.8"/>
@@ -40,10 +40,10 @@
 <text x="434.00" y="250.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Vị trí + hướng; cấu hình xe.</text>
 <text x="434.00" y="278.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Giới hạn cho một lượt.</text>
 <rect x="776" y="185" width="290" height="144" rx="15" fill="white" stroke="#126ba3" stroke-width="1.8"/>
-<text x="796.00" y="219.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Planner + rollout</text>
+<text x="796.00" y="219.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Tìm đường và thử bám</text>
 <text x="796.00" y="250.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Đường tiến/lùi + vùng quét.</text>
 <text x="796.00" y="278.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Kiểm giới hạn; thử bám.</text>
-<text x="796.00" y="306.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Đạt → READY; chờ chạy.</text>
+<text x="796.00" y="306.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Đạt → sẵn sàng, chờ chạy.</text>
 <path d="M704.00,243.00 L776.00,243.00" fill="none" stroke="#126ba3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#blue)"/>
 <path d="M704.00,404.00 L741.00,404.00 L741.00,285.00 L776.00,285.00" fill="none" stroke="#126ba3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#blue)"/>
 <rect x="776" y="383" width="290" height="116" rx="15" fill="white" stroke="#126ba3" stroke-width="1.8"/>
@@ -51,22 +51,22 @@
 <text x="796.00" y="448.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Tốc độ + góc lái mục tiêu.</text>
 <text x="796.00" y="476.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Dừng trước khi đổi chiều.</text>
 <path d="M921.00,329.00 L921.00,383.00" fill="none" stroke="#126ba3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#blue)"/>
-<text x="934.00" y="360.00" font-size="17" fill="#536d80" font-weight="400" text-anchor="start">Sau START hợp lệ</text>
+<text x="934.00" y="360.00" font-size="17" fill="#536d80" font-weight="400" text-anchor="start">Khi được phép chạy</text>
 <path d="M342.00,372.00 L364.00,372.00 L364.00,480.00 L757.00,480.00 L757.00,443.00 L776.00,443.00" fill="none" stroke="#087c65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#green)"/>
 <text x="420.00" y="502.00" font-size="17" fill="#087c65" font-weight="400" text-anchor="start">Phản hồi tư thế / chuyển động</text>
 <rect x="1124" y="185" width="264" height="314" rx="15" fill="#fff3f3" stroke="#b13f4d" stroke-width="1.8"/>
-<text x="1144.00" y="219.00" font-size="22" fill="#b13f4d" font-weight="600" text-anchor="start">Session / giám sát</text>
-<text x="1144.00" y="250.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Kiểm lại trước ARM.</text>
+<text x="1144.00" y="219.00" font-size="22" fill="#b13f4d" font-weight="600" text-anchor="start">Quản lý và giám sát</text>
+<text x="1144.00" y="250.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Kiểm điều kiện chạy.</text>
 <text x="1144.00" y="278.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Tuổi / lỗi dữ liệu.</text>
 <text x="1144.00" y="306.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Va chạm, phạm vi.</text>
 <text x="1144.00" y="334.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Dự phòng quãng phanh</text>
 <text x="1144.00" y="362.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">và góc thân xe quét.</text>
-<text x="1144.00" y="390.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Yêu cầu STOP ngay.</text>
-<text x="1144.00" y="418.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Lưu log / quyết định.</text>
+<text x="1144.00" y="390.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Yêu cầu dừng ngay.</text>
+<text x="1144.00" y="418.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Ghi lại diễn biến.</text>
 <path d="M1066.00,422.00 L1124.00,422.00" fill="none" stroke="#b13f4d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#red)" stroke-dasharray="7 5"/>
 <rect x="776" y="558" width="612" height="116" rx="15" fill="#edf8f3" stroke="#087c65" stroke-width="1.8"/>
 <text x="796.00" y="592.00" font-size="22" fill="#087c65" font-weight="600" text-anchor="start">Đầu ra có kiểm soát</text>
-<text x="796.00" y="623.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">SIM: mô hình xe. VehicleIO: lệnh có hạn qua liên kết.</text>
+<text x="796.00" y="623.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Mô phỏng nhận mục tiêu; thiết bị nhận lệnh có hạn.</text>
 <text x="796.00" y="651.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Phản hồi quay lại bộ bám; sự cố chuyển sang nhánh dừng.</text>
 <path d="M921.00,499.00 L921.00,558.00" fill="none" stroke="#087c65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#green)"/>
 <path d="M1256.00,499.00 L1256.00,558.00" fill="none" stroke="#b13f4d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#red)"/>
@@ -76,19 +76,19 @@
 <path d="M1082.00,674.00 L1082.00,745.00 L719.00,745.00 L719.00,770.00" fill="none" stroke="#087c65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#green)"/>
 <path d="M1190.00,674.00 L1190.00,770.00" fill="none" stroke="#ad6711" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#amber)" stroke-dasharray="7 5"/>
 <rect x="44" y="770" width="420" height="162" rx="15" fill="#edf8f3" stroke="#087c65" stroke-width="1.8"/>
-<text x="64.00" y="804.00" font-size="22" fill="#087c65" font-weight="600" text-anchor="start">SIM</text>
+<text x="64.00" y="804.00" font-size="22" fill="#087c65" font-weight="600" text-anchor="start">Mô phỏng</text>
 <text x="64.00" y="835.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Mô hình động học + phản hồi giả.</text>
-<text x="64.00" y="863.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Ảnh hai cảnh trong docs dùng nhánh này.</text>
+<text x="64.00" y="863.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Ảnh minh họa dùng nhánh này.</text>
 <text x="64.00" y="891.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Không mở cổng thiết bị.</text>
 <rect x="509" y="770" width="420" height="162" rx="15" fill="white" stroke="#126ba3" stroke-width="1.8"/>
-<text x="529.00" y="804.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Bo ảo / QEMU</text>
+<text x="529.00" y="804.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Bo điều khiển ảo</text>
 <text x="529.00" y="835.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Kiểm giao thức và máy trạng thái.</text>
-<text x="529.00" y="863.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Xe phía laptop vẫn là mô phỏng.</text>
+<text x="529.00" y="863.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Xe trên máy tính vẫn là mô phỏng.</text>
 <text x="529.00" y="891.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Không phải phép đo cơ cấu thật.</text>
 <rect x="974" y="770" width="420" height="162" rx="15" fill="#fff8ec" stroke="#ad6711" stroke-width="1.8"/>
 <text x="994.00" y="804.00" font-size="22" fill="#ad6711" font-weight="600" text-anchor="start">Bo + xe thật · còn bị chặn</text>
 <text x="994.00" y="835.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Chưa có nguồn tư thế sống được nhận.</text>
-<text x="994.00" y="863.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Chưa đủ telemetry / đo xe / hiệu chuẩn.</text>
+<text x="994.00" y="863.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Còn thiếu phản hồi, đo xe, hiệu chuẩn.</text>
 <text x="994.00" y="891.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Chưa chạy thao tác trên xe thật.</text>
 <text x="44.00" y="990.00" font-size="18" fill="#536d80" font-weight="400" text-anchor="start">Mũi tên xanh: dữ liệu / điều khiển / phản hồi. Đỏ: giám sát dừng. Nét đứt: vòng phản hồi hoặc nhánh chưa đủ điều kiện.</text>
 </g></svg>

@@ -15,19 +15,19 @@
 <rect x="44" y="145" width="408" height="172" rx="15" fill="#fff3f3" stroke="#b13f4d" stroke-width="1.8"/>
 <text x="64.00" y="179.00" font-size="22" fill="#b13f4d" font-weight="600" text-anchor="start">Phát hiện khi đang chạy</text>
 <text x="64.00" y="210.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Người dùng bấm Dừng; vật cản mới.</text>
-<text x="64.00" y="238.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Tư thế lỗi / NaN / Infinity / quá cũ.</text>
-<text x="64.00" y="266.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Mất telemetry hoặc dữ liệu bắt buộc.</text>
+<text x="64.00" y="238.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Tư thế lỗi, thiếu hoặc quá cũ.</text>
+<text x="64.00" y="266.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Mất phản hồi hoặc dữ liệu bắt buộc.</text>
 <text x="64.00" y="294.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Sắp vượt đường / vùng có xét phanh.</text>
 <rect x="516" y="145" width="408" height="172" rx="15" fill="#fff3f3" stroke="#b13f4d" stroke-width="1.8"/>
-<text x="536.00" y="179.00" font-size="22" fill="#b13f4d" font-weight="600" text-anchor="start">Chốt yêu cầu → STOPPING</text>
-<text x="536.00" y="210.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Gửi STOP đầu tiên ngay khi tác động.</text>
+<text x="536.00" y="179.00" font-size="22" fill="#b13f4d" font-weight="600" text-anchor="start">Chốt yêu cầu → đang dừng</text>
+<text x="536.00" y="210.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Gửi yêu cầu dừng ngay khi tác động.</text>
 <text x="536.00" y="238.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Mục tiêu tốc độ về 0; còn quãng phanh.</text>
 <text x="536.00" y="266.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Không chờ nhịp điều khiển 20 ms.</text>
 <text x="536.00" y="294.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Lưu nguyên nhân và nguồn sự kiện.</text>
 <path d="M452.00,231.00 L516.00,231.00" fill="none" stroke="#b13f4d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#red)"/>
 <rect x="988" y="145" width="408" height="172" rx="15" fill="#fff8ec" stroke="#ad6711" stroke-width="1.8"/>
-<text x="1008.00" y="179.00" font-size="22" fill="#ad6711" font-weight="600" text-anchor="start">Lỗi I/O hoặc ghi log</text>
-<text x="1008.00" y="210.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Giữ STOPPING; tiếp tục yêu cầu dừng.</text>
+<text x="1008.00" y="179.00" font-size="22" fill="#ad6711" font-weight="600" text-anchor="start">Lỗi giao tiếp hoặc ghi nhận</text>
+<text x="1008.00" y="210.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Giữ trạng thái đang dừng; tiếp tục thử.</text>
 <text x="1008.00" y="238.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Thử lại thao tác còn cần thực hiện.</text>
 <text x="1008.00" y="266.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Không coi thất bại ghi/gửi là</text>
 <text x="1008.00" y="294.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">bằng chứng xe đã dừng.</text>
@@ -35,20 +35,20 @@
 <path d="M988.00,279.00 L952.00,279.00 L952.00,344.00 L720.00,344.00 L720.00,317.00" fill="none" stroke="#ad6711" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#amber)"/>
 <rect x="516" y="404" width="408" height="144" rx="15" fill="white" stroke="#126ba3" stroke-width="1.8"/>
 <text x="536.00" y="438.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Theo dõi phản hồi</text>
-<text x="536.00" y="469.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">SIM: tốc độ mô hình về 0.</text>
-<text x="536.00" y="497.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">VehicleIO: phản hồi dừng hợp lệ</text>
-<text x="536.00" y="525.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">và telemetry còn mới theo nhánh.</text>
+<text x="536.00" y="469.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Mô phỏng: tốc độ về 0.</text>
+<text x="536.00" y="497.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Thiết bị: phản hồi dừng hợp lệ</text>
+<text x="536.00" y="525.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">và dữ liệu phản hồi còn mới.</text>
 <path d="M720.00,317.00 L720.00,404.00" fill="none" stroke="#b13f4d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#red)"/>
 <rect x="44" y="404" width="408" height="144" rx="15" fill="white" stroke="#b13f4d" stroke-width="1.8"/>
 <text x="64.00" y="438.00" font-size="22" fill="#b13f4d" font-weight="600" text-anchor="start">Chưa xác nhận / quá hạn</text>
 <text x="64.00" y="469.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Tiếp tục kiểm khi còn chờ dừng.</text>
 <text x="64.00" y="497.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Quá hạn / sự cố không khép được →</text>
-<text x="64.00" y="525.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">FAULT; cần người xử lý và kiểm lại.</text>
+<text x="64.00" y="525.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">báo lỗi; cần người xử lý và kiểm lại.</text>
 <path d="M516.00,476.00 L452.00,476.00" fill="none" stroke="#b13f4d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#red)"/>
 <path d="M720.00,548.00 L720.00,606.00" fill="none" stroke="#087c65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#green)"/>
 <text x="737.00" y="583.00" font-size="18" fill="#087c65" font-weight="400" text-anchor="start">Đủ bằng chứng</text>
 <rect x="516" y="606" width="408" height="116" rx="15" fill="#edf8f3" stroke="#087c65" stroke-width="1.8"/>
-<text x="536.00" y="640.00" font-size="22" fill="#087c65" font-weight="600" text-anchor="start">STOPPED · đã dừng</text>
+<text x="536.00" y="640.00" font-size="22" fill="#087c65" font-weight="600" text-anchor="start">Đã dừng</text>
 <text x="536.00" y="671.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Giữ tư thế dừng để đánh giá lại.</text>
 <text x="536.00" y="699.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Người lái chọn đích tiếp / tính lại.</text>
 <rect x="988" y="404" width="408" height="144" rx="15" fill="#f5f0fa" stroke="#7652aa" stroke-width="1.8"/>

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="790" viewBox="0 0 1440 790">
-<title>Thân xe và hệ tọa độ dùng trong mô hình</title><desc>Nguồn: configs/vehicle_nghiem_thu.json · các kích thước và giới hạn vẫn là giả định, chưa đo trên xe thật.</desc>
+<title>Thân xe và hệ tọa độ dùng trong mô hình</title><desc>Kích thước và giới hạn lấy từ cấu hình mô phỏng; còn giả định, chưa đo trên xe thật.</desc>
 <defs>
 <marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,4.5 L0,9 Z" fill="#126ba3"/></marker>
 <marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,4.5 L0,9 Z" fill="#087c65"/></marker>
@@ -11,7 +11,7 @@
 <rect width="1440" height="790" fill="#f4f8fb"/>
 <g font-family="Segoe UI">
 <text x="44.00" y="56.00" font-size="32" fill="#173247" font-weight="600" text-anchor="start">Thân xe và hệ tọa độ dùng trong mô hình</text>
-<text x="44.00" y="91.00" font-size="19" fill="#536d80" font-weight="400" text-anchor="start">Nguồn: configs/vehicle_nghiem_thu.json · các kích thước và giới hạn vẫn là giả định, chưa đo trên xe thật.</text>
+<text x="44.00" y="91.00" font-size="19" fill="#536d80" font-weight="400" text-anchor="start">Kích thước và giới hạn lấy từ cấu hình mô phỏng; còn giả định, chưa đo trên xe thật.</text>
 <rect x="154.0" y="243.0" width="651.0" height="294.0" rx="24" fill="#dcebf4" stroke="#126ba3" stroke-width="1.8"/>
 <path d="M280.00,259.00 L280.00,521.00" fill="none" stroke="#536d80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="1"/>
 <rect x="245" y="233.0" width="70" height="20" rx="5" fill="#173247" stroke="#173247" stroke-width="1.8"/>
@@ -26,7 +26,7 @@
 <text x="295.00" y="196.00" font-size="20" fill="#087c65" font-weight="600" text-anchor="start">+y · trái</text>
 <text x="262.00" y="426.00" font-size="24" fill="#126ba3" font-weight="600" text-anchor="end">O</text>
 <path d="M334.00,390.00 L331.00,370.00 L318.00,352.00 L298.00,339.00" fill="none" stroke="#087c65" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="1" marker-end="url(#green)"/>
-<text x="345.00" y="345.00" font-size="19" fill="#087c65" font-weight="400" text-anchor="start">yaw +</text>
+<text x="345.00" y="345.00" font-size="19" fill="#087c65" font-weight="400" text-anchor="start">Góc +</text>
 <path d="M154.00,595.00 L280.00,595.00" fill="none" stroke="#536d80" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="1"/>
 <path d="M154.00,586.00 L154.00,604.00" fill="none" stroke="#536d80" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="1"/>
 <path d="M280.00,586.00 L280.00,604.00" fill="none" stroke="#536d80" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="1"/>
@@ -49,9 +49,9 @@
 <text x="91.00" y="382.00" font-size="18" fill="#536d80" font-weight="400" text-anchor="end">Rộng</text>
 <text x="91.00" y="411.00" font-size="18" fill="#536d80" font-weight="400" text-anchor="end">14 cm</text>
 <rect x="965" y="190" width="429" height="172" rx="15" fill="white" stroke="#126ba3" stroke-width="1.8"/>
-<text x="985.00" y="224.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Tư thế (x, y, yaw)</text>
+<text x="985.00" y="224.00" font-size="22" fill="#126ba3" font-weight="600" text-anchor="start">Vị trí và hướng xe</text>
 <text x="985.00" y="255.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">O ở tâm trục sau; +z hướng lên.</text>
-<text x="985.00" y="283.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Nhìn từ trên: yaw dương quay trái.</text>
+<text x="985.00" y="283.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Góc hướng dương: quay sang trái.</text>
 <text x="985.00" y="311.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Đích gồm cả vị trí và hướng.</text>
 <text x="985.00" y="339.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Vùng quét xét toàn thân và phần nhô.</text>
 <rect x="965" y="410" width="429" height="172" rx="15" fill="#fff8ec" stroke="#ad6711" stroke-width="1.8"/>
@@ -60,5 +60,5 @@
 <text x="985.00" y="503.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Tốc độ tối đa: 0.10 m/s.</text>
 <text x="985.00" y="531.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">Đo lại hình học, lái, trễ và phanh</text>
 <text x="985.00" y="559.00" font-size="19" fill="#173247" font-weight="400" text-anchor="start">trước khi dùng cấu hình cho xe thật.</text>
-<text x="44.00" y="742.00" font-size="19" fill="#536d80" font-weight="400" text-anchor="start">Thân xe vẽ đúng tỉ lệ từ cấu hình; bánh và cung yaw chỉ là ký hiệu. Không phải bản vẽ cơ khí hoặc vị trí gá cảm biến.</text>
+<text x="44.00" y="742.00" font-size="19" fill="#536d80" font-weight="400" text-anchor="start">Thân xe vẽ đúng tỉ lệ từ cấu hình; bánh và cung góc hướng chỉ là ký hiệu. Không phải bản vẽ cơ khí hoặc vị trí gá cảm biến.</text>
 </g></svg>

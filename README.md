@@ -1,46 +1,33 @@
-# AutoPark — thao tác gần trong chỗ hẹp
+# AutoPark — hỗ trợ xoay trở trong chỗ hẹp
 
-Người lái đưa xe tới chỗ khó và chọn **vị trí, hướng đích gần**. Xe tự đánh lái, tiến/lùi một đoạn ngắn rồi dừng; người lái chọn bước tiếp từ nơi vừa dừng. Bài toán gồm cua hẹp, qua cửa, lách cột và chỉnh xe vào khe. Đỗ xe là một ứng dụng gần; dẫn xe qua cả bãi, tìm ô tự động và đi tới đích xa nằm ngoài phạm vi.
+AutoPark giúp xe mô hình tự thực hiện thao tác ngắn ở tốc độ thấp. Người lái chọn vị trí và hướng đích gần; xe đánh lái, tiến hoặc lùi rồi dừng. Bước tiếp theo do người lái quyết định từ nơi xe vừa dừng.
 
-**Trạng thái 28/10/2026:** chặng 1 — bộ đánh giá phần mềm/mô phỏng — đã hoàn tất. Bộ 44 tình huống qua ba seed đạt 132/132 kỳ vọng, gồm đến đích, từ chối và dừng được chấm riêng. [Kết quả và các chặng còn lại](autopark/docs/KIEM_THU_VA_LO_TRINH.md); bước tiếp theo là firmware/phản hồi thật, đo xe và hiệu chuẩn.
+Phạm vi gồm cua hẹp, qua cửa, lách cột và chỉnh xe vào khe. Đỗ xe là một ứng dụng gần; tìm ô tự động và dẫn xe tới đích xa nằm ngoài phạm vi.
 
-## Chạy thử
+## Một lượt sử dụng
 
-Cần Python 3.11 trở lên. Windows: chạy `autopark/cai_dat.cmd` lần đầu, sau đó mở `autopark/chay_app.cmd`. Hoặc từ thư mục `autopark/`:
+Chọn đích gần, tính thao tác, xem trước nếu cần rồi xác nhận thực hiện. Người lái có thể yêu cầu dừng bất cứ lúc nào. Muốn tiếp tục phải đợi xe đứng yên và xác nhận một lượt mới.
 
-```powershell
-.\.venv\Scripts\python.exe run_app.py
-.\.venv\Scripts\python.exe run_app.py scenarios/thao_tac_lui_vao_khe.json
-```
+![Giao diện mô phỏng cảnh cua hẹp](autopark/docs/images/giao-dien-cua-hep.png)
 
-Mặc định mở **Cua 90 độ trong lối hẹp**. Nhấp sàn hoặc kéo xe đích, kéo nút xoay để đặt hướng. Chọn **Tính thao tác → Xem trước (tùy chọn) → Thực hiện**. Khi xe dừng, **Chọn đích tiếp** giữ tư thế vừa dừng và yêu cầu đường mới.
+*Ảnh ứng dụng trong mô phỏng: xe đã có đường tiến/lùi và vùng thân xe sẽ quét qua. Đây chưa phải lượt chạy xe thật.*
 
-![Giao diện thật của ứng dụng với cảnh cua hẹp ở trạng thái sẵn sàng](autopark/docs/images/giao-dien-cua-hep.png)
+## Giới hạn thử của hai cảnh mẫu
 
-*Ảnh chụp app ở chế độ SIM sau khi tính và kiểm bám thành công: đường tiến/lùi, vùng thân xe quét và đích gần. [Luồng thao tác và cảnh lùi vào khe](autopark/docs/VAN_HANH.md#luong-thao-tac).*
-
-## Cấu hình thử hiện tại
-
-| Đại lượng | Giá trị trong hai cảnh mẫu |
+| Đại lượng | Giá trị |
 |---|---|
-| Khoảng cách từ xuất phát đến đích | ≤ 0,70 m |
-| Vùng thao tác | Vuông quanh xuất phát, nửa cạnh 0,75 m, cắt theo biên sa bàn; chứa toàn thân xe |
-| Tổng đường tiến + lùi | ≤ 1,40 m |
-| Số lần đổi chiều | ≤ 3 |
-| Tốc độ tối đa của xe đi kèm | 0,10 m/s |
+| Khoảng cách từ điểm xuất phát đến đích | Tối đa 70 cm |
+| Vùng thao tác | Khung vuông cạnh 1,5 m quanh điểm xuất phát, chỉ dùng phần nằm trong sa bàn |
+| Tổng quãng đường tiến và lùi | Tối đa 1,40 m |
+| Số lần đổi chiều | Tối đa 3 |
+| Tốc độ | Tối đa 0,10 m/s |
 
-Đây là **tham số thử có thể điều chỉnh trên xe mô hình giả định**, không phải trần sản phẩm hay ngưỡng nghiệm thu. Đường phải qua kiểm giới hạn, vùng quét và khả năng bám; trong lượt còn kiểm quãng đường/mép vùng có xét phanh.
+Các giá trị trên dùng cho xe mô hình giả định và có thể điều chỉnh. Toàn thân xe phải nằm trong vùng được phép; khi cua còn phải xét đầu, đuôi và hai sườn xe quét qua đâu.
 
-Đã có mô phỏng, bàn thử cảm biến và firmware QEMU. **Chưa chạy thao tác này trên xe thật.** Kịch bản cũ thiếu `maneuver` hoặc dùng `slot` còn đọc/chấm được nhưng bị từ chối khi thực hiện/runtime replay.
+## Trạng thái hiện tại
 
-[Chạy bộ đánh giá và đọc báo cáo](autopark/docs/VAN_HANH.md#danh-gia-mo-phong): một lệnh chạy hàng loạt, xuất JSON/CSV và tái hiện từng lượt đã ghi.
+Đến ngày 28/10/2026, chặng đánh giá phần mềm trong mô phỏng đã hoàn tất với 44 tình huống. Hệ thống đã có giao diện, tìm và bám đường, xử lý dừng, ghi lại và phát lại lượt chạy.
 
-## Tài liệu
+**Chưa có kết quả thao tác trên xe thật.** Việc tiếp theo là hoàn thiện điều khiển và phản hồi trên bo, đo xe và quãng phanh, hiệu chuẩn cảm biến, rồi thử từng thao tác chậm.
 
-Bộ hướng dẫn chỉ gồm trang này và năm trang sau:
-
-- [Kiến trúc](autopark/docs/KIEN_TRUC.md): cảm nhận, định vị, AI, tìm/bám đường.
-- [Vận hành và phát triển](autopark/docs/VAN_HANH.md): cài đặt, kịch bản, lệnh, log/phát lại.
-- [Phần cứng và hiệu chuẩn](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md): camera, LiDAR, xe, giao thức/firmware và dừng.
-- [Kiểm thử và lộ trình](autopark/docs/KIEM_THU_VA_LO_TRINH.md): tình huống cần kiểm, tiêu chí và việc tiếp theo.
-- [Dữ liệu và giấy phép](autopark/docs/DU_LIEU_VA_GIAY_PHEP.md): nguồn, số đo lịch sử và bằng chứng gốc.
+Bộ tài liệu gồm sáu phần: Tổng quan, Kiến trúc, Vận hành, Phần cứng và hiệu chuẩn, Kiểm thử và lộ trình, Dữ liệu và giấy phép.
