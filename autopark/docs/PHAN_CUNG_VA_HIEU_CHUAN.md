@@ -4,6 +4,10 @@ Cấu hình xe/cảm biến hiện còn giả định; chưa có thao tác trên
 
 ## Xe, LiDAR và hệ tọa độ
 
+![Hệ tọa độ và kích thước xe mô hình giả định từ cấu hình](images/he-truc-va-kich-thuoc.svg)
+
+*Hình theo cấu hình xe đi kèm hai cảnh mẫu; không phải kích thước đã đo hoặc bản vẽ gá cảm biến.*
+
 Tư thế xe ở tâm trục sau: +x trước, +y trái, +z lên. Đo chiều dài cơ sở, bề rộng lớn nhất, phần nhô, góc lái/vòng quay hai chiều, trễ/tốc độ đổi lái, tốc độ thấp, gia tốc và quãng phanh. Mỗi số có ngày, dụng cụ, pin/sàn/tải, số lần lặp và độ tản.
 
 Lưu cấu hình đo mới rồi chọn bằng `--vehicle-config`; bo mô phỏng/firmware phải khớp giới hạn. LiDAR cần đo gá, xác minh trái/phải bằng vật thật và neo bản đồ đúng hệ xe.

@@ -1415,22 +1415,26 @@ class MainWindow(QMainWindow):
         if self.scenario_path is None:
             self._save_scenario_as()
             return
+        self._write_scenario(self.scenario_path)
+
+    def _write_scenario(self, path: Path) -> bool:
         try:
-            save_scenario(self.session.scenario, self.scenario_path)
+            save_scenario(self.session.scenario, path)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "Không lưu được", str(exc))
-            return
+            return False
+        self.scenario_path = path
         vehicle_file = self.session.scenario.vehicle_config_path      # Lưu ghi tệp xe đang dùng vào kịch bản
         self.statusBar().showMessage(f"Đã lưu {self.scenario_path}"
                                      + (f" (xe: {Path(vehicle_file).name})" if vehicle_file is not None else ""), 4000)
+        return True
 
     def _save_scenario_as(self) -> None:
         path, _ = QFileDialog.getSaveFileName(self, "Lưu kịch bản", str(self._scenario_dir()), "JSON (*.json)")
         if not path:
             return
-        self.scenario_path = Path(path)
-        self._save_scenario()
-        self._refresh_all()
+        if self._write_scenario(Path(path)):
+            self._refresh_all()
 
     def _refusal_link(self) -> VehicleLink | None:
         """Liên kết đang chọn khi chỉ nó giữ bằng chứng chưa xuất được (thêm 02/10/2026): log hiện tại không phải của

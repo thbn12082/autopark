@@ -2,6 +2,10 @@
 
 Dữ liệu lớn/checkpoint thường ở `datasets/`, `runs/`, `recordings/` ngoài Git. Giữ manifest, phiên bản, ảnh/scan gốc và điều kiện đo. Tệp trong [evidence/](evidence/) là bằng chứng theo ngày, không phải bộ kết quả của hướng mới.
 
+![Ảnh gốc giao diện bàn thử bốn camera có lớp AI và LiDAR](evidence/rig/giao_dien_480p_thr015.jpg)
+
+*Ảnh bàn thử lịch sử đã lưu trong repo: bốn camera nhìn sàn/thảm, lớp tô AI và scan LiDAR. Giữ nguyên ảnh gốc; đây không phải cảnh xe tự thực hiện thao tác.*
+
 ## AI và nhãn sa bàn
 
 Checkpoint tham chiếu `runs/ai_woodscape_rtx4000_v1/best.pt`: L-RASPP/MobileNetV3-Large khởi tạo torchvision COCO/VOC, học WoodScape. [Bảng nhãn](../configs/woodscape_binary_v1.json) đổi thành FREE/BLOCKED/IGNORE; IGNORE của nhãn khác UNKNOWN của bản đồ.

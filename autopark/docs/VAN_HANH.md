@@ -2,6 +2,17 @@
 
 Các lệnh dưới chạy từ thư mục `autopark/`. Luồng giao diện và hai cảnh mẫu ở [README](../../README.md).
 
+<a id="luong-thao-tac"></a>
+## Một lượt thao tác
+
+![Luồng chọn đích, tính và kiểm bám, xem trước tùy chọn, thực hiện và dừng](images/luong-do-xe.svg)
+
+*Xem trước chỉ mô phỏng; phải bấm Thực hiện riêng. Yêu cầu dừng chuyển sang phanh/chờ phản hồi, không có nghĩa xe đứng yên tức thì.*
+
+![Ảnh ứng dụng hoàn thành mô phỏng lùi vào khe](images/giao-dien-lui-vao-khe.png)
+
+*Cảnh `thao_tac_lui_vao_khe.json`: đường lập lùi 0,40 m, không đổi chiều; lần chụp đạt COMPLETED, tốc độ cuối 0 và sai số vị trí khoảng 0,9 cm trong SIM.*
+
 ## Cài đặt
 
 Windows có `cai_dat.cmd`, `chay_app.cmd`; cài thủ công với Python 3.11 trở lên:
@@ -67,3 +78,5 @@ Mã ở `autopark/`: `application` quản lý phiên; `planning/geometry/control
 ```
 
 Đóng góp bắt đầu từ ca tái hiện, sửa đúng phần và kiểm nhóm liên quan; test PyTorch/QEMU/thiết bị cần môi trường tương ứng. Giữ kết quả không đạt, không sửa dữ liệu gốc. [Cách đánh giá](KIEM_THU_VA_LO_TRINH.md).
+
+Tái tạo hai ảnh app và năm sơ đồ: `.venv\Scripts\python.exe docs/images/render_docs.py`. Helper dùng SIM, kiểm tính đường/hoàn thành rồi chụp; bản PNG xem thử của SVG ghi vào thư mục tạm. Ảnh bằng chứng lịch sử được giữ nguyên.

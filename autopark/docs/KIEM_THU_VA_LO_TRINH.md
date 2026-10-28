@@ -16,6 +16,10 @@ Mỗi lần thử là một thao tác tới đích gần do người lái chọn
 
 Hai cảnh JSON hiện có là mẫu, chưa phải bộ nghiệm thu đầy đủ. `TIMEOUT` không chứng minh tình huống không có nghiệm.
 
+![Luồng dừng, kiểm phản hồi và giữ chốt lỗi](images/dung-va-phan-hoi.svg)
+
+*Dùng sơ đồ để chọn ca tiêm lỗi và kiểm trạng thái/log. Phần mềm mô phỏng chưa cung cấp số đo phanh hoặc độ trễ dừng trên xe thật.*
+
 ## Ghi và chấm
 
 Trước thử ghi bố trí, xe/giới hạn, nguồn tư thế, seed, mã nguồn, máy/thiết bị và số lần. Giữ video/log, sự kiện, tham chiếu và can thiệp của người. Đo sai số vị trí/hướng cuối, hở toàn thân nhỏ nhất, tổng đường, đổi chiều, thời gian tính/thực hiện, tốc độ và quãng dừng.

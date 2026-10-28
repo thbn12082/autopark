@@ -18,6 +18,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import tempfile
 from typing import Any
 
 from autopark.domain.types import Scenario, VehicleConfig
@@ -134,13 +135,28 @@ def load_scenario(path: str | Path) -> Scenario:
 def save_scenario(scenario: Scenario, path: str | Path) -> Path:
     path = Path(path).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
+    data = scenario.to_dict()
     if scenario.vehicle_config_path is not None:
         try:
             rel = os.path.relpath(scenario.vehicle_config_path, path.parent)
         except ValueError:
             # Windows: kịch bản và cấu hình xe nằm trên hai ổ đĩa khác nhau, không có đường dẫn tương đối
             rel = str(Path(scenario.vehicle_config_path).resolve())
-        scenario.vehicle_config = Path(rel).as_posix()
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(scenario.to_dict(), f, ensure_ascii=False, indent=2)
+        data["vehicle_config"] = Path(rel).as_posix()
+    # Serialize first, then replace from the same directory: a failed write must
+    # preserve both the previous file and its in-memory vehicle reference.
+    payload = json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                         prefix=f".{path.name}.", suffix=".tmp", delete=False) as f:
+            temporary = Path(f.name)
+            f.write(payload)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    scenario.vehicle_config = data["vehicle_config"]
     return path

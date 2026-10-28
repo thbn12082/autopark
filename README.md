@@ -11,9 +11,11 @@ Cần Python 3.11 trở lên. Windows: chạy `autopark/cai_dat.cmd` lần đầ
 .\.venv\Scripts\python.exe run_app.py scenarios/thao_tac_lui_vao_khe.json
 ```
 
-Mặc định mở **Cua 90 độ trong lối hẹp**. Nhấp sàn hoặc kéo xe đích, kéo nút xoay để đặt hướng. Chọn **Tính thao tác → Xem trước → Thực hiện**. Khi xe dừng, **Chọn đích tiếp** giữ tư thế vừa dừng và yêu cầu đường mới.
+Mặc định mở **Cua 90 độ trong lối hẹp**. Nhấp sàn hoặc kéo xe đích, kéo nút xoay để đặt hướng. Chọn **Tính thao tác → Xem trước (tùy chọn) → Thực hiện**. Khi xe dừng, **Chọn đích tiếp** giữ tư thế vừa dừng và yêu cầu đường mới.
 
-![Một thao tác gần](autopark/docs/images/luong-do-xe.svg)
+![Giao diện thật của ứng dụng với cảnh cua hẹp ở trạng thái sẵn sàng](autopark/docs/images/giao-dien-cua-hep.png)
+
+*Ảnh chụp app ở chế độ SIM sau khi tính và kiểm bám thành công: đường tiến/lùi, vùng thân xe quét và đích gần. [Luồng thao tác và cảnh lùi vào khe](autopark/docs/VAN_HANH.md#luong-thao-tac).*
 
 ## Cấu hình thử hiện tại
 

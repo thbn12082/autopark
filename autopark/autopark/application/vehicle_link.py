@@ -197,6 +197,25 @@ class PoseSample:
     reason: str = ""
 
 
+def _pose_sample_problem(sample) -> str | None:
+    """Validate a source boundary before geometry or the controller sees a sample."""
+    if sample is None:
+        return None
+    if not isinstance(sample, PoseSample) or not isinstance(sample.pose, Pose):
+        return "Nguồn định vị trả mẫu không đúng kiểu PoseSample/Pose"
+    try:
+        finite = all(math.isfinite(v) for v in (sample.pose.x, sample.pose.y, sample.pose.yaw, sample.t))
+    except (TypeError, ValueError, OverflowError):
+        finite = False
+    if not finite:
+        return "Tư thế hoặc thời gian từ nguồn định vị không phải số hữu hạn"
+    if (not isinstance(sample.source_id, str) or not sample.source_id
+            or not isinstance(sample.status, str) or not sample.status
+            or not isinstance(sample.reason, str) or not isinstance(sample.simulated, bool)):
+        return "Thông tin nguồn/trạng thái của mẫu định vị không hợp lệ"
+    return None
+
+
 class PoseSource(Protocol):
     source_id: str
     simulated: bool
@@ -657,6 +676,8 @@ class VehicleLink:
         self._call = 0                    # số của lần đọc io kế tiếp trong lần chạy (cột call, clock.csv; T9)
         self._last_t = 0.0                # t của lần pump gần nhất = world.time lúc đầu bước (dòng refresh ghi t này)
         self._wheelbase: float | None = None   # chiều dài cơ sở của xe lần chạy (dự đoán tư thế); None: chưa mở
+        self._pose_fault: PoseSample | None = None
+        self._last_valid_pose = Pose(0.0, 0.0, 0.0)
 
     # ------------------------------------------------------------------ thuộc tính
     @property
@@ -875,12 +896,15 @@ class VehicleLink:
         return problems, summary
 
     def _pose_fresh(self, sample: PoseSample | None) -> bool:
-        return (sample is not None and sample.status == POSE_OK
+        return (sample is not None and _pose_sample_problem(sample) is None and sample.status == POSE_OK
                 and 0 <= self.io.now() - sample.t <= self.params.pose_age_limit_s)
 
     def _pose_problems(self, sample: PoseSample | None, scenario: Scenario, cfg: VehicleConfig) -> list[str]:
         """Kiểm tư thế lúc START (dùng cả trước ARM và sau ARM/DISARM): mới, gần điểm xuất phát, không chạm vật cản."""
         p = self.params
+        problem = _pose_sample_problem(sample)
+        if problem is not None:
+            return [problem]
         if sample is not None and sample.status != POSE_OK:
             return [f"Định vị LiDAR báo {sample.status}: {sample.reason}"]
         if not self._pose_fresh(sample):
@@ -990,6 +1014,7 @@ class VehicleLink:
         self._running = True
         self.runs += 1
         state = world.state
+        self._last_valid_pose = state.pose
         self.run_start = {"t_io0": self._io_t0, "x": state.pose.x, "y": state.pose.y, "yaw_rad": state.pose.yaw,
                           "steer_rad": state.steer, "state_source": state.source_id}
         self._pose_hook("run_started")        # T2: nguồn LiDAR: không tìm toàn cục, giữ chốt dừng tới run_ended
@@ -1236,8 +1261,24 @@ class VehicleLink:
         mẫu, hoặc available = 0 khi nguồn không có mẫu, cùng đồng hồ io lúc đọc. `use`: "estimate" (thế giới gương)
         hoặc "observe" (trạng thái đo cho bộ bám). Trả (mẫu, io.now(), dòng poses.csv); các cột pred_* để trống, chỉ
         `_predicted_pose` điền."""
-        sample = self.pose_source.latest() if self.pose_source is not None else None
+        sample, failure = self._pose_fault, None
+        if sample is None:
+            try:
+                sample = self.pose_source.latest() if self.pose_source is not None else None
+            except Exception as exc:  # nguồn lỗi không được làm gián đoạn bước phanh
+                failure = ("POSE_SOURCE_ERROR", f"Nguồn định vị lỗi: {type(exc).__name__}: {exc}")
+            else:
+                problem = _pose_sample_problem(sample)
+                if problem is not None:
+                    failure = ("INVALID_POSE", problem)
         now = self.io.now() if self.io is not None else None
+        if failure is not None:
+            # Chốt cả lỗi thoáng qua ở nhịp estimate: mẫu tốt trở lại trước nhịp observe không được nối tiếp lượt.
+            # Mẫu lỗi hữu hạn giữ trong poses.csv để phát lại đúng quyết định; status khác OK không vào thế giới gương.
+            self._pose_fault = sample = PoseSample(self._last_valid_pose, now if now is not None else t,
+                                                   "vehicle_link", self.pose_simulated, *failure)
+        if sample is not None and sample.status == POSE_OK:
+            self._last_valid_pose = sample.pose
         row = {"n": len(self.pose_rows), "use": use, "t_session": round(t, 4), "t_io": _blank(now),
                "available": int(sample is not None)}
         if sample is None:

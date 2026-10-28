@@ -166,6 +166,7 @@ class Session:
         self.run_snapshot: dict | None = None
         self.path_invalidated = False
         self._stop_outcome = SessionState.STOPPED
+        self._last_stop_command_time: float | None = None
         # nhánh chạy: None = SIM (giai đoạn 0); run_link = liên kết của lần chạy kín vòng gần nhất mà log hiện tại
         # thuộc về (giữ để xuất log; None sau lái tay hoặc chạy SIM)
         self.vehicle_link: VehicleLink | None = None
@@ -537,6 +538,7 @@ class Session:
         self.report = None
         self.stop_reason = ""
         self._stop_outcome = SessionState.STOPPED
+        self._last_stop_command_time = None
         self._accumulator = 0.0
         self.lagging = False
         self.log.clear()
@@ -642,8 +644,25 @@ class Session:
                 self._log_session_event(self.world.time, source, code, reason)
             self.stop_reason = reason
             self.state = SessionState.STOPPING
+            # The boundary guard runs every physics step, while tracking runs
+            # every CONTROL_EVERY steps. Send the first stop immediately so its
+            # braking reserve does not hide another control-period delay.
+            if self.run_link is not None and self.world is not None:
+                self._command_stop()
         elif self.state == SessionState.MANUAL:
             self.brake()
+
+    def _command_stop(self) -> None:
+        assert self.world is not None and self.run_link is not None
+        try:
+            self.run_link.command_stop(self.world.time)
+        except Exception as exc:
+            # A broken I/O clock or logging hook must not unwind the stop
+            # transition. Keep braking and retry at the next control tick.
+            self._log_session_event(self.world.time, "vehicle_link", "STOP_SEND_FAILED",
+                                    f"Lỗi phát/ghi lệnh dừng; sẽ thử lại: {exc!r}")
+        else:
+            self._last_stop_command_time = self.world.time
 
     def reset(self) -> None:
         """Bỏ lần chạy hiện tại; về READY nếu đường còn hợp lệ, không thì về EDITING."""
@@ -738,8 +757,8 @@ class Session:
                 self.targets = ManualTargets(out.target_speed, out.target_steer)
         if self.state == SessionState.STOPPING:
             self.targets = ManualTargets(0.0, self.targets.steer)
-            if link is not None and control_tick:
-                link.command_stop(self.world.time)
+            if link is not None and control_tick and self._last_stop_command_time != self.world.time:
+                self._command_stop()
         result = self.world.step(self.targets.speed, self.targets.steer)
         # Qua VehicleIO, "đã dừng" phải là số đo MỚI (telemetry không cũ), không phải giá trị giữ lại.
         standstill = result.state.speed == 0.0 and (link is None or link.telemetry_fresh())

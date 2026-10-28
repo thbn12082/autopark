@@ -34,7 +34,7 @@ LIDAR = LinkParams.for_lidar(0.25)
 
 
 # ---- tiện ích -----------------------------------------------------------------------------------------------------
-def straight_session(scenario, cfg, goal_x=2.0) -> Session:
+def straight_session(scenario, cfg, goal_x=0.9) -> Session:
     scenario.obstacles = []
     scenario.start = Pose(0.5, 1.0, 0.0)
     scenario.goal = ParkingGoal(Pose(goal_x, 1.0, 0.0))
@@ -193,7 +193,7 @@ def test_prediction_is_off_by_default_and_recorded_in_link_json(scenario, cfg, t
 
 def test_sim_truth_pose_is_never_moved(scenario, cfg):
     """SimTruthPose đóng dấu io.now() (tuổi 0): bật dự đoán cũng không đổi gì; lần chạy vẫn COMPLETED."""
-    session = straight_session(scenario, cfg, goal_x=1.2)
+    session = straight_session(scenario, cfg)
     link = VehicleLink.simulated(DriveMode.VEHICLE_IO, SIM_CFG, params=LIDAR)
     session.set_vehicle_link(link)
     session.start_run()
@@ -279,7 +279,7 @@ def test_simulated_lidar_run_with_prediction_completes_logs_and_replays(scenario
     from tests.lidar_fakes import default_config
 
     monkeypatch.setattr(run_store, "environment", lambda: {"test": True})
-    session = straight_session(scenario, cfg, goal_x=1.2)
+    session = straight_session(scenario, cfg)
     link = VehicleLink.simulated(DriveMode.VEHICLE_IO, SIM_CFG, params=LIDAR,
                                  pose_factory=LidarSimPoseFactory(default_config()))
     session.set_vehicle_link(link)

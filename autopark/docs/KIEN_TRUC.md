@@ -4,11 +4,17 @@ Một lượt nhận tư thế đích do người lái chọn, thực hiện r�
 
 ![Các khối của thao tác gần](images/toan-canh.svg)
 
+*Luồng chức năng; nhánh bo/xe thật còn thiếu điều kiện. AI bổ sung bằng chứng vật cản, không điều khiển lái.*
+
 ## Tìm và bám đường
 
 Entry point [`plan_maneuver`](../autopark/planning/maneuver_planner.py) kiểm đầu bài và thu vùng tìm về vùng thao tác. Portfolio thử lưới có nhịp tiến/lùi gộp, RRT-Connect với Reeds–Shepp và Hybrid A* mịn trong chung ngân sách.
 
 Xe đạp động học dùng `ẋ=v cosθ`, `ẏ=v sinθ`, `θ̇=v tanδ/L`; tư thế đặt tại tâm trục sau. Kiểm va chạm xét cả thân xe, phần nhô và vùng quét giữa các mẫu. Đường ứng viên phải thỏa tổng chiều dài, số đổi chiều và biên vùng.
+
+![Vùng quét toàn thân từ quỹ đạo lập của cảnh cua hẹp](images/vung-quet-cua-hep.svg)
+
+*Dựng từ quỹ đạo lập được nhận trong `thao_tac_cua_hep.json`; không phải vệt đo xe thật hay vùng cộng sai số cảm biến/phanh.*
 
 `simulation.rollout` chạy thử đường với xe và bộ bám theo đúng kịch bản gốc, dùng chung giới hạn động với phiên thực hiện. Đúng hình học chưa đủ: đường bám không đạt dung sai bị loại. Trước START, phiên kiểm lại đầu/cuối và vùng quét trước I/O.
 
