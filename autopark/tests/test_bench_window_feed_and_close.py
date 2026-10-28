@@ -29,7 +29,7 @@ from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox  # noqa: E4
 from autopark.application.lidar_pose_source import LidarPoseSource, evidence_for_feed  # noqa: E402
 from autopark.application.session import Session, SessionState  # noqa: E402
 from autopark.application.vehicle_link import DriveMode, LinkParams, VehicleLink, VehicleLinkError  # noqa: E402
-from autopark.domain.types import ParkingGoal, Pose  # noqa: E402
+from autopark.domain.types import AcceptanceTag, ParkingGoal, Pose  # noqa: E402
 from autopark.lidar.live_view import PacedReplay  # noqa: E402
 from autopark.lidar.map_builder import MapBuildConfig, PlacementSpec, build_static_map, write_map  # noqa: E402
 from autopark.lidar.pose_config import Prerequisite  # noqa: E402
@@ -39,7 +39,7 @@ from autopark.rig.core import Rig, RigConfig  # noqa: E402
 from autopark.rig.recording import RigRecorder  # noqa: E402
 from autopark.rig.session_recording import GB, RecordOptions, SessionSensorRecorder  # noqa: E402
 from autopark.storage import run_store  # noqa: E402
-from autopark.storage.scenario_store import load_vehicle_config_file  # noqa: E402
+from autopark.storage.scenario_store import load_scenario, load_vehicle_config_file, save_scenario  # noqa: E402
 from autopark.transport.firmware_model import FirmwareModel  # noqa: E402
 from autopark.transport.loopback import FirmwareSerialLoopback, ManualClock  # noqa: E402
 from autopark.transport.vehicle_io import SIM_FIRMWARE_DEFAULT, SerialVehicleIO  # noqa: E402
@@ -189,7 +189,7 @@ def test_choosing_a_folder_that_is_not_a_map_shows_a_warning(qapp, no_devices, t
 # ------------------------------------------------------------------------------------------------ 1, 13, 33
 def test_changing_the_vehicle_keeps_the_lidar_start_source_and_a_new_scenario_resets_it():
     scenario = bench_scenario()
-    scenario.goal = ParkingGoal(Pose(1.6, 1.0, 0.0))
+    scenario.goal = ParkingGoal(Pose(.8, 1.0, 0.0))
     session = Session(scenario, CAR)
     lidar_pose = Pose(0.52, 1.01, 0.02)
     session.set_start(lidar_pose, source="lidar_localize")              # "Đặt xuất phát theo LiDAR"
@@ -209,7 +209,11 @@ def test_changing_the_vehicle_keeps_the_lidar_start_source_and_a_new_scenario_re
 
 # ------------------------------------------------------------------------------------------------ 2, 7, 16, 34
 def test_sensor_recording_meta_names_the_board_and_the_effective_cusp_limit(qapp, no_devices, tmp_path):
-    bench, dock = open_bench(PROJECT / "scenarios" / "nghiem_thu" / "do1.json", tmp_path=tmp_path)
+    scenario = load_scenario(PROJECT / "scenarios" / "thao_tac_cua_hep.json")
+    scenario.acceptance = AcceptanceTag("DO-1")
+    path = tmp_path / "local_do1.json"
+    save_scenario(scenario, path)
+    bench, dock = open_bench(path, tmp_path=tmp_path)
     recorder = bench.sensor_recording
     try:
         limit = bench.session.cusp_limit()

@@ -1,5 +1,5 @@
 """Firmware THẬT (env PlatformIO esp32s3_qemu) chạy trong QEMU ESP32-S3; laptop nói chuyện bằng SerialVehicleIO qua
-`socket://` (thêm 30/09/2026, docs/MO_PHONG_FIRMWARE.md).
+`socket://` (thêm 30/09/2026, docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
 
 Phần đọc cấu hình và phần kiểm cơ chế chạy lại (bo giả `LoopbackBoard`) chạy ở mọi máy. Phần bo ảo bỏ qua khi
 configs/thiet_bi.json không có qemu_xtensa/platformio_python hoặc tệp không tồn tại (laptop nộp đồ án). Bo ảo chạy theo

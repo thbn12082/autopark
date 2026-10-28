@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # Test có hạn giờ (dấu `planner_budget`) phải đo thuật toán, không đo cách Windows xếp lịch. Tiến trình pytest không có
 # cửa sổ (mở từ shell chạy nền) có thể bị Windows 11 áp EcoQoS dù máy rảnh: đo 30/09/2026, nhóm `planner_budget` hỏng
-# 1–3 test và chậm tới ≈ 3 lần (docs/CHUYEN_MAY_BAN.md mục 8). Nên tắt EcoQoS cho tiến trình pytest (tiến trình con mà
+# 1–3 test và chậm tới ≈ 3 lần (docs/VAN_HANH.md). Nên tắt EcoQoS cho tiến trình pytest (tiến trình con mà
 # test mở thì không). Đặt AUTOPARK_KEEP_ECOQOS=1 để giữ mặc định của Windows, ví dụ khi muốn đo đúng điều kiện đó.
 # Từ 02/10/2026 dùng chung `apply_ecoqos_policy` với ứng dụng và công cụ đo (cùng biến, cùng quy tắc "đúng bằng 1").
 ECOQOS_KEY = pytest.StashKey[str]()
@@ -61,6 +61,6 @@ def scenario(bounds: Bounds) -> Scenario:
         name="test",
         bounds=bounds,
         start=Pose(0.5, 1.0, 0.0),
-        goal=ParkingGoal(Pose(2.4, 0.4, math.pi / 2)),
+        goal=ParkingGoal(Pose(0.8, 1.0, 0.0)),
         obstacles=[Obstacle("hop_1", 1.2, 1.0, 0.2, 0.2, 0.0)],
     )

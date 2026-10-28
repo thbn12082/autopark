@@ -15,7 +15,7 @@ lấy từ xe đó: đều là MÔ PHỎNG, không phải số đo.
   đổi chiều, watchdog liên lạc, DISARM, CLEAR_FAULT, LOOP_OVERRUN khi máy bận.
 - Chỉ nối tới `socket://127.0.0.1:<cổng>` của bo ảo do chính ứng dụng mở (`check_emulator_url`), và HELLO_ACK phải có
   đúng boot_id bo ảo báo lúc khởi động: cầu TCP tới một ESP32 thật chiếm cổng đó bị từ chối trước ARM.
-- Bằng chứng `QEMU_EVIDENCE`, chỉ ở mức MP; KHÔNG nói gì về bo hay xe thật (docs/MO_PHONG_FIRMWARE.md).
+- Bằng chứng `QEMU_EVIDENCE`, chỉ ở mức MP; KHÔNG nói gì về bo hay xe thật (docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
 
 Phương án khác đã loại (người dùng giao quyết định 02/10/2026): đưa cảm biến giả vào firmware (mã mô phỏng trong
 firmware, đổi giao thức), ghi thẳng bộ nhớ chip ảo qua GDB/HMP, cho VehicleLink coi speed_ref là số đo (nới luật START),

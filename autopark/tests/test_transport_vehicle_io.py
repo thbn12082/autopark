@@ -687,7 +687,7 @@ def test_connect_refuses_board_period_longer_than_stale_threshold():
     assert ok.connect().telemetry_period_s == pytest.approx(0.2) and ok.connected
 
 
-# ---- cổng kiểu socket:// (bo ảo QEMU; thêm 30/09/2026, docs/MO_PHONG_FIRMWARE.md) ---------------------------------
+# ---- cổng kiểu socket:// (bo ảo QEMU; thêm 30/09/2026, docs/PHAN_CUNG_VA_HIEU_CHUAN.md) ---------------------------------
 class SocketLikePort:
     """Như `socket://` của pyserial 3.5: `in_waiting` chỉ báo 0 hoặc 1 (select), `read(n)` chờ tới `timeout` cho đủ n
     byte. Đầu kia là `FirmwareSerialLoopback`. `waiting_reads`: số lần `read(n)` với n lớn hơn số byte đang có (pyserial

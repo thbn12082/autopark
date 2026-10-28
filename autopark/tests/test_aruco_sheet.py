@@ -105,7 +105,9 @@ def test_pdf_rendered_by_qtpdf_is_detectable_with_all_ids_at_scale(tmp_path):
 def test_png_ticks_mark_the_marker_centre_within_one_pixel(tmp_path):
     dpi = 150
     meta = sheet.write_sheets(tmp_path, [48, 49], 80.0, png=True, dpi=dpi)
-    page = cv2.imread(str(tmp_path / meta["png"]["files"][0]), cv2.IMREAD_GRAYSCALE)
+    # OpenCV imread trên Windows có thể không mở được đường dẫn Unicode.
+    page = cv2.imdecode(np.frombuffer((tmp_path / meta["png"]["files"][0]).read_bytes(), dtype=np.uint8),
+                        cv2.IMREAD_GRAYSCALE)
     detector = cv2.aruco.ArucoDetector(sheet.get_dictionary("DICT_4X4_50"), cv2.aruco.DetectorParameters())
     corners, ids, _ = detector.detectMarkers(page)
     by_id = {int(i): c.reshape(4, 2) for c, i in zip(corners, ids.ravel())}

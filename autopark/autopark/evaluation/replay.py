@@ -54,7 +54,11 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             session.close()
         return EXIT_MATCH if report.ok else EXIT_DIFFER
-    session = replay_run(args.run_directory)
+    try:
+        session = replay_run(args.run_directory)
+    except ReplayNotSupported as exc:
+        print(exc)
+        return EXIT_NOT_SUPPORTED
     print(f"Replay OK: {session.state.value}, {session.world.step_count} steps")
     session.close()
     return EXIT_MATCH

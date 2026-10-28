@@ -1,4 +1,4 @@
-"""Dấu đồng bộ video–log (T14 ở docs/KICH_BAN_NGHIEM_THU.md mục 7; phương pháp R7 ở mục 2.1). Không dùng Qt.
+"""Dấu đồng bộ video–log (T14 ở docs/KIEM_THU_VA_LO_TRINH.md; phương pháp R7 ở mục 2.1). Không dùng Qt.
 
 Mỗi dấu (`SYNC_MARK`) là một lần nháy ô trắng lớn trên màn hình laptop (`ui/sync_flash.py`) — camera quay R3 thấy được —
 cùng một dòng CSV có `t_perf` = `time.perf_counter()`, đúng đồng hồ của stamp bàn thử và bản ghi phiên (QPC trên Windows,
@@ -30,7 +30,7 @@ Cột (`SYNC_FIELDS`, thứ tự cố định — hợp đồng với công cụ
   khi xe đang chạy (RUNNING/STOPPING), nên mọi dòng CLOCK của một lần chạy cùng một hệ số; lúc lái tay hệ số đổi được, mỗi
   dấu mang hệ số lúc dấu. Tệp ghi trước cột này không có nó: `read_sync_marks` trả chuỗi rỗng (không biết hệ số).
 
-Đổi đồng hồ (tóm tắt; tài liệu đầy đủ ở docs/KICH_BAN_NGHIEM_THU.md):
+Đổi đồng hồ (tóm tắt; tài liệu đầy đủ ở docs/KIEM_THU_VA_LO_TRINH.md):
 
 - Video → perf: với mỗi dấu k, lấy khung đầu tiên có ít nhất nửa ô sáng; thời điểm v_k theo stamp của tệp video, không theo
   số khung/s danh định. Khớp `t_perf = a + b·v` (một dấu thì b = 1).

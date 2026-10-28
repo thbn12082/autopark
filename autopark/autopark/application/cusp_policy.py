@@ -1,4 +1,4 @@
-"""Kiểm số lần đổi chiều của đường trước khi cho chạy (T12, thêm 02/10/2026; DI-2 và N-D6 của docs/KICH_BAN_NGHIEM_THU.md).
+"""Kiểm số lần đổi chiều của đường trước khi cho chạy (T12, thêm 02/10/2026; DI-2 và N-D6 của docs/KIEM_THU_VA_LO_TRINH.md).
 
 Mỗi lần đổi chiều (tiến ↔ lùi) xe phải dừng hẳn rồi đi ngược: tốn thời gian và là chỗ sai số bám đường dồn lại.
 `planning/portfolio.py` chỉ ƯU TIÊN đường ít đổi chiều hơn, không có giới hạn cứng. Mô-đun này so đường ĐÃ lập
@@ -46,6 +46,7 @@ ACCEPTANCE_THRESHOLDS = PROJECT_ROOT / "configs" / "nguong_nghiem_thu.json"    #
 THRESHOLD_STATUSES = ("DE_XUAT_CHO_CHOT", "CHOT")                            # = score_run.THRESHOLD_STATUSES
 # Giới hạn có hiệu lực lấy từ đâu (`CuspLimit.source`): mặc định (không chặn), cờ --max-cusps, kịch bản nghiệm thu
 SOURCE_DEFAULT, SOURCE_CLI, SOURCE_ACCEPTANCE = "mac_dinh", "dong_lenh", "nghiem_thu"
+SOURCE_MANEUVER = "thao_tac_gan"
 
 
 def _check_limit(name: str, value) -> None:
@@ -207,12 +208,16 @@ class CuspLimit:
     @property
     def cli_ignored(self) -> bool:
         """--max-cusps lớn hơn giới hạn của kịch bản: cờ không nới được, nên không dùng."""
+        if self.source == SOURCE_MANEUVER:
+            return self.cli_max_cusps is not None and self.cli_max_cusps > self.policy.max_cusps
         return (self.rule is not None and self.rule.max_cusps is not None and self.cli_max_cusps is not None
                 and self.cli_max_cusps > self.rule.max_cusps)
 
     @property
     def origin(self) -> str:
         """Giới hạn từ đâu, cho câu từ chối (`CuspCheck.describe`); rỗng khi không gắn nghiệm thu (câu như trước)."""
+        if self.source == SOURCE_MANEUVER:
+            return "của thao tác gần"
         rule = self.rule
         if rule is None:
             return ""
@@ -223,6 +228,8 @@ class CuspLimit:
 
     def short(self) -> str:
         """Đuôi ngắn cho dòng đường của giao diện; rỗng khi không gắn nghiệm thu (dòng như trước)."""
+        if self.source == SOURCE_MANEUVER:
+            return f"tối đa {self.policy.max_cusps} (thao tác gần)"
         rule = self.rule
         if rule is None:
             return ""
@@ -234,6 +241,8 @@ class CuspLimit:
 
     def summary(self) -> str:
         """Một câu cho nhãn của thẻ Kịch bản và thanh trạng thái."""
+        if self.source == SOURCE_MANEUVER:
+            return f"Thao tác gần: đổi chiều tối đa {self.policy.max_cusps}"
         warn = "không cảnh báo" if self.policy.warn_cusps is None else f"cảnh báo khi hơn {self.policy.warn_cusps}"
         rule, top = self.rule, self.policy.max_cusps
         if rule is None:
@@ -277,9 +286,8 @@ def resolve_cusp_limit(base: CuspPolicy, rule: AcceptanceCuspRule | None) -> Cus
 def add_cusp_args(parser: argparse.ArgumentParser) -> None:
     """`--max-cusps N` và `--warn-cusps N`; đọc ra chính sách bằng `cusp_policy_from_args`."""
     parser.add_argument("--max-cusps", type=int, default=None, metavar="N",
-                        help="từ chối Bắt đầu đỗ khi đường có hơn N lần đổi chiều (T12; giới hạn CHƯA CHỐT; mặc định "
-                             "không chặn); tệp sa bàn có trường acceptance dùng giới hạn của kịch bản trong "
-                             "configs/nguong_nghiem_thu.json, cờ này chỉ siết thêm")
+                        help="từ chối chạy khi đường có hơn N lần đổi chiều; chỉ siết thêm giới hạn thao tác gần "
+                             "và giới hạn acceptance (nếu có trong configs/nguong_nghiem_thu.json)")
     parser.add_argument("--warn-cusps", type=int, default=None, metavar="N",
                         help=f"cảnh báo khi đường có hơn N lần đổi chiều (mặc định {CUSP_WARN_DEFAULT})")
 

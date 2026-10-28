@@ -6,14 +6,14 @@ from pytest import approx
 from autopark.domain.types import Obstacle, ParkingMode, ParkingSlot, Pose, wrap_angle
 from autopark.geometry.footprint import check_motion, check_pose
 from autopark.planning.hybrid_astar import PlannerParams, plan
-from autopark.planning.parking import plan_parking
+from autopark.planning.maneuver_planner import plan_maneuver
 from autopark.planning.trajectory import build_trajectory
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config
 from tests.conftest import PROJECT_ROOT
 
 
 def load_default():
-    scenario = load_scenario(PROJECT_ROOT / "scenarios" / "bai_do_xe.json")
+    scenario = load_scenario(PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json")
     cfg = load_vehicle_config(scenario.vehicle_config_path)
     return scenario, cfg
 
@@ -46,7 +46,7 @@ def test_slot_goal_pose_head_in_and_parallel(cfg):
 
 def test_default_scene_plans_and_reaches_goal():
     scenario, cfg = load_default()
-    result = plan_parking(scenario, cfg)
+    result = plan_maneuver(scenario, cfg)
     assert result.ok, result.message
     traj = result.trajectory
     assert traj is not None
@@ -54,7 +54,6 @@ def test_default_scene_plans_and_reaches_goal():
     goal = scenario.goal.pose
     assert math.hypot(end.x - goal.x, end.y - goal.y) < 0.01
     assert abs(wrap_angle(end.yaw - goal.yaw)) < math.radians(1.0)
-    assert traj.n_cusps >= 1                     # phải lùi vào ô
     assert result.elapsed < 15.0
     assert_path_is_collision_free(traj, cfg, scenario)
     # hồ sơ tốc độ: về 0 ở cuối mỗi đoạn và không vượt tốc độ hành trình
@@ -66,17 +65,18 @@ def test_default_scene_plans_and_reaches_goal():
 
 def test_goal_inside_obstacle_is_rejected():
     scenario, cfg = load_default()
-    scenario.slot = None
-    scenario.goal = type(scenario.goal)(Pose(1.95, 0.35, math.pi / 2))
-    result = plan_parking(scenario, cfg)
+    scenario.goal = type(scenario.goal)(Pose(.65, .34, 0))
+    result = plan_maneuver(scenario, cfg)
     assert result.status == "GOAL_INVALID"
 
 
 def test_walled_off_goal_reports_no_path():
     scenario, cfg = load_default()
-    scenario.obstacles.append(Obstacle("tuong", 1.5, 1.0, 0.05, 2.0, 0.0, "wall"))  # tường chia đôi sa bàn
+    scenario.start = Pose(.5, 1, 0)
+    scenario.goal = type(scenario.goal)(Pose(.95, 1, 0))
+    scenario.obstacles = [Obstacle("tuong", .82, 1, 0.04, 2, 0.0, "wall")]
     params = PlannerParams(time_limit=3.0, max_nodes=20000)
-    result = plan_parking(scenario, cfg, params)
+    result = plan_maneuver(scenario, cfg, params)
     assert result.status in ("NO_PATH", "TIMEOUT")
 
 

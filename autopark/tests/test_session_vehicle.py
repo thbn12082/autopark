@@ -36,8 +36,8 @@ SIM_CFG = SimIOConfig(firmware=FAST_FW)
 
 
 def parking_session() -> Session:
-    scenario = load_scenario(PROJECT_ROOT / "scenarios" / "bai_do_xe.json")
-    session = Session(scenario, load_vehicle_config(scenario.vehicle_config_path))
+    scenario = load_scenario(PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json")
+    session = Session(scenario, load_vehicle_config(PROJECT_ROOT / "configs" / "vehicle_default.json"))
     assert session.plan_sync().ok
     return session
 
@@ -45,7 +45,7 @@ def parking_session() -> Session:
 def straight_session(scenario, cfg) -> Session:
     scenario.obstacles = []
     scenario.start = Pose(0.5, 1.0, 0.0)
-    scenario.goal = ParkingGoal(Pose(2.0, 1.0, 0.0))
+    scenario.goal = ParkingGoal(Pose(1.0, 1.0, 0.0))
     session = Session(scenario, cfg)
     assert session.plan_sync().ok
     return session
@@ -173,7 +173,7 @@ def test_vehicle_io_follows_planned_path_through_the_firmware_model():
     assert session.state == SessionState.COMPLETED, session.stop_reason
     assert session.report.position_error < 0.03 and abs(session.report.heading_error) < math.radians(3)
     assert worst < 0.05                                          # bám đường: lệch tối đa so với các điểm quỹ đạo
-    assert io.truth.pose.distance_to(start_pose) > 1.0           # xe trong bo giả đã thật sự chạy
+    assert io.truth.pose.distance_to(start_pose) > 0.3           # xe trong bo giả đã thật sự chạy
     assert session.world.state.pose == io.truth.pose             # thế giới gương = tư thế từ nguồn (mô phỏng)
     assert io.firmware.state == State.DISARMED                   # kết thúc lần chạy: DISARM
     sent = [r for r in link.command_rows if r["kind"] == "TRACK"]
@@ -790,7 +790,7 @@ def test_observe_logs_commands_and_never_enables_the_board(tmp_path):
         if not session.simulating:
             break
     assert session.state == SessionState.COMPLETED, session.stop_reason
-    assert io.truth.pose.distance_to(start_pose) > 1.0           # người lái đã chạy xe
+    assert io.truth.pose.distance_to(start_pose) > 0.3           # người lái đã chạy xe
     assert received == [] and io.stats.commands_sent == 0        # không một COMMAND nào, kể cả enable=0
     assert not io.firmware.has_cmd
     rows = link.command_rows

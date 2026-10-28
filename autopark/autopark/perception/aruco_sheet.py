@@ -1,4 +1,4 @@
-"""Tờ marker ArUco để in, cho tham chiếu trên cao R1 (T4, docs/KICH_BAN_NGHIEM_THU.md mục 3.2–3.3). Thêm 02/10/2026.
+"""Tờ marker ArUco để in, cho tham chiếu trên cao R1 (T4, docs/KIEM_THU_VA_LO_TRINH.md). Thêm 02/10/2026.
 
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.aruco_sheet --ids 0-47 --size-mm 100 --out calibration\\bang_in\\aruco
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.aruco_sheet --ids 48,49 --size-mm 80 --out calibration\\bang_in\\aruco

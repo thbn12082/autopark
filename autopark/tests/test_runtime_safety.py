@@ -16,7 +16,7 @@ from autopark.simulation.world import SimWorld
 
 
 def ready(cfg, *, feedback=None):
-    raw = [(Pose(i * 0.02, 0, 0), 1, 0) for i in range(51)]
+    raw = [(Pose(i * 0.02, 0, 0), 1, 0) for i in range(21)]
     trajectory = build_trajectory(raw, raw[-1][0], cfg, 0.15, 0.08)
     sc = Scenario("runtime", Bounds(-3, -3, 3, 3), raw[0][0], ParkingGoal(raw[-1][0]))
     s = Session(sc, cfg, feedback_config=feedback)
@@ -235,7 +235,7 @@ def test_occupied_goal_remains_invalid_after_safety_reset(cfg):
     s = ready(cfg)
     s.start_run()
     s.advance(.5)
-    s.inject_obstacle(Obstacle("goal_taken", 1.1, 0, .1, .1))
+    s.inject_obstacle(Obstacle("goal_taken", .5, 0, .1, .1))
     finish(s)
     s.reset()
     assert s.plan_sync().status == "GOAL_INVALID"

@@ -1,7 +1,7 @@
 """Phiên làm việc: chỉnh sa bàn, lập đường, xem trước, chạy kín vòng, lái tay.
 
 Máy trạng thái theo tài liệu mục 5.4, thêm COMPLETED (đỗ xong) và MANUAL (lái tay P2). Sơ đồ dưới là nhánh chính;
-đủ các nhánh (RUN_TIMEOUT, dừng ngoài dung sai, va chạm khi phanh, VehicleIO...) ở docs/SO_DO_HE_THONG.md:
+đủ các nhánh (RUN_TIMEOUT, dừng ngoài dung sai, va chạm khi phanh, VehicleIO...) ở docs/KIEN_TRUC.md:
 
     EDITING --plan--> PLANNING --ok--> READY --start--> RUNNING --xong--> COMPLETED
                                --lỗi--> EDITING          |      --va chạm--> FAULT
@@ -15,7 +15,7 @@ tới vòng tìm kiếm/mô phỏng. Kết quả trễ của tác vụ cũ khôn
 Phản hồi giả có thể thêm trễ/nhiễu/mất mẫu; cấu hình mặc định là lý tưởng.
 Đóng phiên ngừng đồng hồ mô phỏng; đây không phải phép thử phanh phần cứng.
 
-Nhánh chạy (24/09/2026, `application/vehicle_link.py`, docs/CHE_DO_QUAN_SAT.md): mặc định SIM là hành vi giai
+Nhánh chạy (24/09/2026, `application/vehicle_link.py`, docs/VAN_HANH.md): mặc định SIM là hành vi giai
 đoạn 0 ở trên, không đổi. `set_vehicle_link()` chọn VEHICLE_IO (lệnh bám quỹ đạo đi qua `VehicleIO`, sự kiện dừng
 của VehicleIO → dừng an toàn) hoặc OBSERVE (tính đường/lệnh và ghi log, không gửi lệnh nào; người lái cầm lái).
 Khi đó `world` là thế giới gương: trạng thái lấy từ telemetry + nguồn tư thế, không tích phân lệnh. Xem trước và
@@ -42,22 +42,21 @@ from pathlib import Path
 
 from autopark.control.tracker import TrackerOutput, TrackerParams, TrajectoryTracker
 from autopark.application.cusp_policy import (AcceptanceCuspRule, CuspCheck, CuspLimit, CuspPolicy, check_cusps,
-                                              read_acceptance_rule, resolve_cusp_limit)
-from autopark.application.layouts import scatter_parked_cars
+                                              read_acceptance_rule, resolve_cusp_limit, SOURCE_MANEUVER)
 from autopark.application.vehicle_link import DriveMode, VehicleLink, VehicleLinkError
 from autopark.domain.computation import ComputationCancelled, ComputationControl, ComputationTimedOut
-from autopark.domain.types import Obstacle, ParkingMode, ParkingSlot, Pose, Scenario, VehicleConfig, clamp
+from autopark.domain.types import Obstacle, Pose, Scenario, VehicleConfig, clamp
 from autopark.evaluation.logger import RunLog
-from autopark.geometry.footprint import CollisionResult, body_polygon, check_pose
+from autopark.geometry.footprint import CollisionResult, check_pose
 from autopark.planning.hybrid_astar import PlannerParams, PlanResult
-from autopark.planning.parking import plan_parking
+from autopark.planning.maneuver_planner import plan_maneuver
+from autopark.planning.maneuver import request_problem, runtime_problem, trajectory_problem
 from autopark.planning.trajectory import Trajectory
 from autopark.simulation.rollout import RolloutResult, RunReport, pose_error, rollout
 from autopark.simulation.world import SimWorld, StepResult
 from autopark.simulation.feedback import FeedbackConfig, SimFeedback
 from autopark.domain.sensors import SafetyEvent, SourceStamp
 
-from shapely.geometry import Polygon
 
 
 class SessionState(str, Enum):
@@ -121,9 +120,9 @@ class Session:
                  tracker_params: TrackerParams | None = None,
                  feedback_config: FeedbackConfig | None = None, *,
                  cusp_policy: CuspPolicy | None = None, acceptance_thresholds: str | Path | None = None):
+        self._require_local_scenario(scenario)
         self.scenario = scenario
         self.cfg = cfg
-        self.scenario.sync_goal(cfg)
         self.planner_params = planner_params or PlannerParams()
         self.tracker_params = tracker_params or TrackerParams()
         self.state = SessionState.EDITING
@@ -173,6 +172,11 @@ class Session:
         self.run_link: VehicleLink | None = None
         self.start_source = "manual"      # T2: điểm xuất phát do người đặt hay lấy từ định vị LiDAR (set_start)
 
+    @staticmethod
+    def _require_local_scenario(scenario: Scenario) -> None:
+        if scenario.maneuver is None or scenario.slot is not None:
+            raise SessionError("Kịch bản phải có giới hạn thao tác gần và đích trực tiếp; không hỗ trợ ô đỗ.")
+
     # ------------------------------------------------------------------ nhánh chạy
     @property
     def drive_mode(self) -> DriveMode:
@@ -210,13 +214,13 @@ class Session:
         # (`set_vehicle`) đưa lại chính kịch bản đang mở: giữ giới hạn đã đọc, không đọc lại tệp ngưỡng.
         new = scenario is not self.scenario
         rule = self._acceptance_rule_for(scenario) if new else self.acceptance_rule
+        self._require_local_scenario(scenario)
         self.scenario = scenario
         self.cfg = cfg
         if new:
             # T2: kịch bản mới mang điểm xuất phát của tệp. Đổi xe giữ nguyên điểm xuất phát nên giữ cả nguồn của nó
             # (sửa 02/10/2026 sau review gộp đợt 2: trước đó đổi xe ghi "manual" cho điểm lấy từ định vị LiDAR).
             self.start_source = "manual"
-        self.scenario.sync_goal(cfg)
         self.log.clear()
         self._invalidate()
         self.acceptance_rule = rule
@@ -242,25 +246,11 @@ class Session:
         if not (source == "manual" and pose == self.scenario.start):
             self.start_source = source        # đặt lại đúng điểm cũ (vd. "Chọn lại vị trí") không đổi nguồn
         self.scenario.start = pose
-        self.scenario.sync_goal(self.cfg)   # đỗ song song chọn hướng theo hướng xe
         self._invalidate()
 
     def set_goal_pose(self, pose: Pose) -> None:
         self._require_editable()
-        self.scenario.slot = None
         self.scenario.goal = replace(self.scenario.goal, pose=pose)
-        self._invalidate()
-
-    def set_slot(self, slot: ParkingSlot) -> None:
-        self._require_editable()
-        self.scenario.slot = slot
-        self.scenario.sync_goal(self.cfg)
-        self._invalidate()
-
-    def set_mode(self, mode: ParkingMode) -> None:
-        self._require_editable()
-        self.scenario.mode = mode
-        self.scenario.sync_goal(self.cfg)
         self._invalidate()
 
     def add_obstacle(self, obstacle: Obstacle | None = None) -> Obstacle:
@@ -291,18 +281,6 @@ class Session:
             raise SessionError(f"Không có vật cản {obstacle_id}")
         self._invalidate()
 
-    def scatter_cars(self, seed: int | None = None) -> None:
-        """Atomically replace parked-car poses and invalidate the old trajectory."""
-        self._require_editable()
-        seed = self.scenario.seed + 1 if seed is None else seed
-        try:
-            obstacles = scatter_parked_cars(self.scenario, self.cfg, seed)
-        except ValueError as exc:
-            raise SessionError(str(exc)) from exc
-        self.scenario.obstacles = obstacles
-        self.scenario.seed = seed
-        self._invalidate()
-
     # ------------------------------------------------------------------ kiểm tra
     def _check_pose(self, pose: Pose, label: str) -> PoseCheck:
         col = check_pose(self.cfg, pose, self.scenario.obstacles, self.scenario.bounds)
@@ -319,15 +297,10 @@ class Session:
     def goal_check(self) -> PoseCheck:
         """Đích không hợp lệ và không tìm được đường là hai kết quả riêng (mục 5.2)."""
         check = self._check_pose(self.scenario.goal.pose, "Đích")
-        if self.scenario.slot is not None and not self.scenario.slot.fits_vehicle(self.cfg):
-            return PoseCheck(False, [*check.reasons, "Ô đỗ nhỏ hơn thân xe"], check.collision)
+        problem = request_problem(self.scenario, self.cfg)
+        if problem:
+            return PoseCheck(False, [*check.reasons, problem], check.collision)
         return check
-
-    def footprint_inside_slot(self, pose: Pose, tolerance: float = 0.01) -> bool | None:
-        if self.scenario.slot is None:
-            return None
-        slot_poly = Polygon(self.scenario.slot.corners()).buffer(tolerance)
-        return slot_poly.contains(body_polygon(self.cfg, pose))
 
     # ------------------------------------------------------------------ lập đường
     def _worker(self) -> ThreadPoolExecutor:
@@ -342,7 +315,7 @@ class Session:
                         control: ComputationControl) -> PlanResult:
         try:
             control.check()
-            return plan_parking(scenario, cfg, planner_params, tracker_params=tracker_params,
+            return plan_maneuver(scenario, cfg, planner_params, tracker_params=tracker_params,
                                 max_run_time=max_run_time, control=control)
         except ComputationCancelled:
             return PlanResult("CANCELLED", "Đã hủy tính đường")
@@ -511,7 +484,11 @@ class Session:
 
     def cusp_limit(self) -> CuspLimit:
         """Giới hạn đổi chiều có hiệu lực (T12): `cusp_policy` (cờ, hàm dựng) gộp với `acceptance_rule`; cờ chỉ siết."""
-        return resolve_cusp_limit(self.cusp_policy, self.acceptance_rule)
+        limit = resolve_cusp_limit(self.cusp_policy, self.acceptance_rule)
+        local = self.scenario.maneuver
+        if local is not None and (limit.policy.max_cusps is None or local.max_cusps <= limit.policy.max_cusps):
+            return replace(limit, policy=replace(limit.policy, max_cusps=local.max_cusps), source=SOURCE_MANEUVER)
+        return limit
 
     def cusp_check(self) -> CuspCheck | None:
         """Số lần đổi chiều của đường đang có so với giới hạn có hiệu lực (`cusp_limit`, T12); None khi chưa có
@@ -530,6 +507,11 @@ class Session:
         if not chk.ok:
             raise SessionError("Không bắt đầu được: " + chk.describe())
         link = self.vehicle_link
+        problem = trajectory_problem(self.scenario, self.cfg, self.trajectory)
+        if problem:
+            if link is not None:
+                link.record_refused_start("START_MANEUVER_LIMIT", problem)
+            raise SessionError("Không bắt đầu được: " + problem)
         limit = self.cusp_limit()
         cusps = check_cusps(self.trajectory, limit.policy, origin=limit.origin)
         if cusps.refused:
@@ -580,6 +562,18 @@ class Session:
             # mô phỏng như nhánh SIM.
             self.run_snapshot["vehicle_link"] = copy.deepcopy(link.describe())
         self.state = SessionState.RUNNING
+
+    def prepare_next_maneuver(self) -> None:
+        """Trả quyền chọn đích cho người lái, giữ tư thế đã dừng và hủy đường cũ."""
+        if self.scenario.maneuver is None:
+            raise SessionError("Kịch bản này không phải thao tác gần")
+        if self.state not in (SessionState.COMPLETED, SessionState.STOPPED):
+            raise SessionError("Chỉ chọn thao tác tiếp theo sau khi xe đã dừng")
+        if self.world is None or not self.world.state.usable() or abs(self.world.state.speed) > self.tracker_params.stop_speed:
+            raise SessionError("Chưa có trạng thái đứng yên hợp lệ")
+        pose = self.world.state.pose
+        self.reset()
+        self.set_start(pose, source=self.start_source)
 
     def _log_session_event(self, t: float, source: str, code: str, message: str, action: str = "STOP") -> None:
         """T13: ghi một quyết định dừng của phiên thành dòng session_stop trong events.csv của lần chạy qua VehicleIO.
@@ -721,6 +715,10 @@ class Session:
         if self.state == SessionState.RUNNING and self.world.time >= self.MAX_RUN_TIME:
             self._stop_outcome = SessionState.FAULT
             self._safety_stop("RUN_TIMEOUT", f"Quá {self.MAX_RUN_TIME:.0f} s mô phỏng mà chưa tới đích")
+        if self.state == SessionState.RUNNING:
+            problem = runtime_problem(self.scenario, self.cfg, self.world.state, self.world.distance, self.PHYSICS_DT)
+            if problem:
+                self._safety_stop(*problem)
         control_tick = self.world.step_count % self.CONTROL_EVERY == 0
         if self.state == SessionState.RUNNING and control_tick and link is not None:
             self._control_through_link(link)

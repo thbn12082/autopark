@@ -1,5 +1,5 @@
 """Ứng dụng và công cụ tự tắt EcoQoS cho chính tiến trình của mình (02/10/2026, người dùng giao quyết định 02/10/2026;
-`autopark/power_throttling.py`, `autopark/ui/process_status.py`; vì sao: docs/CHUYEN_MAY_BAN.md mục 10).
+`autopark/power_throttling.py`, `autopark/ui/process_status.py`; vì sao: docs/VAN_HANH.md).
 
 Mọi test đổi AUTOPARK_KEEP_ECOQOS đều thay lớp Win32 bằng hàm giả (`win32`), để trạng thái thật của tiến trình pytest
 (tests/conftest.py, kiểm ở tests/test_power_throttling.py) không bao giờ bị đổi. Không mở thiết bị; cửa sổ chỉ
@@ -39,17 +39,14 @@ INCLUDED = (
     "ui.app", "ui.lidar_app", "ui.rig_app", "ui.calib_app", "ui.roi_app", "lidar.live_view",
     "rig.bench", "rig.may_moi", "video.camera_bench", "lidar.bench", "lidar.rplidar_c1", "lidar.scan_odometry",
     "lidar.localize", "fusion.demo", "transport.qemu_board",
-    "evaluation.bench", "evaluation.compare", "evaluation.render", "evaluation.hard_cases", "evaluation.phase0",
-    "evaluation.robustness", "evaluation.sensitivity", "evaluation.fault_drill",
+    "evaluation.fault_drill",
     "perception.bev", "perception.export_onnx",
     "ui.overhead_app", "video.overhead_record",
 )
 OFFLINE = "ngoại tuyến, không chạy theo đồng hồ thật"
 EXCLUDED = {
-    "evaluation.ecoqos_gui": "công cụ đo EcoQoS tự đặt EcoQoS theo từng biến thể (gui_system phải là mặc định Windows)",
     "evaluation.score_run": OFFLINE, "evaluation.replay": "phát lại không chạy theo đồng hồ thật",
     "evaluation.dataset_audit": OFFLINE,
-    "evaluation.acceptance_scenarios": "sinh tệp sa bàn nghiệm thu, không chạy planner (thêm 02/10/2026)",
     "evaluation.overhead_ref": "tính tham chiếu R1 từ video đã ghi (T4)", "lidar.map_builder": OFFLINE,
     "lidar.pose_estimator": "định vị lại một bản ghi, không theo đồng hồ thật (T2)",
     "perception.aruco_sheet": "in tờ ArUco (T4)",
@@ -173,7 +170,7 @@ def test_vietnamese_texts_per_level():
         "EcoQoS: đã yêu cầu tắt (không đọc lại được)", "EcoQoS: không áp dụng (không phải Windows)"]
     for name, policy in POLICIES.items():
         text = policy.explain_vi()
-        assert "uturn_w46" in text and "docs/CHUYEN_MAY_BAN.md mục 10" in text, name
+        assert "uturn_w46" in text and "docs/VAN_HANH.md" in text, name
         assert ("AUTOPARK_KEEP_ECOQOS" in text) == (name in ("ok", "warn")), name
         assert ("Đừng thu nhỏ cửa sổ" in text) == (name in ("warn", "danger")), name
         assert policy.cli_line().startswith("CẢNH BÁO") == (name == "danger"), name
@@ -229,14 +226,12 @@ def test_every_main_is_classified():
         if _top_function(ast.parse(path.read_text(encoding="utf-8")), "main") is not None:
             found.add(".".join(path.relative_to(PACKAGE).with_suffix("").parts))
     assert not set(INCLUDED) & set(EXCLUDED)
-    assert len(INCLUDED) == 27 and len(EXCLUDED) == 29
     assert found == set(INCLUDED) | set(EXCLUDED), (f"chưa xếp loại: {sorted(found - set(INCLUDED) - set(EXCLUDED))}; "
                                                   f"không còn main(): {sorted((set(INCLUDED) | set(EXCLUDED)) - found)}")
 
 
 def test_excluded_and_build_window_do_not_apply_policy():
     """ecoqos_gui đo mặc định của Windows (gui_system) qua `ui.app.build_window`: build_window không được đổi EcoQoS."""
-    assert "evaluation.ecoqos_gui" in EXCLUDED
     for module in EXCLUDED:
         assert not _calls(ast.parse(_source(module)), "apply_ecoqos_policy"), module
     checked = []
@@ -262,7 +257,7 @@ def test_own_process_disable_goes_through_the_helper():
             else:
                 offenders.append(f"{path.name}:{call.lineno}")
     assert offenders == []
-    assert {"qemu_board.py", "ecoqos_gui.py"} <= by_pid
+    assert "qemu_board.py" in by_pid
 
 
 class _Halt(BaseException):
@@ -417,57 +412,6 @@ def test_fusion_demo_json_line_carries_the_state(win32, monkeypatch, capsys):
     assert demo.main(["--recording", "khong_co.npz", "--seconds", "1"]) == 0
     lines = capsys.readouterr().out.splitlines()
     assert len(lines) == 1 and json.loads(lines[0])["ecoqos"] == "off"       # stdout vẫn đúng một dòng JSON
-
-
-def test_evaluation_bench_json_carries_the_state(win32, monkeypatch, tmp_path, capsys):
-    from autopark.evaluation import bench
-
-    def fake_case(func, case, cfg, time_limit, do_rollout=True):
-        return bench.CaseResult(case.name, case.difficulty, case.expected, "OK", 0.5, path_ok=True, tracked=True)
-    monkeypatch.setattr(bench, "run_case", fake_case)
-    out = tmp_path / "kq.json"
-    assert bench.main(["--cases", "reverse_long_corridor", "--no-rollout", "--json", str(out)]) == 0
-    data = json.loads(out.read_text(encoding="utf-8"))
-    assert data["ecoqos"] == "off" and [r["name"] for r in data["results"]] == ["reverse_long_corridor"]
-    assert POLICIES["ok"].cli_line() in capsys.readouterr().out.splitlines()
-
-
-# ---------------------------------------------------------------- tiến trình con
-
-class _InlinePool:
-    """ProcessPoolExecutor giả: ghi initializer, chạy nó và mọi việc ngay trong tiến trình test (Win32 đã là giả)."""
-    seen: dict = {}
-
-    def __init__(self, max_workers=None, initializer=None, initargs=()):
-        _InlinePool.seen = {"max_workers": max_workers, "initializer": initializer, "initargs": initargs}
-        initializer(*initargs)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        return False
-
-    def submit(self, fn, *args):
-        future = Future()
-        future.set_result(fn(*args))
-        return future
-
-
-def test_sensitivity_workers_get_policy_initializer_and_rows_carry_state(win32, monkeypatch):
-    from autopark.evaluation import sensitivity as sens
-
-    monkeypatch.setattr(sens, "ProcessPoolExecutor", _InlinePool)
-    monkeypatch.setattr(sens, "evaluate", lambda scene, variant, time_limit, planner: {"scene": scene,
-                                                                                       "variant": variant})
-    tasks = [("sa_ban_a", "goc", 1.0, sens.APP_PLANNER), ("sa_ban_b", "goc", 1.0, sens.APP_PLANNER)]
-    rows = sens._execute(tasks, 2, 7, None)
-    assert _InlinePool.seen["initializer"] is power_throttling.apply_ecoqos_policy
-    assert _InlinePool.seen["initargs"] == ("evaluation.sensitivity:worker",)
-    assert [r["scene"] for r in rows] == ["sa_ban_a", "sa_ban_b"] and all(r["ecoqos"] == "off" for r in rows)
-    assert win32.disable_calls == [None]                    # initializer chạy một lần ở pool giả
-    assert sens._ecoqos_text({"ecoqos": "off", "ecoqos_rows": {"off": 2}}) == "off (từng ca: off ×2)"
-    assert sens._ecoqos_text({}) == "—"                     # ket_qua.json ghi trước 02/10/2026
 
 
 @pytest.mark.parametrize("keep", [None, "1"], ids=["mac_dinh", "giu_mac_dinh"])

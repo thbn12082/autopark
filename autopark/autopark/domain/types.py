@@ -200,24 +200,15 @@ class ParkingMode(str, Enum):
     HEAD_IN = "head_in"         # tiến vào ô, đầu xe hướng vào đáy ô
     PARALLEL = "parallel"       # đỗ song song: xe nằm dọc theo trục ô
 
-    @property
-    def label(self) -> str:
-        return {"reverse_in": "Lùi vào ô", "head_in": "Tiến vào ô", "parallel": "Đỗ song song"}[self.value]
-
-
 @dataclass(frozen=True)
 class ParkingSlot:
-    """Khung ô đỗ người dùng kéo/xoay. Trục x của ô hướng từ cửa ô vào đáy ô."""
+    """Hình học ô trong dữ liệu lịch sử dùng để chấm kết quả đã ghi."""
 
     cx: float
     cy: float
     yaw: float
     length: float   # m, theo trục x của ô
     width: float    # m, theo trục y của ô
-
-    def fits_vehicle(self, cfg: VehicleConfig) -> bool:
-        """Ở tư thế đích, trục dọc xe song song trục dọc ô trong cả ba kiểu đỗ."""
-        return self.length >= cfg.length and self.width >= cfg.width
 
     def axis(self) -> tuple[float, float]:
         return (math.cos(self.yaw), math.sin(self.yaw))
@@ -263,13 +254,6 @@ class ParkingSlot:
         if slot.length <= 0 or slot.width <= 0:
             raise ValueError("Ô đỗ phải có length và width > 0")
         return slot
-
-    @classmethod
-    def default_for(cls, cfg: "VehicleConfig", cx: float, cy: float, yaw: float, mode: ParkingMode) -> "ParkingSlot":
-        if mode == ParkingMode.PARALLEL:
-            return cls(cx, cy, yaw, cfg.length * 1.6, cfg.width + 0.10)
-        return cls(cx, cy, yaw, cfg.length + 0.20, cfg.width + 0.20)
-
 
 @dataclass(frozen=True)
 class Bounds:
@@ -333,7 +317,7 @@ class ParkingGoal:
 
 
 # Trường "acceptance" của tệp kịch bản (thêm 02/10/2026, T12 theo kịch bản): sa bàn dựng cho kịch bản nghiệm thu nào của
-# docs/KICH_BAN_NGHIEM_THU.md mục 4. Planner, mô phỏng và bộ bám không đọc trường này; chỉ
+# docs/KIEM_THU_VA_LO_TRINH.md. Planner, mô phỏng và bộ bám không đọc trường này; chỉ
 # application/cusp_policy.py đổi nó thành giới hạn số lần đổi chiều lúc Bắt đầu đỗ.
 ACCEPTANCE_CODE_RE = re.compile(r"[A-Z]{2}-\d+")           # cùng dạng mã với CODE_RE của evaluation/score_run.py
 ACCEPTANCE_VARIANT_RE = re.compile(r"[a-z0-9_]{0,16}")     # a, b, c, do, dung, p3
@@ -348,7 +332,7 @@ class AcceptanceTag:
 
     def __post_init__(self) -> None:
         if not isinstance(self.code, str) or not ACCEPTANCE_CODE_RE.fullmatch(self.code):
-            raise ValueError(f"acceptance.code {self.code!r} phải có dạng DO-1 (mã của KICH_BAN_NGHIEM_THU.md mục 4)")
+            raise ValueError(f"acceptance.code {self.code!r} phải có dạng DO-1 (mã của KIEM_THU_VA_LO_TRINH.md)")
         if not isinstance(self.variant, str) or not ACCEPTANCE_VARIANT_RE.fullmatch(self.variant):
             raise ValueError(f"acceptance.variant {self.variant!r} chỉ gồm chữ thường không dấu, số, gạch dưới, tối đa "
                              "16 ký tự")
@@ -365,6 +349,33 @@ class AcceptanceTag:
         if not isinstance(d, dict) or "code" not in d or set(d) - {"code", "variant"}:
             raise ValueError("acceptance phải là object {code, variant}; variant tùy chọn")
         return cls(d["code"], d.get("variant", ""))
+
+
+@dataclass(frozen=True)
+class ManeuverLimits:
+    """Giới hạn một thao tác gần; mét trên sa bàn, chưa phải ngưỡng xe thật."""
+
+    max_goal_distance_m: float = 0.70
+    area_half_extent_m: float = 0.75
+    max_path_length_m: float = 1.40
+    max_cusps: int = 3
+
+    def __post_init__(self) -> None:
+        for key in ("max_goal_distance_m", "area_half_extent_m", "max_path_length_m"):
+            value = getattr(self, key)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+                raise ValueError(f"maneuver.{key} phải là số hữu hạn > 0")
+        if type(self.max_cusps) is not int or self.max_cusps < 0:
+            raise ValueError("maneuver.max_cusps phải là số nguyên ≥ 0")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {key: getattr(self, key) for key in self.__dataclass_fields__}
+
+    @classmethod
+    def from_dict(cls, d: Any) -> "ManeuverLimits":
+        if not isinstance(d, dict) or set(d) - set(cls.__dataclass_fields__):
+            raise ValueError("maneuver phải là object chứa các giới hạn thao tác gần")
+        return cls(**d)
 
 
 @dataclass
@@ -390,6 +401,7 @@ class Scenario:
     seed: int = 0
     notes: str = ""
     acceptance: AcceptanceTag | None = None                    # kịch bản nghiệm thu (T12 theo kịch bản)
+    maneuver: ManeuverLimits | None = field(default_factory=ManeuverLimits)  # None chỉ dành cho dữ liệu lịch sử
 
     def sync_goal(self, cfg: VehicleConfig) -> Pose:
         """Cập nhật goal.pose từ ô đỗ (nếu có) và trả về tư thế đích."""
@@ -428,6 +440,8 @@ class Scenario:
             data["mode"] = self.mode.value
         if self.acceptance is not None:
             data["acceptance"] = self.acceptance.to_dict()
+        if self.maneuver is not None:
+            data["maneuver"] = self.maneuver.to_dict()
         return data
 
     @classmethod
@@ -459,6 +473,7 @@ class Scenario:
             seed=int(d.get("seed", 0)),
             notes=str(d.get("notes", "")),
             acceptance=None if d.get("acceptance") is None else AcceptanceTag.from_dict(d["acceptance"]),
+            maneuver=None if d.get("maneuver") is None else ManeuverLimits.from_dict(d["maneuver"]),
         )
 
 

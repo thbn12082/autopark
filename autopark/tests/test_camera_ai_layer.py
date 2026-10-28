@@ -164,7 +164,7 @@ def test_car_body_and_margin_never_become_obstacles():
     for m in (wide, narrow):
         assert not ((m.filtered_states() == OCCUPIED) & m.ego.contains(xv, yv)).any()
     # lề rộng che mặt hộp hướng về camera; phần sau của hộp bị chính mặt đó che nên cũng không thành vật cản: vật nằm
-    # trong lề quanh xe là VÔ HÌNH với nguồn AI (giới hạn ghi ở docs/AI_DIEU_KHIEN_XE.md)
+    # trong lề quanh xe là VÔ HÌNH với nguồn AI (giới hạn ghi ở docs/KIEN_TRUC.md)
     assert (wide.filtered_states() == OCCUPIED).sum() < (narrow.filtered_states() == OCCUPIED).sum()
 
 
@@ -223,7 +223,7 @@ WALLS = (SyntheticBox(-0.05, 0.25, -0.40, -0.12, 0.15), SyntheticBox(-0.05, 0.25
 
 @pytest.mark.parametrize("start, seen", [
     (Pose(1.5125, 1.0125, 0.0), True), (Pose(1.23, 0.87, 0.4), True), (Pose(1.31, 1.04, -0.9), True),
-    # giới hạn đã biết (docs/AI_DIEU_KHIEN_XE.md mục 9): xe thẳng lưới, mặt tường đúng ở biên lề 5 cm nằm trong ô 5 cm
+    # giới hạn đã biết (docs/KIEN_TRUC.md): xe thẳng lưới, mặt tường đúng ở biên lề 5 cm nằm trong ô 5 cm
     # chạm vùng lề nên bị che; phần sau của tường bị chính mặt đó che → AI không thấy tường. Chỉ LiDAR bảo vệ ở đó.
     (Pose(0.5, 1.0, 0.0), False),
 ])
@@ -427,14 +427,14 @@ def test_rig_that_cannot_be_loaded_is_refused_with_the_file_problems(tmp_path):
     assert not missing.cameras
     assert problem_heads(missing.problems) == ["chưa có nội tham của p1, p2", f"chưa có tệp ngoại tham đã đo {extrinsics}",
                                                "chưa có ROI của p1, p2"]
-    assert "HIEU_CHUAN_CAMERA" in missing.problems[0] and "NGOAI_THAM_VA_ROI.md mục 1" in missing.problems[1]
-    assert "NGOAI_THAM_VA_ROI.md mục 6" in missing.problems[2] and "Errno" not in " ".join(missing.problems)
+    assert "#noi-tham" in missing.problems[0] and "PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham" in missing.problems[1]
+    assert "PHAN_CUNG_VA_HIEU_CHUAN.md#roi" in missing.problems[2] and "Errno" not in " ".join(missing.problems)
     broken = tmp_path / "hong.json"
     broken.write_text("{không phải json", encoding="utf-8")                  # tệp có mà hỏng: lỗi đọc của bev
     assert any("không đọc được tệp ngoại tham" in p for p in camera_ai.load_camera_rig([1], SIZE, extrinsics=broken,
                                                                                         calibration_dir=tmp_path).problems)
     no_intrinsics = real_rig(tmp_path, "thieu_noi_tham", ports=(1, 2), intrinsics_ports=(1,))
-    assert any("cam_p2.json" in p and "HIEU_CHUAN_CAMERA" in p for p in no_intrinsics.problems)
+    assert any("cam_p2.json" in p and "#noi-tham" in p for p in no_intrinsics.problems)
     assert any(p.startswith("chưa có ROI của p2") for p in no_intrinsics.problems)   # thiếu nội tham kể cả ROI thiếu
     paths = write_real_rig(tmp_path / "thieu_cong", (1,))
     not_in_file = camera_ai.load_camera_rig([1, 3], SIZE, **paths)

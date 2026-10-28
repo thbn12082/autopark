@@ -1,4 +1,4 @@
-"""AI camera → vật cản trên sa bàn: nguồn vật cản thứ hai bên cạnh LiDAR (25/09/2026, docs/AI_DIEU_KHIEN_XE.md).
+"""AI camera → vật cản trên sa bàn: nguồn vật cản thứ hai bên cạnh LiDAR (25/09/2026, docs/KIEN_TRUC.md).
 
 Mỗi lô AI MỚI của bàn thử (`rig.core.AIResult`: P(BLOCKED) từng camera ở cỡ hiển thị + stamp từng khung) đi qua:
 
@@ -14,7 +14,7 @@ Mỗi lô AI MỚI của bàn thử (`rig.core.AIResult`: P(BLOCKED) từng came
    Ngoại lệ duy nhất: rig TỔNG HỢP (`synthetic_camera_rig`: camera ảo của `bev.synthetic_rig`) chỉ để thử với bản ghi
    phát lại hay nguồn giả (`source_kind` "replay"/"fake"); nó luôn mang ghi chú TỔNG HỢP, và bị TỪ CHỐI với camera thật
    (`source_kind` "live").
-2. **BEV** bằng `bev.build_bev` (quy tắc ở docs/BEV.md mục 2), hộp thân xe = hộp `vehicle_assumed` của tệp rig gộp với
+2. **BEV** bằng `bev.build_bev` (quy tắc ở docs/KIEN_TRUC.md), hộp thân xe = hộp `vehicle_assumed` của tệp rig gộp với
    thân xe của phiên nới `mask_margin`: ô BEV dưới đó luôn UNKNOWN (loại CAT_EGO khi xem).
 3. **Hệ xe → hệ bản đồ, bảo thủ.** Costmap hệ xe được đặt vào lưới sa bàn theo tư thế xe (hay tư thế camera cố định
    trên bàn): mỗi ô bản đồ lấy mẫu 3 × 3 điểm; OCCUPIED nếu có điểm rơi vào ô OCCUPIED của BEV, FREE chỉ khi mọi điểm FREE.
@@ -33,7 +33,7 @@ Mỗi lô AI MỚI của bàn thử (`rig.core.AIResult`: P(BLOCKED) từng came
 5. **Lớp** `fusion.layers.CameraSemanticLayer` (hệ bản đồ) giữ kết quả; stamp = khung CŨ NHẤT được dùng trong lô mới
    nhất; tuổi quá `max_age_s` thì lớp không tươi (ngăn camera xử lý chuyện dừng xe, ui/camera_dock.py).
 
-Ngưỡng: ngưỡng an toàn 0,15 của HUAN_LUYEN.md mục 10 là quy tắc "pixel là vật cản khi P(BLOCKED) ≥ 0,15" (chọn trên val
+Ngưỡng: ngưỡng an toàn 0,15 của docs/DU_LIEU_VA_GIAY_PHEP.md là quy tắc "pixel là vật cản khi P(BLOCKED) ≥ 0,15" (chọn trên val
 WoodScape theo F2). Nguồn vật cản chỉ dùng ô OCCUPIED, nên ở đây nó thành `t_blocked` = 0,15 (ĐỀ XUẤT – CHỜ CHỐT);
 `t_free` (0,05) không đổi tập OCCUPIED (test kiểm) và FREE của camera không được planner dùng. Mặc định của BEV (t_free
 0,15 / t_blocked 0,50) giữ nguyên cho lệnh `bev` — ở đó 0,15 là ngưỡng FREE; dùng nguyên như thế ở đây thì ngưỡng an toàn
@@ -45,7 +45,7 @@ hình chữ nhật vật cản: FREE của camera không có tác dụng gì lê
 
 Giấy phép: mô hình AI huấn luyện trên WoodScape (`bev.WOODSCAPE_ATTRIBUTION`, `bev.WOODSCAPE_LICENCE_NOTE`). Dùng nó trong
 vòng điều khiển là quyết định 25/09/2026 của người làm khóa luận; Valeo chưa xác nhận cách đọc điều khoản
-(docs/GIAY_PHEP_DU_LIEU.md).
+(docs/DU_LIEU_VA_GIAY_PHEP.md).
 
 Mức bằng chứng: chỉ kiểm bằng rig tổng hợp, nguồn giả và bản ghi phát lại của nguồn giả (tests/test_camera_ai_layer.py,
 tests/test_camera_dock_ui.py). CHƯA THỬ trên camera thật: chưa camera nào được hiệu chuẩn nên trên bàn thật mọi lô đều
@@ -74,7 +74,7 @@ from autopark.perception.costmap import FREE, OCCUPIED, UNKNOWN, GridSpec, to_co
 from .layers import MAP_FRAME, CameraSemanticLayer
 
 # ---- tham số (mọi số là ĐỀ XUẤT – CHỜ CHỐT, chưa kiểm trên sa bàn) ---------------------------------------------------
-AI_T_BLOCKED = 0.15        # ngưỡng an toàn HUAN_LUYEN.md mục 10: P(BLOCKED) ≥ 0,15 → pixel vật cản → ô OCCUPIED
+AI_T_BLOCKED = 0.15        # ngưỡng an toàn docs/DU_LIEU_VA_GIAY_PHEP.md: P(BLOCKED) ≥ 0,15 → pixel vật cản → ô OCCUPIED
 AI_T_FREE = 0.05           # không ảnh hưởng tới vật cản; chỉ để BEV có đủ ba mức khi xem
 AI_WINDOW = 3              # lọc thời gian: số lô AI gần nhất ...
 AI_MIN_HITS = 2            # ... ô phải OCCUPIED ở ít nhất chừng này lô
@@ -155,7 +155,7 @@ def load_camera_rig(ports, size=(640, 480), *, extrinsics=DEFAULT_EXTRINSICS, ca
 
 def missing_calibration_files(ports, size=(640, 480), *, extrinsics=DEFAULT_EXTRINSICS,
                               calibration_dir=DEFAULT_CALIBRATION_DIR, roi_dir=DEFAULT_ROI_DIR) -> list[str]:
-    """Tệp hiệu chuẩn CHƯA CÓ của các cổng `ports`, theo đúng trình tự làm (docs/AI_DIEU_KHIEN_XE.md mục 3): nội tham →
+    """Tệp hiệu chuẩn CHƯA CÓ của các cổng `ports`, theo đúng trình tự làm (docs/KIEN_TRUC.md): nội tham →
     ngoại tham → ROI; mỗi dòng nêu bước và tài liệu. Rỗng khi đủ tệp (tệp có mà hỏng thì `bev.load_rig` báo)."""
     from autopark.perception.fisheye_calib import default_output_path
 
@@ -166,14 +166,14 @@ def missing_calibration_files(ports, size=(640, 480), *, extrinsics=DEFAULT_EXTR
     if no_intr:
         pattern = Path(calibration_dir) / default_output_path(0, (width, height)).name.replace("p0", "p<cổng>", 1)
         lines.append(f"chưa có nội tham của {', '.join(no_intr)} ({pattern}, {width}×{height}) — bước 1: hiệu chuẩn "
-                     f"theo docs/HIEU_CHUAN_CAMERA.md")
+                     f"theo docs/PHAN_CUNG_VA_HIEU_CHUAN.md#noi-tham")
     if not Path(extrinsics).is_file():
         lines.append(f"chưa có tệp ngoại tham đã đo {Path(extrinsics)} — bước 2, sau nội tham: đo theo "
-                     f"docs/NGOAI_THAM_VA_ROI.md mục 1–5")
+                     f"docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham")
     no_roi = [f"p{p}" for p in ports if not (Path(roi_dir) / f"roi_p{p}.png").is_file()]
     if no_roi:
         lines.append(f"chưa có ROI của {', '.join(no_roi)} ({Path(roi_dir) / 'roi_p<cổng>.png'}) — bước 3: dựng theo "
-                     f"docs/NGOAI_THAM_VA_ROI.md mục 6")
+                     f"docs/PHAN_CUNG_VA_HIEU_CHUAN.md#roi")
     return lines
 
 
@@ -451,7 +451,7 @@ class CameraObstacleMapper:
     def update(self, result, vehicle_pose: Pose, now: float) -> MapperUpdate:
         """Xét lô AI mới nhất (`AIResult` hay None). Lô đã xét rồi (cùng `batch_id`) thì không làm gì và trả kết quả lần
         trước với `processed` = False. `vehicle_pose`: tư thế xe — hay chỗ đặt camera cố định — trong hệ bản đồ, dùng cho
-        CẢ lô (không nội suy theo thời điểm chụp; sai số = tốc độ xe × tuổi lô, xem docs/AI_DIEU_KHIEN_XE.md)."""
+        CẢ lô (không nội suy theo thời điểm chụp; sai số = tốc độ xe × tuổi lô, xem docs/KIEN_TRUC.md)."""
         if result is None or result.batch_id == self.last_batch_id:
             self.last.processed = False
             if self.static_reasons and not self.last.reasons:

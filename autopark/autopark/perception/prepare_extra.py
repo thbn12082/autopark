@@ -206,7 +206,7 @@ def prepare_avm(args) -> int:
         "author_split_rejected": ("train_db.txt/test_db.txt chia ngẫu nhiên theo khung hình: 62,8 % ảnh train có "
                                   "khung liền kề trong test, 3.181 khối liên tục trên 6.763 ảnh. Ở đây chia theo khối "
                                   f"{args.chunk} khung liên tiếp và công bố phép đo rò rỉ."),
-        "licence_note": "Kho gốc KHÔNG có tuyên bố giấy phép; tác giả giữ toàn quyền. Xem docs/GIAY_PHEP_DU_LIEU.md.",
+        "licence_note": "Kho gốc KHÔNG có tuyên bố giấy phép; tác giả giữ toàn quyền. Xem docs/DU_LIEU_VA_GIAY_PHEP.md.",
     }, hashlib.sha256(b"avm_to_project_v1").hexdigest())
     report(statistics, grouping)
     return 0

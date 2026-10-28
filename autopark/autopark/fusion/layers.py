@@ -481,7 +481,7 @@ class NearFieldLayer(MapLayer):
     `required_sensors` mặc định rỗng và CHƯA NÊN BẬT với giao thức v1: bit mặt nạ 0 vừa là "không có vật trong tầm"
     vừa là "lỗi cảm biến", nên một ToF bắt buộc nhìn vào khoảng trống sẽ làm lớp không hợp lệ (lớp bắt buộc → chặn cả
     bản đồ; lớp tùy chọn → mất cung của ToF khác). Chỉ có nghĩa khi giao thức phân biệt được hai trường hợp (mặt nạ sức
-    khỏe riêng, ĐỀ XUẤT – CHỜ CHỐT trong docs/GIAO_THUC_XE.md mục 12)."""
+    khỏe riêng, ĐỀ XUẤT – CHỜ CHỐT trong docs/PHAN_CUNG_VA_HIEU_CHUAN.md)."""
 
     def __init__(self, grid: GridSpec, mounts: dict[str, NearFieldMount], *, max_age_s: float = 0.3,
                  name: str = "near_field", required: bool = False, required_sensors: Iterable[str] = ()):

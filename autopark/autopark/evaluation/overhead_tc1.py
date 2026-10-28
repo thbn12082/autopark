@@ -1,4 +1,4 @@
-"""TC-1 (docs/KICH_BAN_NGHIEM_THU.md mục 3.7): kiểm tham chiếu trên cao R1 bằng "xe giả" đứng yên, so với R2 — hai đầu
+"""TC-1 (docs/KIEM_THU_VA_LO_TRINH.md): kiểm tham chiếu trên cao R1 bằng "xe giả" đứng yên, so với R2 — hai đầu
 một thước thẳng cứng ≥ 0,65 m gắn trên xe giả, đo bằng thước thép từ các cạnh sa bàn. Thêm 02/10/2026.
 
     .venv\\Scripts\\python.exe -X utf8 -m autopark.evaluation.overhead_ref tc1 --floor docs\\evidence\\nghiem_thu\\mat_san_<ngay>.json --markers configs\\tham_chieu\\xe_gia_v1.json --poses docs\\evidence\\tc1_<ngay>.csv --kind full --out docs\\evidence\\nghiem_thu\\tham_chieu_tren_cao_<ngay>.json
@@ -25,7 +25,7 @@ thật (khớp mặt sàn, cấu hình marker, và cờ `synthetic` trong JSON c
 `reference_pose.ACCURACY_KEYS` để chép nguyên vào tệp tham chiếu; là CẬN TRÊN (sai số R2 ± 3–5 mm mỗi điểm cộng vào).
 TC-1 tĩnh: không đo nhòe chuyển động, màn trập cuộn, độ trễ ghi. `usable_for`: R1 dùng được cho kiểm nào theo quy tắc 3
 (ngưỡng / reference_ratio của configs/nguong_nghiem_thu.json; kiểm thân xe tính thêm cánh tay đòn tới góc thân xe như
-score_run; N-L1, N-L2, N-L3, N-L5 lấy từ bảng của docs/NGUONG_NGHIEM_THU_DE_XUAT.md vì tệp ngưỡng chỉ nhận mã của
+score_run; N-L1, N-L2, N-L3, N-L5 lấy từ bảng của docs/KIEM_THU_VA_LO_TRINH.md vì tệp ngưỡng chỉ nhận mã của
 score_run). **Chép độ chính xác** sang một lần chạy: xem `accuracy_for_track` (luật chặt, thà null còn hơn lạc quan).
 
 Ngưỡng ĐỀ XUẤT – CHỜ CHỐT (người dùng giao quyết định 02/10/2026). Mới kiểm trên ảnh TỔNG HỢP; CHƯA THỬ với camera thật.
@@ -72,7 +72,7 @@ Z_MATCH_M = 0.005
 DEFAULT_VEHICLE = PROJECT / "configs" / "vehicle_default.json"
 POSITION_CHECKS = ("N-D1", "N-P2", "N-P3", "N-P5c", "N-P6", "N-P7", "N-P8")
 # N-L* (định vị) không nằm trong configs/nguong_nghiem_thu.json (score_run chỉ nhận mã LIMIT_PARAMS): bảng chép từ
-# docs/NGUONG_NGHIEM_THU_DE_XUAT.md (N-L1 lớn nhất 3 cm, N-L2 lớn nhất 2°, N-L3 6 cm / 4°, N-L5 4 cm / 3°).
+# docs/KIEM_THU_VA_LO_TRINH.md (N-L1 lớn nhất 3 cm, N-L2 lớn nhất 2°, N-L3 6 cm / 4°, N-L5 4 cm / 3°).
 NGUONG_L = (("N-L1", 0.03, None), ("N-L2", None, 2.0), ("N-L3", 0.06, 4.0), ("N-L5", 0.04, 3.0))
 NOTES = ["TC-1 cho cận trên (sai số R2 ±3-5 mm cộng vào)", "TC-1 tĩnh: không đo nhòe chuyển động, màn trập cuộn, trễ ghi"]
 TC1_THRESHOLDS = {"min_poses": dict(MIN_POSES), "min_headings": MIN_HEADINGS, "heading_gap_deg": HEADING_GAP_DEG,
@@ -290,7 +290,7 @@ def usable_for(accuracy: dict, thresholds, cfg) -> list[dict]:
                               "yaw_deg": None if yaw_limit is None else yaw_limit / ratio},
                     "value": {"pos_m": pos, "yaw_deg": yaw}, "unit": "m, °",
                     "ok": None if None in ok else all(ok),
-                    "why": "; ".join(parts) + " (bảng N-L của docs/NGUONG_NGHIEM_THU_DE_XUAT.md)"})
+                    "why": "; ".join(parts) + " (bảng N-L của docs/KIEM_THU_VA_LO_TRINH.md)"})
     return out
 
 

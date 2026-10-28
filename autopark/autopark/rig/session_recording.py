@@ -1,4 +1,4 @@
-"""Ghi bốn camera + LiDAR TRONG PHIÊN ĐỖ XE (T3 ở docs/KICH_BAN_NGHIEM_THU.md), cùng đồng hồ perf_counter với log VehicleIO
+"""Ghi bốn camera + LiDAR TRONG PHIÊN ĐỖ XE (T3 ở docs/KIEM_THU_VA_LO_TRINH.md), cùng đồng hồ perf_counter với log VehicleIO
 và dấu đồng bộ T14. Không dùng Qt: `ui/record_dock.py` là phần giao diện, cửa sổ `ui.lidar_app` là chủ (`RecordingHost`).
 
 Không gửi gì tới bo, không yêu cầu dừng xe, không chặn Bắt đầu đỗ, không mở thiết bị nào: chỉ gắn vào các nguồn mà ngăn AI

@@ -31,7 +31,7 @@ Cách làm:
 Giới hạn (24/09/2026): bản đồ chỉ giữ ô chứ không giữ điểm, nên mỗi bức tường có thể lệch tới ±½ ô so với vị trí
 thật; độ lệch chuẩn Hessian chỉ phản ánh nhiễu khớp, không phản ánh sai số bản đồ, nên thường lạc quan và chỉ dùng
 để phát hiện hướng suy biến (hành lang). Mọi ngưỡng chấp nhận là giá trị tạm, CHƯA CHỐT: chưa có tham chiếu độc lập
-(thước dây, các lần đặt hộp) để chốt. Xem docs/DINH_VI_LIDAR.md.
+(thước dây, các lần đặt hộp) để chốt. Xem docs/DU_LIEU_VA_GIAY_PHEP.md.
 """
 from __future__ import annotations
 

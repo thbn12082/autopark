@@ -17,7 +17,7 @@
   cửa sổ ẩn và QFontMetrics (Segoe UI 13 px đậm), chưa nhìn trên màn hình thật: ở cửa sổ mặc định 1600×900 ô rộng 557 px
   (541 px cho chữ), còn dải chữ kiểu cũ (ghi chú ở cuối) dài 613 px, nên phần cuối — tuổi kết quả — bị cắt mất im lặng.
 - Chọn mô hình (mọi `runs/*/best.pt`, lượt nền WoodScape đứng đầu), kéo ngưỡng (0,50 là argmax, 0,15 là ngưỡng an toàn
-  chọn trên val — HUAN_LUYEN.md mục 10), bật/tắt AI, bật/tắt lớp tô, đặt lại số đo.
+  chọn trên val — docs/DU_LIEU_VA_GIAY_PHEP.md), bật/tắt AI, bật/tắt lớp tô, đặt lại số đo.
 - "Chụp bộ ảnh" lưu ảnh gốc cả bốn camera, xác suất, ảnh tô, vòng LiDAR và siêu dữ liệu (nguồn: bộ AI đồng bộ hay khung
   mới nhất không đồng bộ, tuổi từng khung lúc chụp, độ lệch) vào `runs/rig_snapshots/` — để thu ảnh sa bàn gán nhãn.
   `source: "ai_set"` chỉ nói lần chụp theo kết quả AI hiện hành; nguồn của TỪNG ảnh ở `cameras[<cổng>].frame_from`:
@@ -27,7 +27,7 @@
 - Bảng số đo: số trực tiếp trên cửa sổ mẫu gần nhất (ghi rõ trên bảng). Số đo có hồ sơ thì dùng
   `python -m autopark.rig.bench` (không có giao diện tranh CPU).
 - "Ghi phiên" (từ 24/09): bật/tắt việc ghi mọi khung tốt, sự kiện khung hỏng và vòng LiDAR vào
-  `--record-root`/<giờ>/ (docs/GHI_PHAT_LAI_BAN_THU.md). Tắt thì ngừng nhận ngay, phần còn trong hàng đợi được ghi nốt
+  `--record-root`/<giờ>/ (docs/VAN_HANH.md). Tắt thì ngừng nhận ngay, phần còn trong hàng đợi được ghi nốt
   ở nền; bảng số đo ghi trạng thái, số khung bị bỏ và LỖI GHI (đĩa đầy…) bằng chữ, không âm thầm. Trong lúc ghi nốt
   nút bị làm mờ (một bản ghi chưa xong tại một thời điểm); đóng cửa sổ thì chờ ghi nốt xong.
 - `--replay <thư mục>`: chạy cả giao diện từ một phiên đã ghi, không mở thiết bị nào; tiêu đề và bảng số đo ghi "PHÁT LẠI",

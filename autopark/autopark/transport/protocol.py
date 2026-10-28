@@ -1,4 +1,4 @@
-"""Giao thức laptop ↔ ESP32-S3 phiên bản 1: mã hóa, giải mã và bộ tách khung (đặc tả: docs/GIAO_THUC_XE.md).
+"""Giao thức laptop ↔ ESP32-S3 phiên bản 1: mã hóa, giải mã và bộ tách khung (đặc tả: docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
 
 Khung trên dây: ``COBS(thông điệp ‖ CRC) ‖ 0x00``. CRC là CRC-16/CCITT-FALSE (đa thức 0x1021, khởi tạo 0xFFFF,
 không đảo bit, không XOR cuối) tính trên toàn bộ thông điệp, ghi little-endian. Mọi số nguyên trong thông điệp là

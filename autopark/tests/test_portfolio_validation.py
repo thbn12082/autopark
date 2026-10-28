@@ -5,7 +5,7 @@ from dataclasses import replace
 
 from autopark.control.tracker import TrackerParams
 from autopark.domain.types import VehicleState
-from autopark.planning import parking, portfolio
+from autopark.planning import maneuver_planner, portfolio
 from autopark.planning.hybrid_astar import PlanResult
 from autopark.planning.trajectory import build_trajectory
 from autopark.simulation.rollout import RolloutResult, RunReport
@@ -60,7 +60,7 @@ def test_parking_uses_scenario_tolerances(monkeypatch, scenario, cfg):
         return PlanResult("NO_PATH", "test")
 
     monkeypatch.setattr(portfolio, "plan", plan)
-    parking.plan_parking(scenario, cfg)
+    maneuver_planner.plan_maneuver(scenario, cfg)
     p = captured["params"]
     assert p.accept_xy == scenario.goal.tolerance_xy
     assert p.accept_yaw == scenario.goal.tolerance_yaw
@@ -76,7 +76,7 @@ def test_parking_verifies_with_the_controller_used_for_execution(monkeypatch, sc
 
     monkeypatch.setattr(portfolio, "plan", plan)
     tracker = TrackerParams(k_lateral=0.5)
-    parking.plan_parking(scenario, cfg, tracker_params=tracker, max_run_time=30.0)
+    maneuver_planner.plan_maneuver(scenario, cfg, tracker_params=tracker, max_run_time=30.0)
     assert captured["params"].tracker_params == tracker
     assert captured["params"].verify_max_time == 30.0
 
@@ -113,7 +113,7 @@ def test_fewer_cusps_wins_between_verified_acceptable_paths(monkeypatch, scenari
 @pytest.mark.parametrize("tolerance,expected", [(.10, "OK"), (.05, "TRACKING_FAILED")])
 def test_real_rollout_uses_acceptance_tolerance_and_preserves_failed_path(cfg, tolerance, expected):
     from autopark.domain.types import Bounds, Pose
-    raw = [(Pose(.5 + i * .02, 1, 0), 1, 0) for i in range(51)]
+    raw = [(Pose(.5 + i * .02, 1, 0), 1, 0) for i in range(16)]
     trajectory = build_trajectory(raw, raw[-1][0], cfg, .15, .08)
     def candidate(*args, **kwargs):
         return PlanResult("OK", "reference offset path", trajectory)

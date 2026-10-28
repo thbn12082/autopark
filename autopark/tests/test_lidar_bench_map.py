@@ -52,7 +52,7 @@ def test_bench_analysis_passes_on_a_box_at_the_expected_place(tmp_path):
                                 "error_within_30mm": True, "direction_within_5deg": True}
     assert result["passed"] is True
     png = render_placement(recording, tmp_path / "p01_truoc_1m.png", 1.0, 0.0)
-    assert png.exists() and cv2.imread(str(png)).shape == (700, 700, 3)
+    assert png.exists() and cv2.imdecode(np.frombuffer(png.read_bytes(), np.uint8), cv2.IMREAD_COLOR).shape == (700, 700, 3)
 
 
 def test_bench_analysis_fails_when_the_box_is_elsewhere(tmp_path):

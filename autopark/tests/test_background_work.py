@@ -55,7 +55,7 @@ def test_cancel_then_replan_uses_one_worker_and_discards_old_result(monkeypatch,
             with lock:
                 active -= 1
 
-    monkeypatch.setattr(session_module, "plan_parking", plan)
+    monkeypatch.setattr(session_module, "plan_maneuver", plan)
     try:
         session.plan_async()
         assert first_entered.wait(1)
@@ -93,7 +93,7 @@ def test_cancel_signals_running_planner_and_close_blocks_new_work(monkeypatch, s
         assert control.cancel_event.wait(2)
         control.check()
 
-    monkeypatch.setattr(session_module, "plan_parking", plan)
+    monkeypatch.setattr(session_module, "plan_maneuver", plan)
     session.plan_async()
     future = session._plan_future
     assert entered.wait(1)
@@ -109,7 +109,7 @@ def test_planner_exception_recovers_session(monkeypatch, session, async_mode):
     def broken(*args, **kwargs):
         raise RuntimeError("diagnostic failure")
 
-    monkeypatch.setattr(session_module, "plan_parking", broken)
+    monkeypatch.setattr(session_module, "plan_maneuver", broken)
     if async_mode:
         session.plan_async()
         session._plan_future.result(timeout=1)

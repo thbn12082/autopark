@@ -11,7 +11,7 @@ thu đó trong configs/nguong_nghiem_thu.json (N-D6 (b), ĐỀ XUẤT – CHỜ 
 `--max-cusps` chỉ siết thêm. Tệp ngưỡng không cho được giới hạn thì báo lỗi và thoát mã 2, trước khi mở cửa sổ.
 
 EcoQoS (02/10/2026, autopark/power_throttling.py): `main()` tự tắt EcoQoS cho tiến trình này trước mọi việc khác (cửa sổ
-thu nhỏ làm lập đường hết hạn, docs/CHUYEN_MAY_BAN.md mục 10) và hiện trạng thái ở thanh trạng thái;
+thu nhỏ làm lập đường hết hạn, docs/VAN_HANH.md) và hiện trạng thái ở thanh trạng thái;
 AUTOPARK_KEEP_ECOQOS=1 giữ mặc định của Windows. `build_window` không làm việc đó.
 
 Cấu hình xe (02/10/2026): `--vehicle-config TỆP_XE` thay tệp xe của kịch bản và được giữ khi "Mở…" kịch bản khác (như
@@ -30,7 +30,7 @@ from PySide6.QtWidgets import QApplication
 
 from autopark.application.cusp_policy import (ACCEPTANCE_THRESHOLDS, AcceptanceTagError, CuspPolicy, add_cusp_args,
                                               cusp_policy_from_args)
-from autopark.application.session import Session
+from autopark.application.session import Session, SessionError
 from autopark.power_throttling import apply_ecoqos_policy
 from autopark.storage.scenario_store import (load_scenario, load_vehicle_config, load_vehicle_config_file,
                                             vehicle_config_arg)
@@ -38,7 +38,7 @@ from autopark.ui.main_window import MainWindow
 from autopark.ui.process_status import add_ecoqos_label
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SCENARIO = PROJECT_ROOT / "scenarios" / "bai_do_xe_lon_xon.json"
+DEFAULT_SCENARIO = PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json"
 
 
 def build_window(scenario_path: Path, *, cusp_policy: CuspPolicy | None = None,
@@ -82,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         window = build_window(args.scenario, cusp_policy=args.cusp_policy,
                               vehicle_config=args.vehicle_config.path if args.vehicle_config is not None else None)
-    except AcceptanceTagError as exc:          # tệp sa bàn gắn nghiệm thu mà tệp ngưỡng không cho được giới hạn
+    except (AcceptanceTagError, SessionError) as exc:          # tệp sa bàn gắn nghiệm thu mà tệp ngưỡng không cho được giới hạn
         print(f"{Path(argv[0]).name if argv else 'run_app.py'}: lỗi: {exc}", file=sys.stderr)
         return 2
     window.show()

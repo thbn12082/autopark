@@ -9,7 +9,6 @@ from autopark.domain.computation import (
     ComputationCancelled, ComputationControl, ComputationTimedOut,
     checkpoint, computation_scope, current_control,
 )
-from autopark.evaluation.hard_cases import build_cases
 from autopark.planning import cand_lattice_macro, cand_reference, cand_rrt_rs, hybrid_astar, portfolio
 from autopark.planning.hybrid_astar import PlanResult
 from autopark.planning.trajectory import build_trajectory
@@ -20,8 +19,7 @@ PLANNERS = [cand_lattice_macro, cand_reference, cand_rrt_rs, hybrid_astar]
 
 
 @pytest.mark.parametrize("planner", PLANNERS, ids=lambda p: p.__name__.split(".")[-1])
-def test_running_planner_observes_cancellation(monkeypatch, planner, cfg):
-    scenario = build_cases(cfg)["pocket_exit_park"].scenario
+def test_running_planner_observes_cancellation(monkeypatch, planner, cfg, scenario):
     reached, release = threading.Event(), threading.Event()
     checks = 0
 

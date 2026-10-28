@@ -88,7 +88,7 @@ class LiveSegmenter:
 
 
 def list_checkpoints(runs_dir: str | Path = "runs") -> list[Path]:
-    """Mọi `runs/*/best.pt`, lượt nền WoodScape (checkpoint tham chiếu, HUAN_LUYEN.md mục 18) đứng đầu."""
+    """Mọi `runs/*/best.pt`, lượt nền WoodScape (checkpoint tham chiếu, docs/DU_LIEU_VA_GIAY_PHEP.md) đứng đầu."""
     found = sorted(Path(runs_dir).glob("*/best.pt"))
     reference = [p for p in found if p.parent.name == "ai_woodscape_rtx4000_v1"]
     return reference + [p for p in found if p not in reference]

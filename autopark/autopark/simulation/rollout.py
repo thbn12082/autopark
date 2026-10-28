@@ -9,6 +9,7 @@ from autopark.control.tracker import TrackerOutput, TrackerParams, TrajectoryTra
 from autopark.domain.computation import ComputationControl, checkpoint, computation_scope
 from autopark.domain.types import Pose, Scenario, VehicleConfig, VehicleState, wrap_angle
 from autopark.geometry.footprint import CollisionResult
+from autopark.planning.maneuver import runtime_problem
 from autopark.planning.trajectory import Trajectory
 from autopark.simulation.world import SimWorld
 
@@ -57,8 +58,16 @@ def _rollout(scenario: Scenario, cfg: VehicleConfig, trajectory: Trajectory,
     completed = collided = False
     collision = None
     reason = ""
+    stopping = False
     while True:
-        if world.step_count % control_every == 0:
+        if not stopping:
+            problem = runtime_problem(scenario, cfg, world.state, world.distance, dt)
+            if problem:
+                stopping = True
+                reason = problem[1]
+        if stopping:
+            target_speed = 0.0
+        elif world.step_count % control_every == 0:
             checkpoint()
             out = tracker.update(world.state)
             target_speed, target_steer = out.target_speed, out.target_steer
@@ -71,6 +80,9 @@ def _rollout(scenario: Scenario, cfg: VehicleConfig, trajectory: Trajectory,
         if step.stopped_by_collision:
             collided = True
             collision = step.collision
+            result.states.append(world.state)
+            break
+        if stopping and world.state.speed == 0.0:
             result.states.append(world.state)
             break
         if world.time >= max_time:

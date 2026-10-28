@@ -15,7 +15,7 @@ from PySide6.QtGui import (QBrush, QColor, QFont, QLinearGradient, QPainter, QPa
 from PySide6.QtWidgets import QGraphicsEllipseItem, QGraphicsItem, QGraphicsPathItem, QGraphicsSimpleTextItem
 from shapely.ops import unary_union
 
-from autopark.domain.types import Obstacle, ParkingSlot, Pose, VehicleConfig, wrap_angle
+from autopark.domain.types import Obstacle, Pose, VehicleConfig, wrap_angle
 from autopark.geometry.footprint import body_polygon
 from autopark.planning.trajectory import Trajectory
 
@@ -293,87 +293,6 @@ class CarItem(_Draggable, QGraphicsItem):
 
     def pose(self) -> Pose:
         return Pose(self.pos().x(), self.pos().y(), wrap_angle(math.radians(self.rotation())))
-
-
-class SlotItem(_Draggable, QGraphicsItem):
-    """Khung ô đỗ: ba cạnh liền, cạnh cửa ô nét đứt, chữ P. Gốc ở tâm ô, x hướng vào đáy ô."""
-
-    def __init__(self, slot: ParkingSlot, editable: bool = True, on_change: Callable | None = None):
-        QGraphicsItem.__init__(self)
-        self.length = slot.length
-        self.width = slot.width
-        self.color = COLOR_SLOT_OK
-        self._label = attach_label(self, "P", 0.0, 0.0, COLOR_SLOT_OK)
-        self._label.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        self.setZValue(3)
-        self._init_drag(editable, on_change)
-        self.set_slot(slot)
-
-    def boundingRect(self) -> QRectF:
-        pad = 0.03
-        return QRectF(-self.length / 2 - pad, -self.width / 2 - pad, self.length + 2 * pad, self.width + 2 * pad)
-
-    def shape(self) -> QPainterPath:
-        path = QPainterPath()
-        path.addRect(QRectF(-self.length / 2, -self.width / 2, self.length, self.width))
-        return path
-
-    def paint(self, painter: QPainter, option, widget=None) -> None:
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        hl, hw = self.length / 2, self.width / 2
-        fill = QColor(self.color)
-        fill.setAlpha(10 if not self.isSelected() else 25)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QBrush(fill))
-        painter.drawRect(QRectF(-hl, -hw, self.length, self.width))
-        edge = QColor(self.color)
-        edge.setAlpha(140)
-        pen = cosmetic_pen(edge, 1.2)
-        painter.setPen(pen)
-        # ba cạnh liền: hai cạnh dài và đáy ô (x = +hl)
-        painter.drawLine(QPointF(-hl, -hw), QPointF(hl, -hw))
-        painter.drawLine(QPointF(-hl, hw), QPointF(hl, hw))
-        painter.drawLine(QPointF(hl, -hw), QPointF(hl, hw))
-        # cửa ô nét đứt, kèm hai chevron chỉ chiều đi vào ô
-        painter.setPen(cosmetic_pen(self.color, 1.5, Qt.PenStyle.DashLine))
-        painter.drawLine(QPointF(-hl, -hw), QPointF(-hl, hw))
-        painter.setPen(cosmetic_pen(self.color, 2.0))
-        chev = min(0.035, self.width * 0.18)
-        for k, alpha in ((0.0, 200), (1.0, 90)):
-            col = QColor(self.color)
-            col.setAlpha(alpha)
-            painter.setPen(cosmetic_pen(col, 2.0))
-            bx = -hl + chev * (0.6 + 1.4 * k)
-            painter.drawLine(QPointF(bx - chev * 0.7, hw * 0.42), QPointF(bx, 0.0))
-            painter.drawLine(QPointF(bx - chev * 0.7, -hw * 0.42), QPointF(bx, 0.0))
-        # góc đánh dấu
-        painter.setPen(cosmetic_pen(self.color, 3.0))
-        tick = min(0.04, self.width * 0.15)
-        for sx, sy in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
-            painter.drawLine(QPointF(sx * hl, sy * hw), QPointF(sx * hl - sx * tick, sy * hw))
-            painter.drawLine(QPointF(sx * hl, sy * hw), QPointF(sx * hl, sy * hw - sy * tick))
-        self._paint_rotation_guide(painter)
-
-    def set_valid(self, ok: bool) -> None:
-        self.color = COLOR_SLOT_OK if ok else COLOR_SLOT_BAD
-        self._label.setBrush(QBrush(self.color))
-        self.update()
-
-    def set_slot(self, slot: ParkingSlot) -> None:
-        self._updating = True
-        try:
-            self.prepareGeometryChange()
-            self.length, self.width = slot.length, slot.width
-            self.setPos(slot.cx, slot.cy)
-            self.setRotation(math.degrees(slot.yaw))
-            self._label.setPos(-0.03, 0.03)
-            self._sync_rotation_handle()
-            self.update()
-        finally:
-            self._updating = False
-
-    def slot(self) -> ParkingSlot:
-        return ParkingSlot(self.pos().x(), self.pos().y(), wrap_angle(math.radians(self.rotation())), self.length, self.width)
 
 
 class ObstacleItem(_Draggable, QGraphicsItem):

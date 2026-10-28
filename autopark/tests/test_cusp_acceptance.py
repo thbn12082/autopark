@@ -7,6 +7,7 @@ scenarios/nghiem_thu. Không chạy planner (đường thử dựng thẳng bằ
 không mở cổng hay camera nào: bo MÔ PHỎNG, giao diện offscreen, `ui.lidar_app` với port COM9 không kết nối.
 """
 import copy
+from dataclasses import replace
 import hashlib
 import json
 import os
@@ -21,13 +22,13 @@ from autopark.application.cusp_policy import (ACCEPTANCE_THRESHOLDS, THRESHOLD_S
                                               check_cusps, read_acceptance_rule, resolve_cusp_limit)
 from autopark.application.session import Session, SessionError, SessionState  # noqa: E402
 from autopark.application.vehicle_link import DriveMode, VehicleLink  # noqa: E402
-from autopark.domain.types import ACCEPTANCE_CODE_RE, AcceptanceTag  # noqa: E402
+from autopark.domain.types import ACCEPTANCE_CODE_RE, AcceptanceTag, ParkingGoal, Pose  # noqa: E402
 from autopark.storage.scenario_store import (ACCEPTANCE_VEHICLE_CONFIG, load_scenario,  # noqa: E402
                                             load_vehicle_config, save_scenario)
 from tests.conftest import PROJECT_ROOT  # noqa: E402
 from tests.test_cusp_policy import SIM_CFG, apply_path, read_rows  # noqa: E402
 
-SA_BAN = PROJECT_ROOT / "scenarios" / "sa_ban_3x2_hai_hop.json"
+SA_BAN = PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json"
 SHA = hashlib.sha256(ACCEPTANCE_THRESHOLDS.read_bytes()).hexdigest()
 BASIS = "N-D6 (b) đề xuất, CHƯA CHỐT"
 FAKE_SHA = "0" * 64
@@ -41,6 +42,9 @@ def rule(code: str, variant: str = "", max_cusps: int | None = None, status: str
 def tagged_file(tmp_path, code: str, variant: str = "", name: str | None = None, source=SA_BAN):
     """Bản sao của `source` gắn thẻ, ghi trong tmp_path (tệp xe vẫn trỏ về configs/ của dự án)."""
     scenario = load_scenario(source)
+    scenario.start = Pose(.5, 1, 0)
+    scenario.goal = ParkingGoal(Pose(.8, 1, 0))
+    scenario.obstacles = []
     scenario.acceptance = AcceptanceTag(code, variant)
     return save_scenario(scenario, tmp_path / (name or f"{code}{variant}.json".lower()))
 
@@ -100,21 +104,12 @@ def test_thresholds_file_gives_the_n_d6_b_limits(code, variant, key, limit):
                                             "status": "DE_XUAT_CHO_CHOT"}}
 
 
-def test_n_d6_b_text_matches_the_thresholds_file():
-    """Hai danh sách của N-D6 (b) trong NGUONG_NGHIEM_THU_DE_XUAT.md và mệnh đề DO-3c "chỉ báo số" khớp tệp ngưỡng: giữ
-    chỗ thêm DO-5 = 7 ngày 02/10/2026, và mọi lần sửa số sau này phải sửa cả hai nơi."""
+def test_n_d6_b_thresholds_for_historical_scenarios():
+    """Kiểm giới hạn N-D6 (b) trong nguồn cấu hình cho các ca lịch sử."""
     from autopark.evaluation.score_run import load_thresholds
 
-    nguong = (PROJECT_ROOT / "docs" / "NGUONG_NGHIEM_THU_DE_XUAT.md").read_text(encoding="utf-8")
-    row = next(line for line in nguong.splitlines() if line.startswith("| N-D6 |"))
-    wide = re.search(r"≤ (\d+) lần đổi chiều ở kịch bản rộng \(([^)]*)\)", row)
-    narrow = re.search(r"≤ (\d+) lần ở kịch bản hẹp \(([^)]*)\)", row)
-    only_report = re.search(r"(DO-\d+[a-z]*) \(loại `xtight`\) chỉ báo số", row)
-    assert wide and narrow and only_report, row[:400]
-    expected = {key: int(limit) for limit, keys in (wide.groups(), narrow.groups()) for key in keys.split(", ")}
-    expected[only_report.group(1)] = None
-    assert expected == {"DO-1": 2, "DO-2": 2, "DO-3a": 2, "DO-4a": 2, "DO-3b": 7, "DO-4b": 7, "DO-5": 7, "DO-6": 7,
-                        "DO-3c": None}
+    expected = {"DO-1": 2, "DO-2": 2, "DO-3a": 2, "DO-4a": 2, "DO-3b": 7, "DO-4b": 7, "DO-5": 7, "DO-6": 7,
+                "DO-3c": None}
     scenarios = load_thresholds().scenarios
     assert {key for key in scenarios if key.startswith("DO-")} == set(expected)
     assert {key: scenarios[key].max_cusps for key in expected} == expected
@@ -246,8 +241,9 @@ def test_untagged_texts_are_unchanged(scenario, cfg):
         try:
             assert session.acceptance_rule is None and session.cusp_check() is None
             apply_path(session, 3)
-            assert session.cusp_check() == check_cusps(session.trajectory, policy)
-            assert session.cusp_limit().policy is policy and session.cusp_limit().short() == ""
+            limit = session.cusp_limit()
+            assert session.cusp_check() == check_cusps(session.trajectory, limit.policy, origin=limit.origin)
+            assert limit.policy.max_cusps == min(3, policy.max_cusps if policy.max_cusps is not None else 3)
         finally:
             session.close()
 
@@ -256,7 +252,8 @@ def test_untagged_texts_are_unchanged(scenario, cfg):
 
 def test_tagged_session_refuses_before_board_io_and_records_the_rule(tmp_path):
     scenario = load_scenario(tagged_file(tmp_path, "DO-1"))
-    link = VehicleLink.simulated(DriveMode.VEHICLE_IO, SIM_CFG)
+    link = VehicleLink.simulated(DriveMode.VEHICLE_IO,
+                                 replace(SIM_CFG, firmware=replace(SIM_CFG.firmware, max_speed_mm_s=100)))
     session = Session(scenario, load_vehicle_config(scenario.vehicle_config_path),
                       acceptance_thresholds=ACCEPTANCE_THRESHOLDS)
     session.set_vehicle_link(link)
@@ -278,7 +275,7 @@ def test_tagged_session_refuses_before_board_io_and_records_the_rule(tmp_path):
                                          "acceptance": {"code": "DO-1"}, "key": "DO-1", "rule_max_cusps": 2,
                                          "thresholds": {"path": "configs/nguong_nghiem_thu.json", "sha256": SHA,
                                                         "status": "DE_XUAT_CHO_CHOT"}}
-        assert snapshot["scenario"]["acceptance"] == {"code": "DO-1"} and list(snapshot["scenario"])[-1] == "acceptance"
+        assert snapshot["scenario"]["acceptance"] == {"code": "DO-1"}
         assert list(snapshot)[-2:] == ["cusp_rule", "vehicle_link"]
     finally:
         session.close()
@@ -290,8 +287,8 @@ def test_flag_tightens_but_never_loosens_in_a_session(scenario, cfg):
     try:
         apply_path(session, 8)
         limit = session.cusp_limit()
-        assert (limit.policy.max_cusps, limit.source, limit.cli_ignored) == (7, "nghiem_thu", True)
-        with pytest.raises(SessionError, match=re.escape("8 lần đổi chiều, vượt giới hạn 7 của DO-3b")):
+        assert (limit.policy.max_cusps, limit.source, limit.cli_ignored) == (3, "thao_tac_gan", True)
+        with pytest.raises(SessionError, match="3 lần đổi chiều"):
             session.start_run()
         assert session.state == SessionState.READY and session.world is None
     finally:
@@ -307,19 +304,19 @@ def test_flag_tightens_but_never_loosens_in_a_session(scenario, cfg):
         session.close()
     session = Session(tagged(scenario, "DO-3", "c"), cfg, acceptance_thresholds=ACCEPTANCE_THRESHOLDS)
     try:
-        apply_path(session, 12)
-        assert session.cusp_check().warned and not session.cusp_check().refused
+        apply_path(session, 3)
+        assert not session.cusp_check().refused
         session.start_run()
-        assert session.state == SessionState.RUNNING and session.run_snapshot["cusps"]["warned"] is True
-        assert session.run_snapshot["cusp_rule"]["max_cusps"] is None
-        assert session.run_snapshot["cusp_rule"]["source"] == "nghiem_thu"
+        assert session.state == SessionState.RUNNING and session.run_snapshot["cusps"]["warned"] is False
+        assert session.run_snapshot["cusp_rule"]["max_cusps"] == 3
+        assert session.run_snapshot["cusp_rule"]["source"] == "thao_tac_gan"
     finally:
         session.close()
 
 
 SNAPSHOT_KEYS = ["scenario", "vehicle", "planner", "tracker", "feedback", "trajectory", "physics_dt", "control_every",
                  "max_run_time", "cusps", "start_source"]      # start_source: T2 (02/10/2026)
-SCENARIO_KEYS = ["schema_version", "name", "notes", "vehicle_config", "bounds", "start", "goal", "obstacles", "seed"]
+SCENARIO_KEYS = ["schema_version", "name", "notes", "vehicle_config", "bounds", "start", "goal", "obstacles", "seed", "maneuver"]
 
 
 def test_sessions_without_a_thresholds_path_ignore_tags_and_never_read_files(scenario, cfg, tmp_path, monkeypatch):
@@ -332,7 +329,7 @@ def test_sessions_without_a_thresholds_path_ignore_tags_and_never_read_files(sce
     session = Session(tagged(scenario, "DO-1"), cfg)
     try:
         assert session.acceptance_thresholds is None and session.acceptance_rule is None
-        apply_path(session, 9)
+        apply_path(session, 3)
         session.start_run()
         assert session.state == SessionState.RUNNING and list(session.run_snapshot) == SNAPSHOT_KEYS
         assert session.run_snapshot["scenario"]["acceptance"] == {"code": "DO-1"}
@@ -341,7 +338,7 @@ def test_sessions_without_a_thresholds_path_ignore_tags_and_never_read_files(sce
     session = Session(copy.deepcopy(scenario), cfg, acceptance_thresholds=tmp_path / "khong_co.json")
     try:
         assert session.acceptance_rule is None
-        apply_path(session, 9)
+        apply_path(session, 3)
         session.start_run()
         assert session.state == SessionState.RUNNING and list(session.run_snapshot) == SNAPSHOT_KEYS
         assert list(session.run_snapshot["scenario"]) == SCENARIO_KEYS               # gói SIM như trước, từng khóa
@@ -354,9 +351,9 @@ def test_replace_scenario_switches_the_rule_and_keeps_the_session_on_error(scena
     try:
         assert session.cusp_limit().policy.max_cusps == 2
         session.replace_scenario(tagged(scenario, "DO-6"), cfg)
-        assert session.acceptance_rule.key == "DO-6" and session.cusp_limit().policy.max_cusps == 7
+        assert session.acceptance_rule.key == "DO-6" and session.cusp_limit().policy.max_cusps == 3
         session.replace_scenario(copy.deepcopy(scenario), cfg)
-        assert session.acceptance_rule is None and session.cusp_limit().policy.max_cusps is None
+        assert session.acceptance_rule is None and session.cusp_limit().policy.max_cusps == 3
         session.replace_scenario(tagged(scenario, "DO-6"), cfg)
         apply_path(session, 3)
         before = (session.scenario, session.acceptance_rule, session.state, session.trajectory, session.plan_version)
@@ -380,7 +377,7 @@ def test_replay_session_ignores_acceptance_tags(scenario, cfg, tmp_path):
 
     session = Session(tagged(scenario, "DO-6"), cfg, acceptance_thresholds=ACCEPTANCE_THRESHOLDS)
     try:
-        apply_path(session, 5)
+        apply_path(session, 3)
         session.start_run()
         assert session.state == SessionState.RUNNING
         package = export_run(session, tmp_path / "goi")
@@ -393,7 +390,7 @@ def test_replay_session_ignores_acceptance_tags(scenario, cfg, tmp_path):
     replayed = _session_from_snapshot(run)
     try:
         assert replayed.scenario.acceptance == AcceptanceTag("DO-6")
-        assert replayed.acceptance_rule is None and replayed.cusp_limit().policy.max_cusps is None
+        assert replayed.acceptance_rule is None and replayed.cusp_limit().policy.max_cusps == 3
         replayed.start_run()
         assert replayed.state == SessionState.RUNNING and "cusp_rule" not in replayed.run_snapshot
     finally:
@@ -429,9 +426,9 @@ def test_window_applies_the_limit_of_the_opened_file(qapp, tmp_path, monkeypatch
         assert s.state == SessionState.READY and s.world is None
         open_dialog(monkeypatch, do6)
         window._open_scenario()
-        assert window.scenario_path == do6 and s.cusp_limit().policy.max_cusps == 7
-        assert window.lbl_cusp_limit.text() == f"Nghiệm thu DO-6: đổi chiều tối đa 7 ({BASIS})"
-        assert window.statusBar().currentMessage().endswith(f" · Nghiệm thu DO-6: đổi chiều tối đa 7 ({BASIS})")
+        assert window.scenario_path == do6 and s.cusp_limit().policy.max_cusps == 3
+        assert window.lbl_cusp_limit.text() == "Thao tác gần: đổi chiều tối đa 3"
+        assert window.statusBar().currentMessage().endswith(" · Thao tác gần: đổi chiều tối đa 3")
         open_dialog(monkeypatch, do9)
         window._open_scenario()
         assert [args[1] for args in dialogs["critical"]] == ["Không mở được kịch bản"]
@@ -452,10 +449,10 @@ def test_window_applies_the_limit_of_the_opened_file(qapp, tmp_path, monkeypatch
         window.close()
     window = build_window(SA_BAN)                                   # tệp không gắn: như trước
     try:
-        assert "<span" not in window.lbl_cusp_limit.text() and "không chặn" in window.lbl_cusp_limit.text()
+        assert "<span" not in window.lbl_cusp_limit.text() and "tối đa 3" in window.lbl_cusp_limit.text()
         assert "--max-cusps" in window.lbl_cusp_limit.toolTip()
         window._after_plan(apply_path(window.session, 2))
-        assert window.lbl_plan.text().endswith("2 lần đổi chiều")
+        assert "2 lần đổi chiều" in window.lbl_plan.text()
     finally:
         window.close()
     from autopark.ui import lidar_app
@@ -500,74 +497,3 @@ def test_planner_and_simulation_never_read_the_acceptance_tag():
             if "acceptance" in path.read_text(encoding="utf-8"):
                 offenders.append(path.relative_to(package).as_posix())
     assert checked > 5 and offenders == []
-
-
-# ---------------------------------------------------------------- bộ tệp sinh sẵn (scenarios/nghiem_thu)
-
-def test_generated_acceptance_files_match_their_sources(tmp_path, capsys):
-    from autopark.evaluation import acceptance_scenarios as gen
-    from autopark.evaluation.ecoqos_gui import do_lech_kich_ban
-    from autopark.evaluation.hard_cases import build_cases
-
-    out = tmp_path / "ra"
-    assert gen.main(["--out", str(out)]) == 0
-    printed = capsys.readouterr().out.splitlines()
-    assert [line.split("  ")[0] for line in printed[:9]] == list(gen.ACCEPTANCE_FILES)
-    assert printed[3] == "do3b.json  DO-3b  đổi chiều ≤ 7  ← perp_aisle_135"
-    limits = [re.search(r"đổi chiều(?: ≤ (\d+)|: chỉ báo số)", line).group(1) for line in printed[:9]]
-    assert limits == ["2", "2", "2", "7", None, "2", "7", "7", "7"]
-    assert sorted(p.name for p in out.iterdir()) == sorted(gen.ACCEPTANCE_FILES)
-    cfg = load_vehicle_config(ACCEPTANCE_VEHICLE_CONFIG)
-    cases = build_cases(cfg)
-    for name, (tag, source) in gen.ACCEPTANCE_FILES.items():
-        loaded = load_scenario(out / name)
-        assert loaded.acceptance == tag and loaded.name.startswith(f"{tag.label} "), name
-        assert loaded.vehicle_config_path == ACCEPTANCE_VEHICLE_CONFIG.resolve()
-        assert "GIẢ ĐỊNH" in loaded.notes and f"khóa {tag.label}" in loaded.notes
-        original = load_scenario(SA_BAN) if source.endswith(".json") else cases[source].scenario
-        loaded.sync_goal(cfg)                                       # như Session(scenario, cfg) của giao diện
-        assert do_lech_kich_ban(original, loaded) <= 1e-9, name
-
-
-def test_generator_refuses_overwrite_and_dry_run_writes_nothing(tmp_path, capsys):
-    from autopark.evaluation import acceptance_scenarios as gen
-
-    out = tmp_path / "ra"
-    assert gen.main(["--out", str(out)]) == 0
-    before = {p.name: p.read_bytes() for p in out.iterdir()}
-    capsys.readouterr()
-    assert gen.main(["--out", str(out)]) == 2
-    err = capsys.readouterr().err
-    assert "--force" in err and "do1.json" in err and "chưa ghi tệp nào" in err
-    assert {p.name: p.read_bytes() for p in out.iterdir()} == before
-    assert gen.main(["--out", str(out), "--force"]) == 0
-    assert {p.name: p.read_bytes() for p in out.iterdir()} == before      # sinh lại ra đúng từng byte
-    dry = tmp_path / "thu"
-    assert gen.main(["--out", str(dry), "--dry-run"]) == 0
-    assert not dry.exists()
-    data = json.loads(ACCEPTANCE_THRESHOLDS.read_text(encoding="utf-8"))
-    del data["scenarios"]["DO-6"]
-    broken = tmp_path / "nguong_thieu_do6.json"
-    broken.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    empty = tmp_path / "trong"
-    capsys.readouterr()
-    assert gen.main(["--out", str(empty), "--thresholds", str(broken)]) == 2
-    assert "'DO-6'" in capsys.readouterr().err and not empty.exists()
-    with pytest.raises(SystemExit) as info:
-        gen.main(["--out", str(empty), "--vehicle-config", str(tmp_path / "khong_co_xe.json")])
-    assert info.value.code == 2 and not empty.exists()
-
-
-def test_committed_acceptance_files_are_current(tmp_path):
-    """scenarios/nghiem_thu khớp bộ sinh (sinh lại vào tmp_path, so JSON đã đọc, bỏ vehicle_config vì tmp_path có thể ở
-    ổ khác). Đổi nguồn (sa bàn, ca khó, xe) mà quên sinh lại thì hỏng ở đây."""
-    from autopark.evaluation import acceptance_scenarios as gen
-
-    assert sorted(p.name for p in gen.COMMITTED_DIR.iterdir()) == sorted(gen.ACCEPTANCE_FILES)
-    gen.write_acceptance_scenarios(tmp_path)
-    for name in gen.ACCEPTANCE_FILES:
-        committed = json.loads((gen.COMMITTED_DIR / name).read_text(encoding="utf-8"))
-        fresh = json.loads((tmp_path / name).read_text(encoding="utf-8"))
-        assert committed.pop("vehicle_config") == "../../configs/vehicle_nghiem_thu.json", name
-        fresh.pop("vehicle_config")
-        assert committed == fresh, name

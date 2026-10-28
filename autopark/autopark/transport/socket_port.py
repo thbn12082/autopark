@@ -1,5 +1,5 @@
 """Cổng kiểu `serial.Serial` trên một kết nối TCP (thêm 30/09/2026): URL `socket://host:port` của
-`SerialVehicleIO.open()`, dùng cho bo ảo QEMU (`autopark.transport.qemu_board`, docs/MO_PHONG_FIRMWARE.md).
+`SerialVehicleIO.open()`, dùng cho bo ảo QEMU (`autopark.transport.qemu_board`, docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
 
 Không dùng `socket://` của pyserial 3.5 vì ba điểm đọc được trong mã nguồn của nó (`serial/urlhandler/protocol_socket.py`)
 và đo được với bo ảo ngày 29–30/09/2026:

@@ -178,7 +178,7 @@ def test_load_rig_refuses_without_intrinsics(tmp_path):
     with pytest.raises(RigConfigError) as info:
         load_rig(calibration_dir=tmp_path)
     message = str(info.value)
-    assert all(f"cam_p{p}.json" in message for p in (1, 2, 3, 4)) and "HIEU_CHUAN_CAMERA" in message
+    assert all(f"cam_p{p}.json" in message for p in (1, 2, 3, 4)) and "#noi-tham" in message
     cameras, _, skipped = load_rig(calibration_dir=tmp_path, skip_uncalibrated=True)
     assert cameras == {} and sorted(skipped) == ["p1", "p2", "p3", "p4"]
 
@@ -912,7 +912,7 @@ def test_bench_cli_writes_timing_report(tmp_path, capsys):
 def test_fast_path_speedup_over_reference(rig, probs):
     # tỉ lệ đo trên CÙNG máy, cùng tiến trình, xen kẽ hai bản, lấy lần nhanh nhất: bền hơn một cận tuyệt đối khi máy
     # chậm hay bận. Máy bàn tối 24/09 (tác tử khác chạy song song), lần nhanh nhất: bản cũ ≈ 60–104 ms, đường nhanh
-    # ≈ 7–9 ms (≈ 8–12 lần; docs/BEV.md mục 6).
+    # ≈ 7–9 ms (≈ 8–12 lần; docs/KIEN_TRUC.md).
     cameras, ego = rig
     kw = dict(max_range=MAX_RANGE, supersample=2, ego=ego)
     _ref_build_bev(probs, cameras, GRID, **kw)                              # làm nóng bộ nhớ đệm của cả hai bản
@@ -1162,11 +1162,9 @@ def test_woodscape_bad_id_or_archive_is_a_clean_error(tmp_path, capsys):
         assert "LỖI" in err and expected in err and "Traceback" not in err and not out.exists()
 
 
-def test_documented_commands_paste_into_powershell():
+def test_module_documented_commands_paste_into_powershell():
     # dấu nối dòng `^` chỉ chạy trong cmd.exe; PowerShell báo lỗi "Missing expression after unary operator '--'"
-    texts = {"docs/BEV.md": (PROJECT_ROOT / "docs/BEV.md").read_text(encoding="utf-8"), "bev.__doc__": bev.__doc__}
-    for name, text in texts.items():
-        assert not [line for line in text.splitlines() if line.rstrip().endswith(" ^")], name
+    assert not [line for line in bev.__doc__.splitlines() if line.rstrip().endswith(" ^")]
 
 
 # ---- WoodScape (hiệu chuẩn thật của Valeo; bỏ qua nếu thiếu dữ liệu) ---------------------------------------------------

@@ -1,5 +1,5 @@
 """Tệp tư thế tham chiếu độc lập (R1, R2, MP): hợp đồng giữa công cụ trích tư thế từ video (T4) và công cụ chấm
-một lần chạy (T5, `evaluation/score_run.py`). Thêm 02/10/2026 (docs/KICH_BAN_NGHIEM_THU.md mục 3.8, mục 7).
+một lần chạy (T5, `evaluation/score_run.py`). Thêm 02/10/2026 (docs/KIEM_THU_VA_LO_TRINH.md, mục 7).
 
 Một tệp tham chiếu gồm `<tên>.csv` (mỗi khung video một dòng) và tệp mô tả `<tên>.json` cùng gốc tên
 (`sidecar_path`). Gợi ý nơi lưu: `runs/nghiem_thu/<ngay>/<ma>_l<lan>/tu_the_tham_chieu.csv` (thư mục `runs/` bị git

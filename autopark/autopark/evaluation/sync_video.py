@@ -1,4 +1,4 @@
-"""Phía video của dấu đồng bộ T14 (docs/KICH_BAN_NGHIEM_THU.md mục 2.5): tìm các lần nháy ô trắng của
+"""Phía video của dấu đồng bộ T14 (docs/KIEM_THU_VA_LO_TRINH.md): tìm các lần nháy ô trắng của
 `ui/sync_flash.py` trong một video và ghép chúng với các dòng SYNC_MARK của tệp dấu đồng bộ (`evaluation/sync_marks.py`)
 thành cặp đồng bộ `mark` cho tệp tham chiếu (`reference_pose.SyncPair`). Thêm 02/10/2026 cho T4 (camera trên cao), dùng
 được cả cho video bên hông R3.

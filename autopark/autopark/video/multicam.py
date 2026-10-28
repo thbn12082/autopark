@@ -4,7 +4,7 @@
 gian"). Không cần torch hay Qt.
 
 - Camera được gọi theo **cổng hub**, không theo index OpenCV: index đổi sau khi khởi động lại máy (đo ngày 23/09,
-  docs/usb_topology.md), còn cổng thì không. `resolve_ports()` hỏi Windows (PnP + DirectShow) để đổi cổng → index
+  docs/DU_LIEU_VA_GIAY_PHEP.md), còn cổng thì không. `resolve_ports()` hỏi Windows (PnP + DirectShow) để đổi cổng → index
   ngay lúc mở.
 - Mỗi camera giữ vài khung gần nhất trong một vòng đệm có giới hạn (không hàng đợi vô hạn, không tích lũy độ trễ).
 - `latest_set()` ghép một bộ: mốc thời gian = khung mới nhất của camera *chậm nhất* (camera có khung mới nhất sớm
@@ -22,7 +22,7 @@ gian"). Không cần torch hay Qt.
   (`CameraWorker.frame_interval_s`, `CameraWorker.arrivals`; chưa đủ 3 lần thì chưa rõ). Ngưỡng riêng
   L_p = max(`max_wait_s`, 1,5 × P_p) (`wait_limits_s`; P_p chưa rõ thì max(`max_wait_s`, 1,5 × chu kỳ camera nhanh
   nhất đã rõ)). Nhịp 24 khung/s đo được KHÔNG đều: khoảng cách xen kẽ ≈ 31/48 ms, trung bình 41,9 ms
-  (GIAI_DOAN_1_CAMERA.md mục 4.1), nên L_p ≈ 63 ms; ở 15 khung/s ≈ 100 ms. Khi vài camera đã có khung mới mà camera
+  (DU_LIEU_VA_GIAY_PHEP.md), nên L_p ≈ 63 ms; ở 15 khung/s ≈ 100 ms. Khi vài camera đã có khung mới mà camera
   khác chưa, bộ chờ; bộ được phát KHÔNG CÓ các camera đang chờ khi không camera nào trong số đó còn đáng chờ
   (`worth_waiting`). Một camera đang chờ hết đáng chờ khi:
   (a) khung mới cũ nhất đang chờ đã chờ quá L_p của nó; hoặc
@@ -201,7 +201,7 @@ def resolve_ports(ports: list[int] | None = None) -> list[CameraSpec]:
     (`_rows_on_the_camera_hub`, sửa sau review 02/10/2026):
     - hỏi nhiều cổng mà mọi cổng hỏi KHÔNG trùng số đều ở cùng một hub H (`rig.bench --ports 1 2 3 4`, ô Cổng của dock
       camera, `ports=None` khi ngoài bốn camera xe chỉ có camera trùng số): cổng trùng số lấy camera của nó trên H — danh
-      tính camera là cổng của hub camera xe (docs/usb_topology.md);
+      tính camera là cổng của hub camera xe (docs/DU_LIEU_VA_GIAY_PHEP.md);
     - còn lại thì từ chối CẢ lời gọi (ValueError), `ports=None` cũng vậy chứ không bỏ riêng cổng đó: hỏi MỘT cổng
       (`calib_app --port 2`, `roi_app`), mọi cổng hỏi đều trùng số, các cổng không trùng ở nhiều hub (ví dụ `ports=None`
       khi webcam gắn sẵn của laptop cũng có số cổng) hay ở hub không rõ, hoặc H không có camera ở cổng trùng. Lời báo
@@ -395,7 +395,7 @@ class CameraWorker(threading.Thread):
         cắt/xé). None khi chưa có 3 lần.
 
         Nhịp thật KHÔNG đều: ở phơi sáng tự động khoảng cách xen kẽ ≈ 31 / 48 ms, không bao giờ hai khoảng ngắn liền
-        nhau, trung bình 41,9 ms (GIAI_DOAN_1_CAMERA.md mục 4.1). Bản trước coi khung nằm trên MỘT lưới chu kỳ (gốc =
+        nhau, trung bình 41,9 ms (DU_LIEU_VA_GIAY_PHEP.md). Bản trước coi khung nằm trên MỘT lưới chu kỳ (gốc =
         phân vị 25 %, g / round(g / gốc), trung vị): gốc rơi vào cụm 31 ms, khoảng 48 ms bị chia đôi, chu kỳ ra ≈ 24–34 ms
         (có lúc nhảy lên ≈ 47 ms), và quy tắc (b) bỏ camera KHỎE: phát lại m04 chỉ 43–78 % bộ đủ bốn camera (người kiểm
         tra, tái hiện 24/09). Cách tính bây giờ:

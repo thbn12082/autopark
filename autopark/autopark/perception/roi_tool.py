@@ -4,7 +4,7 @@
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.roi_tool check configs/roi/rig_v1/roi_p1.png --image runs/rig_snapshots/<ngày_giờ>/cam_p1.png
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.roi_tool build configs/roi/rig_v1/roi_p1.json
 
-Mỗi lệnh viết trên MỘT dòng (dán được vào cmd.exe). Hướng dẫn: docs/NGOAI_THAM_VA_ROI.md.
+Mỗi lệnh viết trên MỘT dòng (dán được vào cmd.exe). Hướng dẫn: docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham.
 
 **Định dạng (đúng thứ BEV đọc, xem perception/bev.py::load_rig):** `<thư mục>/roi_p<cổng>.png`, ảnh xám 8 bit ở CỠ GỐC của
 khung camera (cỡ đã hiệu chuẩn nội tham, mặc định 640×480), 255 = pixel dùng được, 0 = loại. Cùng quy ước với
@@ -18,7 +18,7 @@ giác cùng kiểu: mỗi đa giác tô riêng bằng `cv2.fillPoly` (một lầ
 chúng chồng nhau). Pixel nằm trên biên đa giác cũng bị tô: đa giác loại thì nghiêng về loại nhiều hơn. Một đa giác TỰ
 CẮT vẫn tô theo chẵn-lẻ của OpenCV (vẽ đa giác không tự cắt). Sau đó nới vùng loại thêm `margin_px` điểm ảnh
 (mặc định 2, ĐỀ XUẤT – CHỜ CHỐT): pixel sát mép thân xe trộn màu thân xe với sàn, AI đọc sai ở đó — lỗi đã thấy với ROI
-WoodScape `roi_MVL.png` (docs/BEV.md mục 6).
+WoodScape `roi_MVL.png` (docs/KIEN_TRUC.md).
 
 Không bao giờ ghi đè im lặng: `roi_p<cổng>.png` đã có thì từ chối, trừ khi `overwrite` (bản cũ được đổi tên thành
 `roi_p<cổng>.bak_<ngày_giờ_micro giây>[_NNN].png/.json`, tên được giữ chỗ độc quyền nên hai lần lưu trong cùng một giây
@@ -346,7 +346,7 @@ def _cmd_build(args) -> int:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description="Mặt nạ ROI cho camera dự án (docs/NGOAI_THAM_VA_ROI.md)")
+    p = argparse.ArgumentParser(description="Mặt nạ ROI cho camera dự án (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham)")
     sub = p.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("check", help="kiểm một roi_p<cổng>.png như BEV sẽ đọc; --image để ghi ảnh xem trước")
     c.add_argument("mask", type=Path)

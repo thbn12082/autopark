@@ -1,4 +1,4 @@
-"""Tiêm lỗi có kiểm soát (T6, docs/KICH_BAN_NGHIEM_THU.md mục 7; thêm 02/10/2026): camera đứng hình, nguồn tư thế ngừng
+"""Tiêm lỗi có kiểm soát (T6, docs/KIEM_THU_VA_LO_TRINH.md; thêm 02/10/2026): camera đứng hình, nguồn tư thế ngừng
 cập nhật, vòng điều khiển treo. CHỈ dùng trong test và diễn tập trên MÔ PHỎNG (`autopark.evaluation.fault_drill`): bo mô
 phỏng `SimVehicleIO`, cổng serial GIẢ, camera giả, bản ghi phát lại. Mã sản phẩm KHÔNG import module này, giao diện
 không có nút tiêm lỗi, và không hàm nào ở đây mở cổng COM, LiDAR hay camera.
@@ -20,7 +20,7 @@ một lần đọc io trả. (Cập nhật 02/10/2026 sau khi gộp T13, T9.)
   `CameraWorker._count_error` đếm là khung cũ (`REPEAT_MESSAGE`; đổi chữ ở một chỗ thì phải đổi chỗ kia, có test ghim).
 - Nguồn tư thế (CB-6): `FreezablePoseSource`. HOLD: giữ mẫu lấy lúc dừng với stamp CŨ; SILENT: `latest()` trả None.
   Không bao giờ đóng dấu lại dữ liệu cũ. `VehicleLink` bóc lớp bọc (`fault_inner`) để luật SimTruthPose vẫn áp dụng.
-- Vòng điều khiển treo (CB-5 (b), L7 ở GIAI_DOAN_6_CHUAN_BI.md): `hang_control_loop`. `Session.advance` không được gọi
+- Vòng điều khiển treo (CB-5 (b), L7 ở PHAN_CUNG_VA_HIEU_CHUAN.md): `hang_control_loop`. `Session.advance` không được gọi
   và laptop không gửi gì, bo vẫn chạy; có hoặc không Heartbeat.
 
 Phản ứng dự kiến (đo trên mô phỏng 01–02/10/2026; các giới hạn là kiểm của công cụ suy từ tham số hiện tại, KHÔNG phải

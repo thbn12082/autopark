@@ -1,4 +1,4 @@
-"""Diễn tập tiêm lỗi có kiểm soát (T6, docs/KICH_BAN_NGHIEM_THU.md mục 7; thêm 02/10/2026): CB-6 (nguồn tư thế
+"""Diễn tập tiêm lỗi có kiểm soát (T6, docs/KIEM_THU_VA_LO_TRINH.md; thêm 02/10/2026): CB-6 (nguồn tư thế
 ngừng), CB-5 (b) và L7 (vòng điều khiển treo), CB-2 (camera đứng hình) — CHỈ ở mức MÔ PHỎNG. Phiên đỗ xe chạy qua bo mô
 phỏng (`SimVehicleIO` + `FirmwareModel`, tư thế `SimTruthPose` bọc `FreezablePoseSource`); camera là camera giả của công
 cụ hoặc bản ghi phát lại. Không tùy chọn nào mở cổng COM, LiDAR hay camera; không có đường cho bo thật (chờ T2, T8).
@@ -57,8 +57,8 @@ from autopark.video.multicam import RIG_CLOCK, CameraSpec, MultiCameraManager
 from autopark.video.sources import _frame
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SCENARIO = PROJECT_ROOT / "scenarios" / "sa_ban_3x2_hai_hop.json"
-DEFAULT_SIM_CONFIG = PROJECT_ROOT / "configs" / "vehicle_io_sim.json"
+DEFAULT_SCENARIO = PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json"
+DEFAULT_SIM_CONFIG = PROJECT_ROOT / "configs" / "vehicle_io_sim_nghiem_thu.json"
 TOOL = "autopark.evaluation.fault_drill"
 EVIDENCE = "simulation_only"
 DRILL_FILES = ("faults.csv", "drill.json")          # tệp của chính công cụ trong thư mục mỗi lần chạy
@@ -714,12 +714,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     def session_args(p: argparse.ArgumentParser) -> None:
         p.add_argument("--scenario", type=Path, default=DEFAULT_SCENARIO,
-                       help="kịch bản sa bàn (mặc định scenarios/sa_ban_3x2_hai_hop.json); xe theo cấu hình của "
+                       help="kịch bản sa bàn (mặc định scenarios/thao_tac_cua_hep.json); xe theo cấu hình của "
                             "kịch bản")
         p.add_argument("--sim-config", type=Path, default=DEFAULT_SIM_CONFIG,
-                       help="cấu hình bo mô phỏng (mặc định configs/vehicle_io_sim.json)")
-        p.add_argument("--at-speed", type=_nonzero, default=0.1,
-                       help="gây lỗi khi tốc độ ĐO của telemetry đạt chừng ấy m/s (âm: lúc đang lùi), mặc định 0,1")
+                       help="cấu hình bo mô phỏng (mặc định configs/vehicle_io_sim_nghiem_thu.json)")
+        p.add_argument("--at-speed", type=_nonzero, default=0.05,
+                       help="gây lỗi khi tốc độ ĐO của telemetry đạt chừng ấy m/s (âm: lúc đang lùi), mặc định 0,05")
 
     pose = sub.add_parser("pose", help="CB-6: nguồn tư thế ngừng cập nhật giữa lúc chạy")
     common(pose)

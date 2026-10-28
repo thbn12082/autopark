@@ -4,7 +4,7 @@ flash cho QEMU, `.pio/build/esp32s3_qemu/qemu_flash.bin`, đúng cỡ flash củ
 Offset và đường dẫn lấy từ builder của PlatformIO (FLASH_EXTRA_IMAGES, ESP32_APP_OFFSET; với ESP32-S3 là 0x0, 0x8000,
 0xe000, 0x10000), không ghi tay; esptool là bản của nền tảng ($OBJCOPY). Header chế độ/tần số/cỡ flash giữ như lúc
 build (merge_bin mặc định "keep"). Ảnh là một mục tiêu SCons: thiếu hoặc đầu vào đổi thì build lại.
-Xem docs/MO_PHONG_FIRMWARE.md.
+Xem docs/PHAN_CUNG_VA_HIEU_CHUAN.md.
 """
 Import("env")  # noqa: F821 - SCons cung cấp
 

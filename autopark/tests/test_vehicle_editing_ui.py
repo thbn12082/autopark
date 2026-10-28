@@ -10,14 +10,21 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from autopark.application.session import SessionState
+from autopark.domain.types import Obstacle
 from autopark.storage.scenario_store import load_scenario, save_scenario
-from autopark.ui.app import DEFAULT_SCENARIO, build_window
+from autopark.ui.app import PROJECT_ROOT, build_window
+
+# Bộ xe đỗ phục vụ kiểm kéo/xoay; không phụ thuộc tình huống khởi động ứng dụng.
+DEFAULT_SCENARIO = PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json"
 
 
 @pytest.fixture
 def window():
     app = QApplication.instance() or QApplication([])
     w = build_window(DEFAULT_SCENARIO)
+    w.session.add_obstacle(Obstacle("xe_1", 0.15, 1.3, 0.15, 0.10, kind="car"))
+    w._rebuild_scene()
+    w._refresh_all()
     w.show()
     app.processEvents()
     yield w
@@ -43,12 +50,12 @@ def test_numeric_pose_edits_update_geometry_invalidate_path_and_survive_save(win
     assert math.degrees(window.session.scenario.obstacle_by_id("xe_1").yaw) == pytest.approx(37.5)
     assert item.rotation() == pytest.approx(37.5)
     assert window.obs_yaw.value() == pytest.approx(37.5)
-    window.obs_x.setValue(150.0)
-    window.obs_y.setValue(60.0)
-    assert item.pos() == QPointF(1.5, 0.6)
+    window.obs_x.setValue(15.0)
+    window.obs_y.setValue(130.0)
+    assert item.pos() == QPointF(0.15, 1.3)
     saved = save_scenario(window.session.scenario, tmp_path / "mixed.json")
     restored = load_scenario(saved).obstacle_by_id("xe_1")
-    assert restored.cx == 1.5 and restored.cy == 0.6
+    assert restored.cx == 0.15 and restored.cy == 1.3
     assert math.degrees(restored.yaw) == pytest.approx(37.5)
 
 
@@ -80,24 +87,5 @@ def test_keyboard_rotation_and_drive_lock(window):
     window._start_manual()
     assert window.object_editor.isHidden()
     assert not item._rotation_handle.isVisible()
-    assert not window.scatter_action.isEnabled()
     window._rotate_selected(30)
     assert window.session.scenario.obstacle_by_id("xe_1") == before
-
-
-def test_scatter_button_replaces_all_car_poses_and_discards_old_path(window):
-    assert window.plan(sync=True).ok
-    select_car(window)
-    before = list(window.session.scenario.obstacles)
-    seed = window.session.scenario.seed
-    window.scatter_action.click()
-    assert window.session.state == SessionState.EDITING
-    assert window.session.trajectory is None
-    assert window.session.scenario.seed == seed + 1
-    assert window.session.scenario.obstacles != before
-    assert window.object_editor.isHidden()
-    for obstacle in window.session.scenario.obstacles:
-        shown = window._obstacle_items[obstacle.id].to_obstacle()
-        assert (shown.cx, shown.cy, shown.yaw) == pytest.approx((obstacle.cx, obstacle.cy, obstacle.yaw), abs=1e-12)
-        assert (shown.id, shown.width, shown.height, shown.kind) == (
-            obstacle.id, obstacle.width, obstacle.height, obstacle.kind)

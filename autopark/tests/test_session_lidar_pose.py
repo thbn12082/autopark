@@ -38,7 +38,7 @@ SIM_CFG = SimIOConfig(firmware=FAST_FW)
 PARAMS = LinkParams.for_lidar(0.25)          # như MainWindow dựng "LiDAR mô phỏng" / "LiDAR thật" (sau review 02/10)
 
 
-def straight_session(scenario, cfg, goal_x=2.0) -> Session:
+def straight_session(scenario, cfg, goal_x=.9) -> Session:
     scenario.obstacles = []
     scenario.start = Pose(0.5, 1.0, 0.0)
     scenario.goal = ParkingGoal(Pose(goal_x, 1.0, 0.0))
@@ -227,7 +227,7 @@ def test_disagreement_mid_run_stops_with_pose_disagree(scenario, cfg):
 def test_replay_of_a_lidar_run_matches_and_old_tapes_without_status_still_replay(scenario, cfg, tmp_path,
                                                                                   monkeypatch):
     monkeypatch.setattr(run_store, "environment", lambda: {"test": True})
-    session = straight_session(scenario, cfg, goal_x=1.2)
+    session = straight_session(scenario, cfg, goal_x=.9)
     link = lidar_link()
     session.set_vehicle_link(link)
     session.start_run()
@@ -435,7 +435,9 @@ def test_simulated_link_builds_a_fresh_lidar_source_each_start_and_keeps_the_pre
     session.start_run()
     run_until_done(session)
     first_io, first_source = link.io, link.pose_source
-    session.reset()
+    session.prepare_next_maneuver()
+    session.set_goal_pose(Pose(.8, 1.0, 0.0))
+    assert session.plan_sync().ok
     with pytest.raises(SessionError, match="nguồn tư thế lidar_sim_localize chưa dùng được"):
         session.start_run()
     assert link.io is first_io and link.pose_source is first_source and len(factory.sources) == 2

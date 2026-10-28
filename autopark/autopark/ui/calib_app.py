@@ -17,7 +17,7 @@ Khi đó cắm camera trên cao vào cổng có số khác N, hay rút nó ra l�
 - Camera gọi theo CỔNG HUB (`resolve_ports` đổi cổng → index OpenCV lúc mở; index đổi sau khởi động lại), mặc định
   640×480 MJPG — mode chạy chung bốn camera; 1280×720 chọn được nhưng là hiệu chuẩn RIÊNG cho mode đó (tệp có hậu tố).
   Hiệu chuẩn từng camera một, không mở cả bốn cùng lúc: một camera một mình trên hub chưa thấy khung hỏng ở 720p
-  (docs/GIAI_DOAN_2_BAN_THU.md), nhưng khung hỏng vẫn bị loại và đếm nếu có.
+  (docs/DU_LIEU_VA_GIAY_PHEP.md), nhưng khung hỏng vẫn bị loại và đếm nếu có.
 - Một luồng riêng đọc camera và dò bảng trên từng khung (`fisheye_calib.assess_frame`, chế độ "live"); giao diện chỉ
   lấy khung mới nhất nên không bị `read()` chặn. Ảnh sống có vẽ góc bảng, lưới phủ (đỏ = chưa có góc nào của ảnh đã
   chụp, xanh đậm dần theo số góc) và các góc đã chụp (chấm vàng).
@@ -36,7 +36,7 @@ Camera lấy qua tham số `open_camera(cổng, rộng, cao)` nên test cắm đ
 viết (chỉ test offscreen với nguồn giả).
 
 Bước sau nội tham (thêm tối 24/09/2026): ngoại tham (bảng đặt trên sàn ở vị trí đo bằng thước) và mặt nạ ROI làm ở giao
-diện riêng `autopark.ui.roi_app` (docs/NGOAI_THAM_VA_ROI.md). Giao diện đó dùng lại `LiveCamera`, `to_qimage`,
+diện riêng `autopark.ui.roi_app` (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham). Giao diện đó dùng lại `LiveCamera`, `to_qimage`,
 `parse_size` và `usb_camera_factory` của tệp này — đổi chữ ký các hàm đó thì kiểm cả tests/test_roi_tool.py.
 """
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """Phát lại một phiên bàn thử đã ghi (`autopark.rig.recording`) qua đúng các giao diện nguồn mà bàn thử dùng với thiết bị
 thật, để `Rig` (ghép bộ ảnh, chờ camera chậm, AI, LiDAR so với bộ ảnh), `rig.bench` và giao diện chạy lặp lại được mà
-không cần camera, LiDAR hay cổng COM. Cách dùng và giới hạn: docs/GHI_PHAT_LAI_BAN_THU.md.
+không cần camera, LiDAR hay cổng COM. Cách dùng và giới hạn: docs/VAN_HANH.md.
 
 - `ReplaySession.open_camera(spec)` là `open_source` cho `MultiCameraManager`: `read()` CHẶN tới đúng thời điểm của khung
   theo bản ghi (tính từ lúc `begin()`, chia cho `speed`) rồi trả `Frame` có stamp = thời điểm đó trên đồng hồ phát lại.

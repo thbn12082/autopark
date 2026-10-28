@@ -1,5 +1,5 @@
 """Ngăn "Ghi cảm biến" của cửa sổ đỗ xe `ui.lidar_app` (T3, 02/10/2026): bật tắt bản ghi bốn camera + LiDAR trong phiên
-đỗ (`rig.session_recording.SessionSensorRecorder`) và báo trạng thái của nó. Tài liệu: docs/GHI_PHAT_LAI_BAN_THU.md.
+đỗ (`rig.session_recording.SessionSensorRecorder`) và báo trạng thái của nó. Tài liệu: docs/VAN_HANH.md.
 
 Ghi mọi khung tốt của camera ở ngăn AI camera và mọi vòng quét của ngăn LiDAR vào một thư mục, cùng đồng hồ perf_counter
 với log VehicleIO và dấu đồng bộ. Không gửi gì tới bo, không dừng hay chặn xe, không mở thiết bị nào.

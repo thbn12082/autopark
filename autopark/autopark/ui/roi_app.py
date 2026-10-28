@@ -5,7 +5,7 @@
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.ui.roi_app --port 1 --live
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.ui.roi_app --port 1 --image runs/extrinsics/tong_hop/dat_01.png --intrinsics runs/extrinsics/tong_hop/calibration/cam_p1.json
 
-Mỗi lệnh viết trên MỘT dòng (dán được vào cmd.exe). Cách làm từng bước: docs/NGOAI_THAM_VA_ROI.md.
+Mỗi lệnh viết trên MỘT dòng (dán được vào cmd.exe). Cách làm từng bước: docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham.
 
 **Nguồn ảnh (dùng chung hai thẻ):** "Mở ảnh…" (một tệp ảnh), "Mở bộ ảnh…" (thư mục `runs/rig_snapshots/<ngày_giờ>`: lấy
 `cam_p<cổng>.png`, đổi cổng thì đổi ảnh theo), hoặc "Camera sống" (mở camera theo cổng hub như `calib_app`; "Chụp khung"
@@ -1089,7 +1089,7 @@ class ExtrinsicsRoiWindow(QMainWindow):
 
 def main(argv=None) -> int:
     ecoqos = apply_ecoqos_policy("ui.roi_app")         # trước mọi việc khác (power_throttling.py)
-    p = argparse.ArgumentParser(description="Ngoại tham và ROI cho camera dự án (docs/NGOAI_THAM_VA_ROI.md)")
+    p = argparse.ArgumentParser(description="Ngoại tham và ROI cho camera dự án (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham)")
     p.add_argument("--port", type=int, default=1, help="cổng hub của camera (1..4)")
     p.add_argument("--image", type=Path, help="mở sẵn một ảnh")
     p.add_argument("--snapshot", type=Path, help="mở sẵn một bộ ảnh runs/rig_snapshots/<ngày_giờ>")

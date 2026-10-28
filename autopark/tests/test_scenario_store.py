@@ -36,11 +36,11 @@ SCENARIO_KEYS = ["schema_version", "name", "notes", "vehicle_config", "bounds", 
 def test_acceptance_tag_round_trip_and_untagged_dict_unchanged(tmp_path, scenario, cfg):
     """Trường acceptance (02/10/2026, T12 theo kịch bản): chỉ ghi khi có, ở khóa cuối; kịch bản không gắn giữ đúng các
     khóa và thứ tự cũ (tệp kịch bản, scenario.json và run.json của gói lần chạy không đổi)."""
-    assert scenario.acceptance is None and list(scenario.to_dict()) == SCENARIO_KEYS
+    assert scenario.acceptance is None and list(scenario.to_dict()) == [*SCENARIO_KEYS, "maneuver"]
     with_slot = load_scenario(PROJECT_ROOT / "scenarios" / "bai_do_xe.json")
     assert with_slot.acceptance is None and list(with_slot.to_dict()) == [*SCENARIO_KEYS, "slot", "mode"]
     scenario.acceptance = AcceptanceTag("DO-2", "p3")
-    assert list(scenario.to_dict()) == [*SCENARIO_KEYS, "acceptance"]
+    assert list(scenario.to_dict()) == [*SCENARIO_KEYS, "acceptance", "maneuver"]
     assert scenario.to_dict()["acceptance"] == {"code": "DO-2", "variant": "p3"}
     assert scenario.acceptance.label == "DO-2p3"
     scenario.vehicle_config_path = save_vehicle_config(cfg, tmp_path / "configs" / "xe.json")

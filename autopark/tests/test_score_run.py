@@ -18,14 +18,14 @@ import pytest
 
 from autopark.application.session import Session, SessionState
 from autopark.application.vehicle_link import COMMAND_FIELDS, TELEMETRY_FIELDS, DriveMode, VehicleLink
-from autopark.domain.types import Obstacle, Pose
+from autopark.domain.types import Obstacle, ParkingGoal, ParkingMode, ParkingSlot, Pose
 from autopark.evaluation.reference_pose import ReferenceAccuracy, ReferenceMeta, ReferenceSample, write_reference
 from autopark.evaluation.score_run import BIEN_BAN_FIELDS, load_thresholds, main
 from autopark.lidar import recording as lidar_recording
 from autopark.storage import run_store
 from autopark.storage.run_store import export_run
 from autopark.storage.scenario_store import (ACCEPTANCE_VEHICLE_CONFIG, load_scenario, load_vehicle_config,
-                                            save_vehicle_config)
+                                            save_scenario, save_vehicle_config)
 from autopark.transport.vehicle_io import SIM_FIRMWARE_DEFAULT, SimIOConfig, load_sim_io_config
 from tests.conftest import PROJECT_ROOT
 from tests.test_session_vehicle import SIM_CFG, FixedPose, run_until_done, sim_io, straight_session
@@ -686,20 +686,33 @@ def test_t14_time_scale_maps_simulated_time_and_blocks_reaction_thresholds(tmp_p
 
 
 # ---------------------------------------------------------------------------------------------- lần chạy mô phỏng thật
+def local_run_and_historical_scoring_layout(tmp_path, vehicle_path):
+    """Chạy thao tác gần; ô chỉ dùng để kiểm bộ chấm dữ liệu lịch sử."""
+    scenario = load_scenario(PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json")
+    scenario.start = Pose(.5, 1, 0)
+    scenario.goal = ParkingGoal(Pose(.95, 1, 0))
+    scenario.obstacles = []
+    scenario.vehicle_config_path = vehicle_path
+    cfg = load_vehicle_config(vehicle_path)
+    centre = scenario.goal.pose.x + cfg.length / 2 - cfg.rear_overhang
+    layout = replace(scenario, slot=ParkingSlot(centre, 1, 0, .5, .34), mode=ParkingMode.HEAD_IN, maneuver=None)
+    path = save_scenario(layout, tmp_path / "bo_tri_lich_su.json")
+    return scenario, cfg, path
+
+
 @pytest.mark.parametrize("speed_cap", [None, 0.10])
 def test_mp_vehicle_io_parking_run_scores_every_check(tmp_path, speed_cap):
-    """bai_do_xe qua VehicleLink.simulated(VEHICLE_IO). Ở tốc độ mặc định (0,15 m/s của planner) N-V1 không đạt: tốc
+    """Thao tác gần qua VehicleLink.simulated(VEHICLE_IO), chấm với bố trí lịch sử. Ở tốc độ 0,15 m/s N-V1 không đạt: tốc
     độ mục tiêu 0,15 m/s của lệnh vượt vế mục tiêu 0,10 m/s (xác định, không phụ thuộc vọt lố của vòng tốc độ mô
     phỏng; tốc độ THẬT trên đoạn 0,2 m cũng vượt 0,12 m/s). Đặt trần 0,10 m/s (mục tiêu đợt đầu của N-V1) thì
     THANH_CONG (thử 02/10/2026; vế mục tiêu thêm cùng ngày)."""
-    scenario = load_scenario(BAI_DO_XE)
-    cfg = load_vehicle_config(scenario.vehicle_config_path)
+    scenario, cfg, layout = local_run_and_historical_scoring_layout(tmp_path, VEHICLE)
     firmware = replace(SIM_FIRMWARE_DEFAULT, boot_hold_ms=200)
     if speed_cap is not None:
         cfg = replace(cfg, max_speed=speed_cap)
         firmware = replace(firmware, max_speed_mm_s=round(speed_cap * 1000))
     session = Session(scenario, cfg)
-    assert session.plan_sync().ok and session.trajectory.n_cusps == 1
+    assert session.plan_sync().ok and session.trajectory.n_cusps == 0
     link = VehicleLink.simulated(DriveMode.VEHICLE_IO, SimIOConfig(firmware=firmware))
     session.set_vehicle_link(link)
     session.start_run()
@@ -707,11 +720,11 @@ def test_mp_vehicle_io_parking_run_scores_every_check(tmp_path, speed_cap):
     assert session.state == SessionState.COMPLETED
     session.log.to_csv(tmp_path / "lan.csv")
     log = link.write_logs(tmp_path / "lan_vehicle_io")["link.json"].parent
-    s = score(tmp_path, "--log", log, "--sim-truth", "--layout", BAI_DO_XE, level="MP")
+    s = score(tmp_path, "--log", log, "--sim-truth", "--layout", layout, level="MP")
     row = s.row
     assert float(row["sai_so_vi_tri_cm"]) == pytest.approx(session.report.position_error * 100, abs=0.1)
     assert row["trong_o"] == "co" and row["cham"] == "khong" and row["can_thiep"] == "khong"
-    assert row["doi_chieu_lap"] == row["doi_chieu_thuc"] == "1"
+    assert row["doi_chieu_lap"] == row["doi_chieu_thuc"] == "0"
     assert float(row["thoi_gian_s"]) == pytest.approx(link.result["t_session"], abs=0.005)
     assert row["phuong_phap_do"] == "MP+R6" and row["thu_muc_du_lieu"].endswith("lan_vehicle_io")
     failed = [code for code, c in s.checks.items() if c["verdict"] == "khong_dat"]
@@ -725,20 +738,18 @@ def test_mp_vehicle_io_parking_run_scores_every_check(tmp_path, speed_cap):
         assert target["max_target_mps"] <= 0.10 + 1e-9 and target["verdict"] == "dat"
         assert failed == [] and row["ket_qua"] == "THANH_CONG" and float(row["v_max_do_mps"]) <= 0.12
     hashes = {Path(f["path"]).name: f["sha256"] for f in s.detail["inputs"]["files"]}
-    assert {"link.json", "commands.csv", "telemetry.csv", "events.csv", "lan.csv", "bai_do_xe.json"} <= set(hashes)
+    assert {"link.json", "commands.csv", "telemetry.csv", "events.csv", "lan.csv", "bo_tri_lich_su.json"} <= set(hashes)
     assert all(re.fullmatch(r"[0-9a-f]{64}", h) for h in hashes.values())
     assert s.detail["git_commit"] == "test" and s.detail["thresholds"]["status"] == "DE_XUAT_CHO_CHOT"
 
 
 def test_mp_acceptance_files_score_thanh_cong(tmp_path):
     """Đúng các tệp giao diện dùng khi nghiệm thu (configs/vehicle_nghiem_thu.json và vehicle_io_sim_nghiem_thu.json),
-    không phải SimIOConfig dựng tay: bai_do_xe qua bo mô phỏng → THANH_CONG, N-V1 đạt cả hai vế, có ghi chú xe mô
+    không phải SimIOConfig dựng tay: thao tác gần qua bo mô phỏng → THANH_CONG, N-V1 đạt cả hai vế, có ghi chú xe mô
     phỏng bị kẹp ở 0,10 m/s. Gói T9 của cùng lần chạy cho xe của lần chạy từ run.json (thêm 02/10/2026)."""
-    scenario = load_scenario(BAI_DO_XE)
-    acc = load_vehicle_config(ACCEPTANCE_VEHICLE_CONFIG)
-    scenario.vehicle_config_path = ACCEPTANCE_VEHICLE_CONFIG
+    scenario, acc, layout = local_run_and_historical_scoring_layout(tmp_path, ACCEPTANCE_VEHICLE_CONFIG)
     session = Session(scenario, acc)
-    assert session.plan_sync().ok and session.trajectory.n_cusps == 1
+    assert session.plan_sync().ok and session.trajectory.n_cusps == 0
     link = VehicleLink.simulated(DriveMode.VEHICLE_IO,
                                  load_sim_io_config(PROJECT_ROOT / "configs" / "vehicle_io_sim_nghiem_thu.json")[0])
     session.set_vehicle_link(link)
@@ -747,7 +758,7 @@ def test_mp_acceptance_files_score_thanh_cong(tmp_path):
     assert session.state == SessionState.COMPLETED and link.limits_check.ok
     session.log.to_csv(tmp_path / "lan.csv")
     log = link.write_logs(tmp_path / "lan_vehicle_io")["link.json"].parent
-    s = score(tmp_path, "--log", log, "--sim-truth", "--layout", BAI_DO_XE, level="MP")
+    s = score(tmp_path, "--log", log, "--sim-truth", "--layout", layout, level="MP")
     nv1 = s.checks["N-V1"]
     assert nv1["verdict"] == "dat" and s.row["ket_qua"] == "THANH_CONG" and float(s.row["v_max_do_mps"]) <= 0.10 + 1e-3
     target = nv1["detail"]["target"]
@@ -759,7 +770,7 @@ def test_mp_acceptance_files_score_thanh_cong(tmp_path):
     assert "xe mô phỏng bị kẹp ở max_speed_mps của cấu hình xe (0.1 m/s)" in s.row["ghi_chu"]
     assert "khác kích thước" not in s.row["ghi_chu"]
     bundle = export_run(session, tmp_path / "lan_20261002_101500_000000")
-    s = score(tmp_path, "--log", bundle, "--sim-truth", "--layout", BAI_DO_XE, level="MP", attempt=2)
+    s = score(tmp_path, "--log", bundle, "--sim-truth", "--layout", layout, level="MP", attempt=2)
     run_vehicle = s.detail["log"]["run_vehicle"]
     assert run_vehicle["source"] == "config_snapshot/run.json của gói" and run_vehicle["width_m"] == pytest.approx(0.14)
     assert s.row["ket_qua"] == "THANH_CONG" and "khác kích thước" not in s.row["ghi_chu"]
@@ -867,12 +878,19 @@ def test_mp_sim_bundle_obstacle_run_scores_stop_distance_and_np1(scenario, cfg, 
 
 
 def test_stopped_sim_parking_run_leaves_ket_qua_to_the_person(tmp_path):
-    """Lần đỗ bai_do_xe (1 lần đổi chiều đã lập) ở nhánh SIM dừng vì vật chèn lúc 1 s, trước lần đổi chiều: N-D6(a)
+    """Thao tác cua gần ở nhánh SIM dừng vì vật chèn lúc 1 s, trước lần đổi chiều: N-D6(a)
     không xét (đường chưa đi hết), ket_qua để trống cho người chấm chọn DUNG_DUNG hay THAT_BAI. Xe nghiệm thu
     (0,10 m/s, 02/10/2026): ở 0,15 m/s mặc định vế mục tiêu của N-V1 không đạt và đề xuất thành THAT_BAI."""
-    layout = load_scenario(BAI_DO_XE)
-    session = Session(layout, load_vehicle_config(ACCEPTANCE_VEHICLE_CONFIG))
-    assert session.plan_sync().ok and session.trajectory.n_cusps == 1
+    scenario = load_scenario(PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json")
+    cfg = load_vehicle_config(ACCEPTANCE_VEHICLE_CONFIG)
+    p = scenario.goal.pose
+    centre = cfg.length / 2 - cfg.rear_overhang
+    legacy = replace(scenario, slot=ParkingSlot(p.x, p.y + centre, math.pi / 2, .5, .34),
+                     mode=ParkingMode.HEAD_IN, maneuver=None)
+    layout = save_scenario(legacy, tmp_path / "bo_tri_lich_su.json")
+    session = Session(scenario, cfg)
+    assert session.plan_sync().ok and session.trajectory.n_cusps > 0
+    planned = session.trajectory.n_cusps
     session.start_run()
     while session.world.time < 1.0:
         session.advance(0.05)
@@ -881,9 +899,9 @@ def test_stopped_sim_parking_run_leaves_ket_qua_to_the_person(tmp_path):
     run_until_done(session)
     assert session.state == SessionState.STOPPED
     bundle = export_run(session, tmp_path / "do1_20261002_101500_000000")
-    s = score(tmp_path, "--log", bundle, "--sim-truth", "--layout", BAI_DO_XE, level="MP")
+    s = score(tmp_path, "--log", bundle, "--sim-truth", "--layout", layout, scenario="DO-6", level="MP")
     nd6 = s.checks["N-D6"]
-    assert (s.row["doi_chieu_lap"], s.row["doi_chieu_thuc"]) == ("1", "0")
+    assert (s.row["doi_chieu_lap"], s.row["doi_chieu_thuc"]) == (str(planned), "0")
     assert nd6["detail"]["parts"]["a"] == "khong_ap_dung" and nd6["verdict"] != "khong_dat"
     assert s.row["ket_qua"] == "" and "DUNG_DUNG" in s.row["ghi_chu"]           # trước đây THAT_BAI
 
@@ -1105,23 +1123,15 @@ def test_malformed_inputs_are_refused(tmp_path, capsys):
     assert not (tmp_path / "bien_ban.csv").exists()
 
 
-def test_thresholds_file_matches_nguong_doc_and_rejects_unknown_keys(tmp_path):
+def test_thresholds_file_values_and_rejection_of_unknown_keys(tmp_path):
     t = load_thresholds()
     assert t.status == "DE_XUAT_CHO_CHOT" and t.reference_ratio == 3.0
     assert (t.limit("N-D1", "max_cm"), t.limit("N-D2", "max_deg"), t.limit("N-V1", "max_mps"),
             t.limit("N-P1", "max_s")) == (5.0, 5.0, 0.12, 0.4)
     assert t.limit_or_none("N-V1", "target_mps") == 0.10 and t.limit_or_none("N-D1", "target_mps") is None
-    nguong = (PROJECT_ROOT / "docs" / "NGUONG_NGHIEM_THU_DE_XUAT.md").read_text(encoding="utf-8")
-    rows = {line.split("|")[1].strip(): line for line in nguong.splitlines() if line.startswith("| N-")}
-    assert "≤ 5 cm" in rows["N-D1"] and "≤ 5°" in rows["N-D2"] and "≤ 0,4 s" in rows["N-P1"]
-    assert "1,2 × 0,10 m/s" in rows["N-V1"] and "≥ 2 cm" in rows["N-D5"] and "≥ 10 cm" in rows["N-P3"]
-    assert "Tốc độ mục tiêu ≤ 0,10 m/s" in rows["N-V1"]                         # vế mục tiêu (target_mps)
-    kich_ban = (PROJECT_ROOT / "docs" / "KICH_BAN_NGHIEM_THU.md").read_text(encoding="utf-8")
-    section = kich_ban.split("## 4. Bảng tổng hợp kịch bản")[1].split("## 5.")[0]
-    codes = re.findall(r"^\| ([A-Z]{2}-\d) \|", section, flags=re.M)
-    assert len(codes) == 37
-    for code in codes:
-        assert any(k == code or (k.startswith(code) and not k[len(code)].isdigit()) for k in t.scenarios), code
+    assert (t.limit("N-D5", "min_cm"), t.limit("N-P3", "min_cm")) == (2.0, 10.0)
+    codes = {re.match(r"[A-Z]{2}-\d+", key).group() for key in t.scenarios}
+    assert len(codes) == 37 and {"DO-1", "DO-6", "VC-1", "VC-5"} <= codes
     assert {"VC-5dung", "VC-5do"} <= set(t.scenarios)
     data = json.loads((PROJECT_ROOT / "configs" / "nguong_nghiem_thu.json").read_text(encoding="utf-8"))
     without_target = json.loads(json.dumps(data))                   # tệp cũ không có target_mps vẫn đọc được

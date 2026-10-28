@@ -1,4 +1,4 @@
-"""Giao diện tham chiếu trên cao R1 (T4, docs/KICH_BAN_NGHIEM_THU.md mục 3): lớp mỏng trên `evaluation/overhead_ref.py`,
+"""Giao diện tham chiếu trên cao R1 (T4, docs/KIEM_THU_VA_LO_TRINH.md): lớp mỏng trên `evaluation/overhead_ref.py`,
 `overhead_tc1.py` và `video/overhead_record.py`. Thêm 02/10/2026.
 
     .venv\\Scripts\\python.exe -X utf8 -m autopark.ui.overhead_app

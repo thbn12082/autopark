@@ -1,4 +1,4 @@
-"""Chạy giao diện sa bàn (autopark/ui/app.py):
+"""Chạy giao diện thao tác gần (mặc định: cua 90 độ trong lối hẹp):
 
     python run_app.py [đường_dẫn_kịch_bản.json] [--max-cusps N] [--warn-cusps N] [--vehicle-config TỆP_XE]
 

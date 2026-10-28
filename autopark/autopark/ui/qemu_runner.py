@@ -159,7 +159,7 @@ class QemuBoardRunner(QObject):
             return "Đang tắt bo ảo…" + (f" ({self.message})" if self.message else "")
         if st == S.FAILED:
             return f"LỖI bo ảo: {self.message}"
-        return f"Máy này chưa cấu hình bo ảo: {self.message} (configs/thiet_bi.json, docs/MO_PHONG_FIRMWARE.md)"
+        return f"Máy này chưa cấu hình bo ảo: {self.message} (configs/thiet_bi.json, docs/PHAN_CUNG_VA_HIEU_CHUAN.md)"
 
     def describe(self) -> dict:
         board = self.board

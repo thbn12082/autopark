@@ -67,7 +67,7 @@ def schedule(periods, phases, t_end, t0=1.0, starts=None, drop=None, jitter=0.0,
     return sorted(events)
 
 
-# Nhịp khung thật ở phơi sáng tự động (m01/m04, GIAI_DOAN_1_CAMERA.md mục 4.1): khoảng cách xen kẽ ≈ 31,4 / 48,3 ms, sau
+# Nhịp khung thật ở phơi sáng tự động (m01/m04, DU_LIEU_VA_GIAY_PHEP.md): khoảng cách xen kẽ ≈ 31,4 / 48,3 ms, sau
 # khoảng ngắn luôn là khoảng dài, sau khoảng dài là khoảng ngắn với xác suất 272/443; trung bình 41,9 ms.
 SHORT_GAP, LONG_GAP = 0.0314, 0.0483
 

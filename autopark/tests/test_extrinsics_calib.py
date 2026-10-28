@@ -711,7 +711,7 @@ def test_check_image_axis_colours_match_the_board_arrows():
     assert (board[..., 2] > 200).any() and (board[..., 1] > 150).any()      # mũi tên x đỏ, y xanh lá của bảng
 
 
-# ---- từng phép loại lần đặt (bảng mục 5.2 của docs/NGOAI_THAM_VA_ROI.md) ----------------------------------------------
+# ---- từng phép loại lần đặt (bảng mục 5.2 của docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham) ----------------------------------------------
 def test_each_placement_check_refuses_with_its_own_reason(intr, tmp_path, monkeypatch):
     """Mỗi phép loại lần đặt có ca riêng — gỡ hay đảo phép kiểm thì ca đó đỏ."""
     # nội tham lệch f_x 10 % (đầu vào thật, không vá ngưỡng): RMS riêng > 1 px

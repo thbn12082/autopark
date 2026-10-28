@@ -63,6 +63,9 @@ class PortfolioParams:
     verify_max_time: float = 240.0
     tracker_params: TrackerParams | None = None
     ladder: list[Rung] | None = None
+    max_path_length: float | None = None
+    max_cusps: int | None = None
+    verify_scenario: Scenario | None = None
 
 
 def default_ladder() -> list[Rung]:
@@ -130,7 +133,8 @@ def plan(start: Pose, goal: Pose, cfg: VehicleConfig, obstacles: list[Obstacle],
 
     t0 = time.perf_counter()
     log: list[Attempt] = attempts if attempts is not None else []
-    scenario = _as_scenario(start, goal, obstacles, bounds) if p.verify else None
+    scenario = (replace(p.verify_scenario) if p.verify_scenario is not None
+                else _as_scenario(start, goal, obstacles, bounds)) if p.verify else None
     if scenario is not None:
         scenario.goal = ParkingGoal(goal, p.accept_xy, p.accept_yaw)
     fallback: PlanResult | None = None
@@ -164,6 +168,11 @@ def plan(start: Pose, goal: Pose, cfg: VehicleConfig, obstacles: list[Obstacle],
             log.append(Attempt(rung.name, result.status, took, note=result.message[:90]))
             last_failure = result
             continue
+        if ((p.max_path_length is not None and result.trajectory.length > p.max_path_length)
+                or (p.max_cusps is not None and result.trajectory.n_cusps > p.max_cusps)):
+            last_failure = PlanResult("MANEUVER_LIMIT", "Chưa tìm được thao tác đủ ngắn trong giới hạn tiến/lùi")
+            log.append(Attempt(rung.name, last_failure.status, took, note=last_failure.message))
+            continue
         if not p.verify or scenario is None:
             log.append(Attempt(rung.name, "OK", took, tracked=True, note="không kiểm chứng"))
             return _stamp(result, rung, log, time.perf_counter() - t0)
@@ -177,6 +186,8 @@ def plan(start: Pose, goal: Pose, cfg: VehicleConfig, obstacles: list[Obstacle],
             last_failure = PlanResult("TIMEOUT", "Hết thời gian kiểm chứng đường")
             break
         rep = run.report
+        if not rep.completed:
+            last_failure = PlanResult("TRACKING_FAILED", rep.describe())
         tracked = bool(rep.completed and not rep.collided
                        and rep.position_error <= min(p.verify_xy, p.accept_xy)
                        and abs(rep.heading_error) <= min(p.verify_yaw, p.accept_yaw))

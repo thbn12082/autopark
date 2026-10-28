@@ -1,5 +1,5 @@
 """Ngăn "AI camera" gắn vào cửa sổ đỗ xe: AI của bốn camera (hay bản ghi phát lại) thành NGUỒN VẬT CẢN thứ hai bên cạnh
-LiDAR, theo đúng khuôn của ngăn LiDAR (ui/lidar_dock.py). Tài liệu: docs/AI_DIEU_KHIEN_XE.md (25/09/2026).
+LiDAR, theo đúng khuôn của ngăn LiDAR (ui/lidar_dock.py). Tài liệu: docs/KIEN_TRUC.md (25/09/2026).
 
 Luồng: `rig.core.Rig` (luồng camera + luồng AI, không LiDAR) → timer 50 ms đọc lô AI mới nhất → `fusion.camera_ai.
 CameraObstacleMapper` (chặn khi BEV không dùng được, BEV, đặt vào lưới sa bàn, lọc 2/3 lô) → `fuse` → `ObstacleBridge`
@@ -128,7 +128,7 @@ class CameraAIDock(QDockWidget):
 
         self.lbl_attribution = WrapLabel(bev.WOODSCAPE_ATTRIBUTION + ". Dùng trong vòng điều khiển theo quyết định "
                                          "25/09/2026 của người làm khóa luận; Valeo chưa xác nhận cách đọc điều khoản "
-                                         "(docs/GIAY_PHEP_DU_LIEU.md).")
+                                         "(docs/DU_LIEU_VA_GIAY_PHEP.md).")
         self.lbl_attribution.setObjectName("hint")
         layout.addWidget(self.lbl_attribution)
         if self.test_rig:
@@ -184,7 +184,7 @@ class CameraAIDock(QDockWidget):
         self.spin_threshold.setDecimals(2)
         self.spin_threshold.setValue(AI_T_BLOCKED)
         self.spin_threshold.setPrefix("vật cản khi P ≥ ")
-        self.spin_threshold.setToolTip("0,15 = ngưỡng an toàn chọn trên val WoodScape (HUAN_LUYEN.md mục 10); "
+        self.spin_threshold.setToolTip("0,15 = ngưỡng an toàn chọn trên val WoodScape (docs/DU_LIEU_VA_GIAY_PHEP.md); "
                                        "0,50 = argmax. Chưa kiểm trên sa bàn")
         self.spin_window = QSpinBox()
         self.spin_window.setRange(1, 10)

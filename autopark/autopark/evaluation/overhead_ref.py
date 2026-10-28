@@ -1,4 +1,4 @@
-"""Tham chiếu trên cao R1 (T4, docs/KICH_BAN_NGHIEM_THU.md mục 3): camera trên cao → tư thế tâm trục sau mỗi khung, ghi
+"""Tham chiếu trên cao R1 (T4, docs/KIEM_THU_VA_LO_TRINH.md): camera trên cao → tư thế tâm trục sau mỗi khung, ghi
 đúng hợp đồng `evaluation/reference_pose.py` để công cụ chấm T5 (`score_run`) đọc. Thêm 02/10/2026.
 
 Dùng (mỗi lệnh một dòng, chạy trong thư mục autopark; chỉ `video.overhead_record` và nút "Mở camera" của
@@ -733,7 +733,7 @@ def load_overhead_intrinsics(path) -> OverheadIntrinsics:
     path = Path(path)
     if not path.exists():
         raise OverheadError(f"chưa có tệp nội tham {path}: hiệu chuẩn camera trên cao trước (calib_app --index N "
-                            f"--camera-name tren_cao, docs/HIEU_CHUAN_CAMERA.md)")
+                            f"--camera-name tren_cao, docs/PHAN_CUNG_VA_HIEU_CHUAN.md#noi-tham)")
     try:
         record = fc.load_calibration(path)
     except (OSError, ValueError, KeyError) as exc:

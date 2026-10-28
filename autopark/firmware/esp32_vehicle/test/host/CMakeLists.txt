@@ -1,4 +1,4 @@
-# Test lõi firmware trên máy tính (không cần bo). Chạy lần đầu 29/09/2026 (g++ 16.1.0, cmake 4.4.1), xem README.md.
+# Test lõi firmware trên máy tính (không cần bo). Chạy lần đầu 29/09/2026 (g++ 16.1.0, cmake 4.4.1), xem docs/PHAN_CUNG_VA_HIEU_CHUAN.md.
 #   cmake -S test/host -B build/host -DCMAKE_BUILD_TYPE=Release && cmake --build build/host --config Release
 #   ctest --test-dir build/host -C Release --output-on-failure
 # (--config/-C cho generator nhiều cấu hình như Visual Studio, mặc định trên Windows khi có VS; Ninja/Makefile bỏ qua.)

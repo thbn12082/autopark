@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "name": "Lùi chỉnh xe vào khe hẹp",
+  "notes": "Đích gần ở phía sau; hai bên là thành khe. Kéo và xoay xe đích để thử tư thế khác. Thông số giả định cho mô phỏng.",
+  "vehicle_config": "../configs/vehicle_nghiem_thu.json",
+  "bounds": {"xmin": 0.0, "ymin": 0.0, "xmax": 1.5, "ymax": 1.5},
+  "start": {"x": 0.9, "y": 0.75, "yaw_deg": 0.0},
+  "goal": {"x": 0.5, "y": 0.75, "yaw_deg": 0.0, "tolerance_cm": 3.0, "tolerance_deg": 5.0},
+  "maneuver": {"max_goal_distance_m": 0.7, "area_half_extent_m": 0.75, "max_path_length_m": 1.4, "max_cusps": 3},
+  "obstacles": [
+    {"id": "thanh_trai", "cx": 0.48, "cy": 0.9, "width": 0.6, "height": 0.06, "kind": "wall"},
+    {"id": "thanh_phai", "cx": 0.48, "cy": 0.6, "width": 0.6, "height": 0.06, "kind": "wall"},
+    {"id": "vach_sau", "cx": 0.2, "cy": 0.75, "width": 0.06, "height": 0.3, "kind": "wall"}
+  ],
+  "seed": 0
+}

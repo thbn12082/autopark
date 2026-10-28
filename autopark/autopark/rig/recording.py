@@ -1,7 +1,7 @@
 """Ghi một phiên bàn thử — bốn camera + LiDAR — ra thư mục, để phát lại không cần thiết bị (`autopark.rig.replay`).
 
 Bật bằng `python -m autopark.rig.bench --record <thư mục>` hoặc nút "Ghi phiên" của `ui/rig_app.py`. Cách dùng, định dạng
-và giới hạn: docs/GHI_PHAT_LAI_BAN_THU.md.
+và giới hạn: docs/VAN_HANH.md.
 
 Ghi gì:
 - MỌI khung TỐT mà nguồn camera trả cho `CameraWorker` — tức là SAU khi `UsbCameraSource` đã loại khung cũ, khung bị cắt

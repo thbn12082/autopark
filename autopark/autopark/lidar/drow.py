@@ -1,6 +1,6 @@
 """Phát lại bản quét laser 2D từ DROW v2 (SICK S300) theo hợp đồng `LidarScan`.
 
-Định dạng (đã kiểm tra trên dữ liệu, xem datasets/TAI_VA_KIEM_TRA.md): mỗi dòng CSV có 452 cột — cột 0 là
+Định dạng (đã kiểm tra trên dữ liệu, xem docs/DU_LIEU_VA_GIAY_PHEP.md): mỗi dòng CSV có 452 cột — cột 0 là
 sequence ID (tăng 1 mỗi dòng trong một file), cột 1 là thời gian (giây, gốc tùy ý), 450 cột còn lại là
 khoảng cách (m). Cảm biến quét 224,5° với bước 0,5°; loader v2 của tác giả đặt phi = 0 thẳng phía trước,
 chỉ số 0 ứng với góc âm nhất. README gốc lại nói "giá trị đầu là bên trái"; hai tài liệu mâu thuẫn, ở đây

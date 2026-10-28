@@ -21,9 +21,9 @@ hơn thì định nhịp cả chuỗi, không bị bỏ. Số bộ như thế v�
 (`period_ms`) và số bộ phải để dành camera lệch pha cho bộ sau (`sets_regrouped`). Muốn so với số đo cũ (loạt
 20260923_v3, trước khi có quy tắc chờ) thì chạy `--max-wait-ms 0`. Số của các phiên bật chờ ghi TRƯỚC tối 24/09 (w01–w05,
 may_moi m01/m02; json không có `policy.wait_rule`) là của quy tắc cũ: một ngưỡng chung theo camera NHANH NHẤT, bỏ nhầm
-camera khỏe khi các camera khác nhịp (docs/GIAI_DOAN_2_BAN_THU.md mục 10.1).
+camera khỏe khi các camera khác nhịp (docs/DU_LIEU_VA_GIAY_PHEP.md).
 
-Ghi và phát lại (docs/GHI_PHAT_LAI_BAN_THU.md):
+Ghi và phát lại (docs/VAN_HANH.md):
 
     python -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 120 --name g01 --record runs/rig_recordings/g01
     python -m autopark.rig.bench --replay runs/rig_recordings/g01 --name g01_phat_lai --out runs/rig_bench/phat_lai
@@ -34,7 +34,7 @@ bản ghi thay cho camera và LiDAR — không mở thiết bị nào. Khi phát
 hình, phần làm nóng mặc định 0 s, phiên đo phủ trọn bản ghi và tự dừng khi hết (`replay.finished` trong json); quy tắc ghép
 bộ (`--max-skew-ms`, `--max-wait-ms`) lấy từ dòng lệnh, nên cùng một bản ghi so được các quy tắc với nhau.
 
-Dấu đồng bộ video–log cho video R3 (T14, thêm 02/10/2026; docs/KICH_BAN_NGHIEM_THU.md mục 7):
+Dấu đồng bộ video–log cho video R3 (T14, thêm 02/10/2026; docs/KIEM_THU_VA_LO_TRINH.md):
 
     python -m autopark.rig.bench --ports 1 2 3 4 --lidar --seconds 60 --name cb1 --out runs/rig_bench/<ngày> --sync-mark
 
@@ -359,7 +359,7 @@ def add_rig_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--ports", type=int, nargs="*", default=None, help="cổng hub (mặc định: mọi camera thấy được)")
     p.add_argument("--index", type=int, nargs="*", default=None, help="bỏ qua tra cổng, mở theo index OpenCV (thử nhanh)")
     # Mặc định 640×480: đo 23/09/2026 bốn camera qua hub UGREEN, 720p có camera gần như MỌI khung bị cắt cụt (đáy do bộ
-    # giải mã tô); 480p phần lớn thời gian sạch nhưng cổng 1 có đợt 30–36 % khung hỏng (docs/GIAI_DOAN_2_BAN_THU.md
+    # giải mã tô); 480p phần lớn thời gian sạch nhưng cổng 1 có đợt 30–36 % khung hỏng (docs/DU_LIEU_VA_GIAY_PHEP.md
     # mục 2.4). Khung hỏng bị nguồn loại và đếm ("cắt"/"xé"). Mô hình AI vốn thu ảnh về 512×384.
     p.add_argument("--width", type=int, default=640)
     p.add_argument("--height", type=int, default=480)
@@ -372,7 +372,7 @@ def add_rig_args(p: argparse.ArgumentParser) -> None:
     # Giá trị này là SÀN: ngưỡng thực RIÊNG từng camera = max(sàn, 1,5 × chu kỳ khung TRUNG BÌNH đo được của CHÍNH camera
     # đó), để camera khỏe chạy dưới 16,7 fps (--fps 15, phơi sáng tự động chỗ tối) hay chậm hơn camera khác không bị bỏ.
     # Sàn 60 ms và hệ số 1,5: lựa chọn thiết kế, kiểm bằng mô phỏng đồng hồ giả và phát lại khoảng cách khung đo được
-    # (xem video/multicam.py, docs/GIAI_DOAN_2_BAN_THU.md mục 10.1–10.2).
+    # (xem video/multicam.py, docs/DU_LIEU_VA_GIAY_PHEP.md).
     p.add_argument("--max-wait-ms", type=float, default=60.0,
                    help="sàn của ngưỡng chờ camera lỡ nhịp; ngưỡng thực riêng từng camera = max(giá trị này, 1,5 × chu "
                         "kỳ khung trung bình của chính camera đó): ≈ 63 ms ở 24 fps, ≈ 100 ms ở 15 fps; hết hạn thì "

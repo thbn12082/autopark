@@ -11,7 +11,7 @@ có làm tròn. Phép chia là chia cắt về 0 (`tdiv`), đúng ngữ nghĩa `
 
 Đồng hồ được TIÊM: mọi hàm nhận `now_ms` (tương đương `millis()` trên bo). Mô hình không đọc đồng hồ hệ thống.
 
-Máy trạng thái (docs/GIAO_THUC_XE.md mục 6):
+Máy trạng thái (docs/PHAN_CUNG_VA_HIEU_CHUAN.md):
     BOOT ──hết boot_hold──> DISARMED ──ARM──> ARMED ──COMMAND enable──> RUNNING
     RUNNING ──lệnh hết hạn / enable=0──> ARMED (đầu ra dốc về trung tính)
     ARMED/RUNNING ──DISARM / mất liên lạc / HELLO mới──> DISARMED

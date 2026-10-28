@@ -12,7 +12,7 @@ Luồng chạy (mọi stamp dùng `RIG_CLOCK = time.perf_counter`, xem `video.mu
   `RigConfig.max_wait_s` (mặc định 60 ms; là SÀN — từ tối 24/09 mỗi camera có ngưỡng RIÊNG L = max(max_wait_s, 1,5 ×
   chu kỳ khung TRUNG BÌNH đo được của CHÍNH camera đó), ≈ 63 ms ở 24 fps (nhịp xen kẽ 31/48 ms, trung bình 41,9 ms),
   ≈ 100 ms ở 15 fps; trước đó là một ngưỡng chung theo camera nhanh nhất, bỏ nhầm camera khỏe khi các camera khác nhịp
-  (docs/GIAI_DOAN_2_BAN_THU.md mục 10.1), xem `video.multicam`), camera lỡ nhịp của chính nó chỉ được chờ có giới hạn: bộ được
+  (docs/DU_LIEU_VA_GIAY_PHEP.md), xem `video.multicam`), camera lỡ nhịp của chính nó chỉ được chờ có giới hạn: bộ được
   chấm không có nó (`FrameSet.lagging`, xem `video.multicam`), cỡ lô thay đổi theo số camera có trong bộ. Camera có khung
   mới thuộc chu kỳ sau cũng có thể được để dành cho bộ sau để sửa lệch pha (`FrameSet.deferred`). Với cả hai, kết quả
   mới nhất CỦA TỪNG camera được giữ lại (`AIResult.carried`) để giao diện vẫn tô lớp AI cũ, có ghi tuổi;
@@ -29,7 +29,7 @@ dữ liệu tới máy KHÔNG đo được ở đây (cần LED nháy hoặc đ�
 Số "trực tiếp" (giao diện, chuỗi theo giây) tính trên cửa sổ `LIVE_WINDOW` mẫu cuối; `summary()` tính cả phiên kể từ
 lần đặt lại cuối (`reset_counters`). Đổi mô hình AI thì số AI tự đặt lại và lô đầu (khởi tạo CUDA/cuDNN) được tách riêng.
 
-Ghi và phát lại (từ 24/09, docs/GHI_PHAT_LAI_BAN_THU.md): `Rig` bọc nguồn của từng camera và của LiDAR
+Ghi và phát lại (từ 24/09, docs/VAN_HANH.md): `Rig` bọc nguồn của từng camera và của LiDAR
 (`rig.recording.CameraTap`, `LidarTap`); `start_recording()` / `stop_recording()` bật tắt việc ghi mọi khung tốt, sự kiện
 đọc hỏng và vòng LiDAR ra thư mục lúc đang chạy. `Rig(..., replay=ReplaySession)` chạy từ một bản ghi thay cho thiết bị:
 đồng hồ phát lại chỉ bắt đầu khi AI đã nạp xong mô hình (hoặc nạp lỗi), và `stop()` đánh thức mọi nguồn phát lại đang chờ.
@@ -503,7 +503,7 @@ class RigConfig:
     # TRUNG BÌNH đo được của CHÍNH camera đó): ≈ 63 ms ở 24 fps (nhịp xen kẽ 31/48 ms, trung bình 41,9 ms), ≈ 100 ms ở
     # 15 fps. Camera khỏe mà chậm hơn định nhịp cả chuỗi, không bị bỏ. Hết hạn thì chấm bộ không có nó. Sàn 60 ms và hệ
     # số 1,5 là lựa chọn thiết kế, kiểm bằng mô phỏng đồng hồ giả và phát lại khoảng cách khung đo được ngày 24/09
-    # (docs/GIAI_DOAN_2_BAN_THU.md mục 10.1–10.2). None hoặc ≤ 0 = quy tắc cũ: chờ mọi camera, cả chuỗi chậm theo camera
+    # (docs/DU_LIEU_VA_GIAY_PHEP.md). None hoặc ≤ 0 = quy tắc cũ: chờ mọi camera, cả chuỗi chậm theo camera
     # chậm nhất.
     max_wait_s: float | None = 0.060
     display_width: int = 640                  # xác suất AI trả về ở bề rộng này, giữ tỉ lệ từng camera

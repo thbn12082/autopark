@@ -12,7 +12,7 @@ tối 24/09/2026.)
 Bộ lọc chung: chỉ tia CÓ phản hồi (NaN = không phản hồi, bị bỏ, không tính là 0); khoảng cách trong
 [`range_min_m`, `range_max_m`] (mặc định 0,2–4 m như phép tính tạm ngày 24/09); chất lượng ≥ `min_quality` (mặc định 0
 = không lọc); bỏ `skip_s` giây đầu tính từ vòng đầu CỦA BẢN GHI (mặc định 3 s, như `bench analyze --skip`: mô-tơ C1
-còn tăng tốc ở các vòng đầu, GIAI_DOAN_1_LIDAR.md mục 3b).
+còn tăng tốc ở các vòng đầu, DU_LIEU_VA_GIAY_PHEP.md).
 
 Hai phép tính:
 
@@ -26,7 +26,7 @@ Hai phép tính:
    (`std_raw`) được giữ để so. Ô chỉ được tính khi có ≥ `min_bin_samples` mẫu và ≥ `min_bin_return_fraction` số tia
    rơi vào ô qua bộ lọc. Tóm tắt qua các ô bằng trung vị, p75, p90 để vài ô ở mép vật không kéo cả số.
 
-Đây là độ LẶP LẠI giữa các vòng trên cùng một cảnh, KHÔNG phải sai số so với thước (chưa đo, GIAI_DOAN_1_LIDAR.md
+Đây là độ LẶP LẠI giữa các vòng trên cùng một cảnh, KHÔNG phải sai số so với thước (chưa đo, DU_LIEU_VA_GIAY_PHEP.md
 mục 6). C1 gửi khoảng cách theo bước 1/4 mm (`distance_q2`), nên phân vị của |Δr| đi theo bậc 0,25 mm
 (`range_step_mm` trong JSON cho biết bản ghi có đúng bước đó không).
 """

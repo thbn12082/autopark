@@ -1,7 +1,7 @@
 [project]
 name = "autopark"
 version = "0.1.0"
-description = "Xe mô hình tự đỗ: mô phỏng, lập đường, bám đường, bàn thử LiDAR/camera/AI, VehicleIO và firmware ESP32-S3 (chưa chạy trên xe thật)"
+description = "Hỗ trợ xe mô hình thao tác gần trong chỗ hẹp: chọn đích gần, tự đánh lái tiến/lùi và dừng; mô phỏng cùng bàn thử cảm biến (chưa chạy trên xe thật)"
 requires-python = ">=3.11"
 dependencies = [
     "PySide6>=6.6",
@@ -30,5 +30,5 @@ pythonpath = ["."]
 addopts = "-q"
 markers = ["planner_budget: checks search results under wall-clock budgets; run without coverage tracing"]
 # Chỉ giữ thư mục tmp_path của test hỏng (30/09/2026): giữ hết thì mỗi lượt .venv-train để lại ≈ 2,1 GB trong %TEMP%,
-# mà ổ C của máy bàn chật (docs/CHUYEN_MAY_BAN.md mục 8).
+# mà ổ C của máy bàn chật (docs/VAN_HANH.md).
 tmp_path_retention_policy = "failed"

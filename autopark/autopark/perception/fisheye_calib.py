@@ -31,7 +31,7 @@ Việc của mô-đun (không cần Qt, không mở camera):
 
 Tệp hiệu chuẩn chỉ có NỘI THAM: không có ngoại tham (vị trí/hướng so với xe). Ngoại tham đo bằng
 `perception/extrinsics_calib.py` (giao diện `ui/roi_app.py`, từ 24/09/2026) và ghi vào
-`configs/rig/camera_rig_extrinsics_v1.json`, xem docs/NGOAI_THAM_VA_ROI.md; công cụ đó cần tệp nội tham này trước.
+`configs/rig/camera_rig_extrinsics_v1.json`, xem docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham; công cụ đó cần tệp nội tham này trước.
 Các ngưỡng chấp nhận ở dưới là ĐỀ XUẤT, chưa kiểm trên camera thật.
 """
 from __future__ import annotations
@@ -55,7 +55,7 @@ from autopark.perception.calibration import FisheyeIntrinsics
 from autopark.video.sources import IMAGE_EXTENSIONS, natural_key, torn_bands, truncated_rows
 
 FORMAT = "autopark.fisheye_intrinsics/1"
-DEFAULT_SIZE = (640, 480)          # mode chính thức của bốn camera qua hub (docs/GIAI_DOAN_2_BAN_THU.md)
+DEFAULT_SIZE = (640, 480)          # mode chính thức của bốn camera qua hub (docs/DU_LIEU_VA_GIAY_PHEP.md)
 
 # ---- ngưỡng (ĐỀ XUẤT, chưa kiểm trên camera thật) -------------------------------------------------------------------
 MAX_EDGE_WIDTH_PX = 3.0      # độ rộng vùng chuyển đen→trắng; tài liệu OpenCV: "nên dưới ~3 px"
@@ -83,7 +83,7 @@ MIN_CAPTURE_INTERVAL_S = 1.0
 
 NOT_ON_RIG_NOTE = ("Chưa gắn lên rig: tệp này chỉ có nội tham (K, D) của một camera, KHÔNG có ngoại tham (vị trí/hướng "
                    "camera so với xe). Ngoại tham đo riêng bằng perception/extrinsics_calib.py sau khi gá camera, ghi "
-                   "vào configs/rig/camera_rig_extrinsics_v1.json (docs/NGOAI_THAM_VA_ROI.md).")
+                   "vào configs/rig/camera_rig_extrinsics_v1.json (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham).")
 
 
 def _flag(name: str) -> int:

@@ -604,7 +604,7 @@ def test_real_c1_other_place_never_reports_ok(tmp_path):
 
 
 def test_drow_corridor_segment():
-    """DROW v2 (Beyer et al., giấy phép MIT; docs/GIAY_PHEP_DU_LIEU.md) `run_2015-11-25-10-34-20-c`, vòng 300–459, SICK
+    """DROW v2 (Beyer et al., giấy phép MIT; docs/DU_LIEU_VA_GIAY_PHEP.md) `run_2015-11-25-10-34-20-c`, vòng 300–459, SICK
     S300 225°: bản đồ dựng từ tư thế odometry .odom2 của DROW (KHÔNG phải ground truth), gá 0, không mặt nạ, không arm()
     (chốt dừng tự khởi tạo lại sau 1 s như ngoài lần chạy). Độ lệch so với .odom2 chỉ báo cáo, không coi là sai số. Đo
     02/10/2026: 2 INIT, 134/160 OK, hai lần POSE_LOST do (a) FAILED conflicts_with_map (người đi lại trong cảnh, cả lúc dựng

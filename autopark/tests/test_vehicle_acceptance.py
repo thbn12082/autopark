@@ -25,7 +25,7 @@ from tests.test_session_vehicle import run_until_done, straight_session
 
 ACCEPTANCE_SIM_IO = CONFIGS_DIR / "vehicle_io_sim_nghiem_thu.json"
 DEFAULT_SIM_IO = CONFIGS_DIR / DEFAULT_SIM_IO_NAME
-BAI_DO_XE = PROJECT_ROOT / "scenarios" / "bai_do_xe.json"
+BAI_DO_XE = PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json"
 
 
 def flatten(data: dict, prefix: str = "") -> dict:

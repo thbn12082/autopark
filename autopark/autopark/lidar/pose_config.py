@@ -1,7 +1,7 @@
 """Cấu hình nguồn tư thế LiDAR của phiên đỗ xe (thêm 02/10/2026, T2): gá LiDAR trên xe, điều kiện tiên quyết cho bo
 thật, ngưỡng của bộ ghép định vị (a) + giám sát (b) và LiDAR mô phỏng. Đọc `configs/dinh_vi_lidar_v0.json`.
 
-Người dùng giao quyết định 02/10/2026 ("làm hết"): làm theo ĐỀ XUẤT mục 7 của docs/SO_SANH_DINH_VI_SLAM.md; mọi ngưỡng
+Người dùng giao quyết định 02/10/2026 ("làm hết"): làm theo ĐỀ XUẤT mục 7 của docs/KIEN_TRUC.md; mọi ngưỡng
 ở đây vẫn là ĐỀ XUẤT – CHỜ CHỐT, dùng cho nghiệm thu tới khi chốt; gá LiDAR GIẢ ĐỊNH – CHƯA ĐO.
 
 Đọc chặt theo kiểu `SimIOConfig.from_dict`: schema_version phải là 1; khóa lạ ở bất kỳ mức nào → ValueError tiếng Việt

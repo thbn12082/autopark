@@ -12,7 +12,7 @@ từ một timer riêng (hoặc chạy nguồn trong luồng riêng) để STALE
 
 Với `UsbCameraSource`, "một lần đọc hỏng" gồm: driver báo lỗi, driver trả lại đúng khung trước (khung cũ), và từ
 23/09/2026 khung MJPEG bị cắt cụt hoặc có dải xé mà bộ giải mã tô phần thiếu (`truncated_rows`, `torn_bands`;
-docs/GIAI_DOAN_2_BAN_THU.md mục 2; `check_truncation` tắt được). Mỗi loại được đếm riêng (`read_failures`,
+docs/DU_LIEU_VA_GIAY_PHEP.md; `check_truncation` tắt được). Mỗi loại được đếm riêng (`read_failures`,
 `duplicates`, `truncated`, `torn`), và khung cũ được xét trước khung bị cắt. Nguồn này dùng cho cả camera thật ở
 giai đoạn 1 lẫn bàn thử bốn camera ở giai đoạn 2.
 """
@@ -166,7 +166,7 @@ def truncated_rows(image: np.ndarray, period: int = 8, threshold: float = 0.9, b
 
     Thấy ngày 23/09/2026 trên bốn camera qua hub UGREEN không cắm nguồn riêng: phần thiếu của khung bị cắt được tô bằng
     một vân khối 8×8 lặp lại (xám, R = B), nên mọi dòng ở vùng đó trùng từng giá trị với chính nó dịch 8 điểm ảnh ở
-    > 90 % số điểm, còn ảnh thật (nhiễu cảm biến) chỉ trùng ≤ 13 % (627 khung sạch, docs/GIAI_DOAN_2_BAN_THU.md). Khung bị
+    > 90 % số điểm, còn ảnh thật (nhiễu cảm biến) chỉ trùng ≤ 13 % (627 khung sạch, docs/DU_LIEU_VA_GIAY_PHEP.md). Khung bị
     cắt thì hàng khối cuối luôn hỏng, nên chỉ xét `block` dòng cuối (khung sạch tốn vài chục µs). Hỏng khi:
     (1) MỌI dòng trong đó trùng với chính nó dịch `period` điểm ảnh ở > `threshold` số điểm, và
     (2) vân có kết cấu BÊN TRONG chu kỳ: tỉ lệ điểm trùng điểm kề bên (dịch 1) < `max_flat`. Đuôi tô thật: ≤ 0,05; vùng
@@ -236,7 +236,7 @@ class UsbCameraSource:
     """Camera UVC qua OpenCV (DirectShow trên Windows).
 
     Ba điều dưới đây đo bằng `autopark.video.camera_bench` trên bốn camera "HD Camera" (Sunplus 1BCF:0B09) ngày
-    23/09/2026, OpenCV 5.0 (hồ sơ: runs/camera_bench/20260923, docs/GIAI_DOAN_1_CAMERA.md mục 3); lớp này viết
+    23/09/2026, OpenCV 5.0 (hồ sơ: runs/camera_bench/20260923, docs/DU_LIEU_VA_GIAY_PHEP.md); lớp này viết
     theo đó và được chạy trên camera thật bằng `camera_bench source` (hồ sơ cùng thư mục):
     (1) kích thước và MJPG phải đưa vào NGAY LÚC MỞ (`params` của `cv2.VideoCapture`) — đặt sau khi mở thì backend
     rơi về YUY2, 720p/1080p chỉ còn 10/5 fps; (2) `grab()` không chờ khung mới nên nguồn dùng `read()`, hàm này chặn

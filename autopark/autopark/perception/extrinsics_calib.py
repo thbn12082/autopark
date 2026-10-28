@@ -8,7 +8,7 @@
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.extrinsics_calib solve --placements runs/extrinsics/tong_hop/dat_bang_p1.json --out runs/extrinsics/tong_hop/camera_rig_tong_hop.json --allow-synthetic
 
 Mỗi lệnh viết trên MỘT dòng (dán được vào cmd.exe); thay `<...>` bằng giá trị thật. Số trên dòng lệnh viết dấu chấm hay
-dấu phẩy thập phân đều được (`0.45` hay `0,45`). Cách đo từng bước: docs/NGOAI_THAM_VA_ROI.md.
+dấu phẩy thập phân đều được (`0.45` hay `0,45`). Cách đo từng bước: docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham.
 
 **Hệ xe** (như configs/rig/camera_rig_extrinsics_v0.json và perception/bev.py): x hướng trước, y sang trái, z lên; gốc
 trên mặt sàn, dưới tâm trục sau. **Hệ bảng**: gốc ở góc trong O = góc trong (0, 0) — góc trong sát ô ĐEN ở góc trên-trái
@@ -498,7 +498,7 @@ def load_camera_intrinsics(path, port: int | None = None) -> CameraIntrinsics:
     path = Path(path)
     if not path.exists():
         raise ExtrinsicsError(f"chưa có tệp nội tham {path}: hiệu chuẩn nội tham camera này trước "
-                              f"(docs/HIEU_CHUAN_CAMERA.md) — ngoại tham không có nghĩa khi chưa có nội tham")
+                              f"(docs/PHAN_CUNG_VA_HIEU_CHUAN.md#noi-tham) — ngoại tham không có nghĩa khi chưa có nội tham")
     try:
         record = fc.load_calibration(path)
         fc.load_intrinsics(path)            # cùng phép kiểm BEV dùng (khối đa thức phải ok)
@@ -1033,7 +1033,7 @@ def write_rig_file(out_path, results: list, *, base_path=DEFAULT_BASE, overwrite
         data["ghi_chu_tu_tep_goc"] = list(base.get("ghi_chu", []))
     data["ghi_chu"] = [
         f"({_date_vn(now)}) Tệp do autopark.perception.extrinsics_calib ghi. Camera có \"measured\": true được đo bằng "
-        f"bảng ô vuông đặt trên sàn ở vị trí đo bằng thước (docs/NGOAI_THAM_VA_ROI.md); nguồn gốc từng camera ở khóa "
+        f"bảng ô vuông đặt trên sàn ở vị trí đo bằng thước (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham); nguồn gốc từng camera ở khóa "
         f"provenance. Camera còn \"measured\": false giữ nguyên số GIẢ ĐỊNH của tệp gốc.",
         "Khối vehicle_assumed (kích thước xe, hộp thân xe) chép từ tệp gốc: vẫn là GIẢ ĐỊNH cho tới khi đo MN300 "
         "(giai đoạn 4).",
@@ -1477,7 +1477,7 @@ def _cmd_synthetic(args) -> int:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description="Ngoại tham camera bằng bảng đặt trên sàn (docs/NGOAI_THAM_VA_ROI.md)")
+    p = argparse.ArgumentParser(description="Ngoại tham camera bằng bảng đặt trên sàn (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham)")
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("solve", help="giải ngoại tham một camera từ các lần đặt bảng")
     s.add_argument("--placements", type=Path, help="tệp danh sách lần đặt (giao diện roi_app ghi, hoặc viết tay)")

@@ -36,7 +36,7 @@ class StepRail(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setPen(QPen(QColor("#34414d"), 1))
         p.drawLine(10, 14, 10, 100)
-        labels = ("Chọn vị trí", "Kiểm tra lộ trình", "Để xe tự đỗ")
+        labels = ("Chọn vị trí", "Xem trước chuyển động", "Thực hiện và dừng")
         font = QFont("Segoe UI")
         font.setPixelSize(13)
         p.setFont(font)

@@ -48,9 +48,10 @@ from autopark.application.session import EDITABLE_STATES, Session, SessionError,
 from autopark.application.vehicle_link import (BoardFaultClear, BoardProbe, DriveMode, LinkParams,
                                                PlantHumanDriver, SimHumanDriver, VehicleLink, VehicleLinkError,
                                                probe_board)
-from autopark.domain.types import Bounds, Obstacle, ParkingMode, ParkingSlot, Pose, wrap_angle
+from autopark.domain.types import Bounds, Obstacle, Pose, wrap_angle
 from autopark.evaluation.sync_marks import DEFAULT_SYNC_DIR, SyncMarkLog, sync_file_path
 from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.maneuver import maneuver_bounds
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config, save_scenario
 from autopark.storage.scenario_store import (CONFIGS_DIR, VehicleConfigError, VehicleConfigFile,  # ô "Cấu hình xe"
                                             list_vehicle_configs, load_vehicle_config_file, path_key)
@@ -65,7 +66,6 @@ from autopark.ui.items import (
     MarkerItem,
     ObstacleItem,
     PathItem,
-    SlotItem,
     SweepItem,
     TrailItem,
     cosmetic_pen,
@@ -216,7 +216,7 @@ class SandboxView(QGraphicsView):
         super().__init__(scene)
         self._key_handler = key_handler
         self.safe_insets = (330, 83, 38, 143)
-        self.place_slot = None
+        self.place_goal = None
         self.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -244,17 +244,17 @@ class SandboxView(QGraphicsView):
         self.centerOn(rect.center() - delta)
 
     def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton and self.place_slot is not None:
+        if event.button() == Qt.MouseButton.LeftButton and self.place_goal is not None:
             # Vehicle/obstacle/slot gestures retain their own drag behavior.
             draggable = False
             for item in self.items(event.position().toPoint()):
                 obj = item
                 while obj is not None:
-                    if isinstance(obj, (CarItem, SlotItem, ObstacleItem)):
+                    if isinstance(obj, (CarItem, ObstacleItem)):
                         draggable = True
                         break
                     obj = obj.parentItem()
-            if not draggable and self.place_slot(self.mapToScene(event.position().toPoint())):
+            if not draggable and self.place_goal(self.mapToScene(event.position().toPoint())):
                 event.accept()
                 return
         super().mousePressEvent(event)
@@ -340,7 +340,7 @@ class MainWindow(QMainWindow):
         self._preview_index = 0
         self._preview_accum = 0.0
         self._last_state = session.state
-        self.setWindowTitle("Autopark — hỗ trợ đỗ xe")
+        self.setWindowTitle("Autopark — hỗ trợ thao tác gần")
         self.setStyleSheet(theme.STYLE)
 
         self.scene = QGraphicsScene(self)
@@ -367,7 +367,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(session.cusp_limit().summary(), 10000)
 
     def _build_controls(self) -> None:
-        self.primary_action = QPushButton("Tìm đường đỗ")
+        self.primary_action = QPushButton("Tính thao tác")
         self.primary_action.setObjectName("primary")
         self.primary_action.setMinimumWidth(205)
         self.primary_action.clicked.connect(self._primary_dispatch)
@@ -375,27 +375,6 @@ class MainWindow(QMainWindow):
         self.preview_action.clicked.connect(self.preview)
         self.reset_action = QPushButton("Vị trí khác")
         self.reset_action.clicked.connect(self._return_to_editing)
-        self.mode_selector = QPushButton()
-        self.mode_selector.setObjectName("modeSelector")
-        self.mode_selector.setMinimumWidth(155)
-        self.mode_selector.setCheckable(True)
-        self.mode_selector.toggled.connect(lambda on: self.mode_menu.setVisible(on))
-        self.mode_menu = QFrame()
-        self.mode_menu.setObjectName("modeMenu")
-        menu_layout = QVBoxLayout(self.mode_menu)
-        menu_layout.setContentsMargins(10, 10, 10, 10)
-        self.mode_group = QButtonGroup(self)
-        self.mode_group.setExclusive(True)
-        self.mode_buttons = {}
-        for mode in (ParkingMode.REVERSE_IN, ParkingMode.HEAD_IN, ParkingMode.PARALLEL):
-            button = QPushButton(mode.label)
-            button.setObjectName("modeOption")
-            button.setIcon(theme.icon(mode.value))
-            button.setCheckable(True)
-            button.clicked.connect(lambda checked=False, m=mode: self._choose_mode(m))
-            self.mode_group.addButton(button)
-            self.mode_buttons[mode] = button
-            menu_layout.addWidget(button)
         self.lbl_step = QLabel()
         self.lbl_step.setObjectName("stepLine")
         self.lbl_plan = WrapLabel()
@@ -436,27 +415,11 @@ class MainWindow(QMainWindow):
         self.box_file.add_layout(theme.row(self.btn_open, self.btn_save, self.btn_save_as))
         layout.addWidget(self.box_file)
 
-        self.box_slot = Card("Ô đỗ")
-        form = QFormLayout()
-        form.setSpacing(6)
-        self.slot_x = _spin(-1000, 1000, 1.0, " cm")
-        self.slot_y = _spin(-1000, 1000, 1.0, " cm")
-        self.slot_yaw = _spin(-180, 180, 5.0, " °")
-        self.slot_len = _spin(5, 500, 1.0, " cm")
-        self.slot_w = _spin(5, 500, 1.0, " cm")
-        for name, sb in (("x", self.slot_x), ("y", self.slot_y), ("hướng", self.slot_yaw),
-                         ("dài", self.slot_len), ("rộng", self.slot_w)):
-            form.addRow(name, sb)
-            sb.valueChanged.connect(self._on_slot_editor_changed)
-        self.box_slot.add_layout(form)
-        self.lbl_goal_valid = QLabel("")
-        self.box_slot.add(self.lbl_goal_valid)
-        layout.addWidget(self.box_slot)
-
         self.box_start = Card("Xuất phát")
         self.start_editor = PoseEditor(self._on_start_editor_changed)
         self.lbl_start_valid = QLabel("")
-        self.box_start.add(self.start_editor, self.lbl_start_valid)
+        self.lbl_goal_valid = QLabel("")
+        self.box_start.add(self.start_editor, self.lbl_start_valid, self.lbl_goal_valid)
         layout.addWidget(self.box_start)
 
         self.box_obstacles = Card("Vật cản")
@@ -518,7 +481,7 @@ class MainWindow(QMainWindow):
         self.combo_feedback.addItems(["Phản hồi lý tưởng", "Trễ 40 ms + nhiễu 2 mm / 0,2°"])
         self.combo_feedback.currentIndexChanged.connect(self._set_feedback_profile)
         self.box_sim.add(self.combo_feedback)
-        drive_title = QLabel("Nhánh chạy khi bấm Bắt đầu đỗ")
+        drive_title = QLabel("Nhánh chạy khi bấm Thực hiện")
         self.combo_drive = QComboBox()
         for mode, label, _hint in DRIVE_MODE_CHOICES:
             self.combo_drive.addItem(label, mode.value)
@@ -614,7 +577,7 @@ class MainWindow(QMainWindow):
         self.sync_action.setToolTip(
             "Dấu đồng bộ video–log (T14): nháy ô trắng lớn trên cửa sổ này 0,5 s để camera quay (R3) thấy, ghi dòng "
             "SYNC_MARK kèm perf_counter vào runs/sync_marks/. Xuất log CSV ghi thêm tệp …_sync_marks.csv cạnh tệp log. "
-            "Dùng trước Bắt đầu đỗ và sau khi xe dừng; khóa khi xe đang chạy.")
+            "Dùng trước khi thực hiện và sau khi xe dừng; khóa khi xe đang chạy.")
         self.sync_action.setFocusPolicy(Qt.FocusPolicy.NoFocus)   # bấm nút không lấy phím của sa bàn (lái tay)
         self.sync_action.clicked.connect(lambda: self.make_sync_mark("button"))
         row.addWidget(self.sync_action)
@@ -623,11 +586,6 @@ class MainWindow(QMainWindow):
         self.manual_action.clicked.connect(lambda: self.stop() if self.session.state == SessionState.MANUAL
                                            else self._start_manual())
         row.addWidget(self.manual_action)
-        self.scatter_action = QPushButton("Xáo xe")
-        self.scatter_action.setObjectName("hudButton")
-        self.scatter_action.setToolTip("Đổi vị trí và góc của các xe đỗ, không để xe chồng lên nhau")
-        self.scatter_action.clicked.connect(self._scatter_cars)
-        row.addWidget(self.scatter_action)
         self.settings_action = QPushButton("Sa bàn  +")
         self.settings_action.setObjectName("hudButton")
         self.settings_action.setCheckable(True)
@@ -640,7 +598,7 @@ class MainWindow(QMainWindow):
         layout.setSpacing(14)
         self.phase_tag = QLabel("01 / CHỌN VỊ TRÍ")
         self.phase_tag.setObjectName("eyebrow")
-        self.phase_title = QLabel("Chọn chỗ\nđỗ xe.")
+        self.phase_title = QLabel("Xoay trở\ntrong chỗ hẹp.")
         self.phase_title.setObjectName("heroTitle")
         self.phase_hint = WrapLabel()
         self.phase_hint.setObjectName("heroHint")
@@ -729,7 +687,6 @@ class MainWindow(QMainWindow):
         dock.setSpacing(12)
         controls = QHBoxLayout()
         controls.setSpacing(16)
-        controls.addWidget(self.mode_selector)
         info = QVBoxLayout()
         info.setSpacing(4)
         info.addWidget(self.lbl_step)
@@ -740,8 +697,6 @@ class MainWindow(QMainWindow):
         controls.addWidget(self.primary_action)
         dock.addLayout(controls)
         dock.addWidget(self.bar)
-        self.mode_menu.setParent(self.stage)
-        self.mode_menu.hide()
 
         self.drawer = QFrame(self.stage)
         self.drawer.setObjectName("settingsDrawer")
@@ -765,7 +720,7 @@ class MainWindow(QMainWindow):
         self.footnote.setObjectName("note")
         self.footnote.setToolTip("Mặc định bộ bám đường dùng phản hồi lý tưởng của xe mô phỏng; chọn trễ + nhiễu ở ngăn Mô phỏng.")
         self.setCentralWidget(self.stage)
-        self.view.place_slot = self._place_slot
+        self.view.place_goal = self._place_goal
 
     def _arrange_cockpit(self, width, height) -> None:
         if not hasattr(self, "drawer"):
@@ -784,7 +739,6 @@ class MainWindow(QMainWindow):
         dock_x = (width - dock_width) // 2
         dock_y = height - 130
         self.action_dock.setGeometry(dock_x, dock_y, dock_width, 96)
-        self.mode_menu.setGeometry(dock_x + 6, dock_y - 190, 250, 181)
         self.drawer.setGeometry(width - 380, 84, 346, height - 237)
         self.scene_context.setGeometry(width - 480, 83, 380, 29)
         self.map_tools.setGeometry(width - 142, 173, 112, 230)
@@ -799,14 +753,9 @@ class MainWindow(QMainWindow):
         self.drawer.setVisible(visible)
         if visible:
             self.drawer.raise_()
-            self.mode_selector.setChecked(False)
         self.scene_context.setVisible(not visible)
         self.map_tools.setVisible(not visible)
         self._arrange_cockpit(self.stage.width(), self.stage.height())
-
-    def _choose_mode(self, mode: ParkingMode) -> None:
-        self._set_mode(mode)
-        self.mode_selector.setChecked(False)
 
     def _primary_dispatch(self) -> None:
         st = self.session.state
@@ -821,28 +770,22 @@ class MainWindow(QMainWindow):
             self._return_to_editing()
 
     def _return_to_editing(self) -> None:
+        if self.session.scenario.maneuver is not None and self.session.state in (SessionState.COMPLETED, SessionState.STOPPED):
+            self.session.prepare_next_maneuver()
+            self.trail_item.clear()
+            self.start_item.set_pose(self.session.scenario.start)
+            self._refresh_all()
+            return
         self.reset()
         if self.session.state in EDITABLE_STATES:
             self._edit(lambda: self.session.set_start(self.session.scenario.start))
 
-    def _place_slot(self, point) -> bool:
-        if self.mode_selector.isChecked():
-            self.mode_selector.setChecked(False)
-            return True
-        if self.session.state not in EDITABLE_STATES:
-            return False
-        if not self.session.scenario.bounds.contains_point(point.x(), point.y()):
+    def _place_goal(self, point) -> bool:
+        if self.session.state not in EDITABLE_STATES or not self.session.scenario.bounds.contains_point(point.x(), point.y()):
             return False
         self.scene.clearSelection()
-        slot = self.session.scenario.slot
-        if slot is not None:
-            slot = ParkingSlot(point.x(), point.y(), slot.yaw, slot.length, slot.width)
-            self._edit(lambda: self.session.set_slot(slot))
-            self.slot_item.set_slot(slot)
-            self._sync_slot_editor()
-        else:
-            self._edit(lambda: self.session.set_goal_pose(
-                Pose(point.x(), point.y(), self.session.scenario.goal.pose.yaw)))
+        self._edit(lambda: self.session.set_goal_pose(
+            Pose(point.x(), point.y(), self.session.scenario.goal.pose.yaw)))
         return True
 
     def _toggle_grid(self, visible: bool) -> None:
@@ -871,6 +814,12 @@ class MainWindow(QMainWindow):
         floor.setPen(Qt.PenStyle.NoPen)
         floor.setZValue(-3)
         self.scene.addItem(floor)
+
+        self.maneuver_area_item = QGraphicsRectItem()
+        self.maneuver_area_item.setPen(cosmetic_pen(COLOR_GOAL, 1.0, Qt.PenStyle.DashLine))
+        self.maneuver_area_item.setZValue(-1)
+        self.maneuver_area_item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        self.scene.addItem(self.maneuver_area_item)
 
         minor, major = cosmetic_pen(COLOR_GRID_MINOR, 1.0), cosmetic_pen(COLOR_GRID_MAJOR, 1.0)
         i, x = 0, b.xmin
@@ -910,13 +859,8 @@ class MainWindow(QMainWindow):
             self.scene.addItem(item)
             self._obstacle_items[obs.id] = item
 
-        self.slot_item: SlotItem | None = None
-        if sc.slot is not None:
-            self.slot_item = SlotItem(sc.slot, editable=editable, on_change=self._on_slot_item_changed)
-            self.scene.addItem(self.slot_item)
-
         self.goal_item = CarItem(cfg, QColor(140, 240, 214, 28), QColor(140, 240, 214, 55), COLOR_GOAL,
-                                 label="", editable=sc.slot is None, on_change=self._on_goal_item_changed,
+                                 label="ĐÍCH GẦN", editable=editable, on_change=self._on_goal_item_changed,
                                  dashed=True, opacity=0.95)
         self.goal_item.setZValue(4)
         self.goal_item.set_pose(sc.goal.pose)
@@ -943,8 +887,6 @@ class MainWindow(QMainWindow):
         self.scene.addItem(self.lookahead_item)
 
         self.start_editor.set_bounds(b)
-        self.slot_x.setRange((b.xmin - 1) * 100, (b.xmax + 1) * 100)
-        self.slot_y.setRange((b.ymin - 1) * 100, (b.ymax + 1) * 100)
         self.view.fit_scene()
         self._sync_path_items()
         self._rebuilding_scene = False
@@ -961,6 +903,7 @@ class MainWindow(QMainWindow):
     def _refresh_all(self) -> None:
         sc = self.session.scenario
         cfg = self.session.cfg
+        self.setWindowTitle("AutoPark — thao tác gần trong chỗ hẹp")
         scene_title = {"bai_do_xe": "Bãi đỗ xe"}.get(sc.name, sc.name.replace("_", " "))
         self.lbl_scene_name.setText(scene_title)
         self.lbl_scene_name.setToolTip(sc.name)
@@ -985,14 +928,6 @@ class MainWindow(QMainWindow):
         self._syncing = True
         try:
             self.start_editor.set_pose(sc.start)
-            if sc.slot is not None:
-                self.slot_x.setValue(sc.slot.cx * 100)
-                self.slot_y.setValue(sc.slot.cy * 100)
-                self.slot_yaw.setValue(math.degrees(sc.slot.yaw))
-                self.slot_len.setValue(sc.slot.length * 100)
-                self.slot_w.setValue(sc.slot.width * 100)
-            for mode, btn in self.mode_buttons.items():
-                btn.setChecked(mode == sc.mode)
         finally:
             self._syncing = False
         self._refresh_obstacle_list()
@@ -1010,7 +945,7 @@ class MainWindow(QMainWindow):
             text = f"<span style='color:{theme.WARN}'>{text}</span>"
         self.lbl_cusp_limit.setText(text)
         if rule is None:
-            tip = "Giới hạn số lần đổi chiều trước Bắt đầu đỗ (T12): --max-cusps, --warn-cusps"
+            tip = "Giới hạn số lần đổi chiều trước khi thực hiện: --max-cusps, --warn-cusps"
         else:
             mapping = f"acceptance {rule.tag.label} → khóa {rule.key} · " if rule.tag.label != rule.key else ""
             tip = (f"{mapping}Tệp ngưỡng {rule.path} · {rule.status} · sha256 {rule.sha256[:12]} · sửa tệp ngưỡng thì "
@@ -1022,14 +957,15 @@ class MainWindow(QMainWindow):
         return f" · {self.session.cusp_limit().summary()}" if self.session.acceptance_rule is not None else ""
 
     def _refresh_validity(self) -> None:
+        bounds = maneuver_bounds(self.session.scenario)
+        self.maneuver_area_item.setRect(bounds.xmin, bounds.ymin, bounds.width, bounds.height)
+        self.maneuver_area_item.setVisible(self.session.scenario.maneuver is not None)
         start = self.session.start_check()
         goal = self.session.goal_check()
         for check, label in ((start, self.lbl_start_valid), (goal, self.lbl_goal_valid)):
             label.setText(check.describe())
             label.setStyleSheet(f"color: {theme.OK}; font-size: 9pt" if check.ok
                                 else f"color: {theme.DANGER}; font-size: 9pt; font-weight: 600")
-        if self.slot_item is not None:
-            self.slot_item.set_valid(goal.ok)
         self.goal_item.set_pose(self.session.scenario.goal.pose)
 
     def _refresh_obstacle_list(self) -> None:
@@ -1088,19 +1024,11 @@ class MainWindow(QMainWindow):
         st = self.session.state
         self._sync_path_items()
         editable = st in EDITABLE_STATES
-        for w in (self.box_file, self.box_slot, self.box_start, self.box_obstacles):
+        for w in (self.box_file, self.box_start, self.box_obstacles):
             w.setEnabled(editable)
-        self.box_slot.setEnabled(editable and self.session.scenario.slot is not None)
-        for mode, button in self.mode_buttons.items():
-            button.setEnabled(editable)
-            button.setChecked(mode == self.session.scenario.mode)
-        self.mode_selector.setEnabled(editable)
-        self.mode_selector.setText(self.session.scenario.mode.label + ("   ˅" if editable else ""))
         if not editable:
-            self.mode_selector.setChecked(False)
             self.settings_action.setChecked(False)
         self.settings_action.setEnabled(editable)
-        self.scatter_action.setEnabled(editable and any(o.kind == "car" for o in self.session.scenario.obstacles))
         self.manual_action.setEnabled(editable or st == SessionState.MANUAL)
         self.manual_action.setText("Thoát lái tay" if st == SessionState.MANUAL else "Lái tay")
         self.sync_action.setEnabled(st not in SYNC_BLOCKED_STATES)
@@ -1112,6 +1040,8 @@ class MainWindow(QMainWindow):
             SessionState.COMPLETED: "Đỗ lại   →", SessionState.FAULT: "Chọn lại vị trí",
             SessionState.MANUAL: "Kết thúc lái tay",
         }
+        titles.update({SessionState.EDITING: "Tính thao tác   →", SessionState.READY: "Thực hiện   →",
+                       SessionState.COMPLETED: "Chọn đích tiếp   →"})
         self.primary_action.setText(titles[st])
         self.primary_action.setEnabled(st != SessionState.STOPPING)
         theme.set_role(self.primary_action, "danger" if st == SessionState.RUNNING else "primary")
@@ -1139,10 +1069,8 @@ class MainWindow(QMainWindow):
             item.set_editable(editable)
         self.start_item.set_editable(editable)
         self.start_item.setVisible(editable or st in (SessionState.PLANNING, SessionState.PREPARING_PREVIEW))
-        if self.slot_item is not None:
-            self.slot_item.set_editable(editable)
-        self.goal_item.set_editable(editable and self.session.scenario.slot is None)
-        self.goal_item.setVisible(self.session.scenario.slot is None)
+        self.goal_item.set_editable(editable)
+        self.goal_item.setVisible(True)
         driving = (SessionState.RUNNING, SessionState.STOPPING, SessionState.STOPPED,
                    SessionState.COMPLETED, SessionState.FAULT, SessionState.MANUAL)
         self.sim_item.setVisible(st in driving)
@@ -1163,9 +1091,22 @@ class MainWindow(QMainWindow):
             SessionState.STOPPING: ("03 / GIẢM TỐC", "Xe đang\ndừng lại.", "Đang phanh về trạng thái đứng yên.", 2),
             SessionState.STOPPED: ("ĐÃ DỪNG", "Bạn đang\nkiểm soát.", "Chọn lại vị trí khi sẵn sàng tiếp tục.", 2),
             SessionState.COMPLETED: ("HOÀN TẤT", "Đỗ xe\nhoàn tất.", "Lượt đỗ đã hoàn tất.", 3),
-            SessionState.FAULT: ("CẦN ĐIỀU CHỈNH", "Xe đã\ndừng lại.", "Kiểm tra thông báo rồi chọn\nlại vị trí đỗ.", 2),
+            SessionState.FAULT: ("CẦN ĐIỀU CHỈNH", "Xe đã\ndừng lại.", "Kiểm tra thông báo rồi chọn\nlại tư thế đích.", 2),
             SessionState.MANUAL: ("LÁI TAY", "Cầm lái\ntheo cách bạn.", "↑ ↓ Tăng / giảm tốc\n← → Đánh lái · Space phanh", 2),
         }
+        if s.scenario.maneuver is not None:
+            limits = s.scenario.maneuver
+            copy.update({
+                SessionState.EDITING: ("01 / ĐÍCH GẦN", "Xoay trở\ntrong chỗ hẹp.",
+                    f"Kéo và xoay xe đích trong {limits.max_goal_distance_m * 100:.0f} cm.\n"
+                    f"Đường ≤ {limits.max_path_length_m:.2f} m · đổi chiều ≤ {limits.max_cusps} lần.", 0),
+                SessionState.PLANNING: ("02 / TÍNH THAO TÁC", "Đang tìm\ncách đánh lái.", "Chỉ tìm trong vùng nét đứt quanh xe.", 1),
+                SessionState.READY: ("02 / SẴN SÀNG", "Thao tác\nđã sẵn sàng.", "Xem trước rồi nhấn Thực hiện.\nXe tự dừng tại đích gần.", 1),
+                SessionState.RUNNING: ("03 / THAO TÁC GẦN", "Xe đang\nxoay trở.", "Nhấn Dừng xe hoặc Esc\nđể dừng bất cứ lúc nào.", 2),
+                SessionState.COMPLETED: ("ĐÃ DỪNG TẠI ĐÍCH", "Thao tác\nhoàn tất.", "Bạn chọn đích tiếp theo\ntừ vị trí xe vừa dừng.", 3),
+            })
+            if st in (SessionState.RUNNING, SessionState.COMPLETED):
+                self.pill.set("Đang thao tác" if st == SessionState.RUNNING else "Thao tác xong", _STATE_TONE.get(st, theme.OK))
         tag, title, hint, stage = copy[st]
         if st == SessionState.RUNNING and self._observe_human() is not None:
             self.pill.set("Quan sát", theme.WARN)
@@ -1201,11 +1142,11 @@ class MainWindow(QMainWindow):
             self.phase_hint.setText("Kết quả của lượt mô phỏng thử.")
         pr = s.plan_result
         if st == SessionState.PLANNING:
-            self.lbl_plan.setText("Đang tìm lộ trình phù hợp…")
+            self.lbl_plan.setText("Đang tìm thao tác phù hợp…")
         elif st == SessionState.PREPARING_PREVIEW:
             self.lbl_plan.setText("Đang chuẩn bị mô phỏng…")
         elif pr is None:
-            self.lbl_plan.setText("Đặt ô đỗ, sau đó tìm đường.")
+            self.lbl_plan.setText("Chọn tư thế đích gần, sau đó tính thao tác.")
         elif pr.ok and s.trajectory is not None:
             text, tip = f"{s.trajectory.length:.2f} m  ·  {s.trajectory.n_cusps} lần đổi chiều", pr.message
             cusps = s.cusp_check()                # T12: chỉ báo; chặn ở Session.start_run khi có --max-cusps
@@ -1248,15 +1189,15 @@ class MainWindow(QMainWindow):
             self.bar.setValue(int(frac * 1000))
             return
         if traj is None:
-            self.lbl_step.setText("Chưa có lộ trình")
+            self.lbl_step.setText("Chưa có thao tác")
             self.bar.setValue(0)
             return
         if s.state == SessionState.COMPLETED:
-            self.lbl_step.setText("Đã hoàn tất đỗ xe")
+            self.lbl_step.setText("Đã hoàn tất thao tác")
             self.bar.setValue(1000)
             return
         if out is None or s.state in EDITABLE_STATES:
-            self.lbl_step.setText("Lộ trình đã sẵn sàng")
+            self.lbl_step.setText("Thao tác đã sẵn sàng")
             self.bar.setValue(0)
             return
         pts = traj.points
@@ -1294,13 +1235,13 @@ class MainWindow(QMainWindow):
             return
         tol_ok = (report.position_error <= s.scenario.goal.tolerance_xy
                   and abs(report.heading_error) <= s.scenario.goal.tolerance_yaw)
-        inside = s.footprint_inside_slot(report.final_state.pose)
         color = theme.OK if report.completed and tol_ok else (theme.DANGER if report.collided else theme.WARN)
-        lines = [f"<span style='color:{color}'>{report.describe()}</span>"]
+        description = report.describe()
+        if s.scenario.maneuver is not None:
+            description = description.replace("Đỗ xong", "Thao tác xong")
+        lines = [f"<span style='color:{color}'>{description}</span>"]
         if report.completed:
             verdict = ("<b>ĐẠT dung sai</b>" if tol_ok else "<b>Ngoài dung sai</b>")
-            if inside is not None:
-                verdict += " · thân xe " + ("trong ô" if inside else "<b>ngoài ô</b>")
             lines.append(f"<span style='color:{color}'>{verdict}</span>")
         self.lbl_report.setText("<br>".join(lines))
 
@@ -1329,39 +1270,6 @@ class MainWindow(QMainWindow):
 
     def _on_goal_item_changed(self) -> None:
         self._edit(lambda: self.session.set_goal_pose(self.goal_item.pose()))
-
-    def _on_slot_item_changed(self) -> None:
-        if self.slot_item is None:
-            return
-        self._edit(lambda: self.session.set_slot(self.slot_item.slot()))
-        self._sync_slot_editor()
-
-    def _sync_slot_editor(self) -> None:
-        slot = self.session.scenario.slot
-        if slot is None:
-            return
-        self._syncing = True
-        try:
-            self.slot_x.setValue(slot.cx * 100)
-            self.slot_y.setValue(slot.cy * 100)
-            self.slot_yaw.setValue(math.degrees(slot.yaw))
-            self.slot_len.setValue(slot.length * 100)
-            self.slot_w.setValue(slot.width * 100)
-        finally:
-            self._syncing = False
-
-    def _on_slot_editor_changed(self) -> None:
-        if self._syncing or self.session.scenario.slot is None:
-            return
-        slot = ParkingSlot(self.slot_x.value() / 100, self.slot_y.value() / 100,
-                           math.radians(self.slot_yaw.value()),
-                           self.slot_len.value() / 100, self.slot_w.value() / 100)
-        self._edit(lambda: self.session.set_slot(slot))
-        if self.slot_item is not None:
-            self.slot_item.set_slot(slot)
-
-    def _set_mode(self, mode: ParkingMode) -> None:
-        self._edit(lambda: self.session.set_mode(mode))
 
     def _on_obstacle_item_changed(self, obstacle_id: str) -> None:
         item = self._obstacle_items.get(obstacle_id)
@@ -1420,16 +1328,6 @@ class MainWindow(QMainWindow):
     def _show_obstacle_details(self) -> None:
         self.settings_action.setChecked(True)
         self.settings_page.ensureWidgetVisible(self.obs_yaw, 0, 80)
-
-    def _scatter_cars(self) -> None:
-        try:
-            self.session.scatter_cars()
-        except SessionError as exc:
-            self.statusBar().showMessage(str(exc), 6000)
-            return
-        self._rebuild_scene()
-        self._refresh_all()
-        self.statusBar().showMessage("Đã xáo xe. Tìm đường để kiểm tra bố trí mới.", 6000)
 
     def _add_obstacle(self) -> None:
         kind = self.combo_kind.currentData()
@@ -2264,7 +2162,7 @@ class MainWindow(QMainWindow):
         self._sync_sim_board()
         cfg = chosen.cfg
         self.statusBar().showMessage(f"Đã chọn xe {cfg.name} ({chosen.path.name}), tốc độ tối đa {cfg.max_speed:.2f} "
-                                     "m/s; đường cũ bị hủy: bấm Tìm đường đỗ. Xe này được giữ khi mở kịch bản khác.",
+                                     "m/s; đường cũ bị hủy: bấm Tính thao tác. Xe này được giữ khi mở kịch bản khác.",
                                      8000)
 
     def _observe_human(self) -> SimHumanDriver | PlantHumanDriver | None:
@@ -2351,10 +2249,13 @@ class MainWindow(QMainWindow):
         self._refresh_status()
 
     def run(self) -> None:
+        if self.session.scenario.maneuver is not None and self.session.state == SessionState.COMPLETED:
+            self._return_to_editing()
+            return
         if self.sync_flash.lit():
             # Ô dấu đồng bộ (T14) còn phủ cả cửa sổ và không nhận chuột: cú bấm xuyên qua nó tới nút Bắt đầu đỗ. Chờ ô tắt
             # (≤ 0,5 s) để xe không chạy khi cockpit còn bị che; không tắt ô sớm (cạnh bật phải đủ dài trong video).
-            self.statusBar().showMessage("Ô dấu đồng bộ còn sáng: chờ ô tắt (0,5 s) rồi mới Bắt đầu đỗ", 4000)
+            self.statusBar().showMessage("Ô dấu đồng bộ còn sáng: chờ ô tắt (0,5 s) rồi mới thực hiện", 4000)
             return
         try:
             if self.session.state == SessionState.COMPLETED:
@@ -2441,7 +2342,7 @@ class MainWindow(QMainWindow):
         thái phiên, đồng hồ VehicleIO nếu có). Từ chối khi xe đang chạy (RUNNING/STOPPING), khi ô trước còn sáng hoặc
         chưa đủ khoảng cách giữa hai dấu; kết quả báo ở thanh trạng thái. Trả dòng đã ghi hoặc None."""
         if self.session.state in SYNC_BLOCKED_STATES:
-            self.statusBar().showMessage("Dấu đồng bộ chỉ dùng trước Bắt đầu đỗ hoặc sau khi xe đã dừng", 6000)
+            self.statusBar().showMessage("Dấu đồng bộ chỉ dùng trước khi thực hiện hoặc sau khi xe đã dừng", 6000)
             return None
         row = self.sync_marker.mark(trigger, self._sync_context)
         if row is None:
@@ -2594,9 +2495,6 @@ class MainWindow(QMainWindow):
                 self.make_sync_mark("key_f8")
             return True
         if key == K.Key_Escape:
-            if self.mode_menu.isVisible():
-                self.mode_selector.setChecked(False)
-                return True
             if self.drawer.isVisible():
                 self.settings_action.setChecked(False)
                 return True

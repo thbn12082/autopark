@@ -146,6 +146,9 @@ def _session_from_snapshot(snapshot: dict):
     from autopark.simulation.feedback import FeedbackConfig
 
     sc = Scenario.from_dict(snapshot["scenario"])
+    if sc.maneuver is None or sc.slot is not None:
+        raise ReplayNotSupported("Không tái thực thi gói lịch sử dùng ô đỗ hoặc không có giới hạn thao tác gần; "
+                                 "dữ liệu đã ghi vẫn có thể được đọc và chấm riêng.")
     session = Session(sc, VehicleConfig.from_dict(snapshot["vehicle"]),
                       PlannerParams(**snapshot["planner"]), TrackerParams(**snapshot["tracker"]),
                       FeedbackConfig(**snapshot["feedback"]))

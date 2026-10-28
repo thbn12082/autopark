@@ -5,6 +5,7 @@ models/
 __pycache__/
 *.pyc
 .pytest_cache/
+.pytest_tmp/
 logs/
 *.csv
 *.egg-info/

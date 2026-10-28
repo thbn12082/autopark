@@ -424,7 +424,7 @@ def test_real_rig_without_calibration_files_adds_nothing_and_says_why(qapp, tmp_
         text = dock.lbl_gate.text()
         # thiếu tệp: kể đủ theo trình tự làm (nội tham → ngoại tham → ROI) kèm tài liệu, không phải lỗi hệ điều hành
         assert text.startswith(camera_ai.GATE_PREFIX) and "chưa có tệp ngoại tham đã đo" in text and "Errno" not in text
-        assert text.index("HIEU_CHUAN_CAMERA") < text.index("NGOAI_THAM_VA_ROI.md mục 1") < text.index("mục 6")
+        assert text.index("#noi-tham") < text.index("PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham") < text.index("#roi")
         assert any(dock.log.item(k).text().startswith(camera_ai.GATE_PREFIX) for k in range(dock.log.count()))
     finally:
         dock.shutdown()
@@ -761,7 +761,7 @@ def test_synthetic_label_is_shown_red_at_the_top_of_the_dock(qapp):
 
 
 def test_real_start_without_torch_or_model_file_says_why_and_opens_nothing(qapp, tmp_path, monkeypatch):
-    """AI_DIEU_KHIEN_XE.md mục 7: không có torch → "AI camera cần torch"; có torch mà thiếu tệp mô hình → "Không có tệp
+    """KIEN_TRUC.md: không có torch → "AI camera cần torch"; có torch mà thiếu tệp mô hình → "Không có tệp
     mô hình". Cả hai: trả False, không dựng Rig, không mở nguồn camera nào. Giả find_spec nên hai nhánh chạy trong CẢ
     .venv lẫn .venv-train."""
     import autopark.rig.replay as replay

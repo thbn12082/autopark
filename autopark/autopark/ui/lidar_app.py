@@ -1,4 +1,4 @@
-"""Cửa sổ đỗ xe giai đoạn 0 kèm ngăn LiDAR thật (bàn thử giai đoạn 1–3).
+"""Cửa sổ thao tác gần kèm ngăn LiDAR thật (bàn thử giai đoạn 1–3).
 
     python -m autopark.ui.lidar_app
     python -m autopark.ui.lidar_app --recording runs/lidar_bench/20260922/p07_nen_phong.npz
@@ -29,7 +29,7 @@ Kết nối → vật cản LiDAR hiện ngay và bám theo cảm biến → Tì
 02/10/2026): nút "Dấu đồng bộ · F8" hay phím F8 như ở `ui.app`, trước Bắt đầu đỗ và sau khi xe dừng; tệp
 runs/sync_marks/<giờ>_ui_lidar_app.csv (chỉ kiểm offscreen).
 
-AI camera làm nguồn vật cản thứ hai (thêm 25/09/2026, docs/AI_DIEU_KHIEN_XE.md; cần .venv-train vì AI dùng torch):
+AI camera làm nguồn vật cản thứ hai (thêm 25/09/2026, docs/KIEN_TRUC.md; cần .venv-train vì AI dùng torch):
 
     .venv-train\\Scripts\\python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --cam-ports 1 2 3 4
     .venv-train\\Scripts\\python.exe -X utf8 -m autopark.ui.lidar_app --no-connect --camera-ai --cam-replay runs/rig_recordings/<phiên>
@@ -50,7 +50,7 @@ thiết bị nào; phát lại chỉ một lần (tắt AI camera là dừng ph�
 
     .venv-train\\Scripts\\python.exe -X utf8 -m autopark.ui.lidar_app --camera-ai --session-replay runs/session_recordings/<thư mục>
 
-Ghi cảm biến trong phiên đỗ (T3, 02/10/2026; docs/GHI_PHAT_LAI_BAN_THU.md): ngăn "Ghi cảm biến" (thẻ cạnh ngăn LiDAR) ghi
+Ghi cảm biến trong phiên đỗ (T3, 02/10/2026; docs/VAN_HANH.md): ngăn "Ghi cảm biến" (thẻ cạnh ngăn LiDAR) ghi
 mọi khung tốt của camera ở ngăn AI camera và mọi vòng quét của ngăn LiDAR vào runs/session_recordings/<ngày_giờ>_<tên>/,
 cùng đồng hồ perf_counter với log VehicleIO và dấu đồng bộ (mốc ở session/clock.csv); không gửi gì tới bo, không dừng hay
 chặn xe; "Bắt đầu ghi" khóa khi xe đang chạy. "Xuất log CSV…" ghi thêm <tên>_sensor_recordings.json trỏ tới các bản ghi.
@@ -94,9 +94,9 @@ from PySide6.QtWidgets import QApplication, QMessageBox      # QMessageBox: lỗ
 
 from autopark.application.cusp_policy import (ACCEPTANCE_THRESHOLDS, AcceptanceTagError, CuspPolicy, add_cusp_args,
                                               cusp_policy_from_args)
-from autopark.application.session import Session
+from autopark.application.session import Session, SessionError
 from autopark.domain.types import Bounds, ParkingGoal, Pose, Scenario
-from autopark.evaluation.sensitivity import VehicleConfigFile, load_vehicle_config_file, vehicle_config_arg
+from autopark.storage.scenario_store import VehicleConfigFile, load_vehicle_config_file, vehicle_config_arg
 from autopark.power_throttling import apply_ecoqos_policy
 from autopark.rig.recording import DEFAULT_JPEG_QUALITY, IMAGE_FORMATS, write_json_atomic
 from autopark.rig.session_recording import DEFAULT_ROOT, MIN_FREE_START_GB, RecordOptions, SessionSensorRecorder
@@ -112,7 +112,7 @@ RECORD_WAIT_S = 60.0       # đóng cửa sổ: chờ bản ghi cảm biến ghi
 
 
 def bench_scenario() -> Scenario:
-    return Scenario("ban_thu_lidar", Bounds(0.0, 0.0, 3.0, 2.0), Pose(0.5, 1.0, 0.0), ParkingGoal(Pose(2.0, 1.0, 0.0)),
+    return Scenario("ban_thu_lidar", Bounds(0.0, 0.0, 3.0, 2.0), Pose(0.5, 1.0, 0.0), ParkingGoal(Pose(0.8, 1.0, 0.0)),
                     obstacles=[], slot=None, vehicle_config_path=DEFAULT_VEHICLE)
 
 
@@ -379,7 +379,7 @@ def build_window(scenario_path: Path | None, *, port: str | None, recording: Pat
 
 
 def add_record_args(parser: argparse.ArgumentParser) -> None:
-    group = parser.add_argument_group("Ghi cảm biến trong phiên đỗ (T3, docs/GHI_PHAT_LAI_BAN_THU.md)")
+    group = parser.add_argument_group("Ghi cảm biến trong phiên đỗ (T3, docs/VAN_HANH.md)")
     group.add_argument("--record-root", type=Path, default=None,
                        help="thư mục gốc của bản ghi cảm biến, mặc định runs/session_recordings (git bỏ qua)")
     group.add_argument("--record-format", choices=IMAGE_FORMATS, default="jpg",
@@ -432,7 +432,7 @@ def start_session_replay(window: BenchWindow, session, *, make_segmenter=None) -
 
 
 def add_camera_ai_args(parser: argparse.ArgumentParser) -> None:
-    group = parser.add_argument_group("AI camera làm nguồn vật cản (docs/AI_DIEU_KHIEN_XE.md, cần .venv-train)")
+    group = parser.add_argument_group("AI camera làm nguồn vật cản (docs/KIEN_TRUC.md, cần .venv-train)")
     group.add_argument("--camera-ai", action="store_true", help="thêm ngăn AI camera (vật cản từ AI của các camera)")
     group.add_argument("--cam-ports", type=int, nargs="+", default=None, help="cổng hub của camera, mặc định 1 2 3 4")
     group.add_argument("--cam-replay", type=Path, default=None,
@@ -539,7 +539,7 @@ def main(argv=None) -> int:
         window, dock = build_window(args.scenario, port=args.port, recording=args.recording, vehicle_config=vehicle,
                                     camera_ai=camera_ai, cusp_policy=cusp_policy, record=record,
                                     lidar_config=lidar_config)
-    except AcceptanceTagError as exc:          # trước show() và connect_source(): chưa mở LiDAR hay camera nào
+    except (AcceptanceTagError, SessionError) as exc:          # trước show() và connect_source(): chưa mở LiDAR hay camera nào
         parser.error(f"--scenario {args.scenario}: {exc}")
     if session is not None:
         # T3b: ngăn LiDAR biết nó sẽ phát lại TRƯỚC khi nạp --lidar-map (nhãn bằng chứng, không giữ cổng COM nào; sửa

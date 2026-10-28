@@ -3,7 +3,7 @@
     python -m autopark.ui.label_app --project datasets/sa_ban_labels
 
 Dự án tạo bằng `python -m autopark.perception.labels import runs/rig_snapshots --project datasets/sa_ban_labels`
-(quy trình và quy tắc gán nhãn: docs/GAN_NHAN_SA_BAN.md). Không mở camera, không cần torch: xác suất AI đã được
+(quy trình và quy tắc gán nhãn: docs/DU_LIEU_VA_GIAY_PHEP.md). Không mở camera, không cần torch: xác suất AI đã được
 chép vào dự án lúc nhập, "tô lại theo AI" chỉ so lại ngưỡng trên xác suất đó.
 
 - Lớp tô: xanh = FREE, đỏ = BLOCKED, xám sọc = IGNORE. Độ đậm chỉnh bằng thanh trượt, O bật/tắt.

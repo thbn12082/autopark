@@ -10,7 +10,7 @@ Công cụ lấy từ `configs/thiet_bi.json` (đổi máy chỉ sửa tệp đ�
 `platformio_python` (python có gói platformio; chỉ cần để build), `platformio_core_dir` (PLATFORMIO_CORE_DIR; tùy chọn).
 
 Bản firmware này khác bản nạp vào xe đúng hai chỗ (platformio.ini): Serial qua UART0 và flash DIO. Giới hạn của bo ảo
-(đo 29/09/2026 với QEMU esp-develop-9.2.2-20260417, docs/MO_PHONG_FIRMWARE.md): KHÔNG có LEDC (xung ESC/servo), GPIO
+(đo 29/09/2026 với QEMU esp-develop-9.2.2-20260417, docs/PHAN_CUNG_VA_HIEU_CHUAN.md): KHÔNG có LEDC (xung ESC/servo), GPIO
 vào (E-stop), I2C/SPI/ADC, USB-Serial-JTAG nối ra ngoài; watchdog phần cứng không bao giờ kích hoạt; thời gian bám đồng
 hồ máy (chậm ≈ 0,1 %) nên máy bận có thể làm firmware chốt LOOP_OVERRUN; millis() không về 0 khi reset; đôi khi QEMU
 tự thoát lúc khởi động (espressif/qemu#175) nên `QemuBoard.start()` thử lại. Chạy được ở đây KHÔNG chứng minh gì về bo
@@ -83,7 +83,7 @@ def load_tools(path: Path | str | None = None) -> QemuTools:
     qemu = optional_path("qemu_xtensa")
     if qemu is None:
         raise QemuBoardError(f"{path} không có \"qemu_xtensa\" (đường dẫn qemu-system-xtensa của Espressif, "
-                             f"docs/MO_PHONG_FIRMWARE.md)")
+                             f"docs/PHAN_CUNG_VA_HIEU_CHUAN.md)")
     if not qemu.is_file():
         raise QemuBoardError(f"không thấy QEMU ở {qemu} (khóa \"qemu_xtensa\" trong {path})")
     python = optional_path("platformio_python")
@@ -399,7 +399,7 @@ class QemuBoard:
         self._job = _kill_with_parent(self.proc.pid)
         if self.boost:
             # QEMU bị hạ xung/dồn sang lõi E thì trễ nhịp, firmware chốt LOOP_OVERRUN. Đo A/B 30/09/2026 lúc máy bớt bận:
-            # chưa thấy khác biệt (docs/MO_PHONG_FIRMWARE.md mục 1); giữ vì vô hại. Không làm được thì QEMU vẫn chạy.
+            # chưa thấy khác biệt (docs/PHAN_CUNG_VA_HIEU_CHUAN.md); giữ vì vô hại. Không làm được thì QEMU vẫn chạy.
             disable_power_throttling(self.proc.pid)
 
     def _wait_ready(self) -> None:

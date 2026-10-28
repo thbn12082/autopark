@@ -62,7 +62,7 @@ def lidar_map(tmp_path_factory):
 
 def straight_scenario():
     scenario = bench_scenario()
-    scenario.goal = ParkingGoal(Pose(1.6, 1.0, 0.0))
+    scenario.goal = ParkingGoal(Pose(.9, 1.0, 0.0))
     return scenario
 
 

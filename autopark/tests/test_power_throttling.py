@@ -1,5 +1,5 @@
 """Tắt EcoQoS cho một tiến trình (thêm 30/09/2026, `autopark/power_throttling.py`): dùng cho tiến trình pytest
-(`tests/conftest.py`) và cho QEMU của bo ảo. Vì sao: docs/CHUYEN_MAY_BAN.md mục 8."""
+(`tests/conftest.py`) và cho QEMU của bo ảo. Vì sao: docs/VAN_HANH.md."""
 import os
 import subprocess
 import sys

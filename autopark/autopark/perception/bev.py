@@ -5,7 +5,7 @@
     .\\.venv-train\\Scripts\\python.exe -X utf8 -m autopark.perception.bev woodscape --image datasets/training/woodscape/rgb_images/00000_FV.png --checkpoint runs/ai_woodscape_rtx4000_v1/best.pt
     .\\.venv\\Scripts\\python.exe -X utf8 -m autopark.perception.bev bench
 
-Hướng dẫn, quy tắc và giới hạn: docs/BEV.md. Mỗi lệnh viết trên một dòng để dán được vào PowerShell.
+Hướng dẫn, quy tắc và giới hạn: docs/KIEN_TRUC.md. Mỗi lệnh viết trên một dòng để dán được vào PowerShell.
 
 **Đầu vào mỗi camera:** bản đồ xác suất P(BLOCKED) (độ phân giải bất kỳ, nhưng cùng tỉ lệ khung với ảnh đã hiệu chuẩn;
 bàn thử ghi `prob_blocked_p<cổng>.png` = P×255 ở cỡ hiển thị) + một `CameraCalibration` (nội tham + ngoại tham trong
@@ -32,7 +32,7 @@ hệ xe: x trước, y trái, z lên, gốc trên mặt sàn dưới tâm trục
    UNKNOWN được phân loại: không chắc chắn (có camera thấy nhưng không đủ chắc, hoặc chỉ thấy một phần ô), bị che,
    ngoài tầm nhìn, dưới thân xe.
 
-**Giả định và giới hạn** (chi tiết ở docs/BEV.md): mặt sàn phẳng z = 0 trong hệ xe; phép chiếu chỉ đúng cho điểm
+**Giả định và giới hạn** (chi tiết ở docs/KIEN_TRUC.md): mặt sàn phẳng z = 0 trong hệ xe; phép chiếu chỉ đúng cho điểm
 thuộc mặt sàn. Pixel của vật cao (mặt bên, nóc) chiếu xuống sàn sẽ rơi XA hơn chân vật; quy tắc che khuất cắt phần đó
 thành UNKNOWN nên chỉ phía chân vật hướng về camera là OCCUPIED. Đó KHÔNG phải footprint chính xác: vật nhô ra (mặt bàn,
 cản xe) hay chân vật bị che vẫn lệch. Sai số hiệu chuẩn, sàn nghiêng và lỗi của mô hình AI đều đi thẳng vào lưới này.
@@ -42,7 +42,7 @@ cản xe) hay chân vật bị che vẫn lệch. Sai số hiệu chuẩn, sàn n
 vì vậy từ chối chạy trên bộ ảnh thật; chỉ có bài tổng hợp và bài trên ảnh WoodScape (hiệu chuẩn của Valeo). Mô hình AI
 chưa từng được chấm trên ảnh sa bàn. *Cập nhật 25/09/2026:* người làm khóa luận quyết định dùng mô hình huấn luyện trên
 WoodScape trong vòng điều khiển xe; Valeo CHƯA xác nhận cách đọc điều khoản đó (`WOODSCAPE_LICENCE_NOTE`,
-docs/GIAY_PHEP_DU_LIEU.md). BEV đi vào lập đường qua `fusion/camera_ai.py` và chỉ khi dùng được (docs/AI_DIEU_KHIEN_XE.md);
+docs/DU_LIEU_VA_GIAY_PHEP.md). BEV đi vào lập đường qua `fusion/camera_ai.py` và chỉ khi dùng được (docs/KIEN_TRUC.md);
 mô-đun này tự nó vẫn không nối vào planner.
 """
 from __future__ import annotations
@@ -74,7 +74,7 @@ from .costmap import FREE, OCCUPIED, UNKNOWN, GridSpec, _ranges, costmap_to_dict
 from .paths import PROJECT, atomic_write_json, utc_now
 
 # ---- tham số mặc định ------------------------------------------------------------------------------------------------
-# t_free = 0,15 là ngưỡng thiên về an toàn chọn trên val WoodScape theo F2 (HUAN_LUYEN.md mục 10): chỉ pixel mà mô hình
+# t_free = 0,15 là ngưỡng thiên về an toàn chọn trên val WoodScape theo F2 (docs/DU_LIEU_VA_GIAY_PHEP.md): chỉ pixel mà mô hình
 # cho P(BLOCKED) ≤ 0,15 mới được gọi là trống. t_blocked = 0,50 là argmax. Cả hai CHƯA kiểm trên ảnh sa bàn.
 DEFAULT_T_FREE = 0.15
 DEFAULT_T_BLOCKED = 0.50
@@ -82,7 +82,7 @@ DEFAULT_SUPERSAMPLE = 2
 DEFAULT_AZIMUTH_BIN_DEG = 0.5
 # Lưới 6 × 6 m, ô 5 cm quanh gốc hệ xe; tầm 2 m. Tính trên rig giả định (camera trước cao 0,12 m, chúc 30°, ống danh
 # định 130° chéo): dọc hướng nhìn một pixel phủ ≈ 2,4 cm mặt sàn theo bán kính ở 1 m, 5,4 cm ở 1,5 m, 9,5 cm ở 2 m, 21 cm
-# ở 3 m — quá 2 m một pixel quyết định nhiều ô 5 cm. Đây là số TÍNH, chưa đo trên camera thật (docs/BEV.md mục 4).
+# ở 3 m — quá 2 m một pixel quyết định nhiều ô 5 cm. Đây là số TÍNH, chưa đo trên camera thật (docs/KIEN_TRUC.md).
 RIG_GRID = (-3.0, 3.0, -3.0, 3.0, 0.05)
 RIG_MAX_RANGE = 2.0
 WOODSCAPE_GRID = (-10.0, 15.0, -10.0, 10.0, 0.1)     # như costmap.py
@@ -96,7 +96,7 @@ MAX_CAMERAS = 16                    # bitmask uint16
 # Độ lệch trong bộ đo được 23/09 (u01): trung vị 15,0 ms, p95 24,1 ms; ngưỡng chờ camera chậm ≈ 62 ms.
 MAX_SKEW_MS = 100.0
 # như labels.BOTTOM_REPEAT_LIMIT: khung sạch ≤ 0,13, đáy bị bộ giải mã tô ≈ 1. Khung hỏng mà tới AI thì vùng vân xám bị
-# gọi gần hết là FREE (GIAI_DOAN_2_BAN_THU.md) — lỗi theo hướng không an toàn, nên camera đó bị bỏ khỏi BEV.
+# gọi gần hết là FREE (DU_LIEU_VA_GIAY_PHEP.md) — lỗi theo hướng không an toàn, nên camera đó bị bỏ khỏi BEV.
 BOTTOM_REPEAT_LIMIT = 0.2
 
 LABEL_FREE, LABEL_BLOCKED, LABEL_NONE = 0, 1, 255
@@ -104,7 +104,7 @@ LABEL_FREE, LABEL_BLOCKED, LABEL_NONE = 0, 1, 255
 # ---- ghi công và giấy phép WoodScape (ghi vào tệp ra; ui/camera_dock.py hiện trên giao diện) — 25/09/2026 ----------
 # Điều khoản buộc ghi công kèm link tới trang web của bộ dữ liệu. Văn bản điều khoản ghi `woodscape.valeo.ai`, README của
 # Valeo ghi `woodscape.valeo.com`; kiểm trên web 25/09/2026: cả hai dẫn tới một trang Valeo không có nội dung WoodScape.
-# Theo đề xuất ở docs/GIAY_PHEP_DU_LIEU.md mục "Ghi công: link tới trang bộ dữ liệu" (ĐỀ XUẤT – CHỜ CHỐT): link chính là
+# Theo đề xuất ở docs/DU_LIEU_VA_GIAY_PHEP.md, phần giấy phép và ghi công (ĐỀ XUẤT – CHỜ CHỐT): link chính là
 # repo GitHub của valeoai, địa chỉ cũ ghi dạng chữ để lưu vết. Sửa link ở đây là sửa mọi tệp ra về sau.
 WOODSCAPE_ATTRIBUTION = ("Mô hình AI huấn luyện trên Valeo WoodScape Dataset (https://github.com/valeoai/WoodScape; địa "
                          "chỉ cũ woodscape.valeo.com / woodscape.valeo.ai, kiểm 25/09/2026 dẫn tới một trang không có "
@@ -114,7 +114,7 @@ WOODSCAPE_LICENCE_NOTE = ("Valeo WoodScape Dataset (https://github.com/valeoai/W
                           "refined using the Dataset ... in operation of a vehicle or to assist in the operation of "
                           "vehicle'. Người làm khóa luận quyết định 25/09/2026 đọc vế này là ví dụ của việc dùng thương "
                           "mại và dùng mô hình trong vòng điều khiển xe mô hình 1/12 phi thương mại; Valeo CHƯA xác nhận "
-                          "cách đọc này (còn cách đọc: cấm riêng, bất kể thương mại hay không) — docs/GIAY_PHEP_DU_LIEU.md")
+                          "cách đọc này (còn cách đọc: cấm riêng, bất kể thương mại hay không) — docs/DU_LIEU_VA_GIAY_PHEP.md")
 
 # phân loại ô để thống kê và vẽ (costmap chỉ có -1/0/1; mọi loại UNKNOWN đều bị chặn khi lập đường)
 CAT_FREE, CAT_OCCUPIED, CAT_UNCERTAIN, CAT_OCCLUDED, CAT_UNSEEN, CAT_EGO = 0, 1, 2, 3, 4, 5
@@ -437,7 +437,7 @@ def load_rig(extrinsics_path=DEFAULT_EXTRINSICS, calibration_dir=DEFAULT_CALIBRA
         intr_path = default_output_path(port, (width, height), Path(calibration_dir))
         if not intr_path.exists():
             errors.append((name, f"chưa có tệp nội tham {intr_path} cho camera cổng {port} ({width}×{height}): hiệu chuẩn "
-                                 f"trước (docs/HIEU_CHUAN_CAMERA.md); BEV không dùng nội tham giả định cho camera thật"))
+                                 f"trước (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#noi-tham); BEV không dùng nội tham giả định cho camera thật"))
             continue
         try:
             intrinsics = load_intrinsics(intr_path, width=width, height=height)
@@ -662,7 +662,7 @@ def project_camera(prob, camera: BevCamera, grid: GridSpec, *, t_free: float = D
                    t_blocked: float = DEFAULT_T_BLOCKED, max_range: float | None = RIG_MAX_RANGE,
                    supersample: int = DEFAULT_SUPERSAMPLE,
                    azimuth_bin_deg: float = DEFAULT_AZIMUTH_BIN_DEG) -> CameraView:
-    """Chiếu MỘT camera xuống lưới mịn. Quy tắc như bản đầu (docs/BEV.md mục 2), tính trên bảng hình học dựng sẵn
+    """Chiếu MỘT camera xuống lưới mịn. Quy tắc như bản đầu (docs/KIEN_TRUC.md), tính trên bảng hình học dựng sẵn
     (`view_geometry`) nên mỗi khung chỉ còn đọc nhãn pixel, che khuất và gỡ FREE trên các ô con trong vùng."""
     check_max_range(max_range)
     t0 = time.perf_counter()
@@ -683,7 +683,7 @@ def project_camera(prob, camera: BevCamera, grid: GridSpec, *, t_free: float = D
         state[hidden] = UNKNOWN
     # (2) FREE chỉ khi MỌI pixel rơi vào ô con là FREE: bước (1) chỉ đọc pixel ở tâm ô con, nên vật mảnh nằm giữa các
     # tâm (cột 2 cm cách camera 0,25 m ≈ 25 px) từng để ô của nó FREE và vệt OCCUPIED rơi sang ô xa hơn (đo 24/09: 5/75
-    # vị trí với cột 2 cm, 14/75 với 1,5 cm, 44/75 với 1 cm; docs/BEV.md mục 2). Pixel BLOCKED/không chắc (tâm và bốn
+    # vị trí với cột 2 cm, 14/75 với 1,5 cm, 44/75 với 1 cm; docs/KIEN_TRUC.md). Pixel BLOCKED/không chắc (tâm và bốn
     # góc) gỡ FREE (→ UNKNOWN) ở ô con nó rơi vào; không đặt OCCUPIED nên tập OCCUPIED và phép che khuất giữ nguyên.
     # Điểm sàn của một pixel là điểm XA NHẤT tia của nó có thể chạm, nên pixel BLOCKED không chứng minh được mặt sàn ở
     # đó trống: gỡ FREE luôn an toàn. Mỗi camera gỡ FREE của riêng nó: "không chắc" của camera này không phủ quyết FREE
@@ -1519,7 +1519,7 @@ def _cmd_bench(args) -> int:
 
 def main(argv=None) -> int:
     apply_ecoqos_policy("perception.bev")              # trước mọi việc khác; `bench` so thời gian với nhịp khung
-    parser = argparse.ArgumentParser(description="BEV chiếm chỗ từ AI của nhiều camera (docs/BEV.md)")
+    parser = argparse.ArgumentParser(description="BEV chiếm chỗ từ AI của nhiều camera (docs/KIEN_TRUC.md)")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("synthetic", help="cảnh tổng hợp: 4 camera ảo, hộp và dải không chắc chắn đã biết")

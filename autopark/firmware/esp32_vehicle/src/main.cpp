@@ -230,7 +230,7 @@ void setup_task_watchdog() {
   // hạn và chế độ panic chứ không báo lỗi (esp_task_wdt.h của IDF 4.4). Sửa 30/09/2026, trước đó ghi nhầm "trả lỗi, giữ
   // 5 s". Kiểm 29/09/2026: thanh ghi TIMG0 của bản build này trong QEMU = 1 s (tầng ngắt) / 2 s (tầng reset hệ thống).
   // esp-emulator: một sketch thử (KHÔNG phải firmware này) gọi cùng esp_task_wdt_init(1, true) bị TWDT kích hoạt
-  // ≈ 1,2 s sau khi loop() treo (docs/MO_PHONG_FIRMWARE.md mục 2.4). Firmware này CHƯA THỬ treo trong trình giả lập có
+  // ≈ 1,2 s sau khi loop() treo (docs/PHAN_CUNG_VA_HIEU_CHUAN.md). Firmware này CHƯA THỬ treo trong trình giả lập có
   // watchdog; trên bo thật: CẦN KIỂM.
   esp_task_wdt_init(1, true);
 #endif

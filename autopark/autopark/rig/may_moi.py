@@ -1,4 +1,4 @@
-"""Kiểm một máy mới bằng một lệnh — dùng cho laptop i7-12700H + RTX 3050 Ti mang đi nộp đồ án (docs/MAY_NOP_DO_AN.md).
+"""Kiểm một máy mới bằng một lệnh — dùng cho laptop i7-12700H + RTX 3050 Ti mang đi nộp đồ án (docs/VAN_HANH.md).
 
     .venv-train\\Scripts\\python.exe -X utf8 -m autopark.rig.may_moi
     .venv-train\\Scripts\\python.exe -X utf8 -m autopark.rig.may_moi --dry-run        (chỉ in kế hoạch, không mở thiết bị)
@@ -388,7 +388,7 @@ def comparison_warnings(digest: dict, ref: dict, has_reference: bool) -> list[st
     if not (ref.get("rig480") or {}).get("ai_warm_up_ms"):
         out.append("**CẢNH BÁO — tham chiếu có trước khi bàn thử làm nóng AI** (không có `ai_warm_up_ms`, bàn thử làm "
                    "nóng từ tối 24/09/2026): ở phiên tham chiếu, lô đầu của mỗi cỡ lô phải trả phần khởi tạo "
-                   "(≈ 1,2–1,7 s trên máy bàn, docs/GIAI_DOAN_2_BAN_THU.md) và có thể rơi vào cửa sổ đo, nên số AI của "
+                   "(≈ 1,2–1,7 s trên máy bàn, docs/DU_LIEU_VA_GIAY_PHEP.md) và có thể rơi vào cửa sổ đo, nên số AI của "
                    "bàn thử 480p hai cột không cùng điều kiện; thời gian làm nóng không có số máy bàn để so.")
     return out
 
@@ -506,7 +506,7 @@ def main(argv=None) -> int:
         found = [reference] if reference.exists() else sorted(Path(args.runs).glob("*/best.pt"))
         if not found:
             raise FileNotFoundError(f"không có checkpoint trong {args.runs}/*/best.pt — chép "
-                                    "runs/ai_woodscape_rtx4000_v1/best.pt từ máy bàn (docs/MAY_NOP_DO_AN.md bước 2)")
+                                    "runs/ai_woodscape_rtx4000_v1/best.pt từ máy bàn (docs/VAN_HANH.md bước 2)")
         return str(found[0])
 
     def lidar_port() -> str:

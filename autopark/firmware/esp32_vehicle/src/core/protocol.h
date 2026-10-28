@@ -1,4 +1,4 @@
-// Giao thức laptop <-> ESP32-S3 phiên bản 1 (docs/GIAO_THUC_XE.md). Bản tham chiếu: autopark/transport/protocol.py.
+// Giao thức laptop <-> ESP32-S3 phiên bản 1 (docs/PHAN_CUNG_VA_HIEU_CHUAN.md). Bản tham chiếu: autopark/transport/protocol.py.
 //
 // Khung trên dây: COBS(thông điệp || CRC-16/CCITT-FALSE little-endian) || 0x00. Mọi số nguyên little-endian.
 // Phần đầu 8 byte: version u8, type u8, session_id u32, sequence u16. Thân có độ dài CỐ ĐỊNH theo loại.

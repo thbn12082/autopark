@@ -1,5 +1,5 @@
 """Chấm một lần chạy nghiệm thu (T5): đọc log + tham chiếu độc lập + bố trí tham chiếu, tính các đại lượng N-D, N-V1,
-N-P của docs/NGUONG_NGHIEM_THU_DE_XUAT.md và ghi một dòng biên bản (docs/KICH_BAN_NGHIEM_THU.md mục 2.3).
+N-P của docs/KIEM_THU_VA_LO_TRINH.md và ghi một dòng biên bản (docs/KIEM_THU_VA_LO_TRINH.md).
 Thêm 02/10/2026.
 
 Dùng (mỗi lệnh một dòng, chạy trong thư mục autopark):
@@ -2263,8 +2263,8 @@ def _sync_arg(text: str) -> SyncPair:
 
 def build_parser() -> argparse.ArgumentParser:
     p = _Parser(prog="python -m autopark.evaluation.score_run",
-                description="Chấm một lần chạy nghiệm thu (T5) và ghi một dòng biên bản (KICH_BAN_NGHIEM_THU.md mục "
-                            "2.3). Ngưỡng ĐỀ XUẤT – CHỜ CHỐT ở configs/nguong_nghiem_thu.json.")
+                description="Chấm một lần chạy nghiệm thu (T5) và ghi biên bản; xem docs/KIEM_THU_VA_LO_TRINH.md. "
+                            "Ngưỡng ĐỀ XUẤT – CHỜ CHỐT ở configs/nguong_nghiem_thu.json.")
     g = p.add_argument_group("lần chạy")
     g.add_argument("--scenario", required=True, help="mã kịch bản, ví dụ DO-1, VC-1, AT-5")
     g.add_argument("--variant", default="", help="biến thể (a, b, c, dung, do…); khóa ngưỡng là mã + biến thể khi "

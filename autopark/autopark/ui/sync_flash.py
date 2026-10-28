@@ -1,4 +1,4 @@
-"""Ô nháy của dấu đồng bộ video–log (T14, docs/KICH_BAN_NGHIEM_THU.md mục 7): một ô vuông trắng lớn có số thứ tự, trên
+"""Ô nháy của dấu đồng bộ video–log (T14, docs/KIEM_THU_VA_LO_TRINH.md): một ô vuông trắng lớn có số thứ tự, trên
 nền đen, sáng `FLASH_MS` rồi tắt — camera quay R3 nhìn màn hình laptop thấy cả lúc bật lẫn lúc tắt.
 
 - Trong cửa sổ có sẵn (`SyncFlash(host)`, cockpit đỗ xe và `ui.rig_app`): một widget con phủ toàn bộ cửa sổ, nâng lên

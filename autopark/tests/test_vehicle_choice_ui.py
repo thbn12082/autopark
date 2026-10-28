@@ -18,7 +18,7 @@ from autopark.storage.scenario_store import (ACCEPTANCE_VEHICLE_CONFIG, CONFIGS_
                                             DEFAULT_VEHICLE_CONFIG, load_scenario, path_key)
 from tests.conftest import PROJECT_ROOT  # noqa: E402
 
-BAI_DO_XE = PROJECT_ROOT / "scenarios" / "bai_do_xe.json"
+BAI_DO_XE = PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json"
 ACC_KEY, DEFAULT_KEY = path_key(ACCEPTANCE_VEHICLE_CONFIG), path_key(DEFAULT_VEHICLE_CONFIG)
 
 
@@ -131,12 +131,12 @@ def test_window_acceptance_vehicle_pairs_board_and_starts(qapp, ports, no_serial
 
 def test_vehicle_combo_switch_invalidates_pins_and_follows_open(qapp, ports, no_serial_open, dialogs, monkeypatch,
                                                                  tmp_path):
-    from autopark.ui.app import DEFAULT_SCENARIO, build_window
-    window = build_window(DEFAULT_SCENARIO)
+    from autopark.ui.app import build_window
+    window = build_window(PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json", vehicle_config=DEFAULT_VEHICLE_CONFIG)
     session = window.session
     combo = window.combo_vehicle
     try:
-        assert window.vehicle_override is None and combo.currentData() == DEFAULT_KEY
+        assert window.vehicle_override.path == DEFAULT_VEHICLE_CONFIG and combo.currentData() == DEFAULT_KEY
         assert [combo.itemData(i) for i in range(2)] == [DEFAULT_KEY, ACC_KEY]   # mặc định trước, nghiệm thu sau
         window.combo_drive.setCurrentIndex(window.combo_drive.findData(DriveMode.VEHICLE_IO.value))
         link = session.vehicle_link
@@ -151,7 +151,7 @@ def test_vehicle_combo_switch_invalidates_pins_and_follows_open(qapp, ports, no_
         assert window.statusBar().currentMessage().startswith("Đã chọn xe xe_nghiem_thu_gia_dinh (vehicle_nghiem_thu.json)")
         assert dialogs["question"] == [] and dialogs["warning"] == []              # chưa có log: không hỏi
         # "Mở…" kịch bản khác: giữ xe đã chọn, không đọc tệp xe của kịch bản
-        opened = PROJECT_ROOT / "scenarios" / "sa_ban_3x2_hai_hop.json"
+        opened = PROJECT_ROOT / "scenarios" / "thao_tac_lui_vao_khe.json"
         open_dialog(monkeypatch, opened)
         window._open_scenario()
         assert window.scenario_path == opened and session.scenario.name == load_scenario(opened).name
@@ -174,8 +174,8 @@ def test_vehicle_combo_switch_invalidates_pins_and_follows_open(qapp, ports, no_
 
 def test_vehicle_combo_locked_while_running_and_confirms_log_drop(qapp, ports, no_serial_open, dialogs):
     from PySide6.QtWidgets import QMessageBox
-    from autopark.ui.app import DEFAULT_SCENARIO, build_window
-    window = build_window(DEFAULT_SCENARIO)
+    from autopark.ui.app import build_window
+    window = build_window(PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json", vehicle_config=DEFAULT_VEHICLE_CONFIG)
     session = window.session
     combo = window.combo_vehicle
     acc_index = combo.findData(ACC_KEY)

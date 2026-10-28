@@ -26,7 +26,9 @@ SIM_CFG = SimIOConfig(firmware=replace(SIM_FIRMWARE_DEFAULT, boot_hold_ms=200))
 
 def zigzag(n_cusps, start, goal, cfg):
     """Đường có đúng `n_cusps` lần đổi chiều (cách dựng của test_portfolio_validation: mỗi cặp điểm một chiều)."""
-    raw = [(Pose(start.x + 0.02 * k, start.y, start.yaw), (-1) ** (k // 2), 0.0) for k in range(2 * (n_cusps + 1))]
+    raw = [(Pose(start.x + (0.02 if k % 4 in (1, 2) else 0), start.y, start.yaw),
+            (-1) ** (k // 2), 0.0) for k in range(2 * (n_cusps + 1))]
+    raw.append((goal, (-1) ** n_cusps, 0.0))
     trajectory = build_trajectory(raw, goal, cfg, 0.15, 0.08)
     assert trajectory.n_cusps == n_cusps
     return trajectory
@@ -102,13 +104,13 @@ def test_start_is_refused_above_the_limit_and_the_path_stays_ready(scenario, cfg
         session.close()
 
 
-def test_default_policy_still_runs_a_path_with_many_reversals(scenario, cfg):
+def test_default_policy_refuses_a_path_above_the_local_limit(scenario, cfg):
     session = ready_session(scenario, cfg, 9)
     try:
-        assert session.cusp_check().warned and not session.cusp_check().refused
-        session.start_run()
-        assert session.state == SessionState.RUNNING
-        assert session.run_snapshot["cusps"]["planned"] == 9 and session.run_snapshot["cusps"]["warned"] is True
+        assert session.cusp_check().refused
+        with pytest.raises(SessionError, match="3 lần đổi chiều"):
+            session.start_run()
+        assert session.state == SessionState.READY
     finally:
         session.close()
 
@@ -208,6 +210,9 @@ def test_window_warns_about_many_reversals_and_refuses_above_the_limit(monkeypat
     monkeypatch.setattr(QMessageBox, "warning", warning)
     window = build_window(DEFAULT_SCENARIO, cusp_policy=CuspPolicy(max_cusps=2, warn_cusps=1))
     s = window.session
+    s.scenario.start = Pose(.5, 1, 0)
+    s.scenario.goal = replace(s.scenario.goal, pose=Pose(.8, 1, 0))
+    s.scenario.obstacles = []
     try:
         window._after_plan(apply_path(s, 2))
         assert "2 lần đổi chiều" in window.lbl_plan.text() and "nhiều đổi chiều (&gt; 1)" in window.lbl_plan.text()

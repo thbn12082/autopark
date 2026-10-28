@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "name": "Cua 90 độ trong lối hẹp",
+  "notes": "Một thao tác gần: người lái đặt tư thế sau góc cua, xe tự tiến/lùi rồi dừng. Kích thước và giới hạn chỉ dùng mô phỏng; chưa đo trên MN300.",
+  "vehicle_config": "../configs/vehicle_nghiem_thu.json",
+  "bounds": {"xmin": 0.0, "ymin": 0.0, "xmax": 1.5, "ymax": 1.5},
+  "start": {"x": 0.5, "y": 0.52, "yaw_deg": 0.0},
+  "goal": {"x": 0.86, "y": 0.88, "yaw_deg": 90.0, "tolerance_cm": 3.0, "tolerance_deg": 5.0},
+  "maneuver": {"max_goal_distance_m": 0.7, "area_half_extent_m": 0.75, "max_path_length_m": 1.4, "max_cusps": 3},
+  "obstacles": [
+    {"id": "tuong_duoi", "cx": 0.6, "cy": 0.34, "width": 1.0, "height": 0.08, "kind": "wall"},
+    {"id": "tuong_ngoai", "cx": 1.06, "cy": 0.87, "width": 0.08, "height": 1.14, "kind": "wall"},
+    {"id": "goc_trong", "cx": 0.36, "cy": 1.11, "width": 0.52, "height": 0.66, "kind": "wall"}
+  ],
+  "seed": 0
+}

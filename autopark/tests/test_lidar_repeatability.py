@@ -105,7 +105,7 @@ def test_consecutive_differences_recover_known_noise(tmp_path):
 
 
 def test_range_step_is_reported_only_for_quarter_millimetre_data(tmp_path):
-    # `range_step_mm` là bằng chứng "trung vị đi theo bậc 0,25 mm" ở GIAI_DOAN_1_LIDAR.md mục 3c
+    # `range_step_mm` là bằng chứng "trung vị đi theo bậc 0,25 mm" ở DU_LIEU_VA_GIAY_PHEP.md
     make_recording(tmp_path / "luong_tu", revolutions=5, nan_fraction=0.2)      # NaN (không phản hồi) phải được bỏ qua
     make_recording(tmp_path / "lien_tuc", revolutions=5, quantise=False)
     assert rep.observed_range_step_mm(read_recording(tmp_path / "luong_tu")) == 0.25
@@ -293,7 +293,7 @@ def test_code_sha256_ignores_line_endings(tmp_path):
     assert rep.code_sha256() == hashlib.sha256(Path(rep.__file__).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
-# ---- tái lập số đã công bố (GIAI_DOAN_1_LIDAR.md mục 3b/3c) trên bản ghi thật --------------------------------------
+# ---- tái lập số đã công bố (DU_LIEU_VA_GIAY_PHEP.mdc) trên bản ghi thật --------------------------------------
 @pytest.mark.parametrize("name, medians, per_bin", [
     ("20260922/p07_nen_phong", (1.0, 1.25), (286, 1.56, 44.8)),            # per_bin: số ô, trung vị, p90 (mm)
     ("20260924_kiem/k01_kiem_suc_khoe", (1.25, 1.5), (429, 1.39, 3.43))])
@@ -305,7 +305,7 @@ def test_published_repeatability_numbers_are_reproduced(name, medians, per_bin):
     got = [row["abs_diff_mm"]["median"] for row in result["consecutive"]]
     assert got == pytest.approx(list(medians), abs=0.01)                   # quarter-millimetre steps
     assert all(4.0 <= row["abs_diff_mm"]["p90"] <= 8.0 for row in result["consecutive"])
-    bins_used, median_mm, p90_mm = per_bin                                # GIAI_DOAN_1_LIDAR.md mục 3c, cột theo ô
+    bins_used, median_mm, p90_mm = per_bin                                # DU_LIEU_VA_GIAY_PHEP.md, cột theo ô
     assert result["angle_bins"]["bins_used"] == bins_used
     assert result["angle_bins"]["std_detrended_mm"]["median"] == pytest.approx(median_mm, abs=0.01)
     assert result["angle_bins"]["std_detrended_mm"]["p90"] == pytest.approx(p90_mm, abs=0.05)

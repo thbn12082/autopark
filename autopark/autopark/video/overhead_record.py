@@ -4,7 +4,7 @@
 
 Đây là mã T4 DUY NHẤT mở camera (cùng nút "Mở camera" của `ui.overhead_app`); N tra mỗi lần bằng
 `python -m autopark.video.camera_bench list`. Camera trên cao cắm vào CỔNG GỐC RIÊNG của laptop, không qua hub của bốn
-camera xe (KICH_BAN_NGHIEM_THU.md mục 3.4 bước 4).
+camera xe (KIEM_THU_VA_LO_TRINH.md bước 4).
 
 Ghi vào `<out>/<tên>.*`:
 

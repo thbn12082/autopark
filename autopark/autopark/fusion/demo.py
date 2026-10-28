@@ -1,4 +1,4 @@
-"""Thử nghiệm bàn: LiDAR thật (hoặc bản ghi) → lớp LiveLidar → bản đồ hợp nhất → phiên đỗ mô phỏng giai đoạn 0.
+"""Thử nghiệm bàn: LiDAR thật (hoặc bản ghi) → bản đồ hợp nhất → thao tác gần mô phỏng.
 
     python -m autopark.fusion.demo --seconds 30
     python -m autopark.fusion.demo --recording runs/lidar_bench/20260922/p07_nen_phong.npz --seconds 10
@@ -30,7 +30,7 @@ bằng traceback. (Sửa tối 24/09/2026; chỉ thử với nguồn giả trong
 
 Bỏ vòng khởi động (sửa muộn tối 24/09/2026). Trước đây demo bỏ đúng 15 vòng đầu. Ba lần khởi động đã ghi (p07 và
 live_headless ngày 22/09, k01 ngày 24/09) cho thấy số tia/vòng còn đổi tới vòng 21–22, tức ≈ 4,2 s sau lệnh SCAN
-(GIAI_DOAN_3_CHUAN_BI.md mục 2). Bỏ 15 vòng thì 10 vòng nền có 504–552 tia/vòng. Nay demo bỏ vòng cho tới khi đủ CẢ
+(KIEN_TRUC.md). Bỏ 15 vòng thì 10 vòng nền có 504–552 tia/vòng. Nay demo bỏ vòng cho tới khi đủ CẢ
 HAI điều kiện: đã bỏ ≥ `--initial-skip` vòng (mặc định 22) và stamp của vòng ≥ `--warmup` giây trên đồng hồ phiên
 của nguồn (mặc định 0 = chỉ đếm vòng). Vòng đầu tiên thỏa cả hai là vòng nền đầu tiên.
 - Mặc định 22 vòng: trên cả ba bản ghi, 10 vòng nền rơi vào vòng 23–32, có 500–512 tia/vòng, tức khoảng ổn định.
@@ -69,8 +69,8 @@ from .layers import LiveLidarLayer, ScanUnion, StaticMapLayer, sensor_pose_in_ma
 
 DEFAULT_BOUNDS = Bounds(0.0, 0.0, 3.0, 2.0)
 DEFAULT_START = Pose(0.5, 1.0, 0.0)
-DEFAULT_GOAL = Pose(2.0, 1.0, 0.0)
-# Khởi động mô-tơ C1 (ba bản ghi p07, live_headless, k01; GIAI_DOAN_3_CHUAN_BI.md mục 2): số tia/vòng về khoảng ổn định
+DEFAULT_GOAL = Pose(0.9, 1.0, 0.0)
+# Khởi động mô-tơ C1 (ba bản ghi p07, live_headless, k01; KIEN_TRUC.md): số tia/vòng về khoảng ổn định
 # 500–516 từ vòng 21–22 kể từ vòng đầu, ≈ 4,2 s sau lệnh SCAN. Hai ngưỡng dưới là tạm, CHƯA CHỐT (mới ba lần khởi động).
 SPIN_UP_REVOLUTIONS = 22        # mặc định của run_demo và --initial-skip
 SPIN_UP_S = 4.5                 # giá trị đề xuất cho --warmup (ĐỀ XUẤT – CHỜ CHỐT làm mặc định; xem docstring)

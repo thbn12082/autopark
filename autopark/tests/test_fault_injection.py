@@ -405,7 +405,7 @@ def started_sim_run(scenario, cfg):
     (1.0, State.DISARMED, StopReason.LINK_TIMEOUT, "VEHICLE_NOT_ARMED")])
 def test_hang_without_heartbeat_on_the_sim_board_matches_the_serial_port(scenario, cfg, seconds, board, reason, first,
                                                                          phase):
-    """Cùng mã với cổng serial giả (`test_realtime_hang_without_heartbeat_never_resumes`, CHE_DO_QUAN_SAT.md mục 8)."""
+    """Cùng mã với cổng serial giả (`test_realtime_hang_without_heartbeat_never_resumes`, VAN_HANH.md)."""
     session, io, link, received = started_sim_run(scenario, cfg)
     log = FaultLog()
     hang = hang_control_loop(session, seconds, phase=phase, log=log)

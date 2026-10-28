@@ -3,13 +3,13 @@
 Windows 11 tự quyết EcoQoS cho từng tiến trình: tiến trình không có cửa sổ hiện (ví dụ pytest mở từ một shell chạy nền)
 có thể bị dồn sang lõi E hay hạ xung dù máy rảnh. Đo 30/09/2026 trên máy bàn (i9-14900), nhóm test `planner_budget` mở
 từ shell không cửa sổ: để Windows tự quyết thì 2/2 lượt có test hỏng (1 và 3 test, ví dụ `uturn_w46` hết hạn 8 s), tổng
-thời gian 55 s và 103 s; tiến trình tự tắt EcoQoS thì 2/2 lượt đạt 15/15, 36 s và 40 s (docs/CHUYEN_MAY_BAN.md mục 8).
+thời gian 55 s và 103 s; tiến trình tự tắt EcoQoS thì 2/2 lượt đạt 15/15, 36 s và 40 s (docs/VAN_HANH.md).
 
 Dùng ở: QEMU của bo ảo (`transport/qemu_board.py`, tắt theo pid), công cụ đo `evaluation/ecoqos_gui.py` (đọc trạng
 thái, tắt theo pid cho biến thể đối chứng) và, qua `apply_ecoqos_policy`, chính tiến trình pytest (`tests/conftest.py`)
 cùng mọi ứng dụng và công cụ có hành vi thời gian thực.
 
-Từ 02/10/2026 (người dùng giao quyết định 02/10/2026, theo đề xuất ở docs/CHUYEN_MAY_BAN.md mục 10): `main()` của mỗi
+Từ 02/10/2026 (người dùng giao quyết định 02/10/2026, theo đề xuất ở docs/VAN_HANH.md): `main()` của mỗi
 điểm vào mở thiết bị chạy liên tục (camera, LiDAR, cổng serial, bo ảo), chạy theo hạn giờ đồng hồ thật (hạn lập đường,
 hạn dữ liệu cũ, vòng điều khiển) hay ghi số đo thời gian để so với ngân sách thời gian thực gọi
 `apply_ecoqos_policy("<tên>")` NGAY ĐẦU, trước khi đọc dòng lệnh: tắt EcoQoS cho CHÍNH tiến trình đó. Đặt biến môi
@@ -127,7 +127,7 @@ def execution_speed_throttling(pid: int | None = None) -> str | None:
 _ECOQOS_WHY = ("EcoQoS là chế độ tiết kiệm điện của Windows 11: Windows có thể dồn tiến trình sang lõi tiết kiệm hay "
                "hạ xung khi cửa sổ bị thu nhỏ. Đo 02/10/2026 trên máy bàn: để Windows tự quyết thì cửa sổ thu nhỏ làm "
                "lập đường uturn_w46 hết hạn 8 s ở 4/4 lượt; tiến trình tự tắt EcoQoS thì 4/4 đạt "
-               "(docs/CHUYEN_MAY_BAN.md mục 10).")
+               "(docs/VAN_HANH.md).")
 _DONT_MINIMIZE = " Đừng thu nhỏ cửa sổ khi đang lập đường hay đang chạy."
 
 
@@ -217,8 +217,8 @@ class EcoQoSPolicy:
 
 def apply_ecoqos_policy(component: str) -> EcoQoSPolicy:
     """Áp chính sách EcoQoS cho CHÍNH tiến trình đang chạy (tiến trình con không thừa hưởng): tắt, trừ khi
-    AUTOPARK_KEEP_ECOQOS=1, rồi đọc lại. `component`: tên điểm vào, vd. "ui.app", "rig.bench",
-    "evaluation.sensitivity:worker" (chỉ để gỡ lỗi, không ghi vào tệp nào).
+    AUTOPARK_KEEP_ECOQOS=1, rồi đọc lại. `component`: tên điểm vào, vd. "ui.app", "rig.bench"
+    (chỉ để gỡ lỗi, không ghi vào tệp nào).
 
     Không dùng Qt, không in gì (vài công cụ in đúng một dòng JSON ra stdout), không bao giờ ném Exception: không làm
     được thì `level` là "danger" và nơi gọi tự báo; không dừng chương trình. Gọi lại trong cùng tiến trình là vô hại

@@ -13,8 +13,8 @@ from autopark.storage.run_store import export_run, replay_run
 
 def straight_session(scenario, cfg, reverse=False, feedback=None):
     scenario.obstacles = []
-    scenario.start = Pose(2.0 if reverse else 0.5, 1.0, 0)
-    scenario.goal = ParkingGoal(Pose(0.5 if reverse else 2.0, 1.0, 0))
+    scenario.start = Pose(1.0 if reverse else 0.5, 1.0, 0)
+    scenario.goal = ParkingGoal(Pose(0.5 if reverse else 1.0, 1.0, 0))
     session = Session(scenario, cfg, feedback_config=feedback)
     assert session.plan_sync().ok
     return session
@@ -56,6 +56,7 @@ def test_new_obstacle_brakes_invalidates_and_replans_from_stopped_pose(scenario,
     assert session.trajectory is None
     with pytest.raises(SessionError):
         session.start_run()
+    session.remove_obstacle("new")  # người lái đã xác nhận vật cản được dọn
     result = session.plan_sync()
     assert result.ok, result.message
     session.start_run()
@@ -129,9 +130,9 @@ def test_preview_isolated_from_runtime_and_faults(scenario, cfg):
 
 
 def test_unknown_region_is_blocked_and_roundtrips(scenario, cfg):
-    scenario.obstacles = [Obstacle("unknown", 2.0, 1.0, 0.3, 0.3, kind="unknown")]
+    scenario.obstacles = [Obstacle("unknown", 0.8, 1.0, 0.15, 0.15, kind="unknown")]
     session = Session(type(scenario).from_dict(scenario.to_dict()), cfg)
-    session.set_goal_pose(Pose(2.0, 1.0, 0))
+    session.set_goal_pose(Pose(0.8, 1.0, 0))
     assert not session.goal_check().ok
     assert session.plan_sync().status == "GOAL_INVALID"
     stamp = SourceStamp("map", 1.0)

@@ -1,4 +1,4 @@
-r"""Dựng bản đồ tĩnh từ NHIỀU chỗ đặt LiDAR, trong hệ SA BÀN (thêm 02/10/2026, T2; docs/SO_SANH_DINH_VI_SLAM.md mục 7
+r"""Dựng bản đồ tĩnh từ NHIỀU chỗ đặt LiDAR, trong hệ SA BÀN (thêm 02/10/2026, T2; docs/KIEN_TRUC.md
 bước 1). Chưa phải SLAM: mỗi chỗ đặt là một đoạn bản ghi LiDAR ĐỨNG YÊN; chỗ đặt 1 được neo vào sa bàn, các chỗ sau
 được ghép vào bản đồ đã có bằng định vị (`lidar/localize.py`), rồi mọi vòng quét được ray-cast vào một lưới đếm chung
 (`lidar/occupancy.py`).
@@ -10,7 +10,7 @@ Tùy chọn thêm vào cuối lệnh: [--pose K X Y YAW_DEG] (tư thế đo bằ
 biến = xe ⊕ gá) [--lidar-config configs\dinh_vi_lidar_v0.json] [--self-mask --vehicle-config configs\vehicle_default.json]
 [--grid XMIN XMAX YMIN YMAX RES] [--skip-seconds S] [--max-range M] [--min-range M] [--overwrite]. Một chỗ đặt có thể là
 một đoạn của bản ghi: `A.npz@T0:T1` (giây tính từ vòng đầu của bản ghi; bỏ trống một đầu là không giới hạn). Mọi tư thế
-là tư thế TÂM QUAY LiDAR (m, m, độ) trong hệ sa bàn (gốc, trục như docs/KICH_BAN_NGHIEM_THU.md mục 3.3).
+là tư thế TÂM QUAY LiDAR (m, m, độ) trong hệ sa bàn (gốc, trục như docs/KIEM_THU_VA_LO_TRINH.md).
 
 Cách ghép chỗ đặt k ≥ 2: dựng bản đồ định vị từ các chỗ đặt trước; chọn điểm đoán theo thứ tự `--hint K`, `--pose K`,
 odometry khớp scan (`lidar/scan_odometry.py`) qua đoạn bê LiDAR khi chỗ đặt k−1 và k là hai đoạn của CÙNG một bản ghi,

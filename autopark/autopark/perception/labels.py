@@ -6,7 +6,7 @@
     python -m autopark.perception.labels export --project datasets/sa_ban_labels --out datasets/prepared/sa_ban_v1
     python -m autopark.ui.label_app --project datasets/sa_ban_labels
 
-Quy trình và quy tắc gán nhãn: docs/GAN_NHAN_SA_BAN.md.
+Quy trình và quy tắc gán nhãn: docs/DU_LIEU_VA_GIAY_PHEP.md.
 
 **Đầu vào** là thư mục "Chụp bộ ảnh" của bàn thử (`autopark.ui.rig_app`): `cam_p<cổng>.png` (khung gốc BGR),
 `prob_blocked_p<cổng>.png` (P(BLOCKED)×255, nhỏ hơn khung nhưng cùng tỉ lệ; không có nếu lúc chụp AI tắt) và
@@ -755,7 +755,7 @@ class LabelProject:
                 "schema_version": SCHEMA_VERSION, "kind": PROJECT_KIND, "created_at": now_local(),
                 "created_by": self.who, "mapping": MAPPING,
                 "note": "Ảnh tự chụp trên sa bàn bằng bàn thử; nhãn 0 FREE / 1 BLOCKED / 255 IGNORE cùng kích thước "
-                        "khung gốc. Xem docs/GAN_NHAN_SA_BAN.md."})
+                        "khung gốc. Xem docs/DU_LIEU_VA_GIAY_PHEP.md."})
         self.info = _read_json_object(info, "project.json")
         if self.info.get("kind") != PROJECT_KIND:
             raise LabelError(f"{info} không phải dự án gán nhãn sa bàn")
@@ -1303,7 +1303,7 @@ class LabelProject:
                              f"{origins.get('snapshot_prob', 0) + origins.get('live_segmenter', 0)}/{len(reviewed)} "
                              "ảnh có nhãn NHÁP sinh bởi mô hình (xem records[].draft.model; mô hình tham chiếu huấn luyện "
                              "trên WoodScape). Nhãn dẫn xuất từ đầu ra mô hình có chịu điều khoản WoodScape hay không "
-                             "CHƯA được đánh giá — xem docs/GIAY_PHEP_DU_LIEU.md và docs/GAN_NHAN_SA_BAN.md."),
+                             "CHƯA được đánh giá — xem docs/DU_LIEU_VA_GIAY_PHEP.md và docs/DU_LIEU_VA_GIAY_PHEP.md."),
             "draft_origins": dict(origins),
             "review_policy": "chỉ ảnh status=reviewed, nhãn trùng sha256 lúc duyệt (kiểm lại trên đúng mảng được ghi)",
             "split_verification": ("check_cache của autopark.perception.labels (kích thước/kiểu mảng, giá trị nhãn, "

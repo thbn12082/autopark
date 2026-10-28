@@ -290,7 +290,7 @@ class LimitMismatch:
 @dataclass(frozen=True)
 class LimitsCheck:
     """Kết quả so giới hạn của bo với `VehicleConfig`. `risky` không rỗng thì `VehicleLink` từ chối START ở chế độ
-    VEHICLE_IO; lệch không nguy hiểm chỉ cảnh báo (docs/GIAO_THUC_XE.md mục 7)."""
+    VEHICLE_IO; lệch không nguy hiểm chỉ cảnh báo (docs/PHAN_CUNG_VA_HIEU_CHUAN.md)."""
 
     vehicle_name: str
     tolerance: float
@@ -829,7 +829,7 @@ class SerialVehicleIO(VehicleIO):
     @staticmethod
     def _port_opener(port: str, baudrate: int, read_timeout_s: float, write_timeout_s: float):
         """`port` là tên cổng (`COM3`) hoặc URL (thêm 30/09/2026): `socket://127.0.0.1:5555` cho bo ảo QEMU
-        (`autopark.transport.qemu_board`, docs/MO_PHONG_FIRMWARE.md) dùng `SocketPort` của dự án chứ không dùng
+        (`autopark.transport.qemu_board`, docs/PHAN_CUNG_VA_HIEU_CHUAN.md) dùng `SocketPort` của dự án chứ không dùng
         `socket://` của pyserial (lý do trong `socket_port.py`); các URL khác của pyserial (`rfc2217://`...) qua
         `serial_for_url`. Client rfc2217 của pyserial 3.5 không nhận `write_timeout` (NotImplementedError khi mở), nên với
         nó bỏ tham số này."""
@@ -880,7 +880,7 @@ class SerialVehicleIO(VehicleIO):
         """Đọc MỌI byte đang có sẵn (tối đa `PUMP_MAX_BYTES`, trong tối đa `PUMP_MAX_S`). Cổng COM và `SocketPort` báo
         `in_waiting` đúng số byte nên thường chỉ một lượt `read`. Trước 30/09/2026 mỗi lần gọi chỉ đọc đúng `in_waiting`
         một lần; với cổng báo 0/1 như `socket://` của pyserial 3.5 (bo ảo QEMU 29/09/2026), vòng 50 Hz `poll(block=False)`
-        nhận 2/≈ 40 khung trong 2 s kèm TELEMETRY_STALE (docs/MO_PHONG_FIRMWARE.md mục 5). Chỉ gọi `read` khi
+        nhận 2/≈ 40 khung trong 2 s kèm TELEMETRY_STALE (docs/PHAN_CUNG_VA_HIEU_CHUAN.md). Chỉ gọi `read` khi
         `in_waiting > 0`, trừ lần đầu với `block=True`, nên không thêm lần đọc chờ nào."""
         if self.transport is None:
             raise VehicleIOError("Cổng đã đóng")
@@ -1023,7 +1023,7 @@ _SIM_IO_KEYS = {
 
 # Tham số firmware mặc định của MÔ PHỎNG: như FirmwareConfig() nhưng trần effort 1000 ‰. Lý do: cơ cấu chấp hành
 # giả định (SimActuatorConfig) đạt 0,8 m/s ở effort tối đa với vùng chết 150 ‰; trần 250 ‰ dành cho lần thử đầu trên
-# xe thật sẽ chặn xe mô phỏng ở ≈ 0,09 m/s và làm mất các thí nghiệm bậc 0,10/0,15 m/s (docs/GIAO_THUC_XE.md mục 10).
+# xe thật sẽ chặn xe mô phỏng ở ≈ 0,09 m/s và làm mất các thí nghiệm bậc 0,10/0,15 m/s (docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
 # Đây là số của mô phỏng, không phải đề xuất cho xe.
 SIM_FIRMWARE_DEFAULT = FirmwareConfig(max_effort_permille=1000)
 

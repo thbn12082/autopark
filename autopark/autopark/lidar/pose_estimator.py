@@ -1,6 +1,6 @@
 r"""Bộ ghép định vị LiDAR cho phiên đỗ xe (thêm 02/10/2026, T2): (a) định vị từng vòng trên bản đồ tĩnh
 (`lidar/localize.py`) + (b) odometry khớp scan (`lidar/scan_odometry.py`) làm tâm cửa sổ và kiểm chéo, theo ĐỀ XUẤT mục
-7 của docs/SO_SANH_DINH_VI_SLAM.md. Người dùng giao quyết định 02/10/2026 ("làm hết"); mọi ngưỡng (`LocalizerParams`,
+7 của docs/KIEN_TRUC.md. Người dùng giao quyết định 02/10/2026 ("làm hết"); mọi ngưỡng (`LocalizerParams`,
 configs/dinh_vi_lidar_v0.json) vẫn là ĐỀ XUẤT – CHỜ CHỐT. KHÔNG phải SLAM: bản đồ cố định, không đóng vòng.
 
 Đồng bộ, không luồng, không đồng hồ: mỗi lời gọi `process(angles, ranges, t)` là một vòng quét, `t` là dấu thời gian

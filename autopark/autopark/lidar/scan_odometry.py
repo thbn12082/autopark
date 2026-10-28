@@ -59,7 +59,7 @@ offline trên dữ liệu lưu sẵn; chưa nối vào phiên đỗ xe, chưa ch
 
 Mọi ngưỡng (`min_matched_fraction`, `max_conflict_fraction`, `min_normal_ratio`, `max_std_*`, `prior_sigma_*`,
 khung khóa, cửa sổ, bộ lọc điểm) là giá trị tạm, CHƯA CHỐT (24/09/2026): mới chọn trên phòng tổng hợp của test và dữ
-liệu DROW/C1 lưu sẵn, chưa có xe, chưa có tham chiếu độc lập. Xem docs/SO_SANH_DINH_VI_SLAM.md.
+liệu DROW/C1 lưu sẵn, chưa có xe, chưa có tham chiếu độc lập. Xem docs/KIEN_TRUC.md.
 
 Cập nhật 02/10/2026 (T2): `OdometryConfig.velocity_per = "second"` tính vận tốc dự đoán theo thời gian t của `update`
 (vòng bị rơi trước `update` không còn làm dự đoán thiếu quãng đi, phát hiện 6 của SO_SANH mục 3.3); mặc định "scan" giữ

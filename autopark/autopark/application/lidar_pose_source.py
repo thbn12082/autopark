@@ -1,6 +1,6 @@
 """Nguồn tư thế LiDAR cho `VehicleLink` (thêm 02/10/2026, T2): bộ ghép (a) + (b) của `lidar/pose_estimator.py` nối vào
 phiên đỗ xe theo hợp đồng `PoseSource` của application/vehicle_link.py. Người dùng giao quyết định 02/10/2026 ("làm
-hết"): làm theo ĐỀ XUẤT mục 7 của docs/SO_SANH_DINH_VI_SLAM.md; mọi ngưỡng vẫn là ĐỀ XUẤT – CHỜ CHỐT.
+hết"): làm theo ĐỀ XUẤT mục 7 của docs/KIEN_TRUC.md; mọi ngưỡng vẫn là ĐỀ XUẤT – CHỜ CHỐT.
 
 - `LidarPoseSource`: RPLIDAR C1 thật hoặc bản ghi phát lại (ngăn LiDAR của `ui.lidar_app`). `simulated = False`. Nhận
   vòng quét từ luồng đọc (`on_scan`, không bao giờ chặn: hàng đợi `queue_size` vòng, vòng mới nhất thắng, đếm vòng bỏ).
