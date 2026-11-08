@@ -6,17 +6,17 @@ Ngày thiết kế: 08/11/2026. Cấu hình tham chiếu: ESP32-S3-DevKitC-1 N16
 
 ## Ba bản vẽ
 
-Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các chân — SVG](hardware/wiring-v1/00-components.svg) hoặc [PNG](hardware/wiring-v1/00-components.png).
+Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các chân — SVG](hardware/wiring-v1/00-components.svg) hoặc [PNG](hardware/wiring-v1/00-components.png?v=d74bb9822545).
 
-1. [Kết nối tổng thể — SVG](hardware/wiring-v1/01-system.svg) · [PNG](hardware/wiring-v1/01-system.png).
-2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png).
-3. [Sạc pin tách khỏi xe — SVG](hardware/wiring-v1/03-charging.svg) · [PNG](hardware/wiring-v1/03-charging.png).
+1. [Kết nối tổng thể — SVG](hardware/wiring-v1/01-system.svg) · [PNG](hardware/wiring-v1/01-system.png?v=6bf440dad88b).
+2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png?v=76d59cc25f64).
+3. [Sạc pin tách khỏi xe — SVG](hardware/wiring-v1/03-charging.svg) · [PNG](hardware/wiring-v1/03-charging.png?v=b9bf8cc48aa1).
 
-![Kết nối tổng thể](hardware/wiring-v1/01-system.png)
+![Kết nối tổng thể](hardware/wiring-v1/01-system.png?v=6bf440dad88b)
 
-![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png)
+![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png?v=76d59cc25f64)
 
-![Sạc pin tách khỏi xe](hardware/wiring-v1/03-charging.png)
+![Sạc pin tách khỏi xe](hardware/wiring-v1/03-charging.png?v=b9bf8cc48aa1)
 
 ## Những bộ phận được giữ và thay
 

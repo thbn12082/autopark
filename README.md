@@ -36,29 +36,31 @@ Bộ tài liệu gồm sáu phần: Tổng quan, Kiến trúc, Vận hành, Ph�
 
 Ngày thiết kế: 08/11/2026. Cấu hình tham chiếu: ESP32-S3-DevKitC-1 N16R8 và Hobbywing QuicRun 1060 Brushed giắc T, theo xác nhận trong phiên thiết kế.
 
+**Bản hiện tại: servo lấy nguồn từ BEC tích hợp trong ESC; đã bỏ bộ nguồn servo rời.** Sơ đồ nguồn bên dưới có tiêu đề “SERVO LẤY NGUỒN TỪ BEC CỦA ESC”.
+
 **Đây là thiết kế kết nối và bản đồ chân đề xuất, chưa phải kết quả lắp chạy trên xe.** Hình dáng motor, cụm lái và bo gốc được đối chiếu với ảnh người dùng. Các linh kiện dự định mua được vẽ theo hình dáng tham chiếu; vị trí chân trên module cảm biến, đầu nối servo và điện áp servo vẫn cần đối chiếu với hàng thực nhận. Màu cam/nét đứt chỉ phần chờ xác minh, không phải dây đã được phép cấp điện.
 
 ### Linh kiện và các chân nối
 
-![Bảng nhận diện 14 linh kiện và các chân nối](autopark/docs/hardware/wiring-v1/00-components.png)
+![Bảng nhận diện 14 linh kiện và các chân nối](autopark/docs/hardware/wiring-v1/00-components.png?v=d74bb9822545)
 
 *Hình dáng tham chiếu và các đầu nối có tên. Chân ESP32 theo DevKitC-1; các module chưa chốt được đánh dấu nét đứt. Hình không theo tỷ lệ kích thước thật.*
 
 ### Kết nối nguồn, ESC, motor và servo
 
-![Sơ đồ nguồn, ESC, motor và servo](autopark/docs/hardware/wiring-v1/01-system.png)
+![Sơ đồ nguồn, ESC, motor và servo](autopark/docs/hardware/wiring-v1/01-system.png?v=6bf440dad88b)
 
 *Pin 2S cấp ESC; BEC của ESC cấp nguồn servo khi đã xác minh servo hỗ trợ 6 V và BEC đủ dòng. ESP32 dùng nguồn USB, tín hiệu ga và lái đi riêng. Bản này không dùng bộ ổn áp servo rời hoặc dây chia nguồn pin.*
 
 ### Kết nối USB, cảm biến và chân điều khiển
 
-![Sơ đồ USB, cảm biến và chân điều khiển ESP32](autopark/docs/hardware/wiring-v1/02-signal-feedback.png)
+![Sơ đồ USB, cảm biến và chân điều khiển ESP32](autopark/docs/hardware/wiring-v1/02-signal-feedback.png?v=76d59cc25f64)
 
 *Laptop kết nối ESP32, LiDAR và hub camera qua USB. AS5600 và encoder cung cấp phản hồi cho ESP32; GPIO, chế độ module và cách gá cần được đối chiếu trước khi lắp.*
 
 ### Kết nối sạc pin riêng
 
-![Sơ đồ sạc pin LiPo 2S bằng B3 Pro khi tách khỏi xe](autopark/docs/hardware/wiring-v1/03-charging.png)
+![Sơ đồ sạc pin LiPo 2S bằng B3 Pro khi tách khỏi xe](autopark/docs/hardware/wiring-v1/03-charging.png?v=b9bf8cc48aa1)
 
 *Pin tách khỏi toàn bộ tải trên xe. B3 dùng giắc cân bằng ba chân ở cổng 2S; giắc T không nối ESC trong khi sạc.*
 
