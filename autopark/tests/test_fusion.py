@@ -210,7 +210,7 @@ def test_near_field_layer_marks_arc_only_when_valid():
 def straight_session(scenario, cfg):
     scenario.obstacles = []
     scenario.start = Pose(0.5, 1.0, 0.0)
-    scenario.goal = ParkingGoal(Pose(2.0, 1.0, 0.0))
+    scenario.goal = ParkingGoal(Pose(0.95, 1.0, 0.0))
     session = Session(scenario, cfg)
     assert session.plan_sync().ok
     return session
@@ -226,15 +226,15 @@ def test_live_lidar_obstacle_stops_the_running_session_then_replans(scenario, cf
     bridge = ObstacleBridge(session, prefix="lidar")
     layer.add_scan(scan_with_object(before.t, None), before.pose)      # sees nothing: no obstacle, no stop
     assert bridge.inject(fuse([layer], GRID, now=before.t)) == [] and session.state == SessionState.RUNNING
-    scan = scan_with_object(before.t + 0.1, 0.6, half_width_deg=8.0)  # something 0.6 m ahead of the rear axle
+    scan = scan_with_object(before.t + 0.1, 0.45, half_width_deg=8.0)  # vật mới trên đoạn thao tác gần
     layer.add_scan(scan, before.pose)
     assert bridge.inject(fuse([layer], GRID, now=scan.stamp.t)) == []  # seen once: not persistent yet, no stop
-    scan = scan_with_object(before.t + 0.2, 0.6, half_width_deg=8.0)
+    scan = scan_with_object(before.t + 0.2, 0.45, half_width_deg=8.0)
     layer.add_scan(scan, before.pose)
     fused = fuse([layer], GRID, now=scan.stamp.t)
     added = bridge.inject(fused)
     assert added and session.state == SessionState.STOPPING and not session.trajectory.valid
-    x, y = before.pose.to_world(0.6, 0.0)
+    x, y = before.pose.to_world(0.45, 0.0)
     assert any(abs(o.cx - x) < 0.1 and abs(o.cy - y) < 0.1 for o in added)
     assert all(o.id.startswith("lidar_") and o.kind == "box" for o in session.scenario.obstacles)
     assert bridge.inject(fused) == []                                    # same information again adds nothing
@@ -248,6 +248,7 @@ def test_live_lidar_obstacle_stops_the_running_session_then_replans(scenario, cf
     assert session.state == SessionState.STOPPED and not session.world.collided and session.world.state.speed == 0
     assert [e.code for e in session.safety_events] == ["MAP_CHANGED", "WAIT_REPLAN"]
     session.reset()
+    session.set_goal_pose(Pose(session.scenario.start.x - 0.15, 1.0, 0.0))  # người lái chọn lùi khỏi vật cản
     assert session.plan_sync().ok                                        # the LiDAR obstacle stays in the scenario
 
 
@@ -300,7 +301,7 @@ def test_new_obstacle_off_the_path_is_remembered_but_does_not_stop(scenario, cfg
     assert bridge.inject(fuse([layer], GRID, now=before.t)) == []
     assert session.state == SessionState.RUNNING and len(bridge.seen) >= 1
     assert bridge.inject(fuse([layer], GRID, now=before.t)) == [] and session.state == SessionState.RUNNING
-    ahead = scan_with_object(before.t + 0.1, 0.6, half_width_deg=8.0)          # on the path: stops
+    ahead = scan_with_object(before.t + 0.1, 0.45, half_width_deg=8.0)         # on the path: stops
     layer.add_scan(ahead, session.world.state.pose)
     added = bridge.inject(fuse([layer], GRID, now=ahead.stamp.t))
     assert added and session.state == SessionState.STOPPING

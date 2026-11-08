@@ -8,6 +8,7 @@ np = pytest.importorskip("numpy")
 cv2 = pytest.importorskip("cv2")
 
 from autopark.domain.sensors import LidarScan, SourceStamp  # noqa: E402
+from autopark.image_io import imwrite  # noqa: E402
 from autopark.lidar.drow import (N_BEAMS, DrowReplaySource, drow_angles, read_drow_csv,  # noqa: E402
                                  read_drow_labels, scan_points, valid_mask)
 from autopark.lidar.render import render_scan  # noqa: E402
@@ -136,7 +137,7 @@ def test_render_scan_places_returns_and_omits_no_return_beams():
 
 def test_image_sequence_source_reads_in_natural_order_with_fps_stamps(tmp_path):
     for i in (1, 2, 10):                                         # unpadded names: lexical order would be 1, 10, 2
-        cv2.imwrite(str(tmp_path / f"frame_{i}.png"), np.full((20, 30, 3), i * 20, np.uint8))
+        assert imwrite(tmp_path / f"frame_{i}.png", np.full((20, 30, 3), i * 20, np.uint8))
     (tmp_path / "notes.txt").write_text("ignored", encoding="utf-8")
     source = ImageSequenceSource(tmp_path, fps=10.0, t0=5.0, source_id="cam_replay")
     frames = list(source)

@@ -30,7 +30,8 @@ from autopark.control.tracker import TrackerParams
 from autopark.domain.types import Pose, Scenario
 from autopark.evaluation.maneuver_score import NUMERIC_FIELDS, score_leg, summarize
 from autopark.evaluation.maneuver_suite_spec import ManeuverCase
-from autopark.planning.hybrid_astar import PlannerParams, PlanResult
+from autopark.planning.types import PlannerParams, PlanResult
+from autopark.power_throttling import apply_ecoqos_policy
 from autopark.planning.trajectory import Trajectory, TrajectoryPoint
 
 
@@ -489,6 +490,7 @@ def _seeds(value):
 
 
 def main(argv=None):
+    apply_ecoqos_policy("evaluation.maneuver_bench")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="Run base and robustness cases in SIM")
@@ -505,8 +507,6 @@ def main(argv=None):
     replay.add_argument("--replan", action="store_true", help="Rerun frozen input through current planner; timing may differ")
     args = parser.parse_args(argv)
     try:
-        from autopark.power_throttling import apply_ecoqos_policy
-        apply_ecoqos_policy("maneuver_bench")
         if args.command == "list":
             cases = build_suite(args.seeds)
             rows = [{"case_id": c.case_id, "family": c.family, "seed": c.scenario.seed,

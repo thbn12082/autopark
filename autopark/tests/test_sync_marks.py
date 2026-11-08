@@ -332,7 +332,7 @@ def test_main_window_marks_before_start_and_after_stop_but_never_while_driving(w
     count = len(log.rows)
     assert window._handle_key(f8()) is True                             # đang chạy: phím bị nuốt, không có dấu
     assert len(log.rows) == count and not window.sync_flash.lit()
-    assert "trước Bắt đầu đỗ" in window.statusBar().currentMessage()
+    assert "trước khi thực hiện" in window.statusBar().currentMessage()
     assert window.make_sync_mark() is None and len(log.rows) == count
     window.stop()
     window._poll_state_change()
@@ -628,7 +628,7 @@ def test_lidar_app_clock_row_anchors_the_lidar_stop(qapp, tmp_path, monkeypatch,
         window._poll_state_change()
         window.advance_by(1.0)
         window._poll_state_change()
-        t = feed(dock, source, t, 0.9, times=2)                          # tay trước LiDAR, trên đường
+        t = feed(dock, source, t, 0.45, times=2)                         # vật mới nằm trong đoạn thao tác gần
         assert window.session.state == SessionState.STOPPING
         window._poll_state_change()
         clock = window.sync_marks.rows[-1]

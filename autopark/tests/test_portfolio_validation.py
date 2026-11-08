@@ -6,7 +6,7 @@ from dataclasses import replace
 from autopark.control.tracker import TrackerParams
 from autopark.domain.types import VehicleState
 from autopark.planning import maneuver_planner, portfolio
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.types import PlanResult
 from autopark.planning.trajectory import build_trajectory
 from autopark.simulation.rollout import RolloutResult, RunReport
 

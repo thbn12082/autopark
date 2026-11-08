@@ -17,7 +17,7 @@ from autopark.application.cusp_policy import (CUSP_WARN_DEFAULT, CuspCheck, Cusp
 from autopark.application.session import Session, SessionError, SessionState  # noqa: E402
 from autopark.application.vehicle_link import EVENT_FIELDS, DriveMode, VehicleLink  # noqa: E402
 from autopark.domain.types import Pose  # noqa: E402
-from autopark.planning.hybrid_astar import PlanResult  # noqa: E402
+from autopark.planning.types import PlanResult  # noqa: E402
 from autopark.planning.trajectory import build_trajectory  # noqa: E402
 from autopark.transport.vehicle_io import SIM_FIRMWARE_DEFAULT, SimIOConfig  # noqa: E402
 
@@ -63,12 +63,11 @@ def test_policy_defaults_never_refuse_and_warn_only_above_seven():
         assert not check.refused and not check.warned and check.describe() == f"Đường có {n} lần đổi chiều"
     eight = CuspCheck(8, None, 7)
     assert eight.warned and not eight.refused
-    assert eight.describe() == ("Đường có 8 lần đổi chiều, nhiều hơn mức cảnh báo 7 (N-D6 đề xuất ≤ 2 ở kịch bản rộng, "
-                                "≤ 7 ở kịch bản hẹp; CHƯA CHỐT); vẫn chạy được")
+    assert "nhiều hơn mức cảnh báo 7" in eight.describe()
     three = CuspCheck(3, 2, 1)                                  # quá giới hạn: từ chối, không tính là cảnh báo nữa
     assert three.refused and not three.warned
-    assert three.describe() == ("Đường có 3 lần đổi chiều, vượt giới hạn 2 (N-D6, CHƯA CHỐT): không đem chạy; đổi vị "
-                                "trí xuất phát/ô đỗ rồi tìm đường lại")
+    assert "vượt giới hạn 2" in three.describe()
+    assert "đổi tư thế đích" in three.describe()
     assert three.to_dict() == {"planned": 3, "max_cusps": 2, "warn_cusps": 1, "refused": True, "warned": False}
     assert not CuspCheck(2, 2, None).refused                    # "hơn N" lần, không phải "từ N"
     assert not CuspCheck(9, None, None).warned                  # warn_cusps None: không cảnh báo
@@ -86,7 +85,8 @@ def test_start_is_refused_above_the_limit_and_the_path_stays_ready(scenario, cfg
     session = ready_session(scenario, cfg, 3, CuspPolicy(max_cusps=2))
     try:
         trajectory = session.trajectory
-        assert session.cusp_check() == check_cusps(trajectory, session.cusp_policy) and session.cusp_check().refused
+        assert session.cusp_check() == check_cusps(trajectory, session.cusp_policy, "theo --max-cusps")
+        assert session.cusp_check().refused
         with pytest.raises(SessionError, match="3 lần đổi chiều, vượt giới hạn 2") as exc:
             session.start_run()
         assert str(exc.value).startswith("Không bắt đầu được: ")
@@ -167,8 +167,8 @@ def test_cli_flags_build_the_policy(monkeypatch):
 
     from autopark.ui import app, lidar_app
     QApplication.instance() or QApplication([])
-    args = app.parse_args(["run_app.py", "scenarios/bai_do_xe.json", "--max-cusps", "3"])
-    assert args.scenario == Path("scenarios/bai_do_xe.json") and args.cusp_policy == CuspPolicy(3, 7)
+    args = app.parse_args(["run_app.py", "scenarios/thao_tac_cua_hep.json", "--max-cusps", "3"])
+    assert args.scenario == Path("scenarios/thao_tac_cua_hep.json") and args.cusp_policy == CuspPolicy(3, 7)
     args = app.parse_args(["run_app.py"])
     assert args.scenario == app.DEFAULT_SCENARIO and args.cusp_policy == CuspPolicy()
     for argv in (["run_app.py", "--max-cusps", "-1"], ["run_app.py", "a.json", "b.json"], ["run_app.py", "--la"]):

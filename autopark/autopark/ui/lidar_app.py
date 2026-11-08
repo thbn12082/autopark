@@ -2,7 +2,7 @@
 
     python -m autopark.ui.lidar_app
     python -m autopark.ui.lidar_app --recording runs/lidar_bench/20260922/p07_nen_phong.npz
-    python -m autopark.ui.lidar_app --scenario scenarios/sa_ban_3x2_hai_hop.json
+    python -m autopark.ui.lidar_app --scenario scenarios/thao_tac_cua_hep.json
     python -m autopark.ui.lidar_app --vehicle-config configs/vehicle_measured.json
     python -m autopark.ui.lidar_app --max-cusps 2
 
@@ -92,8 +92,7 @@ import sys
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMessageBox      # QMessageBox: lỗi của "Chọn bản đồ LiDAR…" (T2)
 
-from autopark.application.cusp_policy import (ACCEPTANCE_THRESHOLDS, AcceptanceTagError, CuspPolicy, add_cusp_args,
-                                              cusp_policy_from_args)
+from autopark.application.cusp_policy import CuspPolicy, add_cusp_args, cusp_policy_from_args
 from autopark.application.session import Session, SessionError
 from autopark.domain.types import Bounds, ParkingGoal, Pose, Scenario
 from autopark.storage.scenario_store import VehicleConfigFile, load_vehicle_config_file, vehicle_config_arg
@@ -352,12 +351,12 @@ def lidar_map_info(path) -> dict:
 def build_window(scenario_path: Path | None, *, port: str | None, recording: Path | None,
                  vehicle_config: Path | None = None, camera_ai: dict | None = None,
                  cusp_policy: CuspPolicy | None = None, record: RecordOptions | None = None,
-                 acceptance_thresholds: Path | None = ACCEPTANCE_THRESHOLDS, lidar_config=None) -> tuple[BenchWindow, LidarDock]:
+                 lidar_config=None) -> tuple[BenchWindow, LidarDock]:
     """`vehicle_config` (nếu có) thay cấu hình xe của sa bàn mặc định hoặc của kịch bản, kể cả kịch bản mở sau đó
     bằng "Mở kịch bản" trong cửa sổ. `camera_ai`: tham số của ngăn AI camera (xem `camera_ai_options`), None = không có
     ngăn đó; ngăn ở `window.camera_dock`. `cusp_policy` (T12): giới hạn số lần đổi chiều, giữ cả khi "Mở kịch bản".
     `record` (T3): tùy chọn của bản ghi cảm biến (`record_options`), None = mặc định; ngăn ở `window.record_dock`.
-    `acceptance_thresholds`: tệp ngưỡng cho tệp sa bàn gắn nghiệm thu (AcceptanceTagError trước khi có cửa sổ)."""
+    """
     if scenario_path is not None:
         scenario = load_scenario(scenario_path)
     else:
@@ -371,7 +370,7 @@ def build_window(scenario_path: Path | None, *, port: str | None, recording: Pat
         cfg = load_vehicle_config(scenario.vehicle_config_path)
     else:
         cfg = load_vehicle_config(DEFAULT_VEHICLE)
-    session = Session(scenario, cfg, cusp_policy=cusp_policy, acceptance_thresholds=acceptance_thresholds)
+    session = Session(scenario, cfg, cusp_policy=cusp_policy)
     window = BenchWindow(session, scenario_path, port=port, recording=recording,
                          vehicle_override=chosen, camera_ai=camera_ai, record=record,
                          lidar_config=lidar_config)
@@ -539,7 +538,7 @@ def main(argv=None) -> int:
         window, dock = build_window(args.scenario, port=args.port, recording=args.recording, vehicle_config=vehicle,
                                     camera_ai=camera_ai, cusp_policy=cusp_policy, record=record,
                                     lidar_config=lidar_config)
-    except (AcceptanceTagError, SessionError) as exc:          # trước show() và connect_source(): chưa mở LiDAR hay camera nào
+    except SessionError as exc:          # trước show() và connect_source(): chưa mở LiDAR hay camera nào
         parser.error(f"--scenario {args.scenario}: {exc}")
     if session is not None:
         # T3b: ngăn LiDAR biết nó sẽ phát lại TRƯỚC khi nạp --lidar-map (nhãn bằng chứng, không giữ cổng COM nào; sửa

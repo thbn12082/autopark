@@ -3,7 +3,7 @@ bước 1). Chưa phải SLAM: mỗi chỗ đặt là một đoạn bản ghi Li
 được ghép vào bản đồ đã có bằng định vị (`lidar/localize.py`), rồi mọi vòng quét được ray-cast vào một lưới đếm chung
 (`lidar/occupancy.py`).
 
-    .venv\Scripts\python.exe -X utf8 -m autopark.lidar.map_builder --placement A.npz --anchor X Y YAW_DEG --placement B.npz --scenario scenarios\sa_ban_3x2_hai_hop.json --out runs\lidar_maps\<ngay>_<ten>
+    .venv\Scripts\python.exe -X utf8 -m autopark.lidar.map_builder --placement A.npz --anchor X Y YAW_DEG --placement B.npz --scenario scenarios\thao_tac_cua_hep.json --out runs\lidar_maps\<ngay>_<ten>
 
 Tùy chọn thêm vào cuối lệnh: [--pose K X Y YAW_DEG] (tư thế đo bằng thước của chỗ đặt K ≥ 2) [--hint K X Y YAW_DEG]
 (gợi ý tư thế, cửa sổ ±0,5 m/±30°) [--trust-tape] [--anchor-vehicle X Y YAW_DEG] (tư thế XE, cần --lidar-config: cảm

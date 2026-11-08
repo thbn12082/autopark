@@ -135,6 +135,11 @@ def test_refused_start_without_any_run_is_exported_with_the_link_logs(window, tm
     combo = window.combo_drive
     combo.setCurrentIndex(combo.findData(DriveMode.VEHICLE_IO.value))
     s = window.session
+    from dataclasses import replace
+    from autopark.domain.types import Pose
+    s.scenario.start = Pose(0.5, 1.0, 0.0)
+    s.scenario.goal = replace(s.scenario.goal, pose=Pose(0.8, 1.0, 0.0))
+    s.scenario.obstacles = []
     window._after_plan(apply_path(s, 2))                                # 2 lần đổi chiều > --max-cusps 1
     assert s.state == SessionState.READY and len(s.log) == 0
     assert not window.btn_export.isEnabled() and window.btn_save_run.isHidden()

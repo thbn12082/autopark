@@ -533,4 +533,4 @@ def test_gate_text_and_attribution_are_in_the_description():
     assert camera_ai.gate_text(["a", "b"]) == GATE_PREFIX + "a; b"
     info = mapper_for(synthetic_rig((1,))).describe()
     assert "WoodScape" in info["attribution"] and "github.com/valeoai/WoodScape" in info["attribution"]
-    assert "CHƯA" in info["licence"] and "GIAY_PHEP_DU_LIEU" in info["licence"]
+    assert "CHƯA" in info["licence"] and "DU_LIEU_VA_GIAY_PHEP" in info["licence"]

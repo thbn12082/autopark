@@ -272,7 +272,7 @@ def test_a_run_inside_the_recording_is_anchored_and_the_export_points_to_it(qapp
         assert window.session.state == SessionState.RUNNING
         pump(window, 1.1, advance=0.02)                                # có mốc định kỳ trong lần chạy
         assert window.session.state == SessionState.RUNNING
-        source.obstacle = (0.9, 0.0)                                   # tay trước LiDAR, trên đường đi
+        source.obstacle = (0.45, 0.0)                                  # vật mới nằm trong đoạn thao tác gần
         assert pump(window, 3.0, advance=0.02, until=lambda: window.session.state != SessionState.RUNNING)
         assert window.session.state == SessionState.STOPPING and "Vật cản mới" in window.session.stop_reason
         drive_to_rest(window)

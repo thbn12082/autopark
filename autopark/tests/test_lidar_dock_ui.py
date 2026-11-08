@@ -130,7 +130,7 @@ def test_planning_freezes_the_map_and_a_new_object_stops_the_car(qapp):
         assert not widget.isEnabled()                               # settings locked while driving
     t = feed(dock, source, t, 1.2, angle_deg=60.0, times=2)        # the known object again: no stop
     assert window.session.state == SessionState.RUNNING and dock.new_on_path == 0
-    t = feed(dock, source, t, 0.9, times=2)                        # a hand in front of the LiDAR: on the path
+    t = feed(dock, source, t, 0.45, times=2)                       # vật mới nằm trong đoạn thao tác gần
     assert window.session.state == SessionState.STOPPING and dock.new_on_path >= 1
     assert any(e.code == "MAP_CHANGED" for e in window.session.safety_events)
     assert "Vật mới trên đường" in dock.lbl_track.text()

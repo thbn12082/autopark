@@ -20,7 +20,7 @@ from autopark.domain.types import Bounds, Obstacle, Pose, VehicleConfig
 
 
 class FastCollisionChecker:
-    """Thay thế cho `hybrid_astar.CollisionChecker`, cùng giao diện `pose_ok`."""
+    """Kiểm thân xe với vật cản và biên bản đồ bằng hình học giải tích."""
 
     __slots__ = ("hl", "hw", "offset", "r_car", "xmin", "ymin", "xmax", "ymax", "obs", "n_obs")
 

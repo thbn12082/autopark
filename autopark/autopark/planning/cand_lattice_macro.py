@@ -56,7 +56,7 @@ from autopark.domain.types import Bounds, Obstacle, Pose, VehicleConfig, wrap_an
 from autopark.geometry.fast_collision import FastCollisionChecker
 from autopark.geometry.footprint import check_motion, check_pose
 from autopark.planning import cand_lattice_macro_rs as rs
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.types import PlanResult
 from autopark.planning.trajectory import build_trajectory
 
 TWO_PI = 2.0 * math.pi
@@ -442,7 +442,7 @@ def _build_motions(cfg: VehicleConfig, max_steer: float, sp: LatticeParams):
 class _GridHeuristic:
     """Khoảng cách 2D tới đích trên lưới có vật cản (Dijkstra từ đích, 8 hướng).
 
-    Giống `hybrid_astar.HolonomicHeuristic` về ý nghĩa nhưng dựng lưới bằng công
+    Giống `heuristic.HolonomicHeuristic` về ý nghĩa nhưng dựng lưới bằng công
     thức giải tích (khoảng cách điểm tới hình chữ nhật có hướng) thay vì Shapely,
     nên đủ rẻ để dùng lưới mịn.
     """

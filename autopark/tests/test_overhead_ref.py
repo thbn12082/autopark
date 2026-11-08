@@ -184,7 +184,7 @@ def test_floor_from_video_warns_when_the_car_is_in_view_and_reports_layout_cover
     info = small_set()
     out = tmp_path / "mat_san.json"
     code = R.main(["floor", "--intrinsics", info["intrinsics"], "--survey", info["survey"], "--video", info["run"],
-                   "--frames", "4", "--layout", str(PROJECT_ROOT / "scenarios" / "bai_do_xe.json"), "--out", str(out)])
+                   "--frames", "4", "--layout", str(PROJECT_ROOT / "tests" / "fixtures" / "legacy_parking.json"), "--out", str(out)])
     assert code in (0, 1)
     fit = R.load_floor_fit(out)
     assert any("xe/xe giả đang nằm trong ảnh sàn trống" in w for w in fit.warnings)

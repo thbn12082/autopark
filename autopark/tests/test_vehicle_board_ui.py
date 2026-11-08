@@ -34,7 +34,7 @@ FAST_FW = replace(SIM_FIRMWARE_DEFAULT, boot_hold_ms=200)
 def straight_session(scenario, cfg) -> Session:
     scenario.obstacles = []
     scenario.start = Pose(0.5, 1.0, 0.0)
-    scenario.goal = ParkingGoal(Pose(2.0, 1.0, 0.0))
+    scenario.goal = ParkingGoal(Pose(0.95, 1.0, 0.0))
     session = Session(scenario, cfg)
     assert session.plan_sync().ok
     return session
@@ -443,7 +443,9 @@ def qapp():
 @pytest.fixture
 def window(qapp, ports, no_serial_open):
     from autopark.ui.app import DEFAULT_SCENARIO, build_window
-    w = build_window(DEFAULT_SCENARIO)
+    from autopark.storage.scenario_store import DEFAULT_VEHICLE_CONFIG
+    # Các bo giả trong module này khai báo 300 mm/s: chọn cùng cấu hình xe để kiểm giao thức.
+    w = build_window(DEFAULT_SCENARIO, vehicle_config=DEFAULT_VEHICLE_CONFIG)
     yield w
     w.close()
 

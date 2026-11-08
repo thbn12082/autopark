@@ -9,13 +9,13 @@ from autopark.domain.computation import (
     ComputationCancelled, ComputationControl, ComputationTimedOut,
     checkpoint, computation_scope, current_control,
 )
-from autopark.planning import cand_lattice_macro, cand_reference, cand_rrt_rs, hybrid_astar, portfolio
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning import cand_lattice_macro, cand_reference, cand_rrt_rs, portfolio
+from autopark.planning.types import PlanResult
 from autopark.planning.trajectory import build_trajectory
 from autopark.simulation.rollout import rollout
 
 
-PLANNERS = [cand_lattice_macro, cand_reference, cand_rrt_rs, hybrid_astar]
+PLANNERS = [cand_lattice_macro, cand_reference, cand_rrt_rs]
 
 
 @pytest.mark.parametrize("planner", PLANNERS, ids=lambda p: p.__name__.split(".")[-1])

@@ -4,7 +4,7 @@ Thêm 02/10/2026.
 
 Dùng (mỗi lệnh một dòng, chạy trong thư mục autopark):
 
-    python -m autopark.evaluation.score_run --scenario DO-1 --attempt 1 --level MP --log runs/nghiem_thu/mo_phong/do1_l01/lan_chay_vehicle_io --sim-truth --layout scenarios/bai_do_xe.json --report runs/nghiem_thu/mo_phong/bien_ban_mo_phong.csv
+    python -m autopark.evaluation.score_run --scenario DO-1 --attempt 1 --level MP --log runs/nghiem_thu/mo_phong/do1_l01/lan_chay_vehicle_io --sim-truth --layout tests/fixtures/legacy_parking.json --report runs/nghiem_thu/mo_phong/bien_ban_mo_phong.csv
     python -m autopark.evaluation.score_run --scenario DO-1 --attempt 3 --level XT/M3 --log <thư mục _vehicle_io> --reference <run>/tu_the_tham_chieu.csv --layout docs/evidence/nghiem_thu/bo_tri_do1.json --touch khong --intervention khong --methods R5 --report docs/evidence/bien_ban_nghiem_thu_<ngay>.csv
 
 Nguyên tắc (NGUONG mục 0, quy tắc đề xuất):

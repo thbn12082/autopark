@@ -140,11 +140,6 @@ def pnp_cameras() -> list[dict]:
     return parse_pnp_json(_pnp_json())
 
 
-def pnp_hubs() -> list[dict]:
-    """Hub USB mà Windows thấy (chỉ Windows; nơi khác trả về rỗng)."""
-    return parse_pnp_hubs(_pnp_json())
-
-
 def _filter_graph():
     try:
         from pygrabber.dshow_graph import FilterGraph

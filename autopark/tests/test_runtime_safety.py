@@ -7,7 +7,7 @@ import pytest
 from autopark.application.session import Session, SessionError, SessionState
 from autopark.control.tracker import TrackerParams, TrajectoryTracker
 from autopark.domain.types import Bounds, Obstacle, ParkingGoal, Pose, Scenario, VehicleState
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.types import PlanResult
 from autopark.planning.trajectory import build_trajectory
 from autopark.simulation.feedback import FeedbackConfig
 from autopark.simulation.rollout import rollout

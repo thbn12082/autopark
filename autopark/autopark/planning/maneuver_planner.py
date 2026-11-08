@@ -7,7 +7,7 @@ from autopark.control.tracker import TrackerParams
 from autopark.domain.computation import ComputationControl
 from autopark.domain.types import Scenario, VehicleConfig
 from autopark.planning import portfolio
-from autopark.planning.hybrid_astar import PlannerParams, PlanResult
+from autopark.planning.types import PlannerParams, PlanResult
 from autopark.planning.maneuver import maneuver_bounds, request_problem, trajectory_problem
 
 

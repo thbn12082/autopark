@@ -31,7 +31,7 @@ Kiến trúc
 Hạt giống ngẫu nhiên cố định (`RRTParams.seed`, mặc định 20260907) nên kết quả lặp
 lại được; đổi bằng biến môi trường `AUTOPARK_RRT_SEED` hoặc tham số.
 
-Chỉ dùng, không sửa: hybrid_astar.PlanResult, trajectory.build_trajectory,
+Chỉ dùng, không sửa: types.PlanResult, trajectory.build_trajectory,
 footprint.check_pose/check_motion, geometry.fast_collision.FastCollisionChecker,
 control.tracker.TrajectoryTracker, simulation.vehicle.SimVehicle.
 """
@@ -54,7 +54,7 @@ from autopark.geometry.footprint import check_motion, check_pose
 from autopark.planning.cand_rrt_rs_full import TINY as _TINY
 from autopark.planning.cand_rrt_rs_full import interp as _interp
 from autopark.planning.cand_rrt_rs_full import min_length, sorted_words, wrap
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.types import PlanResult
 from autopark.planning.trajectory import Trajectory, build_trajectory
 from autopark.simulation.vehicle import SimVehicle
 

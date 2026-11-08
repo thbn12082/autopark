@@ -34,7 +34,8 @@ from autopark.planning.computation import controlled_plan
 from autopark.domain.types import Bounds, Obstacle, Pose, VehicleConfig
 from autopark.geometry.fast_collision import FastCollisionChecker
 from autopark.geometry.footprint import check_motion, check_pose
-from autopark.planning.hybrid_astar import HolonomicHeuristic, PlanResult
+from autopark.planning.heuristic import HolonomicHeuristic
+from autopark.planning.types import PlanResult
 from autopark.planning.reeds_shepp_full import candidate_paths, sample_path
 from autopark.planning.trajectory import build_trajectory
 

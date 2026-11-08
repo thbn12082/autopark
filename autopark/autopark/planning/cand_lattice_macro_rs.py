@@ -13,7 +13,7 @@ Quy ước giống `reeds_shepp.py` để dùng lẫn được:
 
 Mọi ứng viên đều được kiểm tra điểm cuối bằng tích phân trước khi trả về
 (`candidates`), nên một công thức sai chỉ làm mất ứng viên chứ không sinh đường
-sai. Hàm `shortest_norm` dùng cho heuristic thì bỏ qua bước kiểm tra đó (ước
+sai. Hàm `shortest_norm_fast` dùng cho heuristic thì bỏ qua bước kiểm tra đó (ước
 lượng thấp hơn thực tế vẫn an toàn cho A*).
 """
 from __future__ import annotations
@@ -316,18 +316,6 @@ def words(x: float, y: float, phi: float) -> list[tuple[str, tuple[float, ...]]]
         app(("RLSRL", (-t, HALF_PI, -u, HALF_PI, -v)))
 
     return out
-
-
-def shortest_norm(x: float, y: float, phi: float) -> float:
-    """Độ dài chuẩn hóa của đường RS ngắn nhất (không kiểm tra điểm cuối)."""
-    best = math.inf
-    for _types, lengths in words(x, y, phi):
-        s = 0.0
-        for l in lengths:
-            s += l if l >= 0.0 else -l
-        if s < best:
-            best = s
-    return best
 
 
 def shortest_norm_fast(x: float, y: float, phi: float) -> float:

@@ -5,7 +5,8 @@ from pytest import approx
 
 from autopark.domain.types import Obstacle, ParkingMode, ParkingSlot, Pose, wrap_angle
 from autopark.geometry.footprint import check_motion, check_pose
-from autopark.planning.hybrid_astar import PlannerParams, plan
+from autopark.planning.types import PlannerParams
+from autopark.planning.cand_reference import plan
 from autopark.planning.maneuver_planner import plan_maneuver
 from autopark.planning.trajectory import build_trajectory
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config

@@ -10,7 +10,7 @@ from tests.conftest import PROJECT_ROOT
 
 
 def test_default_files_load():
-    scenario = load_scenario(PROJECT_ROOT / "scenarios" / "sa_ban_3x2_hai_hop.json")
+    scenario = load_scenario(PROJECT_ROOT / "tests" / "fixtures" / "legacy_layout.json")
     cfg = load_vehicle_config(scenario.vehicle_config_path)
     assert cfg.wheelbase == approx(0.19)
     assert cfg.max_steer == approx(math.radians(30))
@@ -37,7 +37,7 @@ def test_acceptance_tag_round_trip_and_untagged_dict_unchanged(tmp_path, scenari
     """Trường acceptance (02/10/2026, T12 theo kịch bản): chỉ ghi khi có, ở khóa cuối; kịch bản không gắn giữ đúng các
     khóa và thứ tự cũ (tệp kịch bản, scenario.json và run.json của gói lần chạy không đổi)."""
     assert scenario.acceptance is None and list(scenario.to_dict()) == [*SCENARIO_KEYS, "maneuver"]
-    with_slot = load_scenario(PROJECT_ROOT / "scenarios" / "bai_do_xe.json")
+    with_slot = load_scenario(PROJECT_ROOT / "tests" / "fixtures" / "legacy_parking.json")
     assert with_slot.acceptance is None and list(with_slot.to_dict()) == [*SCENARIO_KEYS, "slot", "mode"]
     scenario.acceptance = AcceptanceTag("DO-2", "p3")
     assert list(scenario.to_dict()) == [*SCENARIO_KEYS, "acceptance", "maneuver"]
@@ -131,7 +131,7 @@ def test_save_falls_back_to_absolute_posix_path_across_drives(tmp_path, monkeypa
     from autopark.storage import scenario_store
     from autopark.storage.scenario_store import load_scenario, save_scenario
 
-    scenario = load_scenario(scenario_store.__file__.rsplit("autopark", 2)[0] + "autopark/scenarios/bai_do_xe.json")
+    scenario = load_scenario(PROJECT_ROOT / "tests" / "fixtures" / "legacy_parking.json")
     original = os.path.relpath
 
     def cross_drive(path, start):

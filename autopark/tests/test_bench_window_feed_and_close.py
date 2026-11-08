@@ -29,7 +29,7 @@ from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox  # noqa: E4
 from autopark.application.lidar_pose_source import LidarPoseSource, evidence_for_feed  # noqa: E402
 from autopark.application.session import Session, SessionState  # noqa: E402
 from autopark.application.vehicle_link import DriveMode, LinkParams, VehicleLink, VehicleLinkError  # noqa: E402
-from autopark.domain.types import AcceptanceTag, ParkingGoal, Pose  # noqa: E402
+from autopark.domain.types import ParkingGoal, Pose  # noqa: E402
 from autopark.lidar.live_view import PacedReplay  # noqa: E402
 from autopark.lidar.map_builder import MapBuildConfig, PlacementSpec, build_static_map, write_map  # noqa: E402
 from autopark.lidar.pose_config import Prerequisite  # noqa: E402
@@ -210,17 +210,17 @@ def test_changing_the_vehicle_keeps_the_lidar_start_source_and_a_new_scenario_re
 # ------------------------------------------------------------------------------------------------ 2, 7, 16, 34
 def test_sensor_recording_meta_names_the_board_and_the_effective_cusp_limit(qapp, no_devices, tmp_path):
     scenario = load_scenario(PROJECT / "scenarios" / "thao_tac_cua_hep.json")
-    scenario.acceptance = AcceptanceTag("DO-1")
-    path = tmp_path / "local_do1.json"
+    scenario.maneuver = replace(scenario.maneuver, max_cusps=2)
+    path = tmp_path / "local_maneuver.json"
     save_scenario(scenario, path)
     bench, dock = open_bench(path, tmp_path=tmp_path)
     recorder = bench.sensor_recording
     try:
         limit = bench.session.cusp_limit()
-        assert limit.policy.max_cusps == 2 and bench.session.cusp_policy.max_cusps is None   # DO-1: từ tệp ngưỡng
+        assert limit.policy.max_cusps == 2 and bench.session.cusp_policy.max_cusps is None
         meta = bench.session_meta()
         assert meta["board"] == "sim" and meta["cusp_policy"] == limit.to_dict()
-        assert (meta["cusp_policy"]["max_cusps"], meta["cusp_policy"]["key"]) == (2, "DO-1")
+        assert (meta["cusp_policy"]["max_cusps"], meta["cusp_policy"]["source"]) == (2, "thao_tac_gan")
         add_port(bench, "COM_BO_GIA")
         select(bench.combo_port, "COM_BO_GIA")
         assert bench.session_meta()["board"] == "COM_BO_GIA"

@@ -316,23 +316,22 @@ class ParkingGoal:
         return goal
 
 
-# Trường "acceptance" của tệp kịch bản (thêm 02/10/2026, T12 theo kịch bản): sa bàn dựng cho kịch bản nghiệm thu nào của
-# docs/KIEM_THU_VA_LO_TRINH.md. Planner, mô phỏng và bộ bám không đọc trường này; chỉ
-# application/cusp_policy.py đổi nó thành giới hạn số lần đổi chiều lúc Bắt đầu đỗ.
+# Metadata của bản ghi nghiệm thu lịch sử. Giữ để đọc/lưu lại dữ liệu cũ;
+# giới hạn chạy hiện tại lấy từ ManeuverLimits, không đọc thẻ này.
 ACCEPTANCE_CODE_RE = re.compile(r"[A-Z]{2}-\d+")           # cùng dạng mã với CODE_RE của evaluation/score_run.py
 ACCEPTANCE_VARIANT_RE = re.compile(r"[a-z0-9_]{0,16}")     # a, b, c, do, dung, p3
 
 
 @dataclass(frozen=True)
 class AcceptanceTag:
-    """Kịch bản nghiệm thu mà tệp sa bàn dựng cho: `code` dạng DO-1, `variant` tùy chọn (DO-3 + b = DO-3b)."""
+    """Mã nghiệm thu lịch sử, chỉ dùng làm metadata khi đọc/lưu dữ liệu cũ."""
 
     code: str
     variant: str = ""
 
     def __post_init__(self) -> None:
         if not isinstance(self.code, str) or not ACCEPTANCE_CODE_RE.fullmatch(self.code):
-            raise ValueError(f"acceptance.code {self.code!r} phải có dạng DO-1 (mã của KIEM_THU_VA_LO_TRINH.md)")
+            raise ValueError(f"acceptance.code {self.code!r} phải có dạng DO-1")
         if not isinstance(self.variant, str) or not ACCEPTANCE_VARIANT_RE.fullmatch(self.variant):
             raise ValueError(f"acceptance.variant {self.variant!r} chỉ gồm chữ thường không dấu, số, gạch dưới, tối đa "
                              "16 ký tự")
@@ -400,7 +399,7 @@ class Scenario:
     vehicle_config_path: Path | None = None                    # đường dẫn tuyệt đối sau khi nạp
     seed: int = 0
     notes: str = ""
-    acceptance: AcceptanceTag | None = None                    # kịch bản nghiệm thu (T12 theo kịch bản)
+    acceptance: AcceptanceTag | None = None                    # metadata lịch sử, không điều khiển phiên
     maneuver: ManeuverLimits | None = field(default_factory=ManeuverLimits)  # None chỉ dành cho dữ liệu lịch sử
 
     def sync_goal(self, cfg: VehicleConfig) -> Pose:
@@ -497,14 +496,3 @@ class VehicleState:
         return (self.valid and bool(self.source_id) and self.t >= 0
                 and all(math.isfinite(v) for v in
                         (self.pose.x, self.pose.y, self.pose.yaw, self.speed, self.steer, self.t)))
-
-
-@dataclass(frozen=True)
-class DriveCommand:
-    """Lệnh cấp ứng dụng: mục tiêu chuyển động, không phải PWM."""
-
-    seq: int
-    target_speed: float
-    target_steer: float
-    created_at: float
-    valid_for: float = 0.15

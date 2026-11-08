@@ -6,7 +6,7 @@ Các kiểu này chưa phải driver cảm biến hay kết quả nhận thức 
 from dataclasses import dataclass
 import math
 
-from autopark.domain.types import ParkingGoal, Pose
+from autopark.domain.types import Pose
 
 
 @dataclass(frozen=True)
@@ -22,12 +22,6 @@ class SourceStamp:
 
     def fresh(self, now: float, max_age: float) -> bool:
         return self.valid and 0 <= now - self.t <= max_age
-
-
-@dataclass(frozen=True)
-class GoalPose:
-    stamp: SourceStamp
-    goal: ParkingGoal
 
 
 @dataclass(frozen=True)

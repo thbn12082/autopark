@@ -39,7 +39,7 @@ INCLUDED = (
     "ui.app", "ui.lidar_app", "ui.rig_app", "ui.calib_app", "ui.roi_app", "lidar.live_view",
     "rig.bench", "rig.may_moi", "video.camera_bench", "lidar.bench", "lidar.rplidar_c1", "lidar.scan_odometry",
     "lidar.localize", "fusion.demo", "transport.qemu_board",
-    "evaluation.fault_drill",
+    "evaluation.fault_drill", "evaluation.maneuver_bench",
     "perception.bev", "perception.export_onnx",
     "ui.overhead_app", "video.overhead_record",
 )

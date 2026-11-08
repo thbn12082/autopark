@@ -117,7 +117,7 @@ def test_goal_invalid_reports_without_planning():
 def test_finishing_path_outside_goal_tolerance_is_a_fault(scenario, cfg):
     from autopark.control.tracker import TrackerParams
     from autopark.domain.types import ParkingGoal
-    from autopark.planning.hybrid_astar import PlanResult
+    from autopark.planning.types import PlanResult
     from autopark.planning.trajectory import build_trajectory
 
     scenario.obstacles = []

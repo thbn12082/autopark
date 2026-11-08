@@ -141,7 +141,7 @@ def _session_from_snapshot(snapshot: dict):
     from autopark.application.session import Session
     from autopark.control.tracker import TrackerParams
     from autopark.domain.types import Pose, Scenario, VehicleConfig
-    from autopark.planning.hybrid_astar import PlannerParams, PlanResult
+    from autopark.planning.types import PlannerParams, PlanResult
     from autopark.planning.trajectory import Trajectory, TrajectoryPoint
     from autopark.simulation.feedback import FeedbackConfig
 

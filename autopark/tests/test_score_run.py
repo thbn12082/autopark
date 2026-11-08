@@ -30,7 +30,7 @@ from autopark.transport.vehicle_io import SIM_FIRMWARE_DEFAULT, SimIOConfig, loa
 from tests.conftest import PROJECT_ROOT
 from tests.test_session_vehicle import SIM_CFG, FixedPose, run_until_done, sim_io, straight_session
 
-BAI_DO_XE = PROJECT_ROOT / "scenarios" / "bai_do_xe.json"              # đích (2.2, 0.255, 90°), ô x 2.03–2.37
+BAI_DO_XE = PROJECT_ROOT / "tests" / "fixtures" / "legacy_parking.json"              # đích (2.2, 0.255, 90°), ô x 2.03–2.37
 VEHICLE = PROJECT_ROOT / "configs" / "vehicle_default.json"
 OLD_EVENT_FIELDS = ["t_session", "t_io", "source", "code", "action", "handling", "message"]
 T13_EVENT_FIELDS = ["t_session", "t_io", "t_perf", "source", "code", "action", "handling", "message"]

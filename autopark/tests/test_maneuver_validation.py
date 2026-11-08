@@ -7,7 +7,7 @@ import pytest
 from autopark.application.session import Session, SessionError, SessionState
 from autopark.domain.types import Bounds, ManeuverLimits, ParkingGoal, Pose, Scenario, VehicleState
 from autopark.geometry.footprint import body_corners, check_motion
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.types import PlanResult
 from autopark.planning.maneuver import maneuver_bounds, runtime_problem
 from autopark.planning.trajectory import build_trajectory
 from autopark.simulation.vehicle import SimVehicle

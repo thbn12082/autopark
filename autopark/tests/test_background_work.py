@@ -7,7 +7,7 @@ from autopark.application import session as session_module
 from autopark.application.session import Session, SessionError, SessionState
 from autopark.domain.computation import ComputationCancelled
 from autopark.domain.types import VehicleState
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.types import PlanResult
 from autopark.planning.trajectory import build_trajectory
 from autopark.simulation.rollout import RolloutResult
 

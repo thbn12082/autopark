@@ -14,7 +14,7 @@ import pytest
 
 from autopark.application.session import Session, SessionError, SessionState
 from autopark.application.vehicle_link import DriveMode, VehicleLink
-from autopark.planning.hybrid_astar import PlannerParams
+from autopark.planning.types import PlannerParams
 from autopark.storage.scenario_store import (ACCEPTANCE_VEHICLE_CONFIG, CONFIGS_DIR, DEFAULT_VEHICLE_CONFIG,
                                             list_vehicle_configs, load_scenario, load_vehicle_config,
                                             load_vehicle_config_file)

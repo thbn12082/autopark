@@ -131,12 +131,6 @@ class WrapLabel(QLabel):
             self.updateGeometry()
 
 
-def hline() -> QFrame:
-    line = QFrame()
-    line.setObjectName("sep")
-    return line
-
-
 class Card(QFrame):
     def __init__(self, title: str = "", parent: QWidget | None = None):
         super().__init__(parent)

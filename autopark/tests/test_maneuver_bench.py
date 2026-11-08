@@ -8,7 +8,7 @@ from autopark.application.session import Session, SessionState
 from autopark.evaluation import maneuver_bench as bench
 from autopark.evaluation.maneuver_cases import build_cases
 from autopark.evaluation.maneuver_robustness import build_robustness_cases
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.types import PlanResult
 
 
 def _case(case_id="door_forward_center"):

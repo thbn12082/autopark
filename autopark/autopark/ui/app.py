@@ -1,24 +1,10 @@
-"""Điểm vào giao diện: nạp kịch bản và cấu hình xe, mở cửa sổ chính.
+"""Mở giao diện thao tác gần.
 
     python run_app.py [kịch_bản.json] [--max-cusps N] [--warn-cusps N] [--vehicle-config TỆP_XE]
-    python run_app.py scenarios\\sa_ban_3x2_hai_hop.json --vehicle-config configs\\vehicle_nghiem_thu.json
+    python run_app.py scenarios/thao_tac_cua_hep.json
 
-Số lần đổi chiều của đường (T12, thêm 02/10/2026; application/cusp_policy.py): `--max-cusps N` từ chối Bắt đầu đỗ khi
-đường có hơn N lần đổi chiều (mặc định không chặn: giới hạn CHƯA CHỐT), `--warn-cusps N` cảnh báo khi hơn N (mặc định 7).
-Từ đó dòng lệnh được đọc chặt: tham số lạ (trước đây bị bỏ qua) thì báo lỗi và thoát mã 2, trước khi mở cửa sổ.
-Tệp sa bàn có trường `acceptance` (02/10/2026, ví dụ scenarios\\nghiem_thu\\do3b.json) dùng giới hạn của kịch bản nghiệm
-thu đó trong configs/nguong_nghiem_thu.json (N-D6 (b), ĐỀ XUẤT – CHỜ CHỐT; người dùng giao quyết định 02/10/2026);
-`--max-cusps` chỉ siết thêm. Tệp ngưỡng không cho được giới hạn thì báo lỗi và thoát mã 2, trước khi mở cửa sổ.
-
-EcoQoS (02/10/2026, autopark/power_throttling.py): `main()` tự tắt EcoQoS cho tiến trình này trước mọi việc khác (cửa sổ
-thu nhỏ làm lập đường hết hạn, docs/VAN_HANH.md) và hiện trạng thái ở thanh trạng thái;
-AUTOPARK_KEEP_ECOQOS=1 giữ mặc định của Windows. `build_window` không làm việc đó.
-
-Cấu hình xe (02/10/2026): `--vehicle-config TỆP_XE` thay tệp xe của kịch bản và được giữ khi "Mở…" kịch bản khác (như
-`ui.lidar_app`); ô "Cấu hình xe" trong thẻ Xe đổi được khi đang chỉnh hoặc sẵn sàng. Nghiệm thu chạy với
-configs/vehicle_nghiem_thu.json (như vehicle_default.json nhưng tối đa 0,10 m/s, N-V1 ĐỀ XUẤT – CHỜ CHỐT; người dùng
-giao quyết định 02/10/2026 ('làm hết')); bo mô phỏng tự ghép theo tệp xe (vehicle_io_sim_nghiem_thu.json). Tệp hỏng thì
-báo lỗi và thoát mã 2 trước khi mở cửa sổ. Chỉ kiểm bằng test offscreen với bo mô phỏng.
+Giới hạn lấy từ kịch bản; --max-cusps chỉ siết thêm. Cấu hình xe được giữ khi mở
+kịch bản khác. Tham số không hợp lệ bị từ chối trước khi mở cửa sổ.
 """
 from __future__ import annotations
 
@@ -28,8 +14,7 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QApplication
 
-from autopark.application.cusp_policy import (ACCEPTANCE_THRESHOLDS, AcceptanceTagError, CuspPolicy, add_cusp_args,
-                                              cusp_policy_from_args)
+from autopark.application.cusp_policy import CuspPolicy, add_cusp_args, cusp_policy_from_args
 from autopark.application.session import Session, SessionError
 from autopark.power_throttling import apply_ecoqos_policy
 from autopark.storage.scenario_store import (load_scenario, load_vehicle_config, load_vehicle_config_file,
@@ -42,19 +27,16 @@ DEFAULT_SCENARIO = PROJECT_ROOT / "scenarios" / "thao_tac_cua_hep.json"
 
 
 def build_window(scenario_path: Path, *, cusp_policy: CuspPolicy | None = None,
-                 vehicle_config: Path | None = None,
-                 acceptance_thresholds: Path | None = ACCEPTANCE_THRESHOLDS) -> MainWindow:
-    """`vehicle_config` (nếu có) thay tệp xe của kịch bản, kể cả kịch bản mở sau đó bằng "Mở…"
-    (`MainWindow.vehicle_override`). `acceptance_thresholds`: tệp ngưỡng cho tệp sa bàn gắn nghiệm thu (T12); tệp đó
-    không cho được giới hạn thì `Session` ném AcceptanceTagError trước khi có cửa sổ."""
+                 vehicle_config: Path | None = None) -> MainWindow:
+    """Cấu hình xe được chọn thay cấu hình kịch bản và được giữ khi mở kịch bản khác."""
     scenario = load_scenario(scenario_path)
     if vehicle_config is None:
         cfg = load_vehicle_config(scenario.vehicle_config_path)
-        return MainWindow(Session(scenario, cfg, cusp_policy=cusp_policy, acceptance_thresholds=acceptance_thresholds),
+        return MainWindow(Session(scenario, cfg, cusp_policy=cusp_policy),
                           scenario_path)
     chosen = load_vehicle_config_file(vehicle_config)
     scenario.vehicle_config_path = chosen.path          # lưu kịch bản thì trỏ đúng tệp xe đang dùng
-    session = Session(scenario, chosen.cfg, cusp_policy=cusp_policy, acceptance_thresholds=acceptance_thresholds)
+    session = Session(scenario, chosen.cfg, cusp_policy=cusp_policy)
     return MainWindow(session, scenario_path, vehicle_override=chosen)
 
 
@@ -82,7 +64,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         window = build_window(args.scenario, cusp_policy=args.cusp_policy,
                               vehicle_config=args.vehicle_config.path if args.vehicle_config is not None else None)
-    except (AcceptanceTagError, SessionError) as exc:          # tệp sa bàn gắn nghiệm thu mà tệp ngưỡng không cho được giới hạn
+    except SessionError as exc:
         print(f"{Path(argv[0]).name if argv else 'run_app.py'}: lỗi: {exc}", file=sys.stderr)
         return 2
     window.show()

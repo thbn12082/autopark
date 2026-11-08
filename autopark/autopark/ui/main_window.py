@@ -43,14 +43,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from autopark.application.cusp_policy import SOURCE_ACCEPTANCE, SOURCE_CLI   # T12 theo kịch bản nghiệm thu
+from autopark.application.cusp_policy import SOURCE_CLI
 from autopark.application.session import EDITABLE_STATES, Session, SessionError, SessionState
 from autopark.application.vehicle_link import (BoardFaultClear, BoardProbe, DriveMode, LinkParams,
                                                PlantHumanDriver, SimHumanDriver, VehicleLink, VehicleLinkError,
                                                probe_board)
 from autopark.domain.types import Bounds, Obstacle, Pose, wrap_angle
 from autopark.evaluation.sync_marks import DEFAULT_SYNC_DIR, SyncMarkLog, sync_file_path
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.types import PlanResult
 from autopark.planning.maneuver import maneuver_bounds
 from autopark.storage.scenario_store import load_scenario, load_vehicle_config, save_scenario
 from autopark.storage.scenario_store import (CONFIGS_DIR, VehicleConfigError, VehicleConfigFile,  # ô "Cấu hình xe"
@@ -363,8 +363,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1100, 720)
         self.resize(1440, 900)
         self._refresh_all()
-        if session.acceptance_rule is not None:        # tệp sa bàn gắn nghiệm thu: giới hạn đổi chiều của kịch bản
-            self.statusBar().showMessage(session.cusp_limit().summary(), 10000)
+        self.statusBar().showMessage(session.cusp_limit().summary(), 10000)
 
     def _build_controls(self) -> None:
         self.primary_action = QPushButton("Tính thao tác")
@@ -409,7 +408,7 @@ class MainWindow(QMainWindow):
         self.btn_save.clicked.connect(self._save_scenario)
         self.btn_save_as.clicked.connect(self._save_scenario_as)
         self.box_file.add(self.lbl_file)
-        self.lbl_cusp_limit = WrapLabel("")              # T12: giới hạn đổi chiều (theo trường acceptance của tệp)
+        self.lbl_cusp_limit = WrapLabel("")
         self.lbl_cusp_limit.setObjectName("hint")
         self.box_file.add(self.lbl_cusp_limit)
         self.box_file.add_layout(theme.row(self.btn_open, self.btn_save, self.btn_save_as))
@@ -904,7 +903,7 @@ class MainWindow(QMainWindow):
         sc = self.session.scenario
         cfg = self.session.cfg
         self.setWindowTitle("AutoPark — thao tác gần trong chỗ hẹp")
-        scene_title = {"bai_do_xe": "Bãi đỗ xe"}.get(sc.name, sc.name.replace("_", " "))
+        scene_title = sc.name.replace("_", " ")
         self.lbl_scene_name.setText(scene_title)
         self.lbl_scene_name.setToolTip(sc.name)
         self.lbl_dimensions.setText(f"{sc.bounds.width:g} × {sc.bounds.height:g} m")
@@ -936,25 +935,16 @@ class MainWindow(QMainWindow):
         self._refresh_status()
 
     def _refresh_cusp_limit(self) -> None:
-        """Nhãn giới hạn đổi chiều trong thẻ Kịch bản (T12; 02/10/2026: theo trường acceptance của tệp sa bàn, chỉ đọc).
-        Màu cảnh báo khi cờ --max-cusps không dùng được (lớn hơn số của kịch bản) hay siết hơn số của kịch bản."""
+        """Hiển thị giới hạn của thao tác và tùy chọn siết thêm từ dòng lệnh."""
         limit = self.session.cusp_limit()
-        rule = limit.rule
         text = escape(limit.summary())
-        if limit.cli_ignored or (limit.source == SOURCE_CLI and rule is not None):
+        if limit.cli_ignored or limit.source == SOURCE_CLI:
             text = f"<span style='color:{theme.WARN}'>{text}</span>"
         self.lbl_cusp_limit.setText(text)
-        if rule is None:
-            tip = "Giới hạn số lần đổi chiều trước khi thực hiện: --max-cusps, --warn-cusps"
-        else:
-            mapping = f"acceptance {rule.tag.label} → khóa {rule.key} · " if rule.tag.label != rule.key else ""
-            tip = (f"{mapping}Tệp ngưỡng {rule.path} · {rule.status} · sha256 {rule.sha256[:12]} · sửa tệp ngưỡng thì "
-                   "mở lại kịch bản")
-        self.lbl_cusp_limit.setToolTip(tip)
+        self.lbl_cusp_limit.setToolTip("Giới hạn theo thao tác; --max-cusps chỉ siết thêm, --warn-cusps đặt mức cảnh báo")
 
-    def _acceptance_note(self) -> str:
-        """' · ' + tóm tắt giới hạn đổi chiều khi tệp đang mở gắn kịch bản nghiệm thu (T12), không thì rỗng."""
-        return f" · {self.session.cusp_limit().summary()}" if self.session.acceptance_rule is not None else ""
+    def _maneuver_note(self) -> str:
+        return f" · {self.session.cusp_limit().summary()}"
 
     def _refresh_validity(self) -> None:
         bounds = maneuver_bounds(self.session.scenario)
@@ -1150,11 +1140,10 @@ class MainWindow(QMainWindow):
         elif pr.ok and s.trajectory is not None:
             text, tip = f"{s.trajectory.length:.2f} m  ·  {s.trajectory.n_cusps} lần đổi chiều", pr.message
             cusps = s.cusp_check()                # T12: chỉ báo; chặn ở Session.start_run khi có --max-cusps
-            limit = s.cusp_limit()                # hay khi tệp sa bàn gắn nghiệm thu (02/10/2026)
+            limit = s.cusp_limit()
             if cusps.refused:
-                of = f" của {limit.rule.key}" if limit.source == SOURCE_ACCEPTANCE else ""
                 text += (f"  ·  <span style='color:{theme.DANGER}'>"
-                         f"{escape(f'vượt giới hạn {cusps.max_cusps}{of}: không chạy')}</span>")
+                         f"{escape(f'vượt giới hạn {cusps.max_cusps}: không chạy')}</span>")
             elif cusps.warned:
                 text += (f"  ·  <span style='color:{theme.WARN}'>"
                          f"{escape(f'nhiều đổi chiều (> {cusps.warn_cusps})')}</span>")
@@ -1162,8 +1151,7 @@ class MainWindow(QMainWindow):
                 text += "  ·  " + escape(limit.short())
             if cusps.refused or cusps.warned:
                 tip += "\n" + cusps.describe()
-            if limit.rule is not None:
-                tip += "\n" + limit.summary()
+            tip += "\n" + limit.summary()
             self.lbl_plan.setText(text)
             self.lbl_plan.setToolTip(tip)
         else:
@@ -1405,10 +1393,10 @@ class MainWindow(QMainWindow):
         self._refresh_all()
         self._sync_sim_board()
         if override is None:
-            self.statusBar().showMessage(f"Đã mở {path}{self._acceptance_note()}", 4000)
+            self.statusBar().showMessage(f"Đã mở {path}{self._maneuver_note()}", 4000)
         else:
             self.statusBar().showMessage(f"Đã mở {path}; xe theo {override.path.name} (đã chọn bằng --vehicle-config "
-                                         f"hay ô Cấu hình xe; không dùng tệp xe của kịch bản){self._acceptance_note()}",
+                                         f"hay ô Cấu hình xe; không dùng tệp xe của kịch bản){self._maneuver_note()}",
                                          8000)
 
     def _save_scenario(self) -> None:

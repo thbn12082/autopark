@@ -18,8 +18,8 @@ def controlled_plan(default_time_limit: float):
 
         @wraps(func)
         def run(*args, control: ComputationControl | None = None, **kwargs):
-            # Local import avoids a cycle: PlanResult lives in hybrid_astar.
-            from autopark.planning.hybrid_astar import PlanResult
+            # Import here to keep the computation wrapper independent of trajectory types.
+            from autopark.planning.types import PlanResult
 
             bound = signature.bind(*args, **kwargs)
             params = bound.arguments.get("params")

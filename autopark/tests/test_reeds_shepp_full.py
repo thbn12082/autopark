@@ -1,11 +1,10 @@
-"""Reeds–Shepp đầy đủ phải phủ mọi cặp tư thế và không bao giờ dài hơn bản rút gọn."""
+"""Reeds–Shepp: phủ các cặp tư thế, đúng hình học và đối xứng tiến/lùi."""
 import math
 import random
 
 from pytest import approx
 
 from autopark.domain.types import Pose, wrap_angle
-from autopark.planning import reeds_shepp as rs16
 from autopark.planning import reeds_shepp_full as rs48
 
 MAXC = 1.0 / 0.329
@@ -29,31 +28,25 @@ def test_every_candidate_ends_exactly_at_goal():
     assert checked > 2000
 
 
-def test_covers_every_pair_unlike_the_short_version():
+def test_covers_every_pair():
     rng = random.Random(12)
-    full_hits = short_hits = 0
+    full_hits = 0
     trials = 800
     for _ in range(trials):
         q0, q1 = random_pair(rng)
         if rs48.candidate_paths(q0, q1, MAXC):
             full_hits += 1
-        if rs16.candidate_paths(q0, q1, MAXC):
-            short_hits += 1
     assert full_hits == trials, f"bản đầy đủ bỏ sót {trials - full_hits} cặp"
-    assert short_hits < trials, "bản rút gọn lẽ ra phải bỏ sót một số cặp"
 
 
-def test_never_longer_than_the_short_version():
+def test_shortest_length_is_time_reversal_symmetric():
     rng = random.Random(13)
     for _ in range(800):
         q0, q1 = random_pair(rng)
-        short = rs16.candidate_paths(q0, q1, MAXC)
-        full = rs48.candidate_paths(q0, q1, MAXC)
-        if short and full:
-            assert full[0].length <= short[0].length + 1e-9
+        assert rs48.shortest_length(q0, q1, MAXC) == approx(rs48.shortest_length(q1, q0, MAXC), abs=1e-9)
 
 
-def test_finds_words_the_short_version_cannot():
+def test_finds_four_and_five_segment_words():
     """Các họ bốn và năm đoạn phải thật sự xuất hiện, không chỉ có trong code."""
     rng = random.Random(14)
     families = set()
@@ -72,6 +65,14 @@ def test_straight_and_circle_are_exact():
     r = 1 / MAXC
     assert rs48.shortest_length(Pose(0, 0, 0), Pose(0.0, 2 * r, math.pi), MAXC) == approx(math.pi * r)
     assert rs48.shortest_length(Pose(0.4, 0.2, 0.7), Pose(0.4, 0.2, 0.7), MAXC) == approx(0.0)
+
+
+def test_lsr_known_case():
+    # L pi/2, S 2, R pi/2 với bán kính quay 1 m.
+    paths = rs48.candidate_paths(Pose(0, 0, 0), Pose(2.0, 4.0, 0.0), 1.0)
+    assert any(p.ctypes == ("L", "S", "R") and p.lengths == approx((math.pi / 2, 2.0, math.pi / 2))
+               for p in paths)
+    assert paths[0].length == approx(math.pi + 2.0)
 
 
 def test_sample_path_reaches_the_goal_with_bounded_steps():

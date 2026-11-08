@@ -99,7 +99,7 @@ def test_many_short_shuffles_are_refused(cfg):
 
 def test_search_tries_another_candidate_after_a_long_detour(monkeypatch, cfg):
     from autopark.planning import portfolio
-    from autopark.planning.hybrid_astar import PlanResult
+    from autopark.planning.types import PlanResult
     from autopark.domain.types import VehicleState
     from autopark.simulation.rollout import RolloutResult, RunReport
 
@@ -214,7 +214,7 @@ def test_default_ui_selects_near_pose_and_finishes_without_restarting():
 
 def test_old_scenarios_are_refused_by_session_and_planner():
     from autopark.ui.app import main
-    path = PROJECT_ROOT / "scenarios" / "bai_do_xe.json"
+    path = PROJECT_ROOT / "tests" / "fixtures" / "legacy_parking.json"
     old = load_scenario(path)
     cfg = load_vehicle_config(old.vehicle_config_path)
     with pytest.raises(SessionError, match="giới hạn thao tác gần"):

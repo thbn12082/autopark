@@ -7,6 +7,7 @@ của một cảnh tổng hợp nhìn từ camera trước của rig tổng hợ
 thật (có bài riêng).
 """
 import importlib.util
+from dataclasses import replace
 import json
 import math
 import os
@@ -27,7 +28,7 @@ from shapely.geometry import Polygon  # noqa: E402
 
 from autopark.application.session import SessionState  # noqa: E402
 from autopark.application.vehicle_link import SESSION_STOP, DriveMode  # noqa: E402
-from autopark.domain.types import Obstacle  # noqa: E402
+from autopark.domain.types import Obstacle, Pose  # noqa: E402
 from autopark.fusion import camera_ai  # noqa: E402
 from autopark.geometry.footprint import obstacle_polygon  # noqa: E402
 from autopark.perception.bev import SyntheticBox, SyntheticScene, synthetic_prob_map  # noqa: E402
@@ -39,7 +40,7 @@ from autopark.video.multicam import CameraSpec, MultiCameraManager  # noqa: E402
 from tests.rig_fakes import FakeCamera, FakeSegmenter, FakeTiming, fake_manager  # noqa: E402
 
 SIZE = (640, 480)
-ON_PATH = SyntheticBox(0.9, 1.1, -0.1, 0.1, 0.15)          # hệ xe/camera: ngay trên đường thẳng tới đích
+ON_PATH = SyntheticBox(0.5, 0.6, -0.1, 0.1, 0.15)          # hệ xe/camera: nằm trên đoạn thao tác gần
 OFF_PATH = SyntheticBox(0.8, 1.0, 0.45, 0.6, 0.15)         # lệch trái 45 cm: không chạm hành lang
 TOL = 0.10
 
@@ -631,6 +632,9 @@ def test_min_hits_box_never_shows_more_than_the_window_it_filters(qapp):
 def test_new_ai_obstacle_is_placed_by_the_camera_mounting_mode(qapp, front_calibration, mode):
     window, dock = open_window(test_rig=True)
     session = window.session
+    start = session.scenario.start
+    session.set_goal_pose(Pose(start.x + 0.6, start.y, start.yaw))
+    session.scenario.maneuver = replace(session.scenario.maneuver, area_half_extent_m=1.0)
     assert dock.combo_pose.currentIndex() == POSE_BENCH                      # mặc định: camera cố định trên bàn
     dock.combo_pose.setCurrentIndex(mode)
     seg = SceneSegmenter("gia.pt", front_calibration, SyntheticScene(boxes=(OFF_PATH,)))
@@ -643,12 +647,12 @@ def test_new_ai_obstacle_is_placed_by_the_camera_mounting_mode(qapp, front_calib
         assert all(obstacle_polygon(session.scenario.obstacle_by_id(i)).within(zone(OFF_PATH, start)) for i in known)
         assert window.plan(sync=True).ok
         window.run()
-        for _ in range(60):                                                  # xe đi hẳn > 40 cm (hộp ± 10 cm tách hẳn)
+        for _ in range(60):                                                  # hai vùng ±10 cm tách nhau trong thao tác gần
             window.advance_by(0.1)
-            if session.world.state.pose.x - start.x > 0.40:
+            if session.world.state.pose.x - start.x > 0.22:
                 break
         pose = session.world.state.pose
-        assert session.state == SessionState.RUNNING and pose.x - start.x > 0.40, pose
+        assert session.state == SessionState.RUNNING and pose.x - start.x > 0.22, pose
         pump(dock, lambda: False, timeout=0.4)                               # hộp lệch trái: ngoài hành lang, không dừng
         assert session.state == SessionState.RUNNING and dock.new_on_path == 0
         seg.scene = SyntheticScene(boxes=(OFF_PATH, ON_PATH))                # "đặt" một hộp trước camera

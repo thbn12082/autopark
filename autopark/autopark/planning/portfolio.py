@@ -33,7 +33,7 @@ from autopark.domain.types import Bounds, Obstacle, ParkingGoal, Pose, Scenario,
 from autopark.planning import cand_lattice_macro as lattice
 from autopark.planning import cand_reference as ref
 from autopark.planning import cand_rrt_rs as rrt
-from autopark.planning.hybrid_astar import PlanResult
+from autopark.planning.types import PlanResult
 from autopark.simulation.rollout import rollout
 
 
