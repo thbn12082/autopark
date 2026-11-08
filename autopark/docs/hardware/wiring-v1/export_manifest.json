@@ -7,10 +7,10 @@
   "scale": 2.0,
   "external_media": false,
   "sources": {
-    "components.py": "17e9cc69d06eddb3e5bdc0021c4f98eec4a83682c4f6d2588c6e7362dedb4d9a",
-    "build_wiring.py": "df3f7a93fcbf864aba45ab13bc2a2f1f1a787f25a9ae79833294598a0d91f6fd",
-    "render_png.py": "115b89f06f207f66aae787d30d5a3ea865501c43f66710bba962cc1c2aa8987f",
-    "wiring_spec.json": "6b3ec8bf6a6860edb44de8fa4b2873d6102f0098a734268698a56bd22774e223"
+    "components.py": "02cc2fc8a161e3447bd6109816894359379a6fc69079429102acde6d9483f455",
+    "build_wiring.py": "f79e83134b04b8545477e0d2bddbaaa2ffb8e11ebc59e36d6e4c2d0190377f72",
+    "render_png.py": "23d39fead3eff7ec898aa9e1575b165337341f5fc88ef39f54128b52e48c70e8",
+    "wiring_spec.json": "913e3becdaa7b82e5cfdab1a6195238a56e4fe0e02ec8d4b133d3bb612f25a76"
   },
   "artifacts": [
     {
@@ -24,9 +24,9 @@
         3600,
         3460
       ],
-      "svg_sha256": "d99f6d1e128353c56d6493615f4c8fea7162905e73b062010922147504c22981",
-      "png_sha256": "16590dd6802bb1b2d0ba88e58219b9c40b68f3b6586b2e195c78ec30624dd6a3",
-      "png_bytes": 945440,
+      "svg_sha256": "ab437202893d761c561be63748009429d09babe392a4de7fbbd0522ca1c7254b",
+      "png_sha256": "d74bb982254546a5237e252fb2b673ead4153a0c4b3329f0ba59a3b8edc27f93",
+      "png_bytes": 852109,
       "nonblank_check": true
     },
     {
@@ -40,9 +40,9 @@
         4600,
         3300
       ],
-      "svg_sha256": "577d1d875df2e0b9db596f85441a0403b7b62f2392987a03013671a02dbf5ed0",
-      "png_sha256": "0fecdb44e6976a695115f8919317172b44aab746761ee55a960e1c97180276d2",
-      "png_bytes": 954274,
+      "svg_sha256": "0a17ce95841300459a2b7bf92e24899ad946c5f31022d0a22b1cabbb1e76e15a",
+      "png_sha256": "6bf440dad88b0b3da81403e9382f9a4abc0c52ce9ab20fe40f2ae081a4e75111",
+      "png_bytes": 980289,
       "nonblank_check": true
     },
     {
@@ -56,9 +56,9 @@
         4800,
         4000
       ],
-      "svg_sha256": "7a2e1543e12ffad3f8ea0158f610f945bf863334b2c7c1b6aa0ae181c8c6fcc9",
-      "png_sha256": "056714a1ddc55ad69806a729a80581a9c5738544ed7711039bb2e4f6bc89d665",
-      "png_bytes": 1149753,
+      "svg_sha256": "072f3ca92d63644c1119f63a40be8b70f02af9082be38fc5f817ca3667e7d5e9",
+      "png_sha256": "76d59cc25f648fdf8f42179e123e348be8b82f6282b86be7648fb7c2d1db2d18",
+      "png_bytes": 1150080,
       "nonblank_check": true
     },
     {

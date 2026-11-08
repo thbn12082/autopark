@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "revision": "esc_bec_servo_v2",
   "status": "proposed_not_hardware_verified",
   "date": "2026-11-08",
   "reference_board": "ESP32-S3-DevKitC-1 N16R8",
@@ -26,7 +27,6 @@
     "ESC": "esc1060",
     "MOTOR": "motor280",
     "SERVO": "servo",
-    "VS": "servo_supply",
     "AS": "as5600",
     "ENC": "mt6701",
     "B3": "b3_charger"
@@ -36,8 +36,7 @@
       "id": "BAT_PLUS",
       "endpoints": [
         "BAT.plus",
-        "ESC.battery_plus",
-        "VS.vin_plus"
+        "ESC.battery_plus"
       ],
       "voltage": "2S: nominal 7.4V, max 8.4V"
     },
@@ -45,8 +44,7 @@
       "id": "BAT_MINUS",
       "endpoints": [
         "BAT.minus",
-        "ESC.battery_minus",
-        "VS.vin_minus"
+        "ESC.battery_minus"
       ],
       "voltage": "battery return"
     },
@@ -55,12 +53,11 @@
       "endpoints": [
         "ESP.gnd",
         "ESC.gnd",
-        "VS.vout_minus",
         "SERVO.gnd",
         "AS.gnd",
         "ENC.gnd"
       ],
-      "voltage": "common signal reference; servo power return directly to its supply"
+      "voltage": "common signal reference; servo power return directly to ESC/BEC, not through ESP32"
     },
     {
       "id": "MOTOR_A",
@@ -99,11 +96,12 @@
     {
       "id": "V_SERVO",
       "endpoints": [
-        "VS.vout_plus",
+        "ESC.bec_plus",
         "SERVO.vplus"
       ],
-      "voltage": null,
-      "condition": "choose and measure supply after confirming stock servo voltage/current; no ESC BEC connection"
+      "voltage": 6.0,
+      "reference_current_a": 3.0,
+      "condition": "connect ONLY after confirming the stock servo supports 6V, actual ESC BEC voltage and load current fit; no parallel supply; never to ESP32 rails or GPIO"
     },
     {
       "id": "3V3",
@@ -186,9 +184,7 @@
       "CAM4.usb"
     ]
   ],
-  "isolated_ports": [
-    "ESC.bec_plus"
-  ],
+  "isolated_ports": [],
   "internal_links_to_verify": [
     {
       "endpoints": [
@@ -196,14 +192,6 @@
         "ESC.gnd"
       ],
       "condition": "ESC signal ground and battery return share the reference; verify actual ESC before wiring"
-    },
-    {
-      "endpoints": [
-        "VS.vin_minus",
-        "VS.vout_minus"
-      ],
-      "condition": "only if the selected servo regulator is non-isolated; do not assume all modules have this internal link",
-      "required_for_diagram": false
     }
   ],
   "charging_nets": [
@@ -245,8 +233,8 @@
     "IMU"
   ],
   "unverified": [
-    "servo supply voltage/current and 3-wire pinout",
-    "actual ESC 3.3V input acceptance",
+    "stock servo 6V compatibility, load current and 3-wire pinout",
+    "actual ESC BEC voltage/current and 3.3V input acceptance",
     "sensor breakout pad order, mode and mounting",
     "USB hub external power capability",
     "adapter mating/polarity and motor stall current",

@@ -538,8 +538,8 @@ def component_catalog_svg():
            rect(0, 0, width, height, "#edf3f7"),
            text(55, 65, "AUTOPARK / THƯ VIỆN LINH KIỆN 2D", 34, weight=700),
            text(55, 101, "Hình dáng tham chiếu • điểm nối có tên • không theo tỉ lệ kích thước thật", 19, COLORS["muted"]),
-           text(55, 133, "Chân ESP32 theo DevKitC-1; module cảm biến và nguồn chưa chốt thứ tự chân vật lý.", 17, COLORS["amber"], weight=700)]
-    kinds = ["esp32", "esc1060", "motor280", "servo", "battery2s", "b3_charger", "servo_supply", "as5600",
+           text(55, 133, "Phương án BEC của ESC cấp servo; chỉ nối khi servo hỗ trợ 6 V và BEC đủ dòng.", 17, COLORS["amber"], weight=700)]
+    kinds = ["esp32", "esc1060", "motor280", "servo", "battery2s", "b3_charger", "as5600",
              "mt6701", "laptop", "usb_hub", "lidar", "lidar_adapter", "camera", "stock_board"]
     for index, kind in enumerate(kinds):
         col, row = index % 4, index // 4

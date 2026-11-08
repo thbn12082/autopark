@@ -40,7 +40,7 @@ Ngày thiết kế: 08/11/2026. Cấu hình tham chiếu: ESP32-S3-DevKitC-1 N16
 
 ### Linh kiện và các chân nối
 
-![Bảng nhận diện 15 linh kiện và các chân nối](autopark/docs/hardware/wiring-v1/00-components.png)
+![Bảng nhận diện 14 linh kiện và các chân nối](autopark/docs/hardware/wiring-v1/00-components.png)
 
 *Hình dáng tham chiếu và các đầu nối có tên. Chân ESP32 theo DevKitC-1; các module chưa chốt được đánh dấu nét đứt. Hình không theo tỷ lệ kích thước thật.*
 
@@ -48,7 +48,7 @@ Ngày thiết kế: 08/11/2026. Cấu hình tham chiếu: ESP32-S3-DevKitC-1 N16
 
 ![Sơ đồ nguồn, ESC, motor và servo](autopark/docs/hardware/wiring-v1/01-system.png)
 
-*Pin 2S cấp ESC và nhánh ổn áp servo. ESP32 dùng nguồn USB. Dây BEC đỏ của ESC được cách điện; điện áp nguồn servo còn phải xác minh.*
+*Pin 2S cấp ESC; BEC của ESC cấp nguồn servo khi đã xác minh servo hỗ trợ 6 V và BEC đủ dòng. ESP32 dùng nguồn USB, tín hiệu ga và lái đi riêng. Bản này không dùng bộ ổn áp servo rời hoặc dây chia nguồn pin.*
 
 ### Kết nối USB, cảm biến và chân điều khiển
 
@@ -88,13 +88,13 @@ Dòng khởi động/kẹt trục của motor, dòng servo và định mức dâ
 
 **Nguồn ESP32:** bản thiết kế dùng nguồn và dữ liệu qua USB laptop tới cổng USB native của DevKitC-1. Cổng này phải được đối chiếu bằng chữ in trên bo và cấu hình USB CDC; không dựa vào vị trí trái/phải của hình minh họa. Không đồng thời cấp thêm nguồn vào chân 5V hoặc 3V3 của ESP32 theo sơ đồ này. Các chân 3V3 chỉ cấp cho module cảm biến 3,3 V đã xác minh và trong giới hạn nguồn của bo.
 
-**Nguồn servo:** dùng một bộ ổn áp riêng nhận nguồn 2S, đầu ra ký hiệu `V_SERVO`. Chưa chốt điện áp hoặc dòng vì chưa xác minh servo gốc. Chỉ nối nhánh này sau khi xác nhận điện áp servo và đo nguồn không tải/có tải. Bộ ổn áp cần đáp ứng dòng khởi động/giữ lái thực tế; hình module trong sơ đồ chỉ biểu diễn các cổng chức năng `IN+`, `IN−`, `OUT+`, `OUT−`, không xác nhận thứ tự chân của một sản phẩm cụ thể.
+**Nguồn servo — bản sửa dùng BEC của ESC:** dây BEC dương của QuicRun 1060 cấp tới chân nguồn dương của servo; dây GND servo về GND của ESC/BEC. Mẫu 1060 tham chiếu có BEC 6 V/3 A. **Chỉ nối nhánh nguồn này sau khi xác nhận servo hỗ trợ 6 V, điện áp BEC thực đúng và khả năng cấp dòng đáp ứng tải lái.** Servo gốc hiện vẫn chưa xác minh model/điện áp; chọn phương án này không đồng nghĩa đã xác nhận tương thích.
 
-Nhánh ổn áp lấy từ đường nguồn chính của pin bằng dây chia nguồn/Y-harness đúng cực và đủ dòng, có thể đặt làm sẵn để hạn chế hàn. Không lấy nguồn servo từ giắc cân bằng ba chân của pin.
+Bản này bỏ bộ ổn áp servo rời và nhánh chia nguồn pin. Pin 2S nối tới ESC bằng giắc T; servo nhận nguồn đã được BEC hạ áp, không nối trực tiếp vào pin hoặc giắc cân bằng.
 
-Hobbywing công bố BEC của mẫu 1060 tham chiếu là 6 V/3 A. **Trong bản thiết kế này, dây BEC đỏ được rút khỏi vỏ giắc một cách phù hợp và bọc cách điện, không cấp cho ESP32 hoặc servo.** Không nối BEC song song với bộ ổn áp servo. Nếu sau này muốn dùng BEC cho servo, cần xác minh nguồn servo rồi cập nhật sơ đồ thành phương án một nguồn duy nhất trước khi lắp.
+**Giắc điều khiển ESC cần được tách đúng chức năng:** Signal của ESC nhận ga từ GPIO4; BEC dương và GND cấp nguồn servo; Signal của servo nhận lái riêng từ GPIO5. Không cắm nguyên giắc ba chân ESC vào giắc servo hoặc dùng dây Y ba lõi nối chung hai Signal. Có thể dùng bộ dây chuyển làm sẵn đúng sơ đồ. **BEC dương không nối vào chân 3V3, 5V hoặc GPIO của ESP32**, và không ghép song song với nguồn servo khác.
 
-Các GND của ESP32, tín hiệu ESC, module cảm biến và nguồn/servo phải có cùng tham chiếu. Điểm nối GND dùng dây thích hợp ở vùng phân phối nguồn; dòng hồi motor và servo đi về ESC/nguồn tương ứng, không đi xuyên qua bo ESP32. Bộ ổn áp servo được giả định là loại không cách ly; nếu dùng loại khác cần kiểm lại đường GND.
+Các GND của ESP32, ESC, module cảm biến và servo phải có cùng tham chiếu. Dòng hồi servo đi về ESC/BEC bằng dây nguồn phù hợp; nhánh GND tới ESP32 chỉ làm tham chiếu tín hiệu, không dẫn dòng tải servo xuyên qua bo ESP32. Kiểm liên hệ GND tín hiệu với cực âm nguồn ESC trên hàng thực nhận.
 
 ### Bản đồ chân ESP32 đề xuất
 
@@ -119,8 +119,8 @@ Các số J1 dưới đây đối chiếu header DevKitC-1 chính thức. Hình 
 |---|---|
 | T/Deans hai cực | Pin → ESC; đúng cặp đầu nối và đúng cực mới được nối |
 | Giắc cân bằng LiPo 2S ba chân | Chỉ tới cổng 2S của B3 khi pin đã tách khỏi xe; là các điểm cell, không phải Signal/nguồn/GND của servo |
-| Ba dây nhỏ của ESC | Signal → GPIO4; GND → GND chung; BEC đỏ → đầu bọc cách điện riêng |
-| Ba dây của servo | Signal → GPIO5; nguồn → `V_SERVO`; GND → GND chung. Màu nâu/đỏ/vàng trong ảnh chỉ là dấu nhận diện, chưa xác nhận pinout |
+| Ba dây nhỏ của ESC | Signal → GPIO4; GND → servo/GND chung; BEC dương → nguồn servo, chỉ khi xác minh dùng được 6 V |
+| Ba dây của servo | Signal → GPIO5 riêng biệt với Signal của ESC; nguồn → BEC dương; GND → ESC/BEC và GND chung. Đối chiếu chân thực trước khi nối |
 | Bullet ở đầu motor ESC | Nối sang giắc motor hai chân bằng dây chuyển được xác nhận; chiều tiến/lùi được kiểm và hiệu chuẩn sau |
 | USB C1 | C1 giữ adapter USB đang có; adapter nối laptop. Không nối UART của C1 sang chân ESP trong phương án này |
 | USB camera | Bốn camera nối hub rồi tới laptop. CAM1…CAM4 là số minh họa, chưa xác nhận tương ứng trước/sau/trái/phải |
@@ -141,10 +141,10 @@ Hub hiện có chưa được xác nhận model và khả năng nhận nguồn p
 
 1. Ghi lại bo, ESC, servo, module cảm biến và tất cả đầu giắc thực nhận. Đối chiếu chữ in chân và dấu cực; tách pin khỏi xe trong lúc đi dây.
 2. Bố trí cơ khí motor/servo giữ nguyên, gá các cảm biến. Xác định tuyến dây để tránh trục quay, bánh và hệ treo.
-3. Lắp dây motor → ESC và dây nguồn pin → ESC nhưng chưa cắm pin. Đấu nhánh nguồn servo riêng, để đầu ra `V_SERVO` chưa nối servo cho tới khi kiểm xong điện áp.
-4. Cách điện dây BEC đỏ của ESC. Đấu các GND và dây Signal theo nhãn chức năng; đo xác nhận không nối nguồn 2S/BEC vào 3V3 hoặc GPIO.
+3. Chuẩn bị giắc T pin/ESC và dây chuyển motor, giữ pin và motor tách khỏi ESC trong lúc đi dây. Nhánh BEC → servo cũng để rời tới khi đã xác minh servo hỗ trợ 6 V và kiểm nguồn.
+4. Đấu dây chuyển tách Signal ga và Signal lái theo bảng chân; đo thông mạch khi chưa cấp điện. BEC dương chỉ có đích tới nguồn servo, không tới nguồn/GPIO ESP32; hai Signal không nối chung.
 5. Cấp riêng USB cho ESP32, hoàn thiện và kiểm firmware với đầu ra động lực chưa kết nối. Đọc được cảm biến, đúng chiều/dấu/đơn vị; đo xung ga/lái và mức điện áp tín hiệu.
-6. Khi nguồn, tín hiệu và firmware đã được xác minh, kết nối từng bộ chấp hành và thử với bánh kê khỏi mặt bàn. Hiệu chuẩn trung tính ga, chiều quay, hành trình servo và giới hạn cơ khí theo hàng thực nhận.
+6. Với motor và servo còn tách, kiểm điện áp BEC theo hướng dẫn của ESC. Khi nguồn, định mức servo, tín hiệu và firmware đã được xác minh, kết nối từng bộ chấp hành rồi thử với bánh kê khỏi mặt bàn. Hiệu chuẩn trung tính ga, chiều quay, hành trình servo và giới hạn cơ khí.
 7. Sau đó mới đo tốc độ thấp, phanh, phản hồi mất lệnh/reset và tư thế thực trên sa bàn để quyết định điều kiện chạy. Sơ đồ này không chứng minh xe đã đạt các phép đo đó.
 
 #### Trạng thái firmware tại lúc vẽ
@@ -175,7 +175,7 @@ Không coi giắc cân bằng ba chân là SM3P nguồn chỉ vì có cùng số
 
 ### Kết quả kiểm tra bản vẽ
 
-Bộ tài liệu được thực hiện qua bốn vai trò: vẽ linh kiện, ghép dây, kiểm tra độc lập, xuất ảnh và xuất bản. Đã kiểm bốn ảnh PNG, 61 đầu mút dây/điểm cách điện, các mạng nguồn/tín hiệu/sạc và tính nhất quán giữa nguồn SVG với ảnh PNG.
+Bộ tài liệu được thực hiện qua bốn vai trò: vẽ linh kiện, ghép dây, kiểm tra độc lập, xuất ảnh và xuất bản. Bản sửa dùng BEC của ESC được kiểm lại hình PNG, các đầu mút dây, mạng nguồn/tín hiệu/sạc và tính nhất quán giữa nguồn SVG với ảnh PNG; kết quả thuộc bản thiết kế, chưa phải phép đo trên xe.
 
 **Kết quả: đạt trong phạm vi bản thiết kế.** Điện áp servo, khả năng nhận tín hiệu 3,3 V, module cảm biến, dòng tải và firmware vẫn cần kiểm chứng trên thiết bị thật. Kết quả này không phải nghiệm thu điện hoặc chạy xe.
 

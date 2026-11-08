@@ -120,13 +120,12 @@ class Sheet:
 
 
 def system_sheet():
-    s = Sheet(2300, 1650, "01 · NGUỒN, MOTOR VÀ CỤM LÁI", "Pin và ESC rời thay phần công suất của XL1986RT; servo gốc vẫn là bộ phận đánh lái.", 1)
+    s = Sheet(2300, 1650, "01 · SERVO LẤY NGUỒN TỪ BEC CỦA ESC", "Một pin 2S cấp ESC; BEC cấp servo. ESP32 vẫn dùng nguồn USB, hai tín hiệu ga/lái đi riêng.", 1)
     s.background.append(box(70, 240, 2160, 1280, "#ffffff", "#d6e0e9", 20))
     s.node("BAT", "battery2s", 100, 300, 330, 220)
     s.node("ESC", "esc1060", 880, 300, 420, 280)
     s.node("MOTOR", "motor280", 1740, 325, 360, 216)
     s.node("ESP", "esp32", 240, 760, 350, 487.5)
-    s.node("VS", "servo_supply", 920, 1090, 330, 224)
     s.node("SERVO", "servo", 1730, 1050, 360, 260)
     bp, bn = s.point("BAT.plus"), s.point("BAT.minus")
     ep, en = s.point("ESC.battery_plus"), s.point("ESC.battery_minus")
@@ -134,12 +133,6 @@ def system_sheet():
     s.wire("BAT.minus", "ESC.battery_minus", [(540, bn[1]), (540, en[1])], GND, width=7)
     s.label(520, 310, "P1 · Giắc T/Deans đúng cặp", 25)
     s.label(520, 345, "Đối chiếu cực + / −", 22, MUTED)
-    vp, vn = s.point("VS.vin_plus"), s.point("VS.vin_minus")
-    s.line([(620, ep[1]), (620, vp[1]), vp], RED, True, 6)
-    s.line([(675, en[1]), (675, vn[1]), vn], GND, True, 6)
-    s.junction(620, ep[1], RED)
-    s.junction(675, en[1], GND)
-    s.label(690, 1040, ["P2 · Dây chia nguồn 2S (Y harness)", "Từ giắc T chính, không lấy từ giắc cân bằng"], 23, AMBER)
     ma, mb = s.point("MOTOR.a"), s.point("MOTOR.b")
     ea, eb = s.point("ESC.motor_a"), s.point("ESC.motor_b")
     s.wire("ESC.motor_a", "MOTOR.a", [(1485, ea[1]), (1485, ma[1])], USB, width=7)
@@ -153,25 +146,28 @@ def system_sheet():
     servo_sig, esp_servo = s.point("SERVO.signal"), s.point("ESP.servo_pwm")
     s.wire("ESP.servo_pwm", "SERVO.signal", [(120, esp_servo[1]), (120, 730), (1640, 730), (1640, servo_sig[1])], SIGNAL, True)
     s.label(700, 715, "S2 · GPIO5 → servo S · kiểm tra mức 3V3", 23, SIGNAL)
-    s.cap("ESC.bec_plus", dy=55)
-    s.label(1245, 637, "BEC +: bọc cách điện", 22, RED)
-    s.note(810, 745, 720, ["Dây đỏ BEC không cấp ESP32 hoặc servo trong bản này.", "Nguồn servo ở dưới chỉ nối sau khi xác nhận V_SERVO.", "Không ghép song song BEC với nguồn servo riêng."], RED, "#fff3f2", 23)
+    s.note(680, 795, 770, ["CHỈ NỐI nếu servo được xác nhận dùng nguồn 6 V",
+                         "và BEC đủ dòng cho tải lái thực tế.",
+                         "1060 tham chiếu: BEC 6 V / 3 A; đo lại ESC thực nhận.",
+                         "BEC + không nối vào 3V3, 5V hoặc GPIO của ESP32."], RED, "#fff3f2", 23)
     servo_v = s.point("SERVO.vplus")
-    sv = s.point("VS.vout_plus")
-    s.wire("VS.vout_plus", "SERVO.vplus", [(1570, sv[1]), (1570, servo_v[1])], RED, True, 7)
-    s.label(1310, 1145, "V_SERVO: CHƯA CHỐT", 24, AMBER)
+    bec = s.point("ESC.bec_plus")
+    s.wire("ESC.bec_plus", "SERVO.vplus", [(bec[0], 650), (1530, 650), (1530, servo_v[1])], RED, True, 7)
+    s.label(700, 1020, ["P2 · BEC + của ESC → nguồn + của servo",
+                        "6 V là điện áp BEC tham chiếu; servo còn chờ xác minh."], 22, RED)
     sg = s.point("SERVO.gnd")
-    vg = s.point("VS.vout_minus")
-    s.wire("VS.vout_minus", "SERVO.gnd", [(1580, vg[1]), (1580, sg[1])], GND, True, 7)
-    star = (1430, 1415)
-    s.line([(1430, vg[1]), star], GND, False, 5)
-    s.junction(1430, vg[1])
-    s.junction(*star)
+    star = (1600, sg[1])
     eg = s.point("ESC.gnd")
-    s.line([eg, (eg[0], 690), (1600, 690), (1600, star[1]), star], GND)
+    s.wire("ESC.gnd", "SERVO.gnd", [(eg[0], 690), (1600, 690), star], GND, True, 7)
+    s.junction(*star)
     pg = s.point("ESP.gnd")
-    s.line([pg, (175, pg[1]), (175, 1495), (1430, 1495), star], GND)
-    s.label(1500, 1460, ["GND chung: cùng mốc điện áp cho tín hiệu.", "Dòng servo về nguồn riêng, không qua ESP."], 22, MUTED)
+    s.line([pg, (175, pg[1]), (175, 1495), (1600, 1495), star], GND)
+    s.label(1650, 1420, ["GND servo về ESC/BEC bằng dây nguồn.", "Nhánh tới ESP chỉ làm mốc tín hiệu."], 22, MUTED)
+    s.note(680, 1100, 770, ["TÁCH CHỨC NĂNG GIẮC ĐIỀU KHIỂN ESC:",
+                          "S của ESC nhận ga từ GPIO4.",
+                          "BEC + và GND cấp nguồn cho servo.",
+                          "S của servo nhận lái riêng từ GPIO5.",
+                          "Không dùng dây Y ba lõi nối chung hai chân S."], MUTED, "#f3f7fb", 22)
     u = s.point("ESP.usb_native")
     s.line([u, (u[0], 1375)], USB, width=9)
     s.overlays.append(box(u[0] - 22, 1375, 44, 26, "#dceeff", USB, 6))
@@ -241,7 +237,7 @@ def signal_sheet():
         s.wire(f"ESP.{port}",f"ENC.{target}",[(gutter,a[1]),(gutter,base_y),(column,base_y),(column,b[1])],color,True)
     s.note(740, 1490, 720, ["AS5600: GPIO6=SDA, GPIO7=SCL; pull-up chỉ về 3V3.", "VCC trên hình là cổng của module hỗ trợ 3,3 V.", "Thứ tự chân module/IC phải được đối chiếu riêng.", "MT6701: GPIO8=A, GPIO9=B; chốt MODE/ABZ và PPR.", "Nam châm gắn cơ khí lên trục; không phải dây điện."], MUTED, "#f3f7fb", 21)
     s.note(1700, 1190, 550, ["GPIO4: ESC_CTRL · GPIO5: SERVO_CTRL.", "GPIO6/7: I²C · GPIO8/9: A/B.", "Map đề xuất; firmware chưa đổi.", "Đối chiếu đúng chân trên module."], AMBER, "#fff8ea", 22)
-    s.label(250, 1905, "L2 · GND cảm biến về ESP; GND ESP còn nối ESC/nguồn servo ở Tờ 1.", 23, GND)
+    s.label(250, 1905, "L2 · GND cảm biến về ESP; GND ESP còn nối ESC/BEC và servo ở Tờ 1.", 23, GND)
     s.label(70, 1950, "ToF và IMU được hoãn. Bốn camera không tự thay thế phép đo tốc độ/góc lái hay kiểm chứng vùng mù.", 23, MUTED)
     return s.save("02-signal-feedback.svg")
 
@@ -277,6 +273,7 @@ def spec():
     gpio={"ESC_CTRL":4,"SERVO_CTRL":5,"SDA":6,"SCL":7,"ENC_A":8,"ENC_B":9}
     return {
         "schema_version":1,
+        "revision":"esc_bec_servo_v2",
         "status":"proposed_not_hardware_verified",
         "date":"2026-11-08",
         "reference_board":"ESP32-S3-DevKitC-1 N16R8",
@@ -285,17 +282,17 @@ def spec():
         "components":{
             "PC":"laptop","HUB":"usb_hub","CAM1":"camera","CAM2":"camera","CAM3":"camera","CAM4":"camera",
             "ESP":"esp32","C1":"lidar","ADAPTER":"lidar_adapter","BAT":"battery2s","ESC":"esc1060",
-            "MOTOR":"motor280","SERVO":"servo","VS":"servo_supply","AS":"as5600","ENC":"mt6701","B3":"b3_charger",
+            "MOTOR":"motor280","SERVO":"servo","AS":"as5600","ENC":"mt6701","B3":"b3_charger",
         },
         "operating_nets":[
-            {"id":"BAT_PLUS","endpoints":["BAT.plus","ESC.battery_plus","VS.vin_plus"],"voltage":"2S: nominal 7.4V, max 8.4V"},
-            {"id":"BAT_MINUS","endpoints":["BAT.minus","ESC.battery_minus","VS.vin_minus"],"voltage":"battery return"},
-            {"id":"GND","endpoints":["ESP.gnd","ESC.gnd","VS.vout_minus","SERVO.gnd","AS.gnd","ENC.gnd"],"voltage":"common signal reference; servo power return directly to its supply"},
+            {"id":"BAT_PLUS","endpoints":["BAT.plus","ESC.battery_plus"],"voltage":"2S: nominal 7.4V, max 8.4V"},
+            {"id":"BAT_MINUS","endpoints":["BAT.minus","ESC.battery_minus"],"voltage":"battery return"},
+            {"id":"GND","endpoints":["ESP.gnd","ESC.gnd","SERVO.gnd","AS.gnd","ENC.gnd"],"voltage":"common signal reference; servo power return directly to ESC/BEC, not through ESP32"},
             {"id":"MOTOR_A","endpoints":["ESC.motor_a","MOTOR.a"],"voltage":"switched motor output; NOT logic GND"},
             {"id":"MOTOR_B","endpoints":["ESC.motor_b","MOTOR.b"],"voltage":"switched motor output; NOT logic GND"},
             {"id":"ESC_CTRL","endpoints":["ESP.esc_pwm","ESC.signal"],"gpio":4,"condition":"confirm ESC accepts 3.3V signal and pulse range"},
             {"id":"SERVO_CTRL","endpoints":["ESP.servo_pwm","SERVO.signal"],"gpio":5,"condition":"confirm stock servo signal/pinout"},
-            {"id":"V_SERVO","endpoints":["VS.vout_plus","SERVO.vplus"],"voltage":None,"condition":"choose and measure supply after confirming stock servo voltage/current; no ESC BEC connection"},
+            {"id":"V_SERVO","endpoints":["ESC.bec_plus","SERVO.vplus"],"voltage":6.0,"reference_current_a":3.0,"condition":"connect ONLY after confirming the stock servo supports 6V, actual ESC BEC voltage and load current fit; no parallel supply; never to ESP32 rails or GPIO"},
             {"id":"3V3","endpoints":["ESP.v3v3","AS.vcc","ENC.vcc"],"voltage":"3.3V","condition":"breakouts must support 3.3V; verify onboard regulator/pullups and total current"},
             {"id":"SDA","endpoints":["ESP.sda","AS.sda"],"gpio":6,"condition":"pullups only to3.3V"},
             {"id":"SCL","endpoints":["ESP.scl","AS.scl"],"gpio":7,"condition":"pullups only to3.3V"},
@@ -304,16 +301,15 @@ def spec():
         ],
         "usb_links":[["PC.usb1","ESP.usb_native"],["PC.usb2","HUB.upstream"],["PC.usb3","ADAPTER.usb"],
                      ["ADAPTER.lidar","C1.connector"],*[ [f"HUB.usb{i}",f"CAM{i}.usb"] for i in range(1,5)]],
-        "isolated_ports":["ESC.bec_plus"],
+        "isolated_ports":[],
         "internal_links_to_verify":[
             {"endpoints":["ESC.battery_minus","ESC.gnd"],"condition":"ESC signal ground and battery return share the reference; verify actual ESC before wiring"},
-            {"endpoints":["VS.vin_minus","VS.vout_minus"],"condition":"only if the selected servo regulator is non-isolated; do not assume all modules have this internal link","required_for_diagram":False},
         ],
         "charging_nets":[{"id":p,"endpoints":["B3."+p,"BAT."+p]} for p in ("balance_minus","balance_mid","balance_plus")],
         "charging_requirements":["battery disconnected from ESC and all vehicle loads","only one battery","B3 2S port only; 3S empty","main T contacts insulated"],
         "omitted_by_user":["emergency_stop","independent_motor_power_cutoff","additional_fuse"],
         "deferred":["ToF","IMU"],
-        "unverified":["servo supply voltage/current and 3-wire pinout","actual ESC 3.3V input acceptance","sensor breakout pad order, mode and mounting","USB hub external power capability","adapter mating/polarity and motor stall current","firmware outputs and physical signal timing"],
+        "unverified":["stock servo 6V compatibility, load current and 3-wire pinout","actual ESC BEC voltage/current and 3.3V input acceptance","sensor breakout pad order, mode and mounting","USB hub external power capability","adapter mating/polarity and motor stall current","firmware outputs and physical signal timing"],
     }
 
 
@@ -326,9 +322,15 @@ def validate_spec(data):
             name,port=endpoint.split(".")
             assert port in PORT_SPECS[data["components"][name]],endpoint
     endpoints=[p for n in data["operating_nets"] for p in n["endpoints"]]
-    assert "ESC.bec_plus" not in endpoints
+    assert "VS" not in data["components"]
+    assert len(endpoints) == len(set(endpoints)), "A port must not bridge different operating nets"
     assert "BAT.balance_mid" not in endpoints
-    assert next(n for n in data["operating_nets"] if n["id"]=="V_SERVO")["voltage"] is None
+    servo_power = next(n for n in data["operating_nets"] if n["id"]=="V_SERVO")
+    assert servo_power["voltage"] == 6.0
+    assert set(servo_power["endpoints"]) == {"ESC.bec_plus", "SERVO.vplus"}
+    assert "ONLY" in servo_power["condition"]
+    assert set(next(n for n in data["operating_nets"] if n["id"]=="ESC_CTRL")["endpoints"]) == {"ESP.esc_pwm", "ESC.signal"}
+    assert set(next(n for n in data["operating_nets"] if n["id"]=="SERVO_CTRL")["endpoints"]) == {"ESP.servo_pwm", "SERVO.signal"}
     assert set(next(n for n in data["operating_nets"] if n["id"]=="MOTOR_A")["endpoints"])=={"ESC.motor_a","MOTOR.a"}
     assert all(not p.startswith("ESP.") for n in data["charging_nets"] for p in n["endpoints"])
 

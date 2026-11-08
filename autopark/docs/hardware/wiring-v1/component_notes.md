@@ -27,11 +27,10 @@ component_catalog_svg() -> str
 | Cụm lái ba dây | Ảnh toàn xe, file kết thúc `8b01c57c48141e46baf637dc70e85de5.jpg` | Hình servo minh họa vị trí vỏ/horn/cáp; điện áp, model, thứ tự chân và tầm xung thực chưa được xác minh |
 | XL1986RT | Ảnh trực tiếp mặt linh kiện của bo gốc | Chỉ để nhận dạng bo được thay chức năng, không nối nó song song với ESC mới |
 | ESP32-S3 DevKitC-1 | Bố cục bo và bảng J1/J3 trong tài liệu Espressif v1.0 | Mã N16R8 được người dùng xác nhận qua câu trả lời; chưa có ảnh rõ revision và silk của bo thực. GPIO sử dụng là đề xuất thiết kế, firmware hiện chưa cấu hình các chân này |
-| ESC 1060 Brushed | Hình dạng ESC 1060: tản nhiệt có cánh, tụ, công tắc, dây RC và hai đầu motor | SKU/hàng shop vẫn cần đối chiếu; không suy ra mức BEC hoặc mức logic chỉ từ hình dáng. Trong sơ đồ cơ sở, dây đỏ BEC được cô lập |
+| ESC 1060 Brushed | Hình dạng ESC 1060: tản nhiệt có cánh, tụ, công tắc, dây RC và hai đầu motor | SKU/hàng shop vẫn cần đối chiếu; không suy ra mức BEC hoặc mức logic chỉ từ hình dáng. Trong bản sửa BEC, nguồn BEC chỉ tới servo sau khi xác minh servo hỗ trợ 6 V và BEC đủ dòng; không tới ESP32 |
 | Pin LiPo 2S | Pack chữ nhật với dây nguồn T và nhánh cân bằng ba dây | Chưa mua/chưa có ảnh pin thực; kích thước chỉ minh họa, không khẳng định vừa khay xe |
 | B3 Pro | Vỏ hộp, ba LED, ổ AC và cổng 2S/3S theo hướng dẫn B3 Pro | Vị trí cổng có thể khác theo phiên bản; luôn đọc nhãn 2S trên sạc. B−/BM/B+ trên hình là thứ tự điện chức năng, không xác nhận hướng nhìn vào giắc của hàng mua |
 | AS5600 / MT6701 | PCB nhỏ, IC cảm biến và nam châm đồng trục minh họa | PCB module thương mại chưa chốt. Các pad nguồn/tín hiệu là mốc chức năng; không phải pinout vật lý của một module cụ thể. VCC 3V3 chỉ áp dụng nếu module mua cho phép. MT6701 cần đúng cấu hình/chân xuất ABZ |
-| Nguồn servo | Hình module ổn áp có cuộn cảm, IC và cọc đấu dây | Model chưa chọn; IN+/IN−/OUT+/OUT− là tên chức năng. Sơ đồ giả định nguồn không cách ly và GND chung; điện áp ra phải theo servo thực |
 | LiDAR C1 | Đầu quét tròn trên đế vuông có góc bo tròn | Dùng nguyên cáp C1 và adapter USB tương ứng; hình không diễn giải từng chân riêng của cáp |
 | Hub / camera / máy tính | Silhouette chung của thiết bị đã có | Model hub/camera/laptop cụ thể chưa đối chiếu bằng ảnh; cổng nguồn phụ hub chỉ tồn tại nếu model thực hỗ trợ |
 
@@ -57,3 +56,5 @@ Nguồn tham chiếu sơ đồ chân: [Espressif ESP32-S3-DevKitC-1 v1.0](https:
 Các nguồn hình dạng/chức năng khác: [Hobbywing QuicRun 1060](https://www.hobbywingdirect.com/products/quicrun-10-brushed-esc), [hướng dẫn B3 Pro](https://www.rc-factory.cz/assets/docs/da21c8a03bc75ae73c4b5362c3acef7c/1321-1/b3-pro-manual.pdf), [SLAMTEC RPLIDAR C1](https://www.slamtec.com/en/c1/spec), [MT6701 của MagnTek](https://www.magntek.com.cn/136/108). Ảnh xe người dùng chỉ được đọc làm tham chiếu; thư viện không chép ảnh đó vào SVG.
 
 Không vẽ thêm nút dừng khẩn, phần tử ngắt động lực, cầu chì, IMU hay ToF: người dùng đã yêu cầu bỏ/hoãn các mục đó. Hình thể hiện lựa chọn của người dùng, không phải xác nhận hệ thống có đường ngắt động lực độc lập.
+
+Bản catalogue hiện tại có 14 linh kiện, không vẽ bộ ổn áp servo rời. Nguồn servo lấy từ BEC của ESC với điều kiện tương thích 6 V và dòng tải được ghi ngay trên bản vẽ. Các ký hiệu module tùy chọn còn trong thư viện không phải linh kiện phải mua cho cấu hình này.

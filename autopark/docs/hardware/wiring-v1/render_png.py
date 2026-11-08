@@ -91,7 +91,7 @@ def render_one(stem: str, scale: float) -> dict:
 def write_index() -> None:
     content = """# Bản vẽ 2D kết nối AutoPark
 
-Các bản vẽ thể hiện phương án ESP32-S3 + ESC rời, có các nhánh chưa xác minh được đánh dấu. Đây là tài liệu thiết kế, chưa nghiệm thu điện hoặc chạy xe thật.
+Các bản vẽ thể hiện phương án ESP32-S3 + ESC rời, servo lấy nguồn từ BEC của ESC. Nhánh BEC chỉ được nối khi servo hỗ trợ 6 V và BEC đủ dòng; ESP32 vẫn dùng USB. Đây là tài liệu thiết kế, chưa nghiệm thu điện hoặc chạy xe thật.
 
 | Tờ | PNG để xem | SVG để phóng to |
 |---|---|---|

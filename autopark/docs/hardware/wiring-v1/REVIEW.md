@@ -2,6 +2,8 @@
 
 Ngày kiểm tra: 08/11/2026. Vai trò: agent `review_wiring`, độc lập với agent vẽ linh kiện và agent ghép dây.
 
+Revision được duyệt: **`esc_bec_servo_v2` — servo lấy nguồn từ BEC của ESC có điều kiện**. Báo cáo này thay thế kết quả duyệt phương án nguồn servo rời trước đó.
+
 **Trạng thái: PASS trong phạm vi tài liệu thiết kế — hình, netlist và hướng dẫn nhất quán sau các lần sửa. Chưa kiểm chứng phần cứng.**
 
 PASS có nghĩa không còn lỗi chặn xuất bản được phát hiện trong bộ hình và tài liệu được liệt kê dưới đây. Không dùng trạng thái này để kết luận hàng thực nhận tương thích, dây đã lắp đúng hoặc xe đã đủ điều kiện cấp động lực. Các mục chờ đo/xác minh phần cứng vẫn có hiệu lực.
@@ -18,9 +20,10 @@ PASS có nghĩa không còn lỗi chặn xuất bản được phát hiện tron
 | Mục | Kết quả tại lần kiểm này |
 |---|---|
 | ESP32 lấy nguồn qua USB | Phù hợp phạm vi thử trên bàn; hướng dẫn loại trừ cấp đồng thời thêm 5V/3V3 từ nguồn khác |
-| Dây BEC đỏ của ESC | Đã ghi cách điện riêng; không đưa BEC 6V vào ESP32 hoặc song song nguồn servo |
-| Nguồn servo | Có nhánh `V_SERVO` riêng và chưa chốt điện áp/dòng; chưa khẳng định cấp trực tiếp 6V cho servo gốc |
-| GND và dòng động lực | Văn bản phân biệt tham chiếu logic chung với dòng hồi motor/servo; motor không đi qua ESP32 hoặc breadboard |
+| Dây BEC đỏ của ESC | Chỉ tới nguồn dương servo qua nhánh có điều kiện; không đưa BEC vào ESP32 hoặc ghép song song nguồn khác |
+| Nguồn servo | BEC của 1060 tham chiếu là 6 V/3 A; chỉ nối sau khi xác nhận servo hỗ trợ 6 V, điện áp BEC thực và dòng tải phù hợp. Đã bỏ bộ ổn áp rời và nhánh chia nguồn pin |
+| GND và dòng động lực | Servo hồi trực tiếp về ESC/BEC; nhánh tới ESP32 chỉ là tham chiếu tín hiệu. Dòng motor không đi qua ESP32 hoặc breadboard |
+| Tách giắc điều khiển ESC | GPIO4 tới Signal ESC, GPIO5 tới Signal servo; BEC+/GND cấp servo. Hướng dẫn loại trừ dây Y ba lõi nối chung hai Signal |
 | Tín hiệu ESC/servo | Có điều kiện xác minh mức 3,3V; chưa được công bố là cắm trực tiếp chắc chắn dùng được |
 | GPIO4/5/6/7 | Khớp vị trí J1-4/5/6/7 của DevKitC-1 tham chiếu |
 | GPIO8/9 | Khớp J1-12/J1-15; không nhầm số GPIO với số thứ tự chân header |
@@ -48,31 +51,34 @@ Pinmap GPIO4…9 là **lựa chọn của bản thiết kế** cho DevKitC-1 tha
 
 | Hạng mục | Kết quả |
 |---|---|
-| Danh mục 15 linh kiện | PASS: có hình nhận dạng và điểm nối; module chưa chốt được đánh dấu |
-| Các net hoạt động | PASS trong thiết kế: tách nguồn 2S, nguồn servo chưa chốt, nguồn 3V3 và các tín hiệu |
-| BEC | PASS: `ESC.bec_plus` không nằm trong net vận hành; có đầu bọc cách điện trên hình |
+| Danh mục 14 linh kiện | PASS: có hình nhận dạng và điểm nối; không có bộ ổn áp servo rời. Ký hiệu tùy chọn còn trong thư viện không phải linh kiện của cấu hình này |
+| Các net hoạt động | PASS trong thiết kế: 13 net; nguồn pin 2S chỉ tới ESC, BEC tới servo có điều kiện, rail 3V3 và tín hiệu riêng biệt; không có cổng thuộc hai net khác nhau |
+| BEC | PASS có điều kiện: `V_SERVO` có đúng hai đầu `ESC.bec_plus` và `SERVO.vplus`; không có đầu ESP32. Nhánh được vẽ nét đứt kèm yêu cầu xác minh 6 V và dòng tải |
+| Hai tín hiệu điều khiển | PASS: `ESC_CTRL` và `SERVO_CTRL` độc lập; không có nối tắt Signal ESC với Signal servo |
+| Hồi nguồn servo | PASS về đường vẽ: GND servo tới ESC/BEC trực tiếp; nhánh ESP32 lấy cùng tham chiếu, không nằm nối tiếp trên đường hồi tải servo |
 | Hai đầu motor | PASS: mỗi đầu chỉ nối đầu ra ESC tương ứng; không ghép vào GND hoặc 3V3 |
-| Các mốc dây/cap | PASS: 22 mốc ở tờ 1, 30 mốc ở tờ 2, 9 mốc ở tờ 3 khớp với đầu mút đường vẽ, tổng 61 mốc |
-| Điểm nối trong thiết bị | PASS về cách khai báo: netlist ghi riêng liên hệ BAT−/GND qua ESC cần đo xác nhận, và liên hệ IN−/OUT− chỉ áp dụng cho nguồn servo không cách ly |
+| Các mốc dây/cap | PASS: 18 mốc ở tờ 1, 30 mốc ở tờ 2, 9 mốc ở tờ 3 khớp với đầu mút đường vẽ, tổng 57 mốc |
+| Điểm nối trong thiết bị | PASS về cách khai báo: netlist ghi riêng liên hệ BAT−/GND qua ESC cần đo xác nhận; đã bỏ liên hệ nội bộ của nguồn servo rời |
 | GPIO và giao tiếp | PASS: GPIO4–9 không trùng nhau; các net cảm biến đúng nhãn, USB native giữ riêng |
 | Sạc | PASS: ba điểm balance ghép cùng tên; không có ESP/ESC/tải xe trong net sạc, giắc T để rời và cách điện |
 | Bố cục | PASS sau sửa: chú thích nhiều dòng đọc được, dây không xuyên thân ESP32, các hộp chú thích không che mất đường nguồn/GND/USB |
 | Cảnh báo/điều kiện ngay trên ảnh | PASS: có nhánh servo và tín hiệu chờ xác minh, GPIO đề xuất, firmware chưa đổi và trạng thái thiết kế chưa thử xe |
 | Tính nhất quán của tệp xuất | PASS: 4 SVG parse được; 8 hash SVG/PNG và các hash nguồn khớp `export_manifest.json`; không nhúng ảnh ngoài/ảnh người dùng |
 
-Các lỗi của bản nháp đã được sửa trước khi duyệt: renderer nối các `tspan` thành một dòng; route tín hiệu servo đi ngang thân bo; một số chú thích che dây; tiêu đề tờ phản hồi cắt qua hai đường I²C. Bản cuối dùng các dòng chữ có tọa độ riêng và đường dây đi quanh linh kiện/chú thích.
+Các lỗi của bản nháp đã được sửa trước khi duyệt: renderer nối các `tspan` thành một dòng; route tín hiệu servo đi ngang thân bo; một số chú thích che dây; tiêu đề tờ phản hồi cắt qua hai đường I²C. Trong revision BEC này, chú thích hồi nguồn servo đã được dịch ra ngoài đường GND dọc. Đã xem lại đủ bốn PNG xuất cuối; các giao cắt không có chấm được phân biệt bằng khoảng trắng, nút GND có chấm nối và không có dây che chữ còn được phát hiện.
 
 Kích thước PNG đã kiểm: `00-components.png` 3600×3460, `01-system.png` 4600×3300, `02-signal-feedback.png` 4800×4000, `03-charging.png` 4400×2700.
 
 Phiên bản nguồn được duyệt:
 
-- `build_wiring.py` SHA-256: `df3f7a93fcbf864aba45ab13bc2a2f1f1a787f25a9ae79833294598a0d91f6fd`.
-- `components.py` SHA-256: `17e9cc69d06eddb3e5bdc0021c4f98eec4a83682c4f6d2588c6e7362dedb4d9a`.
+- `build_wiring.py` SHA-256: `f79e83134b04b8545477e0d2bddbaaa2ffb8e11ebc59e36d6e4c2d0190377f72`.
+- `components.py` SHA-256: `02cc2fc8a161e3447bd6109816894359379a6fc69079429102acde6d9483f455`.
+- `wiring_spec.json` SHA-256: `913e3becdaa7b82e5cfdab1a6195238a56e4fe0e02ec8d4b133d3bb612f25a76`.
 - Hash chi tiết của hình và renderer: xem `export_manifest.json`.
 
 ## Điều kiện phần cứng còn mở
 
-Điện áp/dòng servo, thứ tự dây thực, ngưỡng tín hiệu ESC/servo, cấu hình nguồn/pull-up của các module, MODE/PPR encoder, dòng motor và định mức dây/giắc, cách cấp nguồn hub và toàn bộ firmware/hiệu chuẩn vẫn cần xác minh trên thiết bị. Các chân/nút chức năng minh họa không thay pinout của hàng thực nhận. Không có ngắt động lực độc lập hoặc cầu chì bổ sung trong lựa chọn này.
+Servo gốc chưa được xác nhận hỗ trợ 6 V; điện áp BEC thực, dòng tải servo và khả năng cấp dòng của ESC thực nhận vẫn phải được kiểm trước khi nối nhánh nguồn này. Thứ tự dây thực, ngưỡng tín hiệu ESC/servo, cấu hình nguồn/pull-up của các module, MODE/PPR encoder, dòng motor và định mức dây/giắc, cách cấp nguồn hub và toàn bộ firmware/hiệu chuẩn vẫn cần xác minh trên thiết bị. Các chân/nút chức năng minh họa không thay pinout của hàng thực nhận. Không có ngắt động lực độc lập hoặc cầu chì bổ sung trong lựa chọn này.
 
 ## Nguồn đối chiếu
 
