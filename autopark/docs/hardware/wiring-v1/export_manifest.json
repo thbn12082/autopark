@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "scope": "proposed_design_not_hardware_verified",
+  "renderer": "QtSvg",
+  "qt_version": "6.11.2",
+  "font": "Segoe UI",
+  "scale": 2.0,
+  "external_media": false,
+  "sources": {
+    "components.py": "17e9cc69d06eddb3e5bdc0021c4f98eec4a83682c4f6d2588c6e7362dedb4d9a",
+    "build_wiring.py": "df3f7a93fcbf864aba45ab13bc2a2f1f1a787f25a9ae79833294598a0d91f6fd",
+    "render_png.py": "115b89f06f207f66aae787d30d5a3ea865501c43f66710bba962cc1c2aa8987f",
+    "wiring_spec.json": "6b3ec8bf6a6860edb44de8fa4b2873d6102f0098a734268698a56bd22774e223"
+  },
+  "artifacts": [
+    {
+      "svg": "00-components.svg",
+      "png": "00-components.png",
+      "svg_size": [
+        1800,
+        1730
+      ],
+      "png_size": [
+        3600,
+        3460
+      ],
+      "svg_sha256": "d99f6d1e128353c56d6493615f4c8fea7162905e73b062010922147504c22981",
+      "png_sha256": "16590dd6802bb1b2d0ba88e58219b9c40b68f3b6586b2e195c78ec30624dd6a3",
+      "png_bytes": 945440,
+      "nonblank_check": true
+    },
+    {
+      "svg": "01-system.svg",
+      "png": "01-system.png",
+      "svg_size": [
+        2300,
+        1650
+      ],
+      "png_size": [
+        4600,
+        3300
+      ],
+      "svg_sha256": "577d1d875df2e0b9db596f85441a0403b7b62f2392987a03013671a02dbf5ed0",
+      "png_sha256": "0fecdb44e6976a695115f8919317172b44aab746761ee55a960e1c97180276d2",
+      "png_bytes": 954274,
+      "nonblank_check": true
+    },
+    {
+      "svg": "02-signal-feedback.svg",
+      "png": "02-signal-feedback.png",
+      "svg_size": [
+        2400,
+        2000
+      ],
+      "png_size": [
+        4800,
+        4000
+      ],
+      "svg_sha256": "7a2e1543e12ffad3f8ea0158f610f945bf863334b2c7c1b6aa0ae181c8c6fcc9",
+      "png_sha256": "056714a1ddc55ad69806a729a80581a9c5738544ed7711039bb2e4f6bc89d665",
+      "png_bytes": 1149753,
+      "nonblank_check": true
+    },
+    {
+      "svg": "03-charging.svg",
+      "png": "03-charging.png",
+      "svg_size": [
+        2200,
+        1350
+      ],
+      "png_size": [
+        4400,
+        2700
+      ],
+      "svg_sha256": "aae225db6d0ab5243143a911e299cdf4bb8c31b349ab99c563cf44119170df6a",
+      "png_sha256": "b9bf8cc48aa1ef97f9c6f2051d26cc902df52f5169dd3085a3eac6082e5153bf",
+      "png_bytes": 563069,
+      "nonblank_check": true
+    }
+  ],
+  "checks": [
+    "SVG XML and viewBox parsed",
+    "No external or embedded media",
+    "QtSvg accepted all sheets",
+    "PNGs reopened at expected dimensions",
+    "Nonblank raster samples"
+  ]
+}

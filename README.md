@@ -31,3 +31,5 @@ Các giá trị trên dùng cho xe mô hình giả định và có thể điều
 **Chưa có kết quả thao tác trên xe thật.** Việc tiếp theo là hoàn thiện điều khiển và phản hồi trên bo, đo xe và quãng phanh, hiệu chuẩn cảm biến, rồi thử từng thao tác chậm.
 
 Bộ tài liệu gồm sáu phần: Tổng quan, Kiến trúc, Vận hành, Phần cứng và hiệu chuẩn, Kiểm thử và lộ trình, Dữ liệu và giấy phép.
+
+[Bản vẽ kết nối điện 2D và chú thích lắp ráp](autopark/docs/LAP_RAP_DIEN_2D.md) mô tả phương án ESP32-S3 + ESC rời. Các điện áp, module và bước kiểm tra chưa xác minh được đánh dấu trong hình; đây là bản thiết kế, chưa phải kết quả lắp chạy xe thật.

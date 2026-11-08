@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "status": "proposed_not_hardware_verified",
+  "date": "2026-11-08",
+  "reference_board": "ESP32-S3-DevKitC-1 N16R8",
+  "proposed_gpio": {
+    "ESC_CTRL": 4,
+    "SERVO_CTRL": 5,
+    "SDA": 6,
+    "SCL": 7,
+    "ENC_A": 8,
+    "ENC_B": 9
+  },
+  "firmware_pinmap_changed": false,
+  "components": {
+    "PC": "laptop",
+    "HUB": "usb_hub",
+    "CAM1": "camera",
+    "CAM2": "camera",
+    "CAM3": "camera",
+    "CAM4": "camera",
+    "ESP": "esp32",
+    "C1": "lidar",
+    "ADAPTER": "lidar_adapter",
+    "BAT": "battery2s",
+    "ESC": "esc1060",
+    "MOTOR": "motor280",
+    "SERVO": "servo",
+    "VS": "servo_supply",
+    "AS": "as5600",
+    "ENC": "mt6701",
+    "B3": "b3_charger"
+  },
+  "operating_nets": [
+    {
+      "id": "BAT_PLUS",
+      "endpoints": [
+        "BAT.plus",
+        "ESC.battery_plus",
+        "VS.vin_plus"
+      ],
+      "voltage": "2S: nominal 7.4V, max 8.4V"
+    },
+    {
+      "id": "BAT_MINUS",
+      "endpoints": [
+        "BAT.minus",
+        "ESC.battery_minus",
+        "VS.vin_minus"
+      ],
+      "voltage": "battery return"
+    },
+    {
+      "id": "GND",
+      "endpoints": [
+        "ESP.gnd",
+        "ESC.gnd",
+        "VS.vout_minus",
+        "SERVO.gnd",
+        "AS.gnd",
+        "ENC.gnd"
+      ],
+      "voltage": "common signal reference; servo power return directly to its supply"
+    },
+    {
+      "id": "MOTOR_A",
+      "endpoints": [
+        "ESC.motor_a",
+        "MOTOR.a"
+      ],
+      "voltage": "switched motor output; NOT logic GND"
+    },
+    {
+      "id": "MOTOR_B",
+      "endpoints": [
+        "ESC.motor_b",
+        "MOTOR.b"
+      ],
+      "voltage": "switched motor output; NOT logic GND"
+    },
+    {
+      "id": "ESC_CTRL",
+      "endpoints": [
+        "ESP.esc_pwm",
+        "ESC.signal"
+      ],
+      "gpio": 4,
+      "condition": "confirm ESC accepts 3.3V signal and pulse range"
+    },
+    {
+      "id": "SERVO_CTRL",
+      "endpoints": [
+        "ESP.servo_pwm",
+        "SERVO.signal"
+      ],
+      "gpio": 5,
+      "condition": "confirm stock servo signal/pinout"
+    },
+    {
+      "id": "V_SERVO",
+      "endpoints": [
+        "VS.vout_plus",
+        "SERVO.vplus"
+      ],
+      "voltage": null,
+      "condition": "choose and measure supply after confirming stock servo voltage/current; no ESC BEC connection"
+    },
+    {
+      "id": "3V3",
+      "endpoints": [
+        "ESP.v3v3",
+        "AS.vcc",
+        "ENC.vcc"
+      ],
+      "voltage": "3.3V",
+      "condition": "breakouts must support 3.3V; verify onboard regulator/pullups and total current"
+    },
+    {
+      "id": "SDA",
+      "endpoints": [
+        "ESP.sda",
+        "AS.sda"
+      ],
+      "gpio": 6,
+      "condition": "pullups only to3.3V"
+    },
+    {
+      "id": "SCL",
+      "endpoints": [
+        "ESP.scl",
+        "AS.scl"
+      ],
+      "gpio": 7,
+      "condition": "pullups only to3.3V"
+    },
+    {
+      "id": "ENC_A",
+      "endpoints": [
+        "ESP.enc_a",
+        "ENC.a"
+      ],
+      "gpio": 8,
+      "condition": "confirm MT6701 module MODE and PPR"
+    },
+    {
+      "id": "ENC_B",
+      "endpoints": [
+        "ESP.enc_b",
+        "ENC.b"
+      ],
+      "gpio": 9,
+      "condition": "confirm MT6701 module MODE and PPR"
+    }
+  ],
+  "usb_links": [
+    [
+      "PC.usb1",
+      "ESP.usb_native"
+    ],
+    [
+      "PC.usb2",
+      "HUB.upstream"
+    ],
+    [
+      "PC.usb3",
+      "ADAPTER.usb"
+    ],
+    [
+      "ADAPTER.lidar",
+      "C1.connector"
+    ],
+    [
+      "HUB.usb1",
+      "CAM1.usb"
+    ],
+    [
+      "HUB.usb2",
+      "CAM2.usb"
+    ],
+    [
+      "HUB.usb3",
+      "CAM3.usb"
+    ],
+    [
+      "HUB.usb4",
+      "CAM4.usb"
+    ]
+  ],
+  "isolated_ports": [
+    "ESC.bec_plus"
+  ],
+  "internal_links_to_verify": [
+    {
+      "endpoints": [
+        "ESC.battery_minus",
+        "ESC.gnd"
+      ],
+      "condition": "ESC signal ground and battery return share the reference; verify actual ESC before wiring"
+    },
+    {
+      "endpoints": [
+        "VS.vin_minus",
+        "VS.vout_minus"
+      ],
+      "condition": "only if the selected servo regulator is non-isolated; do not assume all modules have this internal link",
+      "required_for_diagram": false
+    }
+  ],
+  "charging_nets": [
+    {
+      "id": "balance_minus",
+      "endpoints": [
+        "B3.balance_minus",
+        "BAT.balance_minus"
+      ]
+    },
+    {
+      "id": "balance_mid",
+      "endpoints": [
+        "B3.balance_mid",
+        "BAT.balance_mid"
+      ]
+    },
+    {
+      "id": "balance_plus",
+      "endpoints": [
+        "B3.balance_plus",
+        "BAT.balance_plus"
+      ]
+    }
+  ],
+  "charging_requirements": [
+    "battery disconnected from ESC and all vehicle loads",
+    "only one battery",
+    "B3 2S port only; 3S empty",
+    "main T contacts insulated"
+  ],
+  "omitted_by_user": [
+    "emergency_stop",
+    "independent_motor_power_cutoff",
+    "additional_fuse"
+  ],
+  "deferred": [
+    "ToF",
+    "IMU"
+  ],
+  "unverified": [
+    "servo supply voltage/current and 3-wire pinout",
+    "actual ESC 3.3V input acceptance",
+    "sensor breakout pad order, mode and mounting",
+    "USB hub external power capability",
+    "adapter mating/polarity and motor stall current",
+    "firmware outputs and physical signal timing"
+  ]
+}

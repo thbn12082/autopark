@@ -36,6 +36,8 @@ Báo cáo hồi quy cuối ở `autopark/review_artifacts/cleanup_20261108_final
 
 ## 1. Chúng ta đang làm gì?
 
+**Cập nhật phần cứng và sơ đồ ngày 08/11/2026:** người dùng xác nhận đã có ESP32-S3 và cung cấp ảnh xe với bo XL1986RT, chip SA8336D, motor 280–60T, pin Li-ion 7,4 V/1.200 mAh và cụm lái nối ba dây. Phiên thiết kế dùng ESP32-S3-DevKitC-1 N16R8 và QuicRun 1060 Brushed giắc T theo xác nhận của người dùng. Pin LiPo 2S/1.500 mAh và sạc B3 Pro là phương án đang chọn; encoder/AS5600 và nguồn servo chưa chốt module/điện áp. Người dùng chọn bỏ E-stop, ngắt động lực độc lập và cầu chì bổ sung, hoãn ToF/IMU; đây là thay đổi phạm vi phần cứng, không phải xác nhận an toàn hoặc thay đổi firmware đã kiểm. Xem [bản vẽ 2D và hướng dẫn lắp](autopark/docs/LAP_RAP_DIEN_2D.md) cùng báo cáo review đi kèm trước khi thực hiện phần cứng.
+
 AutoPark hỗ trợ **xe mô hình xoay trở ngắn trong chỗ hẹp ở tốc độ thấp**. Người lái chọn một vị trí và hướng đích gần; hệ thống tính đường, đánh lái, tiến/lùi rồi dừng. Người lái quyết định thao tác tiếp theo từ tư thế xe vừa dừng.
 
 Các tình huống chính là cua hẹp, qua cửa, lách cột và chỉnh xe vào khe. Đỗ xe là một ứng dụng gần. Tự tìm ô đỗ và dẫn xe tới đích xa nằm ngoài phạm vi hiện tại.
