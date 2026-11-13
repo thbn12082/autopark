@@ -2,6 +2,14 @@
 
 Chặng đầu đã hoàn tất trong mô phỏng. Xe thật chưa chạy thao tác; đầu ra chuyển động trên bo mặc định tắt và phần mềm chưa đọc tốc độ, góc lái thực. Kết quả mô phỏng không mở các điều kiện đang chặn xe thật.
 
+## Bố trí mới dùng Raspberry Pi
+
+Phương án ngày 13/11/2026 đưa các kết nối USB lên xe: LiDAR C1 và hub bốn camera nối Pi; ESP32 nối Pi bằng USB ngắn. Laptop chỉ trao đổi dữ liệu và quỹ đạo qua Wi-Fi nội bộ. Pi đảm nhiệm định vị/bám đường; AI vẫn chạy trên laptop. Xem [bản vẽ nguồn và tín hiệu](LAP_RAP_DIEN_2D.md).
+
+Pi cần nguồn ổn áp phù hợp với model và tải USB thực tế; nguồn này tách chức năng khỏi BEC cấp servo. Không đưa BEC 6 V hoặc pin 2S trực tiếp vào đầu nguồn 5 V của Pi. Chưa chốt module nguồn/hub; cần kiểm tải đồng thời Pi, LiDAR, ESP32 và camera, khả năng cấp nguồn hub, tránh cấp ngược qua USB và đo sụt áp khi motor/servo hoạt động.
+
+Bắt đầu bằng một camera rồi tăng dần lên bốn. Đo tốc độ khung hình, tuổi ảnh, tải CPU, nhiệt độ và gián đoạn USB khi truyền đồng thời. Độ chính xác tư thế, độ trễ mạng và quãng phanh phải đo trên xe; số đo mô phỏng không thay thế được các phép kiểm này.
+
 ## Đo xe và hệ tọa độ
 
 ![Hệ tọa độ và kích thước xe mô hình giả định từ cấu hình](images/he-truc-va-kich-thuoc.svg)
@@ -25,6 +33,6 @@ Camera trên cao dùng để chấm phải có mốc sàn độc lập, vị tr�
 
 Hoàn thiện phản hồi tốc độ, góc lái và tư thế sống trước khi chạy. Lệnh chuyển động có hạn; mất lệnh hoặc phản hồi phải dẫn tới dừng. Kết nối lại không tự chạy tiếp. Bo ảo chỉ kiểm phần mềm và giao tiếp.
 
-Chọn nguồn, dây, cầu chì theo dòng đo thực; tách nguồn động lực và logic. Dừng khẩn cấp cần phần tử ngắt động lực độc lập.
+Chọn nguồn và dây theo dòng đo thực; tách nguồn động lực và logic. Cấu hình hiện đã chọn không bố trí dừng khẩn/ngắt động lực độc lập hoặc cầu chì bổ sung, và chưa dùng ToF/IMU. Dừng bằng phần mềm/watchdog không phải đường ngắt động lực độc lập; bản cập nhật Pi không thay đổi giới hạn phần cứng này.
 
-Thử khi chưa cấp động lực, rồi kê bánh, sau đó mới kiểm phanh trên sàn. Thử mất liên lạc, mất cảm biến, khởi động lại và đứt dây dừng; giữ bản ghi cùng quãng dừng đo được.
+Thử khi chưa cấp động lực, rồi kê bánh, sau đó mới kiểm phanh trên sàn. Thử mất Wi-Fi, Pi treo/khởi động lại, đứt USB Pi–ESP32, mất cảm biến và dữ liệu trễ; giữ bản ghi cùng quãng dừng đo được. Kết nối lại không được tự chạy tiếp.

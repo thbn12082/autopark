@@ -20,6 +20,7 @@ NATIVE_SIZES = {
     "as5600": (260, 200), "mt6701": (260, 200), "laptop": (360, 260),
     "usb_hub": (330, 180), "lidar": (250, 220), "lidar_adapter": (250, 150),
     "camera": (200, 150), "servo_supply": (280, 190), "stock_board": (250, 250),
+    "raspberry_pi": (360, 250), "pi_supply": (280, 190), "hub_supply": (280, 190),
 }
 
 
@@ -85,10 +86,16 @@ PORT_SPECS = {
         "b": _p(0, 169, "left", "B (ABZ)*", "signal", True),
     },
     "laptop": {
-        "usb1": _p(0, 112, "left", "USB 1", "usb"),
-        "usb2": _p(360, 112, "right", "USB 2", "usb"),
-        "usb3": _p(360, 157, "right", "USB 3", "usb"),
+        "wifi": _p(360, 112, "right", "Wi-Fi LAN", "usb"),
         "ac": _p(0, 157, "left", "Nguồn PC", "usb"),
+    },
+    "raspberry_pi": {
+        "wifi": _p(0, 55, "left", "Wi-Fi LAN", "usb"),
+        "power_5v": _p(0, 145, "left", "+5 V*", "red", True),
+        "power_gnd": _p(0, 200, "left", "GND nguồn*", "ground", True),
+        "usb1": _p(360, 85, "right", "USB → ESP", "usb"),
+        "usb2": _p(360, 125, "right", "USB → hub", "usb"),
+        "usb3": _p(360, 165, "right", "USB → C1", "usb"),
     },
     "usb_hub": {
         "upstream": _p(0, 80, "left", "USB host", "usb"),
@@ -96,7 +103,8 @@ PORT_SPECS = {
         "usb2": _p(330, 85, "right", "2", "usb"),
         "usb3": _p(330, 118, "right", "3", "usb"),
         "usb4": _p(330, 151, "right", "4", "usb"),
-        "dc_in": _p(94, 180, "bottom", "Nguồn phụ?", "amber", True),
+        "dc_plus": _p(94, 180, "bottom", "DC +*", "red", True),
+        "dc_minus": _p(145, 180, "bottom", "DC −*", "ground", True),
     },
     "lidar": {"connector": _p(250, 159, "right", "Cáp C1", "usb")},
     "lidar_adapter": {
@@ -113,6 +121,10 @@ PORT_SPECS = {
     "stock_board": {},
 }
 
+# Separate converters; these are selection requirements, not identified hardware.
+for _kind in ("pi_supply", "hub_supply"):
+    PORT_SPECS[_kind] = {key: dict(value) for key, value in PORT_SPECS["servo_supply"].items()}
+
 TITLES = {
     "esp32": "ESP32-S3 DevKitC-1", "esc1060": "ESC 1060 BRUSHED",
     "motor280": "MOTOR GỐC 280–60T", "servo": "CỤM LÁI GỐC · 3 DÂY",
@@ -122,7 +134,15 @@ TITLES = {
     "lidar": "RPLIDAR C1", "lidar_adapter": "ADAPTER USB CỦA C1",
     "camera": "CAMERA USB", "servo_supply": "NGUỒN SERVO · CHƯA CHỌN",
     "stock_board": "XL1986RT · BO GỐC",
+    "raspberry_pi": "RASPBERRY PI · CHƯA CHỐT MODEL",
+    "pi_supply": "DC–DC CHO PI · CHỜ CHỌN",
+    "hub_supply": "DC–DC CHO HUB · CHỜ CHỌN",
 }
+
+DESIGN_DATE = "13/11/2026"
+CATALOG_KINDS = ("laptop", "raspberry_pi", "esp32", "esc1060", "motor280", "servo",
+                 "battery2s", "pi_supply", "hub_supply", "usb_hub", "camera", "lidar",
+                 "lidar_adapter", "as5600", "mt6701", "b3_charger", "stock_board")
 
 ALIASES = {"regulated_servo_supply": "servo_supply", "esc": "esc1060", "battery": "battery2s",
            "encoder": "mt6701", "charger": "b3_charger", "motor": "motor280"}
@@ -407,7 +427,7 @@ def _angle_module(kind):
     return "".join(out)
 
 
-def _servo_supply():
+def _servo_supply(kind="servo_supply"):
     out = [rect(58, 47, 164, 113, "#256f65", "#104e47", 7, 2),
            rect(55, 64, 23, 80, "#4a81b3", "#1b537c", 3),
            rect(202, 64, 23, 80, "#4a81b3", "#1b537c", 3),
@@ -418,8 +438,10 @@ def _servo_supply():
            rect(144, 126, 33, 23, "#3174aa", "#123d63", 2),
            circle(160, 137, 6, "#cbd6df", "#a5b5c0", 1), line(156, 137, 164, 137, "#41586a", 1),
            circle(94, 133, 11, "#1e293b", "#8b9ca8", 1.5),
-           text(140, 181, "V_SERVO: đo / xác nhận trước", 10.5, COLORS["amber"], "middle", 700)]
-    for key, spec in PORT_SPECS["servo_supply"].items():
+           text(140, 181, {"pi_supply": "5 V ổn áp · đúng model Pi / đủ tải",
+                           "hub_supply": "DC đúng hub · đủ tải 4 camera"}.get(kind,
+                          "V_SERVO: đo / xác nhận trước"), 10, COLORS["amber"], "middle", 700)]
+    for key, spec in PORT_SPECS[kind].items():
         end = 58 if spec["side"] == "left" else 222
         out.append(line(spec["x"], spec["y"], end, spec["y"], spec["color"], 3, stroke_dasharray="5 3"))
     return "".join(out)
@@ -429,19 +451,40 @@ def _laptop():
     out = [rect(45, 35, 270, 157, "#263545", "#101c29", 11, 2),
            rect(58, 48, 244, 129, "#132a40", "#476881", 3),
            text(180, 83, "AutoPark", 24, "#dff5ff", "middle", 700),
-           text(180, 106, "Lập đường · giao diện · bản ghi", 12, "#acc5d9", "middle"),
+           text(180, 106, "AI 4 camera · fusion · lập đường", 12, "#acc5d9", "middle"),
            path("M78 148 L122 148 Q143 148 153 134 L178 121 Q190 112 207 129 L232 151 L281 151", stroke="#58d3b5", sw=3),
            rect(196, 136, 20, 10, "#efc358", rx=3),
            path("M45 192 L315 192 L347 234 Q347 241 335 243 H25 Q13 241 13 234 Z", "#9daeba", "#415468", 2),
            path("M65 198 H296 L312 223 H49 Z", "#536779", "#6d7d8c", 1),
            rect(145, 224, 70, 13, "#b8c5ce", "#788c9e", 2),
-           line(0, 112, 45, 112, COLORS["usb"], 5),
            line(0, 157, 45, 157, COLORS["ground"], 4),
-           line(315, 112, 360, 112, COLORS["usb"], 5),
-           line(315, 157, 360, 157, COLORS["usb"], 5)]
+           path("M320 92 Q340 112 320 132 M330 99 Q343 112 330 125", stroke=COLORS["usb"], sw=2)]
     for yy in (203, 210, 217):
         for xx in range(65, 291, 15):
             out.append(rect(xx, yy, 10, 3.5, "#c2ced8", rx=.7))
+    return "".join(out)
+
+
+def _raspberry_pi():
+    out = [rect(62, 38, 240, 188, "#287b53", "#12462d", 10, 2),
+           _screw(75, 51), _screw(287, 51), _screw(75, 213), _screw(287, 213),
+           rect(102, 49, 153, 17, "#172b25", rx=2),
+           _chip(140, 95, 67, 62, "SoC", 7),
+           rect(219, 92, 35, 36, "#b9c5c6", "#637e78", 3),
+           text(175, 187, "Raspberry Pi", 18, "#edf8ed", "middle", 700),
+           text(175, 206, "Cổng vẽ theo chức năng*", 10, "#e1efdf", "middle"),
+           rect(72, 154, 27, 30, "#c8d3d5", "#63787e", 4),
+           _wire([(0,145),(45,145),(72,165)], COLORS["red"], 3, True),
+           _wire([(0,200),(45,200),(72,177)], COLORS["ground"], 3, True),
+           path("M27 39 Q47 55 27 71 M38 45 Q51 55 38 65", stroke=COLORS["usb"], sw=2),
+           text(180, 244, "Nguồn qua cổng đúng model; không cấp 6 V BEC", 10, COLORS["amber"], "middle", 700)]
+    for i in range(20):
+        for yy in (53, 60):
+            out.append(rect(106+i*7.4, yy, 3, 3, "#d7ba70"))
+    for yy in (85,125,165):
+        out += [rect(270, yy-13, 42, 26, "#c7d1d6", "#62747a", 2),
+                rect(285, yy-7, 27, 14, "#194d71", rx=1),
+                line(312, yy, 360, yy, COLORS["usb"], 4)]
     return "".join(out)
 
 
@@ -453,7 +496,8 @@ def _usb_hub():
            text(150, 127, "model cần đối chiếu", 10, "#b4c8d8", "middle"),
            _wire([(0, 80), (38, 80), (58, 82)], COLORS["usb"], 5),
            rect(26, 68, 26, 23, "#b9c5ce", "#748796", 3),
-           line(94, 160, 94, 180, COLORS["amber"], 3, stroke_dasharray="4 3")]
+           line(94, 160, 94, 180, COLORS["red"], 3, stroke_dasharray="4 3"),
+           line(145, 160, 145, 180, COLORS["ground"], 3, stroke_dasharray="4 3")]
     for key in ("usb1", "usb2", "usb3", "usb4"):
         yy = PORT_SPECS["usb_hub"][key]["y"]
         out += [rect(245, yy - 9, 22, 18, "#91a1b1", "#617586", 2),
@@ -528,20 +572,22 @@ _DRAWERS.update({
     "as5600": lambda: _angle_module("as5600"), "mt6701": lambda: _angle_module("mt6701"),
     "servo_supply": _servo_supply, "laptop": _laptop, "usb_hub": _usb_hub,
     "lidar": _lidar, "lidar_adapter": _lidar_adapter, "camera": _camera, "stock_board": _stock_board,
+    "raspberry_pi": _raspberry_pi,
+    "pi_supply": lambda: _servo_supply("pi_supply"),
+    "hub_supply": lambda: _servo_supply("hub_supply"),
 })
 
 
 def component_catalog_svg():
     """Standalone component sheet, including provenance/pin-order caveats."""
-    width, height = 1800, 1730
+    rows = (len(CATALOG_KINDS) + 3) // 4
+    width, height = 1800, 270 + rows * 365
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
            rect(0, 0, width, height, "#edf3f7"),
            text(55, 65, "AUTOPARK / THƯ VIỆN LINH KIỆN 2D", 34, weight=700),
            text(55, 101, "Hình dáng tham chiếu • điểm nối có tên • không theo tỉ lệ kích thước thật", 19, COLORS["muted"]),
-           text(55, 133, "Phương án BEC của ESC cấp servo; chỉ nối khi servo hỗ trợ 6 V và BEC đủ dòng.", 17, COLORS["amber"], weight=700)]
-    kinds = ["esp32", "esc1060", "motor280", "servo", "battery2s", "b3_charger", "as5600",
-             "mt6701", "laptop", "usb_hub", "lidar", "lidar_adapter", "camera", "stock_board"]
-    for index, kind in enumerate(kinds):
+           text(55, 133, f"THIẾT KẾ MỤC TIÊU · {DESIGN_DATE} · {len(CATALOG_KINDS)} loại hình · Chưa kiểm chứng phần cứng", 17, COLORS["amber"], weight=700)]
+    for index, kind in enumerate(CATALOG_KINDS):
         col, row = index % 4, index // 4
         x, y = 45 + col * 435, 170 + row * 365
         out.append(rect(x, y, 410, 345, "white", "#ccd9e2", 14, 1.5))
@@ -550,8 +596,8 @@ def component_catalog_svg():
         scale = min(365 / nw, 275 / nh)
         dw, dh = nw * scale, nh * scale
         out.append(draw_component(kind, x + (410 - dw) / 2, y + 40 + (280 - dh) / 2, dw, dh))
-    out += [text(55, 1670, "Vòng nét đứt: chân/chức năng cần đối chiếu trên module thực. Không suy ra thứ tự chân chỉ từ màu dây.",
+    out += [text(55, height-60, "Pi / nguồn Pi / nguồn hub: chờ chọn, chưa xác minh. BEC 6 V chỉ tới servo tương thích; không tới Pi hoặc hub.",
                  17, COLORS["amber"], weight=700),
-            text(55, 1703, "Ảnh xe chỉ làm tham chiếu hình dạng; đồ mua mới được vẽ theo loại/model đã chọn, chưa thay cho kiểm tra phần cứng.",
+            text(55, height-27, "Mỗi hình biểu diễn một loại; camera được dùng 4 lần. Vòng nét đứt = chờ đối chiếu chân; ảnh nguồn không được nhúng.",
                  16, COLORS["muted"]), "</svg>"]
     return "".join(out)

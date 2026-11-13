@@ -4,7 +4,7 @@ From the Python project directory:
     .venv\Scripts\python.exe docs/hardware/wiring-v1/render_png.py
 
 No hardware, network, browser or source photographs are used. All image pixels
-come from the deterministic SVG sources and the installed Segoe UI font.
+come from the deterministic SVG sources and installed Segoe UI / Arial fonts.
 """
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import os
+import re
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -91,7 +92,11 @@ def render_one(stem: str, scale: float) -> dict:
 def write_index() -> None:
     content = """# Bản vẽ 2D kết nối AutoPark
 
-Các bản vẽ thể hiện phương án ESP32-S3 + ESC rời, servo lấy nguồn từ BEC của ESC. Nhánh BEC chỉ được nối khi servo hỗ trợ 6 V và BEC đủ dòng; ESP32 vẫn dùng USB. Đây là tài liệu thiết kế, chưa nghiệm thu điện hoặc chạy xe thật.
+Các bản vẽ thể hiện kiến trúc mục tiêu **Laptop ↔ Wi-Fi LAN ↔ Raspberry Pi trên xe ↔ USB ngắn ↔ ESP32**. Laptop chạy AI trên bốn camera, fusion, chọn ô và lập quỹ đạo; Pi thu cảm biến, định vị, bám quỹ đạo và dừng vật cản cục bộ; ESP32 nhận lệnh chấp hành, đọc encoder/góc lái và dừng khi lệnh hết hạn. C1 và hub bốn camera nối USB về Pi.
+
+Pin 2S chia nhánh cho ESC và hai bộ nguồn ổn áp riêng cho Pi/hub. Model Pi, bộ nguồn và hub có DC-in phù hợp đều chờ chọn/xác minh, kể cả kiểm chống cấp ngược USB. BEC 6 V chỉ cấp servo sau khi xác minh tương thích và tải; không cấp Pi, hub hoặc ESP32. Sạc B3 giữ chế độ pin tách khỏi toàn bộ xe.
+
+Đây là **thiết kế mục tiêu, chưa kiểm chứng phần cứng**. Mã hiện có phục vụ mô phỏng/đích gần đặt tay; hệ Pi phân tán và tự chọn ô chưa triển khai. Dừng khi hành lang có vật cản không an toàn, dữ liệu cũ hoặc mất liên kết; không tự chạy lại. Laptop lập lại từ pose mới đo khi xe đã dừng, rồi cần xác nhận lượt chạy mới. 4G chỉ là tùy chọn về sau.
 
 | Tờ | PNG để xem | SVG để phóng to |
 |---|---|---|
@@ -100,7 +105,7 @@ Các bản vẽ thể hiện phương án ESP32-S3 + ESC rời, servo lấy ngu�
 | Tín hiệu, phản hồi và USB | [02-signal-feedback.png](02-signal-feedback.png) | [02-signal-feedback.svg](02-signal-feedback.svg) |
 | Sạc pin tách khỏi xe | [03-charging.png](03-charging.png) | [03-charging.svg](03-charging.svg) |
 
-[Hướng dẫn lắp và các điều kiện cần xác minh](../../LAP_RAP_DIEN_2D.md) · [Review độc lập](REVIEW.md) · [Nguồn hình linh kiện](component_notes.md)
+[Hướng dẫn lắp và các điều kiện cần xác minh](../../LAP_RAP_DIEN_2D.md) · [Ghi chú kiểm tra bản dựng](REVIEW.md) · [Nguồn hình linh kiện](component_notes.md)
 
 ## Dựng lại
 
@@ -110,11 +115,22 @@ Từ thư mục dự án Python `autopark/`:
 .\\.venv\\Scripts\\python.exe docs/hardware/wiring-v1/render_png.py
 ```
 
-Script dựng lại SVG, xuất PNG ở tỷ lệ 2×, kiểm XML/QtSvg, kích thước và ảnh không rỗng, rồi ghi `export_manifest.json` với hash. Dùng `--no-rebuild` nếu chỉ muốn xuất các SVG đang có; dùng `--scale 1.5` để đổi độ phân giải. Không mở thiết bị hoặc gọi mạng.
+Script dựng lại SVG, xuất PNG ở tỷ lệ 2×, kiểm XML/QtSvg, kích thước và ảnh không rỗng, rồi ghi `export_manifest.json` với hash. `--no-rebuild` bỏ qua dựng lại ba sơ đồ mạch; bảng linh kiện vẫn được dựng lại. Dùng `--scale 1.5` để đổi độ phân giải. Không mở thiết bị hoặc gọi mạng.
 
 `components.py` chứa hình linh kiện và tọa độ pad; `build_wiring.py` ghép các dây và ghi `wiring_spec.json`. Netlist và hình là kiểm tra nhất quán của thiết kế, không phải mô phỏng điện hay bằng chứng phần cứng tương thích. Ảnh gốc người dùng không được nhúng hoặc xuất bản trong bộ tệp này.
 """
     (OUT / "README.md").write_text(content, encoding="utf-8")
+
+
+def refresh_guide_image_links(exported: list[dict]) -> None:
+    """Refresh only this drawing set's owned assembly guide, never root READMEs."""
+    guide = OUT.parents[1] / "LAP_RAP_DIEN_2D.md"
+    content = guide.read_text(encoding="utf-8")
+    for entry in exported:
+        link = "hardware/wiring-v1/" + entry["png"]
+        content = re.sub(re.escape(link) + r"(?:\?v=[0-9a-f]+)?(?=\))",
+                         link + "?v=" + entry["png_sha256"][:12], content)
+    guide.write_text(content, encoding="utf-8")
 
 
 def main() -> int:
@@ -134,15 +150,17 @@ def main() -> int:
     if "Segoe UI" not in families:
         raise RuntimeError("Segoe UI is required for the reviewed Vietnamese text layout")
     app.setFont(QFont("Segoe UI", 10))
-    from components import component_catalog_svg
+    from components import component_catalog_svg, DESIGN_DATE, CATALOG_KINDS
     (OUT / "00-components.svg").write_text(component_catalog_svg(), encoding="utf-8")
     if not args.no_rebuild:
         from build_wiring import main as build
         build()
     exported = [render_one(stem, args.scale) for stem in SHEETS]
     manifest = {
-        "schema_version": 1, "scope": "proposed_design_not_hardware_verified",
-        "renderer": "QtSvg", "qt_version": qVersion(), "font": "Segoe UI",
+        "schema_version": 2, "scope": "target_design_not_hardware_verified",
+        "revision": "laptop_pi_esp32_target_v3", "design_date": DESIGN_DATE,
+        "catalog_component_count": len(CATALOG_KINDS),
+        "renderer": "QtSvg", "qt_version": qVersion(), "fonts": ["Segoe UI", "Arial"],
         "scale": args.scale, "external_media": False,
         "sources": {name: digest(OUT / name) for name in ("components.py", "build_wiring.py", "render_png.py", "wiring_spec.json")},
         "artifacts": exported,
@@ -150,6 +168,7 @@ def main() -> int:
     }
     (OUT / "export_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     write_index()
+    refresh_guide_image_links(exported)
     print(json.dumps({"exported": [entry["png"] for entry in exported], "validated": True}, ensure_ascii=False))
     return 0
 

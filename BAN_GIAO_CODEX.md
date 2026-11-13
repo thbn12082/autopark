@@ -1,5 +1,25 @@
 # Bàn giao AutoPark cho Codex tiếp quản
 
+## Quyết định cập nhật ngày 13/11/2026
+
+**Đây là định hướng mới nhất.** Phần bàn giao ngày 08/11/2026 bên dưới được giữ làm lịch sử; các mô tả cũ về phạm vi và cách chia việc giữa thiết bị cần đọc theo cập nhật này.
+
+| Thiết bị | Công việc dự kiến |
+|---|---|
+| Laptop | Chạy AI, hợp nhất dữ liệu cảm biến, chọn ô đỗ và tính đường đi. |
+| Raspberry Pi trên xe | Thu dữ liệu cảm biến, ước lượng vị trí và hướng xe tại chỗ, bám đường đã nhận và yêu cầu dừng khi có vật cản. |
+| ESP32 | Điều khiển động cơ và servo lái, gửi phản hồi, dùng bộ giám sát thời hạn lệnh (watchdog) để dừng khi mất lệnh hoặc lệnh quá hạn. |
+
+- Laptop và Pi ưu tiên kết nối **Wi-Fi trong cùng mạng nội bộ (LAN)**; không bắt buộc có Internet hoặc 4G.
+- Pi cần **nguồn ổn áp riêng, phù hợp với mẫu Pi và các thiết bị đi kèm**. Không cấp Pi từ nhánh BEC đang nuôi servo; tài liệu lắp điện phải thể hiện rõ hai nhánh nguồn.
+- Tự chọn ô đỗ và tách phần mềm thành các dịch vụ chạy trên laptop/Pi là **kế hoạch triển khai**, chưa phải tính năng đã hoàn thành. Luồng hiện có vẫn là người dùng chọn đích gần và xác nhận từng thao tác.
+- Chưa có kết quả nghiệm thu hệ thống phân tán hoặc xe thật tự đỗ. Các số liệu mô phỏng cũ bên dưới chỉ có giá trị trong phạm vi và thời điểm đã ghi.
+- Đợt cập nhật này chỉ sửa tài liệu và hình minh họa, **không thay đổi mã điều khiển**.
+
+Đọc [README hiện hành](README.md), [kiến trúc](autopark/docs/KIEN_TRUC.md), [luồng vật cản](autopark/docs/LUONG_VAT_CAN.md) và [luồng tính đường](autopark/docs/LUONG_TINH_DUONG.md) để theo dõi thiết kế mới. Hai hình tương ứng là `autopark/docs/images/luong-vat-can.png` và `autopark/docs/images/luong-tinh-duong.png`.
+
+## Bản bàn giao lịch sử ngày 08/11/2026
+
 Ngày lập: **08/11/2026**. Tài liệu này tổng hợp trạng thái repository, bằng chứng đã lưu và ngữ cảnh của phiên bàn giao để một Codex ở tài khoản khác có thể tiếp tục làm việc.
 
 - Repository: <https://github.com/thbn12082/autopark>

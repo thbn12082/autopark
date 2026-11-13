@@ -1,16 +1,22 @@
 {
-  "schema_version": 1,
-  "scope": "proposed_design_not_hardware_verified",
+  "schema_version": 2,
+  "scope": "target_design_not_hardware_verified",
+  "revision": "laptop_pi_esp32_target_v3",
+  "design_date": "13/11/2026",
+  "catalog_component_count": 17,
   "renderer": "QtSvg",
   "qt_version": "6.11.2",
-  "font": "Segoe UI",
+  "fonts": [
+    "Segoe UI",
+    "Arial"
+  ],
   "scale": 2.0,
   "external_media": false,
   "sources": {
-    "components.py": "02cc2fc8a161e3447bd6109816894359379a6fc69079429102acde6d9483f455",
-    "build_wiring.py": "f79e83134b04b8545477e0d2bddbaaa2ffb8e11ebc59e36d6e4c2d0190377f72",
-    "render_png.py": "23d39fead3eff7ec898aa9e1575b165337341f5fc88ef39f54128b52e48c70e8",
-    "wiring_spec.json": "913e3becdaa7b82e5cfdab1a6195238a56e4fe0e02ec8d4b133d3bb612f25a76"
+    "components.py": "b07534a587515b5c020e074c502dd4737e858a25bd0dcce4bff55b80abe92d8e",
+    "build_wiring.py": "fc78f581b765f36b6bb7a1d3e518a2d2c47efb2469123fdb26fcd85786bfd8b8",
+    "render_png.py": "57e466e07970137fab567467764058658cc2853ec97a02b995a706ad0434672b",
+    "wiring_spec.json": "5c66c1ba632dae397ab70fe2d2432500c7b282fe314e33b512dcfc19d9eb3efa"
   },
   "artifacts": [
     {
@@ -18,15 +24,15 @@
       "png": "00-components.png",
       "svg_size": [
         1800,
-        1730
+        2095
       ],
       "png_size": [
         3600,
-        3460
+        4190
       ],
-      "svg_sha256": "ab437202893d761c561be63748009429d09babe392a4de7fbbd0522ca1c7254b",
-      "png_sha256": "d74bb982254546a5237e252fb2b673ead4153a0c4b3329f0ba59a3b8edc27f93",
-      "png_bytes": 852109,
+      "svg_sha256": "ce3a6801d90cf27c29f8b8aaa8c586d31449865ec813283d10188068830c1133",
+      "png_sha256": "6e63bbce05406ae0bb5af8f69645b97c8b7f1fb8bc7f3f752dd0bad807145ebf",
+      "png_bytes": 1032030,
       "nonblank_check": true
     },
     {
@@ -34,31 +40,31 @@
       "png": "01-system.png",
       "svg_size": [
         2300,
-        1650
+        2850
       ],
       "png_size": [
         4600,
-        3300
+        5700
       ],
-      "svg_sha256": "0a17ce95841300459a2b7bf92e24899ad946c5f31022d0a22b1cabbb1e76e15a",
-      "png_sha256": "6bf440dad88b0b3da81403e9382f9a4abc0c52ce9ab20fe40f2ae081a4e75111",
-      "png_bytes": 980289,
+      "svg_sha256": "344f69f2ed4519da2ad511361828819754121b1853ce6fdb8bb94940010bba75",
+      "png_sha256": "acfaa2ca6cb882d883f6137953c32da103831f0a3214d3050f6fb8aa14dbb7f9",
+      "png_bytes": 1700464,
       "nonblank_check": true
     },
     {
       "svg": "02-signal-feedback.svg",
       "png": "02-signal-feedback.png",
       "svg_size": [
-        2400,
-        2000
+        2800,
+        2440
       ],
       "png_size": [
-        4800,
-        4000
+        5600,
+        4880
       ],
-      "svg_sha256": "072f3ca92d63644c1119f63a40be8b70f02af9082be38fc5f817ca3667e7d5e9",
-      "png_sha256": "76d59cc25f648fdf8f42179e123e348be8b82f6282b86be7648fb7c2d1db2d18",
-      "png_bytes": 1150080,
+      "svg_sha256": "5d982aa597f0a88ca767e3188dac920e02f4131613000e68382adc619a027594",
+      "png_sha256": "511cc0a1323811e1190baf0c7dfb40b034eda336a41b342c6873ce2898ba9efe",
+      "png_bytes": 1678824,
       "nonblank_check": true
     },
     {
@@ -72,9 +78,9 @@
         4400,
         2700
       ],
-      "svg_sha256": "aae225db6d0ab5243143a911e299cdf4bb8c31b349ab99c563cf44119170df6a",
-      "png_sha256": "b9bf8cc48aa1ef97f9c6f2051d26cc902df52f5169dd3085a3eac6082e5153bf",
-      "png_bytes": 563069,
+      "svg_sha256": "289262ea0f276b6b8b05e7c42b575c4ed9a1a3d1f319ef122a32f7c954820de6",
+      "png_sha256": "26d85a84984b201d521df1c7074f7513f2eea6554bc4d2789d8a391b7e678ddc",
+      "png_bytes": 557547,
       "nonblank_check": true
     }
   ],

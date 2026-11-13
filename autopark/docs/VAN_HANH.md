@@ -1,5 +1,15 @@
 # Vận hành
 
+## Phân biệt bản hiện có và phương án Raspberry Pi
+
+Các thao tác giao diện bên dưới mô tả bản hiện có: người dùng chọn đích gần và xác nhận chạy. Phương án chốt ngày 13/11/2026 đặt AI/chọn chỗ/tính đường trên laptop, bộ thu cảm biến/định vị/bám đường trên Pi và điều khiển ga/lái trên ESP32. Kết nối laptop–Pi dùng Wi-Fi nội bộ. Phần phân tán và tự chọn chỗ đỗ chưa được triển khai trong đợt cập nhật tài liệu này.
+
+Khi triển khai phương án mới, một lượt sẽ gồm: lấy dữ liệu mới → laptop đề xuất chỗ và tính đường → kiểm khả năng bám → người dùng xác nhận → Pi kiểm lại điều kiện → xe thực hiện và báo trạng thái → xác nhận đứng yên. Nếu có vật cản nguy hiểm hoặc dữ liệu quá cũ, Pi yêu cầu dừng tại xe. Sau khi xác nhận xe đứng yên, laptop có thể tính lại đường; xe chỉ chạy lượt mới khi người dùng xác nhận. ESP32 xử lý hết hạn lệnh nếu Pi mất hoạt động.
+
+Xem [luồng tính đường đầy đủ](LUONG_TINH_DUONG.md) và [luồng gặp vật cản](LUONG_VAT_CAN.md). Đây là mô tả hành vi cần xây dựng, không phải các nút/chế độ mới đã có trong ứng dụng.
+
+## Bản hiện có
+
 Mỗi lượt thực hiện một chuyển động gần. Trước khi bắt đầu, xe cần đứng yên, biết đúng vị trí và có khu vực thao tác xác định.
 
 ## Trình tự thao tác

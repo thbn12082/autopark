@@ -1,8 +1,61 @@
 {
-  "schema_version": 1,
-  "revision": "esc_bec_servo_v2",
+  "schema_version": 2,
+  "revision": "laptop_pi_esp32_target_v3",
   "status": "proposed_not_hardware_verified",
-  "date": "2026-11-08",
+  "date": "2026-11-13",
+  "catalog_component_kinds": [
+    "laptop",
+    "raspberry_pi",
+    "esp32",
+    "esc1060",
+    "motor280",
+    "servo",
+    "battery2s",
+    "pi_supply",
+    "hub_supply",
+    "usb_hub",
+    "camera",
+    "lidar",
+    "lidar_adapter",
+    "as5600",
+    "mt6701",
+    "b3_charger",
+    "stock_board"
+  ],
+  "catalog_component_count": 17,
+  "architecture": {
+    "status": "target_not_distributed_implementation",
+    "laptop": [
+      "AI on four camera streams",
+      "fusion",
+      "parking slot selection",
+      "trajectory planning"
+    ],
+    "pi": [
+      "onboard sensor acquisition",
+      "local measured localization",
+      "local trajectory tracking",
+      "local obstacle stop"
+    ],
+    "esp32": [
+      "real actuator outputs (target)",
+      "encoder and measured steering feedback",
+      "expired-command watchdog"
+    ],
+    "link": "Wi-Fi LAN; 4G optional remote access later",
+    "laptop_to_pi": "trajectory and explicit run confirmation, not per-tick steering",
+    "pi_to_laptop": "four camera streams, scans, new measured pose, telemetry/status",
+    "ai_direct_actuator_control": false,
+    "stop_conditions": [
+      "unsafe obstacle corridor",
+      "stale sensor/pose/trajectory",
+      "lost laptop link",
+      "expired Pi command or lost USB to ESP32"
+    ],
+    "automatic_restart": false,
+    "restart": "stop; measure new pose; laptop replans; explicit new run confirmation",
+    "current_code": "simulation/manual nearby goal; distributed Pi and automatic slot selection not implemented; PWM disabled; physical feedback drivers unfinished"
+  },
   "reference_board": "ESP32-S3-DevKitC-1 N16R8",
   "proposed_gpio": {
     "ESC_CTRL": 4,
@@ -29,24 +82,67 @@
     "SERVO": "servo",
     "AS": "as5600",
     "ENC": "mt6701",
-    "B3": "b3_charger"
+    "B3": "b3_charger",
+    "PI": "raspberry_pi",
+    "PSPI": "pi_supply",
+    "PSHUB": "hub_supply"
   },
   "operating_nets": [
     {
       "id": "BAT_PLUS",
       "endpoints": [
         "BAT.plus",
-        "ESC.battery_plus"
+        "ESC.battery_plus",
+        "PSPI.vin_plus",
+        "PSHUB.vin_plus"
       ],
-      "voltage": "2S: nominal 7.4V, max 8.4V"
+      "voltage": "2S: nominal 7.4V, max 8.4V",
+      "continuation": "P3+; separate power branches; input range/load/wiring not verified"
     },
     {
       "id": "BAT_MINUS",
       "endpoints": [
         "BAT.minus",
-        "ESC.battery_minus"
+        "ESC.battery_minus",
+        "PSPI.vin_minus",
+        "PSHUB.vin_minus"
       ],
-      "voltage": "battery return"
+      "voltage": "battery return",
+      "continuation": "P3-; power currents return on rated power harness, not ESP32"
+    },
+    {
+      "id": "PI_5V",
+      "endpoints": [
+        "PSPI.vout_plus",
+        "PI.power_5v"
+      ],
+      "voltage": "regulated 5V class, exact model specification",
+      "condition": "select converter rated for full 2S range and Pi+C1+ESP USB loads; correct power connector/cable and USB-C negotiation if required; not BEC 6V"
+    },
+    {
+      "id": "PI_RETURN",
+      "endpoints": [
+        "PSPI.vout_minus",
+        "PI.power_gnd"
+      ],
+      "voltage": "return in Pi power cable"
+    },
+    {
+      "id": "HUB_DC",
+      "endpoints": [
+        "PSHUB.vout_plus",
+        "HUB.dc_plus"
+      ],
+      "voltage": "as specified by selected powered hub, not assumed",
+      "condition": "hub must support dedicated DC input; confirm polarity/current for four cameras and no upstream VBUS backfeed to Pi"
+    },
+    {
+      "id": "HUB_RETURN",
+      "endpoints": [
+        "PSHUB.vout_minus",
+        "HUB.dc_minus"
+      ],
+      "voltage": "return in hub DC power cable"
     },
     {
       "id": "GND",
@@ -152,20 +248,16 @@
   ],
   "usb_links": [
     [
-      "PC.usb1",
+      "PI.usb1",
       "ESP.usb_native"
     ],
     [
-      "PC.usb2",
+      "PI.usb2",
       "HUB.upstream"
     ],
     [
-      "PC.usb3",
+      "PI.usb3",
       "ADAPTER.usb"
-    ],
-    [
-      "ADAPTER.lidar",
-      "C1.connector"
     ],
     [
       "HUB.usb1",
@@ -184,6 +276,22 @@
       "CAM4.usb"
     ]
   ],
+  "sensor_cable_links": [
+    [
+      "ADAPTER.lidar",
+      "C1.connector"
+    ]
+  ],
+  "wireless_links": [
+    {
+      "endpoints": [
+        "PC.wifi",
+        "PI.wifi"
+      ],
+      "medium": "Wi-Fi LAN",
+      "electrical_wire": false
+    }
+  ],
   "isolated_ports": [],
   "internal_links_to_verify": [
     {
@@ -192,6 +300,28 @@
         "ESC.gnd"
       ],
       "condition": "ESC signal ground and battery return share the reference; verify actual ESC before wiring"
+    },
+    {
+      "endpoints": [
+        "PSPI.vin_minus",
+        "PSPI.vout_minus"
+      ],
+      "condition": "select non-isolated converter; verify common return"
+    },
+    {
+      "endpoints": [
+        "PSHUB.vin_minus",
+        "PSHUB.vout_minus"
+      ],
+      "condition": "select non-isolated converter; verify common return"
+    },
+    {
+      "endpoints": [
+        "PI.power_gnd",
+        "ESP.gnd",
+        "HUB.dc_minus"
+      ],
+      "condition": "common reference via USB grounds; never use signal cable for motor/servo load return; verify hub does not backfeed Pi VBUS"
     }
   ],
   "charging_nets": [
@@ -233,10 +363,13 @@
     "IMU"
   ],
   "unverified": [
+    "Pi model and power supply rating, cable/connector and USB-C power negotiation",
+    "hub model, DC input rating and upstream VBUS backfeed prevention",
+    "2S branch harness, converter input range/load transients, voltage drop and heat",
+    "four-camera USB/Wi-Fi bandwidth and timestamps",
     "stock servo 6V compatibility, load current and 3-wire pinout",
     "actual ESC BEC voltage/current and 3.3V input acceptance",
     "sensor breakout pad order, mode and mounting",
-    "USB hub external power capability",
     "adapter mating/polarity and motor stall current",
     "firmware outputs and physical signal timing"
   ]

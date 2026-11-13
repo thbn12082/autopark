@@ -10,7 +10,7 @@ from html import escape
 import json
 from pathlib import Path
 
-from components import draw_component, component_ports, PORT_SPECS
+from components import draw_component, component_ports, PORT_SPECS, DESIGN_DATE, CATALOG_KINDS
 
 OUT = Path(__file__).resolve().parent
 INK = "#153047"
@@ -67,9 +67,9 @@ class Sheet:
         self.background = [box(0, 0, width, height, BG, BG, 0), text(70, 73, title, 44, weight=700),
                            text(70, 114, subtitle, 23, MUTED),
                            box(70, 142, width - 140, 65, "#fff4df", "#e8bf75", 12),
-                           text(92, 181, "THIẾT KẾ ĐỀ XUẤT • Chưa kiểm chứng trên xe • GPIO đề xuất, firmware chưa đổi", 25, "#82500d", 600)]
+                           text(92, 181, "THIẾT KẾ MỤC TIÊU • Chưa kiểm chứng trên xe • Pi phân tán / tự chọn ô chưa triển khai", 25, "#82500d", 600)]
         self.drawings, self.wires, self.overlays = [], [], []
-        self.overlays.append(text(width - 70, height - 28, f"AutoPark · 08/11/2026 · Tờ {index}/3", 21, MUTED, anchor="end"))
+        self.overlays.append(text(width - 70, height - 28, f"AutoPark · {DESIGN_DATE} · Tờ {index}/3", 21, MUTED, anchor="end"))
 
     def node(self, name, kind, x, y, w, h, label=None, subtitle=None):
         n = Node(kind, x, y, w, h, label, subtitle)
@@ -120,7 +120,7 @@ class Sheet:
 
 
 def system_sheet():
-    s = Sheet(2300, 1650, "01 · SERVO LẤY NGUỒN TỪ BEC CỦA ESC", "Một pin 2S cấp ESC; BEC cấp servo. ESP32 vẫn dùng nguồn USB, hai tín hiệu ga/lái đi riêng.", 1)
+    s = Sheet(2300, 2850, "01 · NGUỒN TRÊN XE: ĐỘNG LỰC, PI VÀ HUB", "Pin 2S chia nhánh: ESC + nguồn Pi + nguồn hub. BEC 6 V chỉ cấp servo sau khi xác minh tương thích.", 1)
     s.background.append(box(70, 240, 2160, 1280, "#ffffff", "#d6e0e9", 20))
     s.node("BAT", "battery2s", 100, 300, 330, 220)
     s.node("ESC", "esc1060", 880, 300, 420, 280)
@@ -133,6 +133,14 @@ def system_sheet():
     s.wire("BAT.minus", "ESC.battery_minus", [(540, bn[1]), (540, en[1])], GND, width=7)
     s.label(520, 310, "P1 · Giắc T/Deans đúng cặp", 25)
     s.label(520, 345, "Đối chiếu cực + / −", 22, MUTED)
+    # Named continuation pair, not another battery or a physical connector pinout.
+    s.line([(650, ep[1]), (650, 485), (800, 485)], RED, True, 7)
+    s.line([(700, en[1]), (700, 545), (800, 545)], GND, True, 7)
+    s.junction(650, ep[1], RED)
+    s.junction(700, en[1], GND)
+    s.label(720, 475, "P3+ ↓", 21, RED)
+    s.label(720, 535, "P3− ↓", 21, GND)
+    s.label(370, 635, "P3 → nguồn Pi / hub (phần dưới)", 21, MUTED)
     ma, mb = s.point("MOTOR.a"), s.point("MOTOR.b")
     ea, eb = s.point("ESC.motor_a"), s.point("ESC.motor_b")
     s.wire("ESC.motor_a", "MOTOR.a", [(1485, ea[1]), (1485, ma[1])], USB, width=7)
@@ -171,47 +179,85 @@ def system_sheet():
     u = s.point("ESP.usb_native")
     s.line([u, (u[0], 1375)], USB, width=9)
     s.overlays.append(box(u[0] - 22, 1375, 44, 26, "#dceeff", USB, 6))
-    s.label(520, 1380, ["U1 · USB native tới laptop ở Tờ 2", "Nguồn + dữ liệu; không cấp thêm 5V/BEC vào ESP"], 22, USB)
+    s.label(520, 1380, ["U1 · USB native tới Pi trên xe ở Tờ 2", "Nguồn + dữ liệu; không cấp thêm 5V/BEC vào ESP"], 22, USB)
     s.label(100, 570, "Giắc cân bằng pin để rời khi chạy (sạc ở Tờ 3).", 22, MUTED)
     s.label(85, 1567, "Nét đứt: kết nối còn điều kiện xác minh. Giao cắt không chấm = không nối; chấm tròn = cùng nút.", 23, MUTED)
     s.label(85, 1600, "Theo lựa chọn hiện tại: chưa có nút dừng khẩn, phần tử ngắt động lực độc lập và cầu chì bổ sung.", 22, AMBER)
+    s.background.append(box(70, 1670, 2160, 1110, "white", "#d6e0e9", 20))
+    s.label(95, 1720, "P3 · HAI BỘ NGUỒN ỔN ÁP RIÊNG — PHƯƠNG ÁN CHỜ CHỌN / ĐO KIỂM", 28)
+    s.label(95, 1760, "P3+/P3− tiếp tục đúng hai nhánh có tên ở trên; không lấy từ BEC hoặc giắc cân bằng.", 23, MUTED)
+    s.node("PSPI", "pi_supply", 470, 1830, 400, 271.43)
+    s.node("PSHUB", "hub_supply", 470, 2250, 400, 271.43)
+    s.node("PI", "raspberry_pi", 1270, 1800, 480, 333.33)
+    s.node("HUB", "usb_hub", 1270, 2250, 420, 229.09, label="HUB CÓ NGUỒN · CHỜ CHỌN")
+    for port, x, start_y, col, name in [("vin_plus", 200, 1840, RED, "P3+"),
+                                      ("vin_minus", 260, 1900, GND, "P3−")]:
+        p, h = s.point(f"PSPI.{port}"), s.point(f"PSHUB.{port}")
+        s.line([(110,start_y),(x,start_y),(x,h[1]),h],col,True,7)
+        s.line([(x,p[1]),p],col,True,7)
+        s.junction(x,p[1],col)
+        s.label(100,start_y-20,name,24,col)
+    for out_port, target, gutter, col in [("vout_plus", "power_5v", 1060, RED),
+                                         ("vout_minus", "power_gnd", 1120, GND)]:
+        a,b=s.point(f"PSPI.{out_port}"),s.point(f"PI.{target}")
+        s.wire(f"PSPI.{out_port}",f"PI.{target}",[(gutter,a[1]),(gutter,b[1])],col,True,7)
+    s.label(915, 1825, "P4 · 5 V ổn áp*", 24, RED)
+    s.label(915, 2150, "Cả + và GND qua cổng nguồn đúng model Pi; hình tách hai lõi để đọc đường điện.", 21, MUTED)
+    for out_port, target, gutter, bottom, col in [("vout_plus","dc_plus",1040,2570,RED),
+                                                ("vout_minus","dc_minus",1100,2615,GND)]:
+        a,b=s.point(f"PSHUB.{out_port}"),s.point(f"HUB.{target}")
+        s.wire(f"PSHUB.{out_port}",f"HUB.{target}",[(gutter,a[1]),(gutter,bottom),(b[0],bottom)],col,True,7)
+    s.label(915, 2225, "P5 · DC đúng định mức hub*", 24, RED)
+    s.note(1780, 1830, 410, ["PI / NGUỒN: CHỜ CHỌN", "Đầu vào chịu toàn dải pin 2S.", "5 V đúng yêu cầu model Pi;", "đủ tải Pi + C1 + ESP qua USB.", "Kiểm sụt áp, nhiễu, nhiệt", "và cách nhận nguồn USB-C.", "Không dùng BEC 6 V."], AMBER, "#fff8ea", 21)
+    s.note(1760, 2250, 440, ["HUB / NGUỒN: CHỜ CHỌN", "Chỉ cấp qua DC-in hãng hỗ trợ.", "Điện áp / cực / dòng đúng hub.", "Đủ tải đồng thời 4 camera.", "Kiểm không cấp ngược VBUS", "từ hub về cổng USB của Pi.", "Hub cũ: chưa xác nhận DC-in."], AMBER, "#fff8ea", 21)
+    s.label(95, 2685, ["USB Pi ↔ ESP/C1/hub: xem Tờ 2; GND theo cáp USB. Nguồn Pi và hub không ghép song song đầu ra dương.",
+                       "Chọn DC–DC không cách ly, kiểm IN−/OUT− cùng tham chiếu; dòng motor/servo hồi theo dây nguồn riêng.",
+                       "Ngắt pin tại đầu T chung sẽ tách cả ESC, nguồn Pi và nguồn hub trước khi sạc. Công tắc ESC không ngắt hai nhánh mới."], 22, MUTED)
     return s.save("01-system.svg")
 
 
 def signal_sheet():
-    s = Sheet(2400, 2000, "02 · USB, CHÂN ĐIỀU KHIỂN VÀ PHẢN HỒI", "Các tên chân GPIO là map đề xuất cho DevKitC-1; không thay cho việc kiểm tra đúng phiên bản bo/module.", 2)
-    s.background += [box(70, 240, 2260, 730, "white", "#d6e0e9", 20),
-                     box(70, 1030, 2260, 865, "white", "#d6e0e9", 20)]
-    s.node("PC", "laptop", 150, 265, 400, 288.89)
-    s.node("HUB", "usb_hub", 900, 270, 330, 180)
-    for i, (x, y) in enumerate([(1500, 275), (1950, 275), (1500, 565), (1950, 565)], 1):
+    s = Sheet(2800, 2440, "02 · LAPTOP ↔ WI-FI ↔ PI TRÊN XE ↔ USB ↔ ESP32", "Pi thu cảm biến, định vị và bám quỹ đạo tại xe. Laptop gửi quỹ đạo, không gửi từng nhịp lái qua Wi-Fi.", 2)
+    s.background += [box(70, 240, 2660, 730, "white", "#d6e0e9", 20),
+                     box(70, 1030, 2660, 865, "white", "#d6e0e9", 20)]
+    s.node("PC", "laptop", 120, 285, 360, 260)
+    s.node("PI", "raspberry_pi", 850, 285, 400, 277.78)
+    s.node("HUB", "usb_hub", 1500, 280, 330, 180, label="HUB CÓ NGUỒN · CHỜ CHỌN")
+    for i, (x, y) in enumerate([(2000, 280), (2450, 280), (2000, 650), (2450, 650)], 1):
         s.node(f"CAM{i}", "camera", x, y, 230, 172.5, label=f"CAMERA USB {i}")
-    s.node("C1", "lidar", 140, 650, 300, 264)
-    s.node("ADAPTER", "lidar_adapter", 880, 650, 300, 180)
+    s.node("C1", "lidar", 800, 670, 300, 264)
+    s.node("ADAPTER", "lidar_adapter", 1250, 700, 300, 180)
     s.node("ESP", "esp32", 230, 1160, 420, 585)
     s.node("AS", "as5600", 1060, 1180, 350, 269.23)
     s.node("ENC", "mt6701", 1750, 1470, 350, 269.23)
-    pc2, hup = s.point("PC.usb2"), s.point("HUB.upstream")
-    s.wire("PC.usb2", "HUB.upstream", [(700, pc2[1]), (700, hup[1])], USB, width=8)
-    s.label(580, 280, "U2 · Cáp USB upstream", 23, USB)
+    pc, pi = s.point("PC.wifi"), s.point("PI.wifi")
+    s.wire("PC.wifi", "PI.wifi", [(700,pc[1]),(700,pi[1])], USB, True, 6)
+    s.label(515, 285, ["N1 · Wi-Fi LAN", "Hai chiều · không phải dây"], 22, USB)
+    s.label(505, 445, ["→ quỹ đạo / xác nhận chạy", "← ảnh, scan, pose, trạng thái"], 21, USB)
+    pu, hu = s.point("PI.usb2"), s.point("HUB.upstream")
+    s.wire("PI.usb2", "HUB.upstream", [(1370,pu[1]),(1370,hu[1])], USB, width=8)
+    s.label(1430, 255, "U2 · USB upstream tới Pi", 22, USB)
     camera_vias = {
-        1: lambda a,b: [(1370,a[1]),(1370,b[1])],
-        2: lambda a,b: [(1410,a[1]),(1410,235),(1890,235),(1890,b[1])],
-        3: lambda a,b: [(1430,a[1]),(1430,b[1])],
-        4: lambda a,b: [(1470,a[1]),(1470,790),(1890,790),(1890,b[1])],
+        1: lambda a,b: [(1940,a[1]),(1940,b[1])],
+        2: lambda a,b: [(1870,a[1]),(1870,245),(2400,245),(2400,b[1])],
+        3: lambda a,b: [(1900,a[1]),(1900,b[1])],
+        4: lambda a,b: [(1860,a[1]),(1860,920),(2400,920),(2400,b[1])],
     }
     for i in range(1,5):
-        a, b = s.point(f"HUB.usb{i}"), s.point(f"CAM{i}.usb")
-        s.wire(f"HUB.usb{i}", f"CAM{i}.usb", camera_vias[i](a,b), USB, width=7)
-    s.note(730, 500, 670, ["U3–U6 · 4 camera USB đã có; chưa chốt hướng gá.", "Hub có nguồn phụ? Chỉ cấp nếu đúng model hỗ trợ.", "Không đưa nguồn tự chế vào cổng hub chưa xác minh."], AMBER, "#fff8ea", 21)
-    pc3, au = s.point("PC.usb3"), s.point("ADAPTER.usb")
-    s.wire("PC.usb3", "ADAPTER.usb", [(620,pc3[1]),(620,638),(1250,638),(1250,au[1])], USB, width=8)
-    cp, al = s.point("C1.connector"), s.point("ADAPTER.lidar")
-    s.wire("C1.connector", "ADAPTER.lidar", [(690,cp[1]),(690,al[1])], USB, width=8)
-    s.label(500, 900, ["U7–U8 · C1 nối qua adapter USB và cáp gốc của bộ LiDAR.", "Giữ đúng giắc/cực nhà sản xuất; không suy ra pin từ màu dây."], 22, USB)
-    pc1, eu = s.point("PC.usb1"), s.point("ESP.usb_native")
-    s.wire("PC.usb1", "ESP.usb_native", [(45,pc1[1]),(45,1870),(eu[0],1870)], USB, width=9)
-    s.label(80, 990, "U1 · Laptop ↔ USB native/CDC của ESP32: dữ liệu + nguồn. Cổng USB–UART không nối trong bản này.", 23, USB)
+        a,b=s.point(f"HUB.usb{i}"),s.point(f"CAM{i}.usb")
+        s.wire(f"HUB.usb{i}",f"CAM{i}.usb",camera_vias[i](a,b),USB,width=7)
+    s.note(1930, 510, 760, ["U3–U6 · Bốn camera USB → hub → Pi.", "Chưa chốt hướng gá / FPS / băng thông thực tế."], AMBER, "#fff8ea", 22)
+    s.label(1460, 495, ["Nguồn hub riêng: P5 ở Tờ 1.", "DC-in chưa xác minh; không cấp ngược Pi."], 20, AMBER)
+    s.label(780, 600, "Nguồn Pi riêng: P4 ở Tờ 1; BEC 6 V không nối Pi.", 21, AMBER)
+    pu, au=s.point("PI.usb3"),s.point("ADAPTER.usb")
+    s.wire("PI.usb3","ADAPTER.usb",[(1410,pu[1]),(1410,590),(1610,590),(1610,au[1])],USB,width=8)
+    cp,al=s.point("C1.connector"),s.point("ADAPTER.lidar")
+    s.wire("C1.connector","ADAPTER.lidar",[(1180,cp[1]),(1180,al[1])],USB,width=8)
+    s.label(1140, 900, ["U7 · C1 + adapter USB → Pi.", "U8 · Cáp C1 gốc; không chuyển sang GPIO ESP."], 21, USB)
+    pu,eu=s.point("PI.usb1"),s.point("ESP.usb_native")
+    s.wire("PI.usb1","ESP.usb_native",[(1300,pu[1]),(1300,625),(45,625),(45,1870),(eu[0],1870)],USB,width=9)
+    s.note(100, 690, 610, ["LAPTOP: AI trên 4 luồng camera,", "fusion + chọn ô đỗ + lập quỹ đạo.", "PI: thu C1/camera, định vị cục bộ,", "bám quỹ đạo và dừng vật cản tại xe.", "AI không trực tiếp xuất ga / góc lái.", "4G: tùy chọn điều khiển từ xa về sau."], MUTED, "#f3f7fb", 22)
+    s.label(80, 990, "U1 · USB NGẮN TRÊN XE: Pi ↔ USB native/CDC của ESP32; dữ liệu + nguồn. Không kéo USB từ laptop ra xe.", 23, USB)
     s.label(1050, 1095, "PHẢN HỒI ĐO ĐƯỢC · module và gá chưa chốt", 28)
     p3, g = s.point("ESP.v3v3"), s.point("ESP.gnd")
     av, ev = s.point("AS.vcc"), s.point("ENC.vcc")
@@ -239,6 +285,9 @@ def signal_sheet():
     s.note(1700, 1190, 550, ["GPIO4: ESC_CTRL · GPIO5: SERVO_CTRL.", "GPIO6/7: I²C · GPIO8/9: A/B.", "Map đề xuất; firmware chưa đổi.", "Đối chiếu đúng chân trên module."], AMBER, "#fff8ea", 22)
     s.label(250, 1905, "L2 · GND cảm biến về ESP; GND ESP còn nối ESC/BEC và servo ở Tờ 1.", 23, GND)
     s.label(70, 1950, "ToF và IMU được hoãn. Bốn camera không tự thay thế phép đo tốc độ/góc lái hay kiểm chứng vùng mù.", 23, MUTED)
+    s.note(2350, 1170, 350, ["ESP32 — MỤC TIÊU", "Xuất ga / lái thật.", "Đọc encoder tốc độ", "và góc lái đo được.", "Watchdog lệnh hết hạn", "ép dừng khi Pi im lặng.", "Pinmap: chưa áp dụng."], AMBER, "#fff8ea", 21)
+    s.note(80, 2030, 1290, ["DỪNG VÀ GIỮ DỪNG — YÊU CẦU KIẾN TRÚC", "Pi dừng nếu vật cản khiến hành lang quỹ đạo không an toàn,", "hoặc dữ liệu / pose / quỹ đạo hết hạn, hoặc mất liên kết laptop.", "ESP32 dừng khi lệnh từ Pi hết hạn / mất USB. Không tự chạy lại.", "Laptop lập lại từ pose mới đo khi xe đã dừng; xác nhận lượt chạy mới."], RED, "#fff3f2", 25)
+    s.note(1430, 2030, 1270, ["PHÂN BIỆT HIỆN TẠI VỚI MỤC TIÊU", "Mã hiện có: mô phỏng, thao tác đích gần do người dùng đặt.", "Chưa triển khai hệ Pi phân tán hoặc tự chọn ô đỗ trên xe.", "Firmware hiện tắt PWM; driver phản hồi thật chưa hoàn thiện.", "Hình không xác nhận phần cứng đã lắp / thử hay đạt an toàn."], MUTED, "#f3f7fb", 25)
     return s.save("02-signal-feedback.svg")
 
 
@@ -272,10 +321,26 @@ def charge_sheet():
 def spec():
     gpio={"ESC_CTRL":4,"SERVO_CTRL":5,"SDA":6,"SCL":7,"ENC_A":8,"ENC_B":9}
     return {
-        "schema_version":1,
-        "revision":"esc_bec_servo_v2",
+        "schema_version":2,
+        "revision":"laptop_pi_esp32_target_v3",
         "status":"proposed_not_hardware_verified",
-        "date":"2026-11-08",
+        "date":"-".join(reversed(DESIGN_DATE.split("/"))),
+        "catalog_component_kinds":list(CATALOG_KINDS),
+        "catalog_component_count":len(CATALOG_KINDS),
+        "architecture":{
+            "status":"target_not_distributed_implementation",
+            "laptop":["AI on four camera streams","fusion","parking slot selection","trajectory planning"],
+            "pi":["onboard sensor acquisition","local measured localization","local trajectory tracking","local obstacle stop"],
+            "esp32":["real actuator outputs (target)","encoder and measured steering feedback","expired-command watchdog"],
+            "link":"Wi-Fi LAN; 4G optional remote access later",
+            "laptop_to_pi":"trajectory and explicit run confirmation, not per-tick steering",
+            "pi_to_laptop":"four camera streams, scans, new measured pose, telemetry/status",
+            "ai_direct_actuator_control":False,
+            "stop_conditions":["unsafe obstacle corridor","stale sensor/pose/trajectory","lost laptop link","expired Pi command or lost USB to ESP32"],
+            "automatic_restart":False,
+            "restart":"stop; measure new pose; laptop replans; explicit new run confirmation",
+            "current_code":"simulation/manual nearby goal; distributed Pi and automatic slot selection not implemented; PWM disabled; physical feedback drivers unfinished",
+        },
         "reference_board":"ESP32-S3-DevKitC-1 N16R8",
         "proposed_gpio":gpio,
         "firmware_pinmap_changed":False,
@@ -283,10 +348,15 @@ def spec():
             "PC":"laptop","HUB":"usb_hub","CAM1":"camera","CAM2":"camera","CAM3":"camera","CAM4":"camera",
             "ESP":"esp32","C1":"lidar","ADAPTER":"lidar_adapter","BAT":"battery2s","ESC":"esc1060",
             "MOTOR":"motor280","SERVO":"servo","AS":"as5600","ENC":"mt6701","B3":"b3_charger",
+            "PI":"raspberry_pi","PSPI":"pi_supply","PSHUB":"hub_supply",
         },
         "operating_nets":[
-            {"id":"BAT_PLUS","endpoints":["BAT.plus","ESC.battery_plus"],"voltage":"2S: nominal 7.4V, max 8.4V"},
-            {"id":"BAT_MINUS","endpoints":["BAT.minus","ESC.battery_minus"],"voltage":"battery return"},
+            {"id":"BAT_PLUS","endpoints":["BAT.plus","ESC.battery_plus","PSPI.vin_plus","PSHUB.vin_plus"],"voltage":"2S: nominal 7.4V, max 8.4V","continuation":"P3+; separate power branches; input range/load/wiring not verified"},
+            {"id":"BAT_MINUS","endpoints":["BAT.minus","ESC.battery_minus","PSPI.vin_minus","PSHUB.vin_minus"],"voltage":"battery return","continuation":"P3-; power currents return on rated power harness, not ESP32"},
+            {"id":"PI_5V","endpoints":["PSPI.vout_plus","PI.power_5v"],"voltage":"regulated 5V class, exact model specification","condition":"select converter rated for full 2S range and Pi+C1+ESP USB loads; correct power connector/cable and USB-C negotiation if required; not BEC 6V"},
+            {"id":"PI_RETURN","endpoints":["PSPI.vout_minus","PI.power_gnd"],"voltage":"return in Pi power cable"},
+            {"id":"HUB_DC","endpoints":["PSHUB.vout_plus","HUB.dc_plus"],"voltage":"as specified by selected powered hub, not assumed","condition":"hub must support dedicated DC input; confirm polarity/current for four cameras and no upstream VBUS backfeed to Pi"},
+            {"id":"HUB_RETURN","endpoints":["PSHUB.vout_minus","HUB.dc_minus"],"voltage":"return in hub DC power cable"},
             {"id":"GND","endpoints":["ESP.gnd","ESC.gnd","SERVO.gnd","AS.gnd","ENC.gnd"],"voltage":"common signal reference; servo power return directly to ESC/BEC, not through ESP32"},
             {"id":"MOTOR_A","endpoints":["ESC.motor_a","MOTOR.a"],"voltage":"switched motor output; NOT logic GND"},
             {"id":"MOTOR_B","endpoints":["ESC.motor_b","MOTOR.b"],"voltage":"switched motor output; NOT logic GND"},
@@ -299,17 +369,22 @@ def spec():
             {"id":"ENC_A","endpoints":["ESP.enc_a","ENC.a"],"gpio":8,"condition":"confirm MT6701 module MODE and PPR"},
             {"id":"ENC_B","endpoints":["ESP.enc_b","ENC.b"],"gpio":9,"condition":"confirm MT6701 module MODE and PPR"},
         ],
-        "usb_links":[["PC.usb1","ESP.usb_native"],["PC.usb2","HUB.upstream"],["PC.usb3","ADAPTER.usb"],
-                     ["ADAPTER.lidar","C1.connector"],*[ [f"HUB.usb{i}",f"CAM{i}.usb"] for i in range(1,5)]],
+        "usb_links":[["PI.usb1","ESP.usb_native"],["PI.usb2","HUB.upstream"],["PI.usb3","ADAPTER.usb"],
+                     *[[f"HUB.usb{i}",f"CAM{i}.usb"] for i in range(1,5)]],
+        "sensor_cable_links":[["ADAPTER.lidar","C1.connector"]],
+        "wireless_links":[{"endpoints":["PC.wifi","PI.wifi"],"medium":"Wi-Fi LAN","electrical_wire":False}],
         "isolated_ports":[],
         "internal_links_to_verify":[
             {"endpoints":["ESC.battery_minus","ESC.gnd"],"condition":"ESC signal ground and battery return share the reference; verify actual ESC before wiring"},
+            {"endpoints":["PSPI.vin_minus","PSPI.vout_minus"],"condition":"select non-isolated converter; verify common return"},
+            {"endpoints":["PSHUB.vin_minus","PSHUB.vout_minus"],"condition":"select non-isolated converter; verify common return"},
+            {"endpoints":["PI.power_gnd","ESP.gnd","HUB.dc_minus"],"condition":"common reference via USB grounds; never use signal cable for motor/servo load return; verify hub does not backfeed Pi VBUS"},
         ],
         "charging_nets":[{"id":p,"endpoints":["B3."+p,"BAT."+p]} for p in ("balance_minus","balance_mid","balance_plus")],
         "charging_requirements":["battery disconnected from ESC and all vehicle loads","only one battery","B3 2S port only; 3S empty","main T contacts insulated"],
         "omitted_by_user":["emergency_stop","independent_motor_power_cutoff","additional_fuse"],
         "deferred":["ToF","IMU"],
-        "unverified":["stock servo 6V compatibility, load current and 3-wire pinout","actual ESC BEC voltage/current and 3.3V input acceptance","sensor breakout pad order, mode and mounting","USB hub external power capability","adapter mating/polarity and motor stall current","firmware outputs and physical signal timing"],
+        "unverified":["Pi model and power supply rating, cable/connector and USB-C power negotiation","hub model, DC input rating and upstream VBUS backfeed prevention","2S branch harness, converter input range/load transients, voltage drop and heat","four-camera USB/Wi-Fi bandwidth and timestamps","stock servo 6V compatibility, load current and 3-wire pinout","actual ESC BEC voltage/current and 3.3V input acceptance","sensor breakout pad order, mode and mounting","adapter mating/polarity and motor stall current","firmware outputs and physical signal timing"],
     }
 
 
@@ -317,12 +392,23 @@ def validate_spec(data):
     """Catch internal drawing/netlist contradictions; this is not hardware validation."""
     assert len(set(data["proposed_gpio"].values()))==6
     assert not data["firmware_pinmap_changed"]
-    for net in [*data["operating_nets"],*data["charging_nets"],*({"endpoints":x} for x in data["usb_links"])]:
+    for net in [*data["operating_nets"],*data["charging_nets"],*data["wireless_links"],
+                *data["internal_links_to_verify"],
+                *({"endpoints":x} for x in data["usb_links"]+data["sensor_cable_links"])]:
         for endpoint in net["endpoints"]:
             name,port=endpoint.split(".")
             assert port in PORT_SPECS[data["components"][name]],endpoint
     endpoints=[p for n in data["operating_nets"] for p in n["endpoints"]]
     assert "VS" not in data["components"]
+    assert data["catalog_component_count"] == len(set(data["catalog_component_kinds"])) == len(CATALOG_KINDS)
+    assert all(not p.startswith("PC.") for link in data["usb_links"] for p in link)
+    assert ["PI.usb1","ESP.usb_native"] in data["usb_links"]
+    assert ["PI.usb2","HUB.upstream"] in data["usb_links"]
+    assert ["PI.usb3","ADAPTER.usb"] in data["usb_links"]
+    assert len(data["usb_links"]) == 7
+    assert data["sensor_cable_links"] == [["ADAPTER.lidar","C1.connector"]]
+    assert data["wireless_links"][0]["endpoints"] == ["PC.wifi","PI.wifi"]
+    assert not data["architecture"]["automatic_restart"]
     assert len(endpoints) == len(set(endpoints)), "A port must not bridge different operating nets"
     assert "BAT.balance_mid" not in endpoints
     servo_power = next(n for n in data["operating_nets"] if n["id"]=="V_SERVO")

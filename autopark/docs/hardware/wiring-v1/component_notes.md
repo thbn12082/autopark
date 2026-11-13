@@ -32,7 +32,9 @@ component_catalog_svg() -> str
 | B3 Pro | Vỏ hộp, ba LED, ổ AC và cổng 2S/3S theo hướng dẫn B3 Pro | Vị trí cổng có thể khác theo phiên bản; luôn đọc nhãn 2S trên sạc. B−/BM/B+ trên hình là thứ tự điện chức năng, không xác nhận hướng nhìn vào giắc của hàng mua |
 | AS5600 / MT6701 | PCB nhỏ, IC cảm biến và nam châm đồng trục minh họa | PCB module thương mại chưa chốt. Các pad nguồn/tín hiệu là mốc chức năng; không phải pinout vật lý của một module cụ thể. VCC 3V3 chỉ áp dụng nếu module mua cho phép. MT6701 cần đúng cấu hình/chân xuất ABZ |
 | LiDAR C1 | Đầu quét tròn trên đế vuông có góc bo tròn | Dùng nguyên cáp C1 và adapter USB tương ứng; hình không diễn giải từng chân riêng của cáp |
-| Hub / camera / máy tính | Silhouette chung của thiết bị đã có | Model hub/camera/laptop cụ thể chưa đối chiếu bằng ảnh; cổng nguồn phụ hub chỉ tồn tại nếu model thực hỗ trợ |
+| Hub / camera / máy tính | Hình tham chiếu chung, giữ phong cách vector cũ | Laptop chỉ nối Wi-Fi với Pi; bốn camera qua hub tới Pi. Hub cũ chưa xác minh DC-in; chọn hub có nguồn phù hợp và kiểm không cấp ngược VBUS về Pi |
+| Raspberry Pi | PCB xanh, SoC, hàng chân và cổng USB để nhận dạng loại máy tính đơn bo | Model chưa chọn. Mốc USB/nguồn là chức năng, không khẳng định vị trí cổng của Pi cụ thể; cấp nguồn qua cổng đúng model, không suy ra cấp qua header GPIO |
+| DC–DC Pi / DC–DC hub | Giữ phong cách module vector của thư viện, hai khối nguồn riêng | Chưa chọn hay đo phần cứng. Đầu vào chịu toàn dải 2S; Pi cần 5 V ổn áp đúng yêu cầu model/tải, hub cần điện áp/cực/dòng đúng DC-in được hãng hỗ trợ; hai đầu ra dương không ghép song song, không dùng BEC 6 V |
 
 ## Chân ESP32 tham chiếu
 
@@ -57,4 +59,6 @@ Các nguồn hình dạng/chức năng khác: [Hobbywing QuicRun 1060](https://w
 
 Không vẽ thêm nút dừng khẩn, phần tử ngắt động lực, cầu chì, IMU hay ToF: người dùng đã yêu cầu bỏ/hoãn các mục đó. Hình thể hiện lựa chọn của người dùng, không phải xác nhận hệ thống có đường ngắt động lực độc lập.
 
-Bản catalogue hiện tại có 14 linh kiện, không vẽ bộ ổn áp servo rời. Nguồn servo lấy từ BEC của ESC với điều kiện tương thích 6 V và dòng tải được ghi ngay trên bản vẽ. Các ký hiệu module tùy chọn còn trong thư viện không phải linh kiện phải mua cho cấu hình này.
+Bản catalogue ngày 13/11/2026 có **17 loại hình linh kiện** (một hình camera dùng bốn lần trong sơ đồ). Danh sách `CATALOG_KINDS` và ngày `DESIGN_DATE` trong mã là nguồn chung cho catalogue, footer, spec và manifest; số hàng/kích thước catalogue được tính tự động. Bo XL1986RT chỉ để nhận dạng phần cất riêng, không thuộc mạng hoạt động. Nguồn servo lấy từ BEC có điều kiện tương thích 6 V; hai bộ nguồn mới dành riêng Pi và hub, không phải nguồn servo rời.
+
+Tham chiếu yêu cầu nguồn: [Raspberry Pi — Power supply](https://www.raspberrypi.com/documentation/computers/getting-started.html#power-supply). Model Pi, cáp/cổng nguồn, tải C1/ESP qua USB, hub và bốn camera còn phải chọn/đo; hình không xác nhận một định mức nguồn chung cho mọi Pi. Hình không chứa ảnh chụp gốc và không dùng ImageGen.

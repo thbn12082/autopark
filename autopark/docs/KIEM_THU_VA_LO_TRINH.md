@@ -29,13 +29,26 @@ Kết quả chỉ áp dụng cho bộ tình huống và mô hình đã thử, ch
 
 ## Sáu chặng của dự án
 
+Phương án ngày 13/11/2026 bổ sung Raspberry Pi và Wi-Fi nội bộ: AI/chọn chỗ/lập đường ở laptop; thu cảm biến/định vị/bám đường ở Pi; ga/lái và phản hồi ở ESP32. Đợt này cập nhật thiết kế/tài liệu, không chuyển các kết quả thử cũ thành bằng chứng cho kiến trúc mới.
+
 | Chặng | Trạng thái và việc cần hoàn tất |
 |---|---|
 | 1. Đánh giá trong mô phỏng | **Đã hoàn tất bản đầu:** bộ tình huống, chấm độc lập, báo cáo và phát lại |
-| 2. Điều khiển và kết nối xe | Hoàn thiện đầu ra, phản hồi tốc độ/góc lái và giao tiếp bo thật |
-| 3. Đo xe, nguồn và phanh | Đo thông số xe, quãng dừng; kiểm nguồn, dừng khẩn và lỗi |
+| 2. Điều khiển và kết nối xe | Hoàn thiện đầu ra/phản hồi bo; Pi thu cảm biến, chuyển dữ liệu và lệnh qua Wi-Fi, bắt đầu từ một camera |
+| 3. Đo xe, nguồn và phanh | Đo thông số xe, nguồn Pi/hub và quãng dừng; thử hết hạn lệnh, mất Wi-Fi, Pi treo và mất USB |
 | 4. Định vị và quan sát sát xe | Hiệu chuẩn, đo sai số và vùng mù bằng tham chiếu độc lập |
-| 5. Tích hợp chạy thật | Quan sát rồi thử từng thao tác chậm, giữ đúng vị trí khi chọn bước tiếp |
+| 5. Tích hợp chạy thật | Chuyển định vị/bám đường xuống Pi, kiểm dừng tại xe; laptop gửi quỹ đạo rồi bổ sung tự chọn chỗ đỗ |
 | 6. Nghiệm thu và bàn giao | Chốt tiêu chí thực, lặp bộ thử, giữ video và cả lượt không đạt |
 
 Chặng 2 đến 6 chưa hoàn tất theo hồ sơ hiện có. Trong khi chuẩn bị thiết bị, tiếp tục duy trì bộ thử mô phỏng và bổ sung tình huống tái hiện mỗi khi phát hiện lỗi mới.
+
+## Kiểm chứng kết nối không dây và luồng mới
+
+- Đo độ trễ và tuổi dữ liệu đầu cuối khi chạy đủ camera/LiDAR; ghi cả p95/p99, mẫu trễ nhất và khoảng gián đoạn, không chỉ ping trung bình. Đối chiếu đồng hồ giữa laptop và Pi.
+- Kiểm từ chối lệnh/quỹ đạo cũ, trùng hoặc sai phiên; không phát lại lệnh chuyển động tồn trong hàng đợi sau khi nối mạng lại.
+- Thử vật cản xuất hiện trong vùng quét, mất định vị, mất từng nguồn dữ liệu bắt buộc, laptop ngừng phản hồi, Pi treo và đứt USB. Đo thời gian yêu cầu dừng, phản hồi đứng yên và quãng dừng riêng biệt.
+- Kiểm Pi dừng từ dữ liệu tại xe mà không chờ AI; ghi rõ các vật chỉ thấy qua camera và giới hạn do vùng mù LiDAR. Vùng chưa rõ không được tự coi là trống.
+- Sau dừng, lấy tư thế mới và tính lại đường trên laptop; phải có xác nhận lượt mới. Không có đường phù hợp thì giữ xe đứng yên.
+- Với tự chọn chỗ đỗ, kiểm kích thước chỗ, lối tiếp cận, toàn thân/vùng quét và khả năng bám; ảnh AI nhận là trống chưa đủ để chấp nhận một chỗ đỗ.
+
+Các phép thử trên là đầu việc cần làm. Chưa có số đo mạng/Pi hoặc kết quả xe thật được bổ sung trong lần sửa tài liệu này.

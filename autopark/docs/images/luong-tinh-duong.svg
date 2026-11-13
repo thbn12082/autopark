@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="2240" viewBox="0 0 1800 2240">
+<title>Luồng tính đường mục tiêu: Laptop – Raspberry Pi – ESP32</title>
+<desc>Thiết kế chưa triển khai phân tán, chưa kiểm chứng xe thật. Cảm biến tới Pi, Wi-Fi tới laptop AI và hợp nhất, chọn ô đỗ dự kiến, lập và kiểm quỹ đạo, người vận hành xác nhận, Pi kiểm và bám, ESP32 điều khiển và phản hồi. Vật cản hoặc dữ liệu cũ làm dừng; lập lại từ tư thế đo sau dừng và xác nhận lượt mới.</desc>
+<rect width="1800" height="2240" fill="#f4f8fb"/>
+<g font-family="Segoe UI" fill="#173247">
+<text x="40" y="55" font-size="36" fill="#173247" font-weight="700" text-anchor="start">TỪ CẢM BIẾN ĐẾN QUỸ ĐẠO VÀ XE DỪNG</text>
+<text x="40" y="94" font-size="23" fill="#a63040" font-weight="700" text-anchor="start">KIẾN TRÚC MỤC TIÊU · Chưa triển khai phân tán qua Pi · Chưa kiểm chứng chạy xe thật</text>
+<text x="40" y="130" font-size="22" fill="#526779" font-weight="400" text-anchor="start">Hiện có: mô phỏng / đích gần do người dùng chọn. Tự nhận diện và chọn ô đỗ là phần dự kiến.</text>
+<rect x="40" y="160" width="540" height="310" rx="20" fill="#edf2f7" stroke="#c4d3df" stroke-width="1.5"/>
+<text x="60" y="199" font-size="24" fill="#526779" font-weight="700" text-anchor="start">NGUỒN DỮ LIỆU · TRÊN XE</text>
+<rect x="620" y="160" width="540" height="310" rx="20" fill="#edf8f3" stroke="#c4d3df" stroke-width="1.5"/>
+<text x="640" y="199" font-size="24" fill="#087c65" font-weight="700" text-anchor="start">RASPBERRY PI · THU VÀ ĐỊNH VỊ</text>
+<rect x="1200" y="160" width="560" height="310" rx="20" fill="#edf5fb" stroke="#c4d3df" stroke-width="1.5"/>
+<text x="1220" y="199" font-size="24" fill="#126ba3" font-weight="700" text-anchor="start">LAPTOP · AI VÀ HỢP NHẤT</text>
+<rect x="60" y="226" width="500" height="224" rx="16" fill="white" stroke="#526779" stroke-width="1.5"/>
+<text x="80" y="262" font-size="23" fill="#526779" font-weight="700" text-anchor="start">01  Camera, LiDAR, phản hồi</text>
+<text x="80" y="298" font-size="20" fill="#173247" font-weight="400" text-anchor="start">4 camera USB → hub USB → Pi</text>
+<text x="80" y="326" font-size="20" fill="#173247" font-weight="400" text-anchor="start">LiDAR C1 → adapter USB → Pi</text>
+<text x="80" y="354" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Encoder + góc lái → ESP32</text>
+<text x="80" y="382" font-size="20" fill="#173247" font-weight="400" text-anchor="start">ESP32 → USB ngắn → Pi</text>
+<text x="80" y="410" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Kết nối mục tiêu; cần hiệu chuẩn.</text>
+<rect x="640" y="226" width="500" height="224" rx="16" fill="white" stroke="#087c65" stroke-width="1.5"/>
+<text x="660" y="262" font-size="23" fill="#087c65" font-weight="700" text-anchor="start">02  Dấu thời gian + tư thế cục bộ</text>
+<text x="660" y="298" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Mã cảm biến, số thứ tự, thời điểm đo</text>
+<text x="660" y="326" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Kiểm độ mới và đồng bộ các nguồn</text>
+<text x="660" y="354" font-size="20" fill="#173247" font-weight="400" text-anchor="start">LiDAR + phản hồi → (x, y, hướng)</text>
+<text x="660" y="382" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Tốc độ, góc lái đo; chất lượng tư thế</text>
+<text x="660" y="410" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Giám sát vật cản cục bộ trên Pi</text>
+<rect x="1220" y="226" width="520" height="224" rx="16" fill="white" stroke="#126ba3" stroke-width="1.5"/>
+<text x="1240" y="262" font-size="23" fill="#126ba3" font-weight="700" text-anchor="start">03  AI bốn camera + hợp nhất</text>
+<text x="1240" y="298" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Nhận ảnh, LiDAR, tư thế qua Wi-Fi</text>
+<text x="1240" y="326" font-size="20" fill="#173247" font-weight="400" text-anchor="start">AI → bằng chứng trong hệ bản đồ</text>
+<text x="1240" y="354" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Hợp nhất camera + LiDAR + tư thế</text>
+<text x="1240" y="382" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Vùng chưa rõ không được coi trống</text>
+<text x="1240" y="410" font-size="20" fill="#173247" font-weight="400" text-anchor="start">AI không trực tiếp điều khiển lái</text>
+<path d="M 560,336 L 640,336" fill="none" stroke="#087c65" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="640.00,336.00 629.00,331.00 629.00,341.00" fill="#087c65"/>
+<text x="600" y="319" font-size="18" fill="#087c65" font-weight="700" text-anchor="middle">USB</text>
+<path d="M 1140,336 L 1220,336" fill="none" stroke="#126ba3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="1220.00,336.00 1209.00,331.00 1209.00,341.00" fill="#126ba3"/>
+<text x="1180" y="319" font-size="18" fill="#126ba3" font-weight="700" text-anchor="middle">Wi-Fi</text>
+<rect x="40" y="490" width="1720" height="680" rx="20" fill="#edf5fb" stroke="#c4d3df" stroke-width="1.5"/>
+<text x="60" y="529" font-size="24" fill="#126ba3" font-weight="700" text-anchor="start">LAPTOP · CHỌN ĐÍCH, LẬP VÀ KIỂM QUỸ ĐẠO</text>
+<rect x="1220" y="565" width="520" height="225" rx="16" fill="white" stroke="#126ba3" stroke-width="1.5"/>
+<text x="1240" y="601" font-size="23" fill="#126ba3" font-weight="700" text-anchor="start">04  Chọn ô trống · DỰ KIẾN</text>
+<text x="1240" y="637" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Nhận diện và xếp hạng ứng viên</text>
+<text x="1240" y="665" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Kích thước, độ tin cậy, lối tiếp cận</text>
+<text x="1240" y="693" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Xét khoảng hở, quãng đường, tiến/lùi</text>
+<text x="1240" y="721" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Không có ứng viên hợp lệ → R</text>
+<text x="1240" y="749" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Chưa có bộ chọn ô tự động trong mã</text>
+<rect x="640" y="565" width="500" height="225" rx="16" fill="white" stroke="#126ba3" stroke-width="1.5"/>
+<text x="660" y="601" font-size="23" fill="#126ba3" font-weight="700" text-anchor="start">05  Tư thế đích (x, y, hướng)</text>
+<text x="660" y="637" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Cùng hệ tọa độ với tư thế đo</text>
+<text x="660" y="665" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Rõ mốc xe, đơn vị và dung sai</text>
+<text x="660" y="693" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Kiểm thân xe ở đích và lối vào</text>
+<text x="660" y="721" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Ghép với tư thế xuất phát mới nhất</text>
+<text x="660" y="749" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Đích không hợp lệ → R</text>
+<rect x="60" y="565" width="500" height="225" rx="16" fill="white" stroke="#126ba3" stroke-width="1.5"/>
+<text x="80" y="601" font-size="23" fill="#126ba3" font-weight="700" text-anchor="start">06  Quỹ đạo tiến / lùi khả thi</text>
+<text x="80" y="637" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Giới hạn lái, bán kính quay, tốc độ</text>
+<text x="80" y="665" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Gia tốc/phanh, đổi chiều, quãng đường</text>
+<text x="80" y="693" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Vùng quét toàn thân giữa các mẫu</text>
+<text x="80" y="721" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Khoảng hở + sai số + dự phòng dừng</text>
+<text x="80" y="749" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Không tìm được đường → R</text>
+<path d="M 1480,450 L 1480,565" fill="none" stroke="#126ba3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="1480.00,565.00 1485.00,554.00 1475.00,554.00" fill="#126ba3"/>
+<path d="M 1220,676 L 1140,676" fill="none" stroke="#126ba3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="1140.00,676.00 1151.00,681.00 1151.00,671.00" fill="#126ba3"/>
+<path d="M 640,676 L 560,676" fill="none" stroke="#126ba3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="560.00,676.00 571.00,681.00 571.00,671.00" fill="#126ba3"/>
+<rect x="60" y="840" width="500" height="210" rx="16" fill="white" stroke="#126ba3" stroke-width="1.5"/>
+<text x="80" y="876" font-size="23" fill="#126ba3" font-weight="700" text-anchor="start">07  Mô phỏng và kiểm bám</text>
+<text x="80" y="912" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Bám kín vòng với mô hình xe</text>
+<text x="80" y="940" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Kiểm va chạm, dung sai và dừng</text>
+<text x="80" y="968" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Không đạt → thử ứng viên khác</text>
+<text x="80" y="996" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Hết ngân sách / vẫn không đạt → R</text>
+<text x="80" y="1024" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Đạt mô phỏng ≠ đã đạt trên xe thật</text>
+<rect x="640" y="840" width="500" height="210" rx="16" fill="white" stroke="#126ba3" stroke-width="1.5"/>
+<text x="660" y="876" font-size="23" fill="#126ba3" font-weight="700" text-anchor="start">08  Người vận hành xác nhận</text>
+<text x="660" y="912" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Xem đích, tiến/lùi và vùng quét</text>
+<text x="660" y="940" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Duyệt đúng phiên bản quỹ đạo</text>
+<text x="660" y="968" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Không xác nhận → giữ đứng yên</text>
+<text x="660" y="996" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Dữ liệu đổi → kiểm/lập và duyệt lại</text>
+<text x="660" y="1024" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Chỉ lượt đã duyệt mới được gửi chạy</text>
+<rect x="1220" y="840" width="520" height="210" rx="16" fill="white" stroke="#126ba3" stroke-width="1.5"/>
+<text x="1240" y="876" font-size="23" fill="#126ba3" font-weight="700" text-anchor="start">09  Gửi QUỸ ĐẠO qua Wi-Fi LAN</text>
+<text x="1240" y="912" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Phiên / phiên bản, hệ tọa độ, mốc xe</text>
+<text x="1240" y="940" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Thời điểm lập, hạn bắt đầu / thực hiện</text>
+<text x="1240" y="968" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Tư thế đầu/đích, mẫu đường, giới hạn</text>
+<text x="1240" y="996" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Pi nhận đường; tự tính từng nhịp lái</text>
+<text x="1240" y="1024" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Gói nhận được chưa có nghĩa được chạy</text>
+<path d="M 310,790 L 310,840" fill="none" stroke="#126ba3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="310.00,840.00 315.00,829.00 305.00,829.00" fill="#126ba3"/>
+<path d="M 560,945 L 640,945" fill="none" stroke="#126ba3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="640.00,945.00 629.00,940.00 629.00,950.00" fill="#126ba3"/>
+<path d="M 1140,945 L 1220,945" fill="none" stroke="#126ba3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="1220.00,945.00 1209.00,940.00 1209.00,950.00" fill="#126ba3"/>
+<rect x="60" y="1090" width="1080" height="60" rx="12" fill="#fff1f3" stroke="#d9aab2" stroke-width="1.5"/>
+<text x="80" y="1127" font-size="21" fill="#a63040" font-weight="700" text-anchor="start">R · TỪ CHỐI: giữ dừng, báo lý do; có thể tính ứng viên khác trước khi xin chạy.</text>
+<path d="M 1480,1050 L 1480,1105" fill="none" stroke="#126ba3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="1480.00,1105.00 1485.00,1094.00 1475.00,1094.00" fill="#126ba3"/>
+<circle cx="1480" cy="1123" r="18" fill="white" stroke="#126ba3" stroke-width="2"/>
+<text x="1480" y="1130" font-size="20" fill="#126ba3" font-weight="700" text-anchor="middle">A</text>
+<text x="1510" y="1130" font-size="19" fill="#126ba3" font-weight="400" text-anchor="start">→ cửa kiểm tra của Pi</text>
+<rect x="40" y="1200" width="1120" height="550" rx="20" fill="#edf8f3" stroke="#c4d3df" stroke-width="1.5"/>
+<text x="60" y="1239" font-size="24" fill="#087c65" font-weight="700" text-anchor="start">RASPBERRY PI · KIỂM, BÁM VÀ QUYẾT ĐỊNH DỪNG</text>
+<rect x="1200" y="1200" width="560" height="550" rx="20" fill="#f4effa" stroke="#c4d3df" stroke-width="1.5"/>
+<text x="1220" y="1239" font-size="24" fill="#7652aa" font-weight="700" text-anchor="start">ESP32 · CƠ CẤU VÀ PHẢN HỒI</text>
+<circle cx="310" cy="1270" r="18" fill="white" stroke="#126ba3" stroke-width="2"/>
+<text x="310" y="1277" font-size="20" fill="#126ba3" font-weight="700" text-anchor="middle">A</text>
+<path d="M 310,1288 L 310,1310" fill="none" stroke="#087c65" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="310.00,1310.00 315.00,1299.00 305.00,1299.00" fill="#087c65"/>
+<rect x="60" y="1310" width="500" height="220" rx="16" fill="white" stroke="#087c65" stroke-width="1.5"/>
+<text x="80" y="1346" font-size="23" fill="#087c65" font-weight="700" text-anchor="start">10  Pi kiểm trước khi bắt đầu</text>
+<text x="80" y="1382" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Đúng phiên, hệ tọa độ và hạn dùng</text>
+<text x="80" y="1410" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Tư thế đo khớp đầu đường; xe đã dừng</text>
+<text x="80" y="1438" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Dữ liệu mới, tin cậy; hành lang an toàn</text>
+<text x="80" y="1466" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Đúng xác nhận của người vận hành</text>
+<text x="80" y="1494" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Không đạt → từ chối, giữ dừng (R)</text>
+<rect x="640" y="1310" width="500" height="220" rx="16" fill="white" stroke="#087c65" stroke-width="1.5"/>
+<text x="660" y="1346" font-size="23" fill="#087c65" font-weight="700" text-anchor="start">11  Bộ bám cục bộ trên Pi</text>
+<text x="660" y="1382" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Dùng tư thế, tốc độ, góc lái đo</text>
+<text x="660" y="1410" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Tính mục tiêu tốc độ / góc lái</text>
+<text x="660" y="1438" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Dừng có xác nhận trước đổi chiều</text>
+<text x="660" y="1466" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Lệnh Pi → ESP32 luôn có thời hạn</text>
+<text x="660" y="1494" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Giám sát vật cản / dữ liệu / liên kết</text>
+<rect x="1220" y="1310" width="520" height="220" rx="16" fill="white" stroke="#7652aa" stroke-width="1.5"/>
+<text x="1240" y="1346" font-size="23" fill="#7652aa" font-weight="700" text-anchor="start">12  ESP32 → ESC và servo</text>
+<text x="1240" y="1382" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Kiểm phiên, thứ tự và hạn lệnh</text>
+<text x="1240" y="1410" font-size="20" fill="#173247" font-weight="400" text-anchor="start">PWM ga ESC / PWM lái servo</text>
+<text x="1240" y="1438" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Đọc encoder và cảm biến góc lái</text>
+<text x="1240" y="1466" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Gửi số đo + trạng thái về Pi</text>
+<text x="1240" y="1494" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Watchdog: hết lệnh / mất USB → dừng</text>
+<path d="M 560,1410 L 640,1410" fill="none" stroke="#087c65" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="640.00,1410.00 629.00,1405.00 629.00,1415.00" fill="#087c65"/>
+<text x="600" y="1393" font-size="18" fill="#087c65" font-weight="700" text-anchor="middle">Đạt</text>
+<path d="M 1140,1410 L 1220,1410" fill="none" stroke="#7652aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="1220.00,1410.00 1209.00,1405.00 1209.00,1415.00" fill="#7652aa"/>
+<text x="1180" y="1393" font-size="18" fill="#7652aa" font-weight="700" text-anchor="middle">USB</text>
+<path d="M 1480,1530 L 1480,1578 L 1030,1578 L 1030,1530" fill="none" stroke="#7652aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<polygon points="1030.00,1530.00 1025.00,1541.00 1035.00,1541.00" fill="#7652aa"/>
+<text x="1230" y="1607" font-size="19" fill="#7652aa" font-weight="400" text-anchor="middle">Phản hồi đo qua USB ngắn</text>
+<path d="M 810,1530 L 810,1625" fill="none" stroke="#087c65" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="810.00,1625.00 815.00,1614.00 805.00,1614.00" fill="#087c65"/>
+<rect x="60" y="1625" width="1080" height="100" rx="16" fill="white" stroke="#087c65" stroke-width="1.5"/>
+<text x="80" y="1661" font-size="23" fill="#087c65" font-weight="700" text-anchor="start">13  Tiến độ / đạt đích → gửi trạng thái về laptop</text>
+<text x="80" y="1697" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Chỉ hoàn tất khi tư thế đo đạt dung sai + tốc độ đo xác nhận dừng; dữ liệu phải hợp lệ.</text>
+<rect x="1220" y="1625" width="520" height="100" rx="16" fill="white" stroke="#7652aa" stroke-width="1.5"/>
+<text x="1240" y="1661" font-size="23" fill="#7652aa" font-weight="700" text-anchor="start">Không có số đo ≠ xe đã dừng</text>
+<text x="1240" y="1697" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Mất phản hồi: báo chưa xác nhận dừng.</text>
+<rect x="40" y="1780" width="1720" height="370" rx="20" fill="#fff2f3" stroke="#c4d3df" stroke-width="1.5"/>
+<text x="60" y="1819" font-size="24" fill="#a63040" font-weight="700" text-anchor="start">NHÁNH DỪNG · ÁP DỤNG TRONG SUỐT LƯỢT CHẠY</text>
+<rect x="60" y="1850" width="500" height="224" rx="16" fill="white" stroke="#a63040" stroke-width="1.5"/>
+<text x="80" y="1886" font-size="23" fill="#a63040" font-weight="700" text-anchor="start">Phát hiện điều kiện không an toàn</text>
+<text x="80" y="1922" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Vật mới trong hành lang quét / dừng</text>
+<text x="80" y="1950" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Dữ liệu cũ, mất hoặc không hợp lệ</text>
+<text x="80" y="1978" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Tư thế không đủ tin cậy, bám sai</text>
+<text x="80" y="2006" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Mất Wi-Fi / laptop quá hạn giám sát</text>
+<text x="80" y="2034" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Pi / USB mất hoặc lệnh hết hạn</text>
+<rect x="640" y="1850" width="500" height="224" rx="16" fill="white" stroke="#a63040" stroke-width="1.5"/>
+<text x="660" y="1886" font-size="23" fill="#a63040" font-weight="700" text-anchor="start">Pi dừng · ESP32 có watchdog</text>
+<text x="660" y="1922" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Pi dừng cục bộ, không đợi lập lại</text>
+<text x="660" y="1950" font-size="20" fill="#173247" font-weight="400" text-anchor="start">ESP32 dừng khi lệnh hết hạn</text>
+<text x="660" y="1978" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Vô hiệu hóa đường của lượt cũ</text>
+<text x="660" y="2006" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Đợi phản hồi xác nhận đứng yên</text>
+<text x="660" y="2034" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Gửi tư thế đo mới + dữ liệu mới</text>
+<rect x="1220" y="1850" width="520" height="224" rx="16" fill="white" stroke="#a63040" stroke-width="1.5"/>
+<text x="1240" y="1886" font-size="23" fill="#a63040" font-weight="700" text-anchor="start">Laptop lập lại · lượt chạy mới</text>
+<text x="1240" y="1922" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Chỉ lập từ tư thế đo SAU KHI DỪNG</text>
+<text x="1240" y="1950" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Cập nhật bản đồ / ô / đích ở 03–05</text>
+<text x="1240" y="1978" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Lập đường và kiểm bám lại ở 06–07</text>
+<text x="1240" y="2006" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Người vận hành xác nhận lại ở 08</text>
+<text x="1240" y="2034" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Gói mới qua 09 → Pi kiểm lại ở 10</text>
+<path d="M 560,1960 L 640,1960" fill="none" stroke="#a63040" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="640.00,1960.00 629.00,1955.00 629.00,1965.00" fill="#a63040"/>
+<path d="M 1140,1960 L 1220,1960" fill="none" stroke="#a63040" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="1220.00,1960.00 1209.00,1955.00 1209.00,1965.00" fill="#a63040"/>
+<text x="900" y="2119" font-size="24" fill="#a63040" font-weight="700" text-anchor="middle">KHÔNG TỰ KHỞI ĐỘNG LẠI khi vật cản biến mất hoặc mạng / dữ liệu phục hồi.</text>
+<text x="40" y="2188" font-size="20" fill="#526779" font-weight="400" text-anchor="start">Mũi tên liền: luồng chính  ·  Nét đứt: phản hồi đo  ·  A: nối quỹ đạo  ·  R: từ chối / giữ dừng</text>
+<text x="40" y="2221" font-size="20" fill="#526779" font-weight="400" text-anchor="start">Wi-Fi LAN laptop–Pi; USB ngắn Pi–ESP32. 4G chỉ là tùy chọn từ xa về sau. Các ngưỡng phải được đo và kiểm trên xe.</text>
+</g>
+</svg>

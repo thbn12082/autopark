@@ -1,91 +1,46 @@
-# Kiểm tra độc lập sơ đồ điện 2D AutoPark
+# Kiểm tra bộ bản vẽ điện 2D AutoPark
 
-Ngày kiểm tra: 08/11/2026. Vai trò: agent `review_wiring`, độc lập với agent vẽ linh kiện và agent ghép dây.
+Ngày cập nhật: **13/11/2026**. Revision: **`laptop_pi_esp32_target_v3`**.
 
-Revision được duyệt: **`esc_bec_servo_v2` — servo lấy nguồn từ BEC của ESC có điều kiện**. Báo cáo này thay thế kết quả duyệt phương án nguồn servo rời trước đó.
+Đây là ghi chú tự kiểm của tác giả bản cập nhật. Báo cáo PASS độc lập ngày 08/11/2026 của revision `esc_bec_servo_v2` đã được thay thế; kết quả cũ không áp dụng cho kiến trúc mới. Bản này ghi rõ các kiểm tra tài liệu đã làm và các hạng mục phần cứng còn mở, không xác nhận xe đã lắp/chạy.
 
-**Trạng thái: PASS trong phạm vi tài liệu thiết kế — hình, netlist và hướng dẫn nhất quán sau các lần sửa. Chưa kiểm chứng phần cứng.**
+## Nội dung thay đổi và phạm vi
 
-PASS có nghĩa không còn lỗi chặn xuất bản được phát hiện trong bộ hình và tài liệu được liệt kê dưới đây. Không dùng trạng thái này để kết luận hàng thực nhận tương thích, dây đã lắp đúng hoặc xe đã đủ điều kiện cấp động lực. Các mục chờ đo/xác minh phần cứng vẫn có hiệu lực.
+- Laptop chạy AI bốn camera, fusion, chọn ô và lập quỹ đạo; trao đổi với Pi bằng Wi-Fi LAN. Pi nhận quỹ đạo và xác nhận lượt chạy, không nhận từng nhịp lái qua Wi-Fi. 4G chỉ là tùy chọn về sau.
+- Pi trên xe thu C1/camera, định vị cục bộ, bám quỹ đạo và dừng vật cản. ESP32 nhận lệnh ngắn hạn qua USB, phát ga/lái, đọc encoder/góc lái và watchdog lệnh hết hạn. Đây là vai trò mục tiêu, chưa phải triển khai đã chạy.
+- Pin 2S chia ba nhánh: ESC, DC–DC Pi và DC–DC hub. Hai nhãn `P3+`/`P3−` trên Tờ 1 nối tiếp cùng nhánh pin giữa hai vùng hình, không phải nguồn mới. Hai đường đầu ra dương DC–DC độc lập, không nối BEC.
+- Nguồn Pi theo đúng model và tải C1/ESP qua USB; nguồn hub theo đúng DC-in/cực/dòng của hub được chọn, đủ bốn camera và không cấp ngược VBUS về Pi. Pi, DC–DC và hub có nguồn đều chưa chốt model/đo kiểm.
+- BEC 6 V chỉ cấp servo khi xác minh tương thích điện áp và đủ dòng. Hai Signal ga/lái tách riêng, GND servo hồi trực tiếp ESC/BEC. Không thêm E-stop, ToF hoặc IMU vào cấu hình.
+- Sạc B3 giữ nguyên mạch: pin tách toàn bộ xe, chỉ cáp cân bằng 2S, cổng 3S bỏ trống và giắc T che tiếp điểm. Tắt công tắc ESC không ngắt hai nhánh nguồn Pi/hub.
 
-## Phạm vi đã kiểm
+Chỉ sửa `docs/hardware/wiring-v1/**` và `docs/LAP_RAP_DIEN_2D.md`. Không đọc lại, sửa, nhúng hoặc đưa ảnh nguồn từ thư mục người dùng vào bộ xuất. Hình kế thừa phong cách vector có sẵn, Pi và bộ nguồn được dựng bằng hình học trong mã, không dùng ImageGen.
 
-- Đã đọc `LAP_RAP_DIEN_2D.md` và các điểm liên quan trong `firmware/esp32_vehicle/platformio.ini`, `src/main.cpp`, `autopark/application/vehicle_link.py`.
-- Đã xem ảnh toàn cảnh xe người dùng: nhãn motor 280–60T, bo XL1986RT và vị trí cụm lái có bó ba dây. Ảnh chưa xác nhận model, điện áp hoặc ngưỡng tín hiệu của cụm lái.
-- Đã đối chiếu tài liệu Espressif, Hobbywing, imaxRC/B3, ams OSRAM và MagnTek. Hình module cảm biến phải được hiểu là tham chiếu chức năng, chưa phải pinout của hàng thực nhận.
-- Đã xem đủ bốn PNG hoàn chỉnh: danh mục linh kiện và ba tờ nguồn/chấp hành, tín hiệu/phản hồi, sạc riêng. Đã kiểm mã dựng, netlist JSON, các đầu mút dây và các điểm giao cắt trong hình.
+## Đối chiếu mã hiện có
 
-## Kết quả kiểm văn bản và lựa chọn chân
+Đã đọc `firmware/esp32_vehicle/src/main.cpp`, `src/core/vehicle_core.cpp` và các đoạn ứng dụng trong `autopark/ui/main_window.py`. Ứng dụng còn thao tác đích gần do người dùng đặt và mô phỏng; không có căn cứ xem bản vẽ như bằng chứng đã triển khai Pi phân tán hoặc tự chọn ô đỗ.
 
-| Mục | Kết quả tại lần kiểm này |
+Firmware còn `kPinEsc = kPinServo = kPinEstop = -1`, mặc định `AP_ENABLE_PWM_OUTPUTS=0`; `read_inputs()` chưa hoàn thiện phản hồi vật lý. Khi bật PWM, kiểm tĩnh còn yêu cầu cấu hình chân E-stop. Cần thiết kế/kiểm cấu hình firmware phù hợp lựa chọn hiện tại; không gán chân giả để vượt kiểm tra. Đợt tài liệu không sửa hoặc bật firmware.
+
+Yêu cầu dừng mục tiêu được ghi trên ảnh và hướng dẫn: vật cản làm hành lang không an toàn, dữ liệu/pose/quỹ đạo cũ hoặc mất liên kết → dừng và giữ dừng. ESP32 dừng khi lệnh Pi hết hạn/mất USB. Không tự khởi động lại; laptop lập lại từ tư thế mới đo lúc xe đã dừng, rồi cần xác nhận lượt chạy mới.
+
+## Kiểm tra bản dựng
+
+| Hạng mục | Kết quả trong phạm vi tài liệu |
 |---|---|
-| ESP32 lấy nguồn qua USB | Phù hợp phạm vi thử trên bàn; hướng dẫn loại trừ cấp đồng thời thêm 5V/3V3 từ nguồn khác |
-| Dây BEC đỏ của ESC | Chỉ tới nguồn dương servo qua nhánh có điều kiện; không đưa BEC vào ESP32 hoặc ghép song song nguồn khác |
-| Nguồn servo | BEC của 1060 tham chiếu là 6 V/3 A; chỉ nối sau khi xác nhận servo hỗ trợ 6 V, điện áp BEC thực và dòng tải phù hợp. Đã bỏ bộ ổn áp rời và nhánh chia nguồn pin |
-| GND và dòng động lực | Servo hồi trực tiếp về ESC/BEC; nhánh tới ESP32 chỉ là tham chiếu tín hiệu. Dòng motor không đi qua ESP32 hoặc breadboard |
-| Tách giắc điều khiển ESC | GPIO4 tới Signal ESC, GPIO5 tới Signal servo; BEC+/GND cấp servo. Hướng dẫn loại trừ dây Y ba lõi nối chung hai Signal |
-| Tín hiệu ESC/servo | Có điều kiện xác minh mức 3,3V; chưa được công bố là cắm trực tiếp chắc chắn dùng được |
-| GPIO4/5/6/7 | Khớp vị trí J1-4/5/6/7 của DevKitC-1 tham chiếu |
-| GPIO8/9 | Khớp J1-12/J1-15; không nhầm số GPIO với số thứ tự chân header |
-| Nguồn/đất tham chiếu | 3V3 tại J1-1/J1-2; GND J1-22. 5V J1-21 không dùng làm đầu vào bổ sung trong bản này |
-| USB native | Dành GPIO19/20 cho USB; không phân bổ chúng cho harness cảm biến/ga/lái |
-| AS5600 | I²C ở mức 3,3V; cần đối chiếu cách cấp nguồn của module và điện trở kéo lên |
-| MT6701 | Chế độ A/B và PPR phải được kiểm; tên chip không đủ để xác nhận độ phân giải |
-| LiDAR/camera | Kết nối qua laptop/USB; không tự gán CAM1…4 thành hướng trước/sau/trái/phải đã đo |
-| Sạc B3 | Pin tách khỏi toàn bộ xe; chỉ giắc cân bằng ba chân tới cổng 2S, cổng 3S để trống |
-| Thành phần người dùng loại bỏ | Không tự thêm E-stop, phần tử ngắt động lực, cầu chì, ToF hoặc IMU; đã nêu giới hạn không có ngắt động lực độc lập |
+| Catalogue | 17 loại hình, bao gồm Pi và hai bộ DC–DC; một hình camera được dùng bốn lần. Số lượng, ngày và chiều cao catalogue sinh từ mã |
+| Net nguồn/tín hiệu | 17 net hoạt động; mọi mốc cổng tồn tại, không có cổng thuộc hai net khác nhau; BEC chỉ tới servo, hai đầu motor không ghép GND |
+| Liên kết dữ liệu | 7 cáp USB: Pi–ESP, Pi–hub, Pi–adapter C1 và 4 hub–camera; 1 cáp gốc adapter–C1 khai báo riêng; 1 Wi-Fi laptop–Pi không phải dây điện |
+| GND | Hồi tải servo trực tiếp ESC; liên hệ BAT−/GND ESC, IN−/OUT− các DC–DC không cách ly và GND qua USB khai báo riêng để xác minh trên hàng thật |
+| Sạc | 3 net cân bằng ghép cùng tên, không chứa tải xe; yêu cầu tách ESC và cả hai nguồn Pi/hub |
+| SVG/PNG | Render đủ bốn ảnh bằng `autopark/.venv/Scripts/python.exe` + PySide6 QtSvg; SVG parse được, không nhúng media, PNG mở lại đúng kích thước và không rỗng |
+| Bố cục | Tự xem đủ bốn PNG; sửa nhãn P3 khỏi thân ESC/công tắc, tách rõ hai dây nguồn Pi. Nhóm tích hợp đã xem catalogue/sạc/tín hiệu và yêu cầu sửa hai nhãn P3 |
+| Hash và liên kết | Hash nguồn và 8 tệp SVG/PNG nằm trong `export_manifest.json`; renderer tự cập nhật `?v=` trong hướng dẫn lắp, không sửa README gốc |
+| Tính xác định | Dựng lại bằng cùng Python/Qt/font: cả 8 SVG/PNG, spec và manifest giống từng byte; kiểm lại hash nguồn, hash ảnh và mọi `?v=` trong hướng dẫn đều khớp |
 
-Pinmap GPIO4…9 là **lựa chọn của bản thiết kế** cho DevKitC-1 tham chiếu, chưa được áp dụng hoặc kiểm trên bo vật lý. Phải đối chiếu chữ in và phiên bản PCB thực trước khi đi dây. Vị trí trái/phải của hai cổng USB không được dùng thay cho nhãn chức năng trên bo.
+Kích thước PNG mặc định 2×: `00-components.png` **3600×4190**, `01-system.png` **4600×5700**, `02-signal-feedback.png` **5600×4880**, `03-charging.png` **4400×2700**. Ngày trên cả ba tờ và catalogue lấy từ `DESIGN_DATE`; manifest/spec dùng cùng ngày. Hash chi tiết tham chiếu manifest thay vì chép một bản dễ lỗi thời vào báo cáo này.
 
-## Điểm đã gửi cho nhóm thiết kế
+## Các điều kiện chưa được kiểm trên thiết bị
 
-1. Firmware vẫn có `kPinEsc = kPinServo = kPinEstop = -1` và `AP_ENABLE_PWM_OUTPUTS=0`. Kiểm tĩnh khi bật PWM còn đòi hỏi chân E-stop. Hướng dẫn đã ghi không chỉ đổi cờ thành 1 hoặc gán chân giả để vượt điều kiện.
-2. Phần mềm laptop yêu cầu phản hồi tốc độ, góc lái và tư thế thật hợp lệ. Một sơ đồ kết nối không thay việc viết driver, hiệu chuẩn và kiểm điều kiện START.
-3. AS5600 có cấu hình nguồn ở cấp IC khác với nhãn VCC trên từng breakout. Hình bốn chân chức năng không được xem là thứ tự chân vật lý của mọi module.
-4. MT6701 có biến thể mặc định A/B chỉ 1 PPR; cần module/chế độ/PPR thích hợp. Không nâng rail 3V3 của ESP32 để lập trình EEPROM cảm biến.
-5. Hub hiện có chưa được xác nhận khả năng cấp nguồn phụ; không vẽ một đường nguồn ghép vào USB như kết nối đã được xác minh.
-6. Đã sửa hình B3: cổng 2S có ba tiếp điểm, cổng 3S có bốn tiếp điểm và tỷ lệ hình dạng hợp lý. Nhãn B−/BM/B+ chỉ là các nút điện của pack; chưa thay việc kiểm cực và chiều giắc thực.
-7. Dòng khởi động/kẹt motor, dòng tải servo và định mức dây/giắc còn phải xác định. Không coi danh định của riêng ESC là định mức toàn bộ đường nguồn.
+Chưa kiểm model Pi, nguồn/cáp/USB-C và tải động; hub DC-in, định mức và cấp ngược USB; dòng motor/servo, giắc/dây chia pin và nhiễu/sụt áp/nhiệt; servo 6 V, điện áp BEC thực, mức logic ga/lái; chân/mode/PPR encoder và module góc lái; gá/hiệu chuẩn LiDAR/camera; băng thông USB/Wi-Fi và thời gian dữ liệu; driver, ngưỡng dừng và quy trình xác nhận lại. Nét đứt và cổng có dấu * là điều kiện chờ xác minh, không phải dây được nghiệm thu.
 
-## Kiểm tra bản dựng cuối
-
-| Hạng mục | Kết quả |
-|---|---|
-| Danh mục 14 linh kiện | PASS: có hình nhận dạng và điểm nối; không có bộ ổn áp servo rời. Ký hiệu tùy chọn còn trong thư viện không phải linh kiện của cấu hình này |
-| Các net hoạt động | PASS trong thiết kế: 13 net; nguồn pin 2S chỉ tới ESC, BEC tới servo có điều kiện, rail 3V3 và tín hiệu riêng biệt; không có cổng thuộc hai net khác nhau |
-| BEC | PASS có điều kiện: `V_SERVO` có đúng hai đầu `ESC.bec_plus` và `SERVO.vplus`; không có đầu ESP32. Nhánh được vẽ nét đứt kèm yêu cầu xác minh 6 V và dòng tải |
-| Hai tín hiệu điều khiển | PASS: `ESC_CTRL` và `SERVO_CTRL` độc lập; không có nối tắt Signal ESC với Signal servo |
-| Hồi nguồn servo | PASS về đường vẽ: GND servo tới ESC/BEC trực tiếp; nhánh ESP32 lấy cùng tham chiếu, không nằm nối tiếp trên đường hồi tải servo |
-| Hai đầu motor | PASS: mỗi đầu chỉ nối đầu ra ESC tương ứng; không ghép vào GND hoặc 3V3 |
-| Các mốc dây/cap | PASS: 18 mốc ở tờ 1, 30 mốc ở tờ 2, 9 mốc ở tờ 3 khớp với đầu mút đường vẽ, tổng 57 mốc |
-| Điểm nối trong thiết bị | PASS về cách khai báo: netlist ghi riêng liên hệ BAT−/GND qua ESC cần đo xác nhận; đã bỏ liên hệ nội bộ của nguồn servo rời |
-| GPIO và giao tiếp | PASS: GPIO4–9 không trùng nhau; các net cảm biến đúng nhãn, USB native giữ riêng |
-| Sạc | PASS: ba điểm balance ghép cùng tên; không có ESP/ESC/tải xe trong net sạc, giắc T để rời và cách điện |
-| Bố cục | PASS sau sửa: chú thích nhiều dòng đọc được, dây không xuyên thân ESP32, các hộp chú thích không che mất đường nguồn/GND/USB |
-| Cảnh báo/điều kiện ngay trên ảnh | PASS: có nhánh servo và tín hiệu chờ xác minh, GPIO đề xuất, firmware chưa đổi và trạng thái thiết kế chưa thử xe |
-| Tính nhất quán của tệp xuất | PASS: 4 SVG parse được; 8 hash SVG/PNG và các hash nguồn khớp `export_manifest.json`; không nhúng ảnh ngoài/ảnh người dùng |
-
-Các lỗi của bản nháp đã được sửa trước khi duyệt: renderer nối các `tspan` thành một dòng; route tín hiệu servo đi ngang thân bo; một số chú thích che dây; tiêu đề tờ phản hồi cắt qua hai đường I²C. Trong revision BEC này, chú thích hồi nguồn servo đã được dịch ra ngoài đường GND dọc. Đã xem lại đủ bốn PNG xuất cuối; các giao cắt không có chấm được phân biệt bằng khoảng trắng, nút GND có chấm nối và không có dây che chữ còn được phát hiện.
-
-Kích thước PNG đã kiểm: `00-components.png` 3600×3460, `01-system.png` 4600×3300, `02-signal-feedback.png` 4800×4000, `03-charging.png` 4400×2700.
-
-Phiên bản nguồn được duyệt:
-
-- `build_wiring.py` SHA-256: `f79e83134b04b8545477e0d2bddbaaa2ffb8e11ebc59e36d6e4c2d0190377f72`.
-- `components.py` SHA-256: `02cc2fc8a161e3447bd6109816894359379a6fc69079429102acde6d9483f455`.
-- `wiring_spec.json` SHA-256: `913e3becdaa7b82e5cfdab1a6195238a56e4fe0e02ec8d4b133d3bb612f25a76`.
-- Hash chi tiết của hình và renderer: xem `export_manifest.json`.
-
-## Điều kiện phần cứng còn mở
-
-Servo gốc chưa được xác nhận hỗ trợ 6 V; điện áp BEC thực, dòng tải servo và khả năng cấp dòng của ESC thực nhận vẫn phải được kiểm trước khi nối nhánh nguồn này. Thứ tự dây thực, ngưỡng tín hiệu ESC/servo, cấu hình nguồn/pull-up của các module, MODE/PPR encoder, dòng motor và định mức dây/giắc, cách cấp nguồn hub và toàn bộ firmware/hiệu chuẩn vẫn cần xác minh trên thiết bị. Các chân/nút chức năng minh họa không thay pinout của hàng thực nhận. Không có ngắt động lực độc lập hoặc cầu chì bổ sung trong lựa chọn này.
-
-## Nguồn đối chiếu
-
-- [Espressif — DevKitC-1 v1.1](https://documentation.espressif.com/api/resource/path/docs/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html) và [bảng header DevKitC-1 trong ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/v4.4.3/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1.html).
-- [Hobbywing — manual QuicRun 1625/1060/860](https://www.hobbywing.com/en/uploads/file/20240315/e8525a6a27f4e1dcbe3af554c06deac0.pdf).
-- [imaxRC — manual B3 Pro, bản lưu tại RC Factory](https://www.rc-factory.cz/assets/docs/da21c8a03bc75ae73c4b5362c3acef7c/1321-1/b3-pro-manual.pdf).
-- [ams OSRAM — AS5600 evaluation-board operation manual](https://look.ams-osram.com/m/4f8342513a447495/original/AS5600_UG000254_2-00.pdf).
-- [MagnTek — MT6701 Rev1.8](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf), các phần pin configuration, part number, output mode và EEPROM.
-
-Đây là kiểm tra thiết kế bằng tài liệu và hình, không phải nghiệm thu điện, phép đo dòng/điện áp, thử servo/ESC hoặc chạy xe thật.
+Nguồn tham chiếu mới: [Raspberry Pi — yêu cầu nguồn theo model](https://www.raspberrypi.com/documentation/computers/getting-started.html#power-supply). BEC tham chiếu đối chiếu lại [Hobbywing — manual QuicRun 1625/1060/860](https://www.hobbywing.com/en/uploads/file/20240315/e8525a6a27f4e1dcbe3af554c06deac0.pdf). Các tài liệu pinout/cảm biến/sạc kế thừa được dẫn trong [hướng dẫn lắp](../../LAP_RAP_DIEN_2D.md) và [ghi chú linh kiện](component_notes.md); chúng không thay cho kiểm tra thiết bị thực nhận.
