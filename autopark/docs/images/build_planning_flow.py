@@ -100,14 +100,14 @@ def build_svg():
 
     # Band 1: three distinct responsibility lanes. The sensor card is wiring context.
     d.lane(40, 160, 540, 310, "NGUỒN DỮ LIỆU · TRÊN XE", MUTED, "#edf2f7")
-    d.lane(620, 160, 540, 310, "RASPBERRY PI · THU VÀ ĐỊNH VỊ", GREEN, "#edf8f3")
+    d.lane(620, 160, 540, 310, "PI 4 · 4 GB · microSD 64 GB", GREEN, "#edf8f3")
     d.lane(1200, 160, 560, 310, "LAPTOP · AI VÀ HỢP NHẤT", BLUE, "#edf5fb")
     d.card(60, 226, 500, 224, "01  Camera, LiDAR, phản hồi", [
         "4 camera USB → hub USB → Pi",
         "LiDAR C1 → adapter USB → Pi",
-        "Encoder + góc lái → ESP32",
+        "MT6701 #1: góc lái I²C → ESP32",
+        "MT6701 #2: xung A/B → ESP32",
         "ESP32 → USB ngắn → Pi",
-        "Kết nối mục tiêu; cần hiệu chuẩn.",
     ], MUTED)
     d.card(640, 226, 500, 224, "02  Dấu thời gian + tư thế cục bộ", [
         "Mã cảm biến, số thứ tự, thời điểm đo",
@@ -206,7 +206,7 @@ def build_svg():
     d.card(1220, 1310, 520, 220, "12  ESP32 → ESC và servo", [
         "Kiểm phiên, thứ tự và hạn lệnh",
         "PWM ga ESC / PWM lái servo",
-        "Đọc encoder và cảm biến góc lái",
+        "Đọc hai MT6701: góc lái + tốc độ",
         "Gửi số đo + trạng thái về Pi",
         "Watchdog: hết lệnh / mất USB → dừng",
     ], PURPLE)

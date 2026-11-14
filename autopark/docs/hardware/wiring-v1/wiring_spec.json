@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "revision": "laptop_pi_esp32_target_v3",
+  "revision": "pi4_dual_mt6701_target_v4",
   "status": "proposed_not_hardware_verified",
-  "date": "2026-11-13",
+  "date": "2026-11-14",
   "catalog_component_kinds": [
     "laptop",
     "raspberry_pi",
@@ -17,7 +17,7 @@
     "camera",
     "lidar",
     "lidar_adapter",
-    "as5600",
+    "mt6701_steer",
     "mt6701",
     "b3_charger",
     "stock_board"
@@ -57,6 +57,33 @@
     "current_code": "simulation/manual nearby goal; distributed Pi and automatic slot selection not implemented; PWM disabled; physical feedback drivers unfinished"
   },
   "reference_board": "ESP32-S3-DevKitC-1 N16R8",
+  "onboard_computer": {
+    "model": "Raspberry Pi 4 Model B",
+    "ram_gb": 4,
+    "microSD_gb": 64,
+    "hardware_tested": false
+  },
+  "feedback_sensors": {
+    "STEER": {
+      "chip": "MT6701",
+      "quantity": 1,
+      "role": "absolute steering angle",
+      "interface": "I2C",
+      "mode": "HIGH at 3.3V",
+      "z_csn": "HIGH at 3.3V",
+      "module_pinout_verified": false
+    },
+    "ENC": {
+      "chip": "MT6701",
+      "quantity": 1,
+      "role": "wheel/drivetrain speed and distance",
+      "interface": "quadrature A/B",
+      "mode": "LOW at GND; ABZ configuration verified before use",
+      "z": "unconnected output",
+      "ppr": "must select and measure; not inferred from 14-bit angle",
+      "module_pinout_verified": false
+    }
+  },
   "proposed_gpio": {
     "ESC_CTRL": 4,
     "SERVO_CTRL": 5,
@@ -80,7 +107,7 @@
     "ESC": "esc1060",
     "MOTOR": "motor280",
     "SERVO": "servo",
-    "AS": "as5600",
+    "STEER": "mt6701_steer",
     "ENC": "mt6701",
     "B3": "b3_charger",
     "PI": "raspberry_pi",
@@ -116,7 +143,7 @@
         "PSPI.vout_plus",
         "PI.power_5v"
       ],
-      "voltage": "regulated 5V class, exact model specification",
+      "voltage": "5.1V regulated USB-C supply for Pi 4; recommended 3A",
       "condition": "select converter rated for full 2S range and Pi+C1+ESP USB loads; correct power connector/cable and USB-C negotiation if required; not BEC 6V"
     },
     {
@@ -150,8 +177,9 @@
         "ESP.gnd",
         "ESC.gnd",
         "SERVO.gnd",
-        "AS.gnd",
-        "ENC.gnd"
+        "STEER.gnd",
+        "ENC.gnd",
+        "ENC.mode"
       ],
       "voltage": "common signal reference; servo power return directly to ESC/BEC, not through ESP32"
     },
@@ -203,8 +231,10 @@
       "id": "3V3",
       "endpoints": [
         "ESP.v3v3",
-        "AS.vcc",
-        "ENC.vcc"
+        "STEER.vcc",
+        "ENC.vcc",
+        "STEER.mode",
+        "STEER.z"
       ],
       "voltage": "3.3V",
       "condition": "breakouts must support 3.3V; verify onboard regulator/pullups and total current"
@@ -213,7 +243,7 @@
       "id": "SDA",
       "endpoints": [
         "ESP.sda",
-        "AS.sda"
+        "STEER.sda"
       ],
       "gpio": 6,
       "condition": "pullups only to3.3V"
@@ -222,7 +252,7 @@
       "id": "SCL",
       "endpoints": [
         "ESP.scl",
-        "AS.scl"
+        "STEER.scl"
       ],
       "gpio": 7,
       "condition": "pullups only to3.3V"
@@ -292,7 +322,9 @@
       "electrical_wire": false
     }
   ],
-  "isolated_ports": [],
+  "isolated_ports": [
+    "ENC.z"
+  ],
   "internal_links_to_verify": [
     {
       "endpoints": [
@@ -363,7 +395,7 @@
     "IMU"
   ],
   "unverified": [
-    "Pi model and power supply rating, cable/connector and USB-C power negotiation",
+    "Pi 4 USB-C supply, cable, voltage drop and USB total load (1.2A limit)",
     "hub model, DC input rating and upstream VBUS backfeed prevention",
     "2S branch harness, converter input range/load transients, voltage drop and heat",
     "four-camera USB/Wi-Fi bandwidth and timestamps",

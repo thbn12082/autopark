@@ -38,7 +38,7 @@ class Drawing:
     def __init__(self):
         self.parts = [
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{HEIGHT}" viewBox="0 0 {WIDTH} {HEIGHT}" role="img" aria-labelledby="title desc">',
-            '<title id="title">Gặp vật cản — Kiến trúc mục tiêu 13/11/2026</title>',
+            '<title id="title">Gặp vật cản — Kiến trúc mục tiêu 14/11/2026</title>',
             '<desc id="desc">Bốn làn: cảm biến, Raspberry Pi trên xe, laptop và ESP32. Camera qua hub USB tới Pi để nén, qua Wi-Fi tới AI và fusion trên laptop. LiDAR C1 tới Pi qua USB. Pi định vị, bám quỹ đạo và dừng cục bộ khi hành lang không an toàn hoặc dữ liệu, liên kết quá hạn, không chờ AI. ESP32 chấp hành, đọc phản hồi và xử lý lệnh hết hạn. Sau tốc độ đo về không, Pi gửi tư thế dừng mới để laptop lập lại; người dùng xác nhận lượt mới. Đây là thiết kế, chưa kiểm chứng trên xe thật.</desc>',
             f'<rect width="{WIDTH}" height="{HEIGHT}" fill="{BG}"/>',
             f'<g font-family="{FONT}" font-size="20">',
@@ -106,7 +106,7 @@ class Drawing:
 def build():
     d = Drawing()
     d.text(40, 65, "Gặp vật cản: ai thấy, ai dừng, ai lập lại?", 40, INK, True)
-    d.text(40, 105, "KIẾN TRÚC MỤC TIÊU · 13/11/2026", 23, BLUE, True)
+    d.text(40, 105, "KIẾN TRÚC MỤC TIÊU · 14/11/2026", 23, BLUE, True)
     d.rect(40, 129, 1760, 58, "#19394d", radius=12)
     d.text(60, 166, "Thiết kế cần triển khai và kiểm chứng trên xe thật. Code hiện tại: mô phỏng / người dùng chọn đích gần.", 22, "white", True)
     for x, color, label, dashed in ((45, BLUE, "Dữ liệu / quỹ đạo", False), (420, TEAL, "Điều khiển cục bộ", False), (815, RED, "Dừng / lỗi", False), (1155, PURPLE, "Phản hồi đo", True)):
@@ -115,7 +115,7 @@ def build():
     d.text(1788, 228, "Giao cắt ≠ nối", 18, MUTED, anchor="end")
 
     lanes = ((40, 340, "CẢM BIẾN", "Thu nhận trên xe", "#edf3f8", MUTED),
-             (420, 440, "RASPBERRY PI", "Định vị · bám đường · dừng cục bộ", "#eaf6f3", TEAL),
+             (420, 440, "PI 4 · 4 GB · SD 64 GB", "Định vị · bám đường · dừng cục bộ", "#eaf6f3", TEAL),
              (900, 440, "LAPTOP", "AI · hợp nhất · chọn ô · lập đường", "#edf2fb", BLUE),
              (1380, 420, "ESP32", "Chấp hành · phản hồi · watchdog", "#f2eef8", PURPLE))
     for x, w, title, sub, tint, color in lanes:
@@ -136,7 +136,7 @@ def build():
     d.box(56, 578, 308, 154, "LiDAR C1", ["Qua adapter USB tới Pi", "Đo trong mặt quét", "Vùng khuất vẫn chưa rõ"], MUTED)
     d.box(436, 578, 408, 154, "LiDAR + định vị cục bộ", ["Đọc C1 và phản hồi từ ESP32", "Ước lượng x, y, hướng trên xe", "Gửi quét + pose + tuổi dữ liệu"], TEAL)
     d.box(916, 578, 408, 154, "Hợp nhất (fusion)", ["AI + LiDAR + pose cùng mốc", "Vùng chưa rõ ≠ vùng an toàn", "Giữ bằng chứng vật đã biết"], BLUE)
-    d.box(1396, 578, 388, 154, "Đọc phản hồi thực", ["Encoder: tốc độ / quãng đường", "Cảm biến góc lái: góc đo", "Gửi số đo và trạng thái về Pi"], PURPLE)
+    d.box(1396, 578, 388, 154, "Đọc phản hồi thực", ["MT6701 #2: tốc độ qua A/B", "MT6701 #1: góc lái qua I²C", "Gửi số đo và trạng thái về Pi"], PURPLE)
     d.arrow([(364, 655), (436, 655)])
     d.label(400, 639, "USB")
     d.arrow([(844, 655), (916, 655)])

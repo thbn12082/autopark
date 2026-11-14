@@ -1,6 +1,6 @@
 # Kết nối điện AutoPark — mục tiêu Laptop, Pi trên xe và ESP32
 
-Ngày cập nhật thiết kế: 13/11/2026. Cấu hình tham chiếu: ESP32-S3-DevKitC-1 N16R8 và Hobbywing QuicRun 1060 Brushed giắc T. Bổ sung Raspberry Pi trên xe, nguồn ổn áp riêng cho Pi và nguồn hub phù hợp; model/công suất/đầu nối của các phần bổ sung còn chờ chọn và đo kiểm.
+Ngày cập nhật thiết kế: 14/11/2026. Cấu hình tham chiếu: ESP32-S3-DevKitC-1 N16R8 và Hobbywing QuicRun 1060 Brushed giắc T. Đã chốt Raspberry Pi 4 Model B RAM 4 GB, thẻ microSD 64 GB và hai MT6701 riêng cho góc lái/chuyển động. Nguồn Pi/hub, module cảm biến, PPR, đầu nối và gá còn phải chọn/đo kiểm.
 
 **Đây là thiết kế kết nối và bản đồ chân đề xuất, chưa phải kết quả lắp chạy trên xe.** Hình dáng motor, cụm lái và bo gốc được đối chiếu với ảnh người dùng. Các linh kiện dự định mua được vẽ theo hình dáng tham chiếu; vị trí chân trên module cảm biến, đầu nối servo và điện áp servo vẫn cần đối chiếu với hàng thực nhận. Màu cam/nét đứt chỉ phần chờ xác minh, không phải dây đã được phép cấp điện.
 
@@ -10,32 +10,32 @@ Ngày cập nhật thiết kế: 13/11/2026. Cấu hình tham chiếu: ESP32-S3-
 
 ## Bảng linh kiện và ba bản vẽ
 
-Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các chân — SVG](hardware/wiring-v1/00-components.svg) hoặc [PNG](hardware/wiring-v1/00-components.png?v=6e63bbce0540).
+Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các chân — SVG](hardware/wiring-v1/00-components.svg) hoặc [PNG](hardware/wiring-v1/00-components.png?v=9ac413ffc93c).
 
-1. [Kết nối tổng thể — SVG](hardware/wiring-v1/01-system.svg) · [PNG](hardware/wiring-v1/01-system.png?v=acfaa2ca6cb8).
-2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png?v=511cc0a13238).
-3. [Sạc pin tách khỏi xe — SVG](hardware/wiring-v1/03-charging.svg) · [PNG](hardware/wiring-v1/03-charging.png?v=26d85a84984b).
+1. [Kết nối tổng thể — SVG](hardware/wiring-v1/01-system.svg) · [PNG](hardware/wiring-v1/01-system.png?v=b04a45841440).
+2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png?v=8a5bdf9db514).
+3. [Sạc pin tách khỏi xe — SVG](hardware/wiring-v1/03-charging.svg) · [PNG](hardware/wiring-v1/03-charging.png?v=6f5b5dda4a87).
 
-![Kết nối tổng thể](hardware/wiring-v1/01-system.png?v=acfaa2ca6cb8)
+![Kết nối tổng thể](hardware/wiring-v1/01-system.png?v=b04a45841440)
 
-![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png?v=511cc0a13238)
+![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png?v=8a5bdf9db514)
 
-![Sạc pin tách khỏi xe](hardware/wiring-v1/03-charging.png?v=26d85a84984b)
+![Sạc pin tách khỏi xe](hardware/wiring-v1/03-charging.png?v=6f5b5dda4a87)
 
 ## Những bộ phận được giữ và thay
 
 | Bộ phận | Vai trò trong bản thiết kế |
 |---|---|
 | Laptop chạy AutoPark | Mục tiêu: AI bốn camera, fusion, chọn ô và lập quỹ đạo; trao đổi dữ liệu với Pi qua Wi-Fi LAN |
-| Raspberry Pi trên xe — chờ chọn model | Mục tiêu: thu cảm biến, định vị cục bộ, bám quỹ đạo, kiểm hành lang và dừng vật cản; làm USB host cho ESP32, C1 và hub camera |
+| Raspberry Pi 4 Model B — RAM 4 GB, microSD 64 GB | Mục tiêu: thu cảm biến, định vị cục bộ, bám quỹ đạo, kiểm hành lang và dừng vật cản; làm USB host cho ESP32, C1 và hub camera |
 | ESP32-S3-DevKitC-1 N16R8 | Mục tiêu: nhận lệnh ngắn hạn từ Pi, phát ga/lái, đọc tốc độ/góc lái thực, watchdog dừng khi lệnh hết hạn |
 | Nguồn ổn áp cho Pi — chờ chọn | Nhánh riêng từ pin 2S; nguồn đúng yêu cầu Pi và tải USB C1/ESP32, qua cổng nguồn đúng model; không dùng BEC 6 V |
 | Nguồn hub — chờ chọn | Nhánh riêng từ pin 2S; chỉ cấp DC-in được hãng hub hỗ trợ, đúng điện áp/cực/dòng cho bốn camera; kiểm không cấp ngược USB về Pi |
 | QuicRun 1060 Brushed bản T | Điều khiển công suất cho motor kéo |
 | Motor 280–60T trên xe | Giữ motor và truyền động hiện có |
 | Cụm lái gốc nối ba dây | Dự kiến giữ; cần xác minh model, nguồn và tín hiệu trước khi nối |
-| Encoder tốc độ | Ứng viên MT6701 ở chế độ A/B, kèm nam châm và gá; chưa chốt module thực nhận |
-| Cảm biến góc lái | Ứng viên AS5600 qua I²C, kèm nam châm và gá; chưa chốt module thực nhận |
+| MT6701 #2 — bánh/trục | Xung A/B để đo chiều quay, tốc độ và quãng đường; nam châm/gá riêng; module, chế độ ABZ và PPR thực nhận cần kiểm |
+| MT6701 #1 — góc lái | Góc tuyệt đối qua I²C; nam châm/gá riêng trên cơ cấu lái; module thực nhận cần kiểm |
 | LiDAR C1, adapter USB, bốn camera và hub | C1 → adapter USB → Pi; bốn camera USB → hub → Pi. Hub cũ chưa xác minh DC-in, cần chọn hub có nguồn phù hợp nếu không đạt; phải hiệu chuẩn và đo vị trí gá |
 | Pin LiPo 2S 7,4 V, 1.500 mAh, giắc T | Pin dự định dùng; tối đa 8,4 V khi đầy, kích thước phải vừa xe |
 | Sạc B3 Pro | Sạc riêng qua giắc cân bằng 2S; không nối trong lúc chạy xe |
@@ -49,7 +49,7 @@ Theo lựa chọn của người dùng, sơ đồ không bố trí nút dừng k
 
 Dòng khởi động/kẹt trục của motor, dòng servo và định mức dây/giắc thực nhận chưa được đo hoặc xác nhận. Các số dòng công bố của ESC hay pin không thay cho bước đối chiếu tải và đầu nối thực tế.
 
-**Nguồn Pi:** chọn bộ DC–DC riêng có đầu vào chịu toàn dải pin 2S, đầu ra ổn áp theo đúng model Pi, cổng nguồn/cáp phù hợp và đủ dòng cho Pi cùng C1/ESP32 qua USB. Ký hiệu `+5 V`/GND trong hình tách hai lõi của cáp nguồn để đọc đường điện, không chỉ định cấp qua header GPIO. Phải kiểm sụt áp lúc khởi động/tải đồng thời, nhiễu motor, nhiệt và cách nhận nguồn USB-C nếu model yêu cầu. BEC 6 V của ESC không nối Pi. Chưa chốt model nên sơ đồ không gán một dòng định mức chung cho mọi Pi. Yêu cầu nguồn và giới hạn tải USB tùy model được nêu trong [tài liệu nguồn Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html#power-supply).
+**Nguồn Pi:** chọn bộ DC–DC riêng có đầu vào chịu toàn dải pin 2S, đầu ra ổn áp theo đúng model Pi, cổng nguồn/cáp phù hợp và đủ dòng cho Pi cùng C1/ESP32 qua USB. Ký hiệu `+5 V`/GND trong hình tách hai lõi của cáp nguồn để đọc đường điện, không chỉ định cấp qua header GPIO. Phải kiểm sụt áp lúc khởi động/tải đồng thời, nhiễu motor, nhiệt và cách nhận nguồn USB-C nếu model yêu cầu. BEC 6 V của ESC không nối Pi. Pi đã chốt là Pi 4 Model B, dùng nguồn USB-C ổn áp 5,1 V/3 A theo khuyến nghị hãng. Tổng tải USB trực tiếp tối đa 1,2 A; phải cộng tải C1 và ESP32, không coi 3 A đầu nguồn là 3 A cho USB. Thẻ microSD 64 GB chứa hệ điều hành/chương trình; RAM 4 GB không thay thẻ. Yêu cầu nguồn và giới hạn tải USB tùy model được nêu trong [tài liệu nguồn Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html#power-supply).
 
 **Nguồn hub và bốn camera:** nguồn DC–DC thứ hai cấp đúng điện áp/cực/dòng vào DC-in mà nhà sản xuất hub hỗ trợ, đủ tải cả bốn camera. Không mặc định hub hiện có nhận nguồn phụ hoặc nhận 5 V. Chọn hub có nguồn phù hợp nếu hub cũ không đáp ứng; không tự đấu nguồn vào dây USB. Kiểm đường upstream không cấp ngược VBUS về Pi, không ghép song song đầu ra dương nguồn hub với nguồn Pi. Băng thông USB/Wi-Fi, FPS, độ trễ và đồng bộ thời gian của bốn camera phải đo trên cấu hình cuối.
 
@@ -71,14 +71,27 @@ Các số J1 dưới đây đối chiếu header DevKitC-1 chính thức. Hình 
 |---|---|---|---|---|
 | `ESC_CTRL` | GPIO4 | J1-4 | Signal của giắc điều khiển ESC | Chờ xác minh ESC nhận mức 3,3 V |
 | `SERVO_CTRL` | GPIO5 | J1-5 | Signal của servo | Chờ xác minh giao tiếp và mức tín hiệu servo |
-| `AS_SDA` | GPIO6 | J1-6 | SDA của AS5600 | Module phải có I²C mức 3,3 V |
-| `AS_SCL` | GPIO7 | J1-7 | SCL của AS5600 | Điện trở kéo lên chỉ tới 3,3 V |
+| `STEER_SDA` | GPIO6 | J1-6 | A/SDA của MT6701 #1 | Module phải có I²C mức 3,3 V |
+| `STEER_SCL` | GPIO7 | J1-7 | B/SCL của MT6701 #1 | Điện trở kéo lên chỉ tới 3,3 V |
 | `ENC_A` | GPIO8 | J1-12 | A của module MT6701 cấu hình A/B | Chờ module, chế độ và gá thực |
 | `ENC_B` | GPIO9 | J1-15 | B của module MT6701 cấu hình A/B | Chờ module, chế độ và gá thực |
 | Nguồn cảm biến | 3V3 | J1-1 hoặc J1-2 | Nguồn 3,3 V của module đã xác minh | Không phải đầu vào nguồn 6 V |
 | Tham chiếu logic | GND | J1-22 | GND chung | Đối chiếu thông mạch khi chưa cấp nguồn |
 
 Đây là lựa chọn chân của bản thiết kế, không phải chức năng tự có của GPIO4…9. Firmware phải cấu hình chúng tương ứng. Không dùng GPIO19/20 cho các tín hiệu trên vì dành cho USB native; không dùng chân strapping hoặc chân bộ nhớ của biến thể N16R8 trong bảng này.
+
+## Hai MT6701: chế độ và vị trí gá khác nhau
+
+| Module | Đường về ESP32 | Cấu hình tại module, sau khi đối chiếu pinout |
+|---|---|---|
+| #1 / `STEER` — góc lái | GPIO6 → A/SDA; GPIO7 → B/SCL | I²C: MODE và Z/CSN giữ ở 3V3 theo mạch tham chiếu; pull-up dữ liệu chỉ về 3V3 |
+| #2 / `ENC` — bánh/trục | A → GPIO8; B → GPIO9 | MODE về GND, chọn đầu ra ABZ; Z là đầu ra không dùng nên để trống, không nối lên 3V3 |
+
+Hai module lấy VCC 3V3 và GND chung với ESP32 nếu breakout thực nhận hỗ trợ. Nối MODE/Z có thể đã được thực hiện bằng jumper/điện trở trên module: kiểm trước, không đấu chồng với cấu hình trái ngược. Các nhãn MODE/Z trong hình là chân chức năng, không phải số thứ tự trên mọi breakout. Không đọc I²C và A/B cùng lúc trên các chân dùng chung của một chip.
+
+Độ phân giải góc tuyệt đối 14 bit không phải số xung/vòng của đầu ra A/B. Chọn PPR cho #2 theo vị trí gá và tốc độ thấp, kiểm số xung và chiều quay thực; không mặc định mọi module đều 1.024 PPR. #1 cần hiệu chuẩn thẳng lái, giới hạn trái/phải và quan hệ góc cảm biến với góc bánh; góc servo ra lệnh không thay cho số đo.
+
+Tham chiếu: [MagnTek MT6701 Rev.1.8](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf), mục 1, 2, 7.1, 7.2 và 7.7. Nguồn Pi/USB: [Raspberry Pi — phần cứng và nguồn](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html). Đã chốt chip, chưa xác nhận module và chưa triển khai driver phản hồi thật.
 
 ## Các giắc dễ nhầm
 
@@ -102,7 +115,7 @@ Encoder tốc độ đo góc/số vòng ở trục hoặc bánh được chọn,
 
 Tên MT6701 chưa đủ để xác nhận độ phân giải: một số biến thể mặc định chỉ có 1 xung/vòng ở đầu ra A/B. Cần chọn hoặc cấu hình đúng số xung/vòng (PPR) rồi kiểm lại ở tốc độ thấp trên vị trí gá thực. Ưu tiên module đã được cấu hình và kiểm PPR; không tự nâng nguồn 3V3 của ESP32 để lập trình EEPROM cho cảm biến.
 
-AS5600 đo góc nam châm gắn với cơ cấu lái. Gá phải giữ khoảng cách/hướng nam châm đúng yêu cầu cảm biến và hiệu chuẩn ra góc bánh xe. Đường nét đứt giữa nam châm và trục/cảm biến biểu diễn liên hệ cơ khí/từ trường, không phải dây điện.
+MT6701 #1 đo góc tuyệt đối của nam châm gắn với cơ cấu lái qua I²C. MT6701 #2 là cảm biến khác gắn trên bánh/trục; một module không đo đồng thời hai chuyển động cơ khí độc lập. Gá phải giữ khoảng cách/hướng nam châm đúng yêu cầu cảm biến và hiệu chuẩn ra góc bánh xe. Đường nét đứt giữa nam châm và trục/cảm biến biểu diễn liên hệ cơ khí/từ trường, không phải dây điện.
 
 Hub hiện có chưa được xác nhận model và khả năng nhận nguồn phụ. Chỉ dùng cổng nguồn phụ nếu đúng thiết kế của hub, đúng điện áp và cách cấp nguồn; không tự ghép nguồn vào dây USB. Gá LiDAR/camera chắc chắn rồi đo vị trí, hướng, vùng che và hiệu chuẩn trước khi dùng làm tư thế/vật cản cho xe thật.
 
@@ -144,7 +157,6 @@ Không coi giắc cân bằng ba chân là SM3P nguồn chỉ vì có cùng số
 - [Hobbywing — hướng dẫn 1625/1060/860](https://www.hobbywing.com/en/uploads/file/20240315/e8525a6a27f4e1dcbe3af554c06deac0.pdf): dây motor/nguồn, chế độ F/R và thao tác hiệu chuẩn. Chưa tìm thấy ngưỡng đầu vào chứng minh 3,3 V cho chiếc ESC thực nhận.
 - [B3 Pro — hướng dẫn của imaxRC, bản lưu tại RC Factory](https://www.rc-factory.cz/assets/docs/da21c8a03bc75ae73c4b5362c3acef7c/1321-1/b3-pro-manual.pdf): hai cổng cân bằng 2S/3S và dòng công bố. Tên trên gian hàng không tự xác nhận chất lượng chiếc sạc.
 - [MagnTek — MT6701](https://www.magntek.com.cn/136/108) và [datasheet Rev1.8](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf): cảm biến góc từ, các kiểu đầu ra và PPR theo biến thể; module, nam châm, chế độ và gá của dự án chưa chốt.
-- [ams OSRAM — AS5600, tài liệu evaluation board](https://look.ams-osram.com/m/4f8342513a447495/original/AS5600_UG000254_2-00.pdf): tham chiếu giao tiếp I²C và chế độ 3,3 V. Không thay pinout của module người dùng mua.
 - [SLAMTEC — RPLIDAR C1](https://www.slamtec.com/en/c1/spec): giao tiếp của cảm biến; hệ thống này dùng adapter USB hiện có.
 - Ảnh xe người dùng tại thư mục `ảnh mạch/`: xác nhận nhãn 280–60T, bo XL1986RT và vị trí cụm lái. Ảnh gốc không được nhúng vào bản vẽ hay tự đưa lên GitHub.
 

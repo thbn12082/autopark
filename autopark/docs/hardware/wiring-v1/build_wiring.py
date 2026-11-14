@@ -208,7 +208,7 @@ def system_sheet():
         a,b=s.point(f"PSHUB.{out_port}"),s.point(f"HUB.{target}")
         s.wire(f"PSHUB.{out_port}",f"HUB.{target}",[(gutter,a[1]),(gutter,bottom),(b[0],bottom)],col,True,7)
     s.label(915, 2225, "P5 · DC đúng định mức hub*", 24, RED)
-    s.note(1780, 1830, 410, ["PI / NGUỒN: CHỜ CHỌN", "Đầu vào chịu toàn dải pin 2S.", "5 V đúng yêu cầu model Pi;", "đủ tải Pi + C1 + ESP qua USB.", "Kiểm sụt áp, nhiễu, nhiệt", "và cách nhận nguồn USB-C.", "Không dùng BEC 6 V."], AMBER, "#fff8ea", 21)
+    s.note(1780, 1830, 410, ["PI 4: RAM 4 GB / SD 64 GB", "Đầu vào chịu toàn dải pin 2S.", "Nguồn USB-C 5,1 V / 3 A;", "đủ tải Pi + C1 + ESP qua USB.", "Kiểm sụt áp, nhiễu, nhiệt", "nguồn và cáp vẫn chờ chọn.", "Không dùng BEC 6 V."], AMBER, "#fff8ea", 21)
     s.note(1760, 2250, 440, ["HUB / NGUỒN: CHỜ CHỌN", "Chỉ cấp qua DC-in hãng hỗ trợ.", "Điện áp / cực / dòng đúng hub.", "Đủ tải đồng thời 4 camera.", "Kiểm không cấp ngược VBUS", "từ hub về cổng USB của Pi.", "Hub cũ: chưa xác nhận DC-in."], AMBER, "#fff8ea", 21)
     s.label(95, 2685, ["USB Pi ↔ ESP/C1/hub: xem Tờ 2; GND theo cáp USB. Nguồn Pi và hub không ghép song song đầu ra dương.",
                        "Chọn DC–DC không cách ly, kiểm IN−/OUT− cùng tham chiếu; dòng motor/servo hồi theo dây nguồn riêng.",
@@ -228,7 +228,7 @@ def signal_sheet():
     s.node("C1", "lidar", 800, 670, 300, 264)
     s.node("ADAPTER", "lidar_adapter", 1250, 700, 300, 180)
     s.node("ESP", "esp32", 230, 1160, 420, 585)
-    s.node("AS", "as5600", 1060, 1180, 350, 269.23)
+    s.node("STEER", "mt6701_steer", 1060, 1180, 350, 269.23)
     s.node("ENC", "mt6701", 1750, 1470, 350, 269.23)
     pc, pi = s.point("PC.wifi"), s.point("PI.wifi")
     s.wire("PC.wifi", "PI.wifi", [(700,pc[1]),(700,pi[1])], USB, True, 6)
@@ -258,30 +258,42 @@ def signal_sheet():
     s.wire("PI.usb1","ESP.usb_native",[(1300,pu[1]),(1300,625),(45,625),(45,1870),(eu[0],1870)],USB,width=9)
     s.note(100, 690, 610, ["LAPTOP: AI trên 4 luồng camera,", "fusion + chọn ô đỗ + lập quỹ đạo.", "PI: thu C1/camera, định vị cục bộ,", "bám quỹ đạo và dừng vật cản tại xe.", "AI không trực tiếp xuất ga / góc lái.", "4G: tùy chọn điều khiển từ xa về sau."], MUTED, "#f3f7fb", 22)
     s.label(80, 990, "U1 · USB NGẮN TRÊN XE: Pi ↔ USB native/CDC của ESP32; dữ liệu + nguồn. Không kéo USB từ laptop ra xe.", 23, USB)
-    s.label(1050, 1095, "PHẢN HỒI ĐO ĐƯỢC · module và gá chưa chốt", 28)
+    s.label(1050, 1095, "HAI MT6701 RIÊNG · module và gá cần đối chiếu", 28)
     p3, g = s.point("ESP.v3v3"), s.point("ESP.gnd")
-    av, ev = s.point("AS.vcc"), s.point("ENC.vcc")
+    av, ev = s.point("STEER.vcc"), s.point("ENC.vcc")
     s.line([p3,(180,p3[1]),(180,1135),(995,1135),(995,av[1]),av], LOGIC, True)
     s.line([(995,1135),(1610,1135),(1610,ev[1]),ev], LOGIC, True)
     s.junction(995,1135,LOGIC)
     s.label(1020, 1127, "L1 · 3V3 (chỉ module hỗ trợ 3,3 V)", 22, LOGIC)
-    ag, eg = s.point("AS.gnd"), s.point("ENC.gnd")
+    ag, eg = s.point("STEER.gnd"), s.point("ENC.gnd")
     s.line([g,(185,g[1]),(185,1820),(700,1820),(700,ag[1]),ag], GND, True)
     s.line([(700,1820),(1640,1820),(1640,eg[1]),eg], GND, True)
     s.junction(700,1820,GND)
+    # Named rail continuations: same ESP32 3V3/GND as L1/L2, conditional on module pinout.
+    sm, sz = s.point("STEER.mode"), s.point("STEER.z")
+    s.line([sm, (1480, sm[1]), (1480, 1240), (1610, 1240)], LOGIC, True)
+    s.line([sz, (1530, sz[1]), (1530, 1240)], LOGIC, True)
+    s.junction(1530, 1240, LOGIC)
+    s.junction(1610, 1240, LOGIC)
+    s.label(1490, 1225, "3V3 · L1", 20, LOGIC)
+    em, ez = s.point("ENC.mode"), s.point("ENC.z")
+    s.line([em, (2310, em[1])], GND, True)
+    s.label(2200, em[1] - 16, "GND · L2", 20, GND)
+    s.line([ez, (2200, ez[1])], SIGNAL, True)
+    s.label(2210, ez[1] + 8, "Z: để trống", 19, MUTED)
     for port, target, gutter, top_y, column, color in [
         ("sda","sda",150,1060,920,SIGNAL),
         ("scl","scl",115,1035,955,BLUE2),
     ]:
-        a,b=s.point(f"ESP.{port}"),s.point(f"AS.{target}")
-        s.wire(f"ESP.{port}",f"AS.{target}",[(gutter,a[1]),(gutter,top_y),(column,top_y),(column,b[1])],color,True)
+        a,b=s.point(f"ESP.{port}"),s.point(f"STEER.{target}")
+        s.wire(f"ESP.{port}",f"STEER.{target}",[(gutter,a[1]),(gutter,top_y),(column,top_y),(column,b[1])],color,True)
     for port,target,gutter,base_y,column,color in [
         ("enc_a","a",150,1780,1675,SIGNAL),
         ("enc_b","b",115,1850,1710,BLUE2),
     ]:
         a,b=s.point(f"ESP.{port}"),s.point(f"ENC.{target}")
         s.wire(f"ESP.{port}",f"ENC.{target}",[(gutter,a[1]),(gutter,base_y),(column,base_y),(column,b[1])],color,True)
-    s.note(740, 1490, 720, ["AS5600: GPIO6=SDA, GPIO7=SCL; pull-up chỉ về 3V3.", "VCC trên hình là cổng của module hỗ trợ 3,3 V.", "Thứ tự chân module/IC phải được đối chiếu riêng.", "MT6701: GPIO8=A, GPIO9=B; chốt MODE/ABZ và PPR.", "Nam châm gắn cơ khí lên trục; không phải dây điện."], MUTED, "#f3f7fb", 21)
+    s.note(740, 1490, 720, ["#1 góc lái: GPIO6=SDA, GPIO7=SCL; I²C 3V3.", "#1: MODE và Z/CSN ở mức 3V3 để dùng I²C.", "#2 bánh/trục: GPIO8=A, GPIO9=B; MODE về GND.", "#2: Z để trống; kiểm ABZ và PPR thực nhận.", "Hai module + hai nam châm; không chung trục đo.", "Các mốc 3V3/GND bên phải cùng nguồn ESP.", "Module có jumper: kiểm trước khi đấu bổ sung."], MUTED, "#f3f7fb", 21)
     s.note(1700, 1190, 550, ["GPIO4: ESC_CTRL · GPIO5: SERVO_CTRL.", "GPIO6/7: I²C · GPIO8/9: A/B.", "Map đề xuất; firmware chưa đổi.", "Đối chiếu đúng chân trên module."], AMBER, "#fff8ea", 22)
     s.label(250, 1905, "L2 · GND cảm biến về ESP; GND ESP còn nối ESC/BEC và servo ở Tờ 1.", 23, GND)
     s.label(70, 1950, "ToF và IMU được hoãn. Bốn camera không tự thay thế phép đo tốc độ/góc lái hay kiểm chứng vùng mù.", 23, MUTED)
@@ -322,7 +334,7 @@ def spec():
     gpio={"ESC_CTRL":4,"SERVO_CTRL":5,"SDA":6,"SCL":7,"ENC_A":8,"ENC_B":9}
     return {
         "schema_version":2,
-        "revision":"laptop_pi_esp32_target_v3",
+        "revision":"pi4_dual_mt6701_target_v4",
         "status":"proposed_not_hardware_verified",
         "date":"-".join(reversed(DESIGN_DATE.split("/"))),
         "catalog_component_kinds":list(CATALOG_KINDS),
@@ -342,30 +354,35 @@ def spec():
             "current_code":"simulation/manual nearby goal; distributed Pi and automatic slot selection not implemented; PWM disabled; physical feedback drivers unfinished",
         },
         "reference_board":"ESP32-S3-DevKitC-1 N16R8",
+        "onboard_computer":{"model":"Raspberry Pi 4 Model B","ram_gb":4,"microSD_gb":64,"hardware_tested":False},
+        "feedback_sensors":{
+            "STEER":{"chip":"MT6701","quantity":1,"role":"absolute steering angle","interface":"I2C","mode":"HIGH at 3.3V","z_csn":"HIGH at 3.3V","module_pinout_verified":False},
+            "ENC":{"chip":"MT6701","quantity":1,"role":"wheel/drivetrain speed and distance","interface":"quadrature A/B","mode":"LOW at GND; ABZ configuration verified before use","z":"unconnected output","ppr":"must select and measure; not inferred from 14-bit angle","module_pinout_verified":False},
+        },
         "proposed_gpio":gpio,
         "firmware_pinmap_changed":False,
         "components":{
             "PC":"laptop","HUB":"usb_hub","CAM1":"camera","CAM2":"camera","CAM3":"camera","CAM4":"camera",
             "ESP":"esp32","C1":"lidar","ADAPTER":"lidar_adapter","BAT":"battery2s","ESC":"esc1060",
-            "MOTOR":"motor280","SERVO":"servo","AS":"as5600","ENC":"mt6701","B3":"b3_charger",
+            "MOTOR":"motor280","SERVO":"servo","STEER":"mt6701_steer","ENC":"mt6701","B3":"b3_charger",
             "PI":"raspberry_pi","PSPI":"pi_supply","PSHUB":"hub_supply",
         },
         "operating_nets":[
             {"id":"BAT_PLUS","endpoints":["BAT.plus","ESC.battery_plus","PSPI.vin_plus","PSHUB.vin_plus"],"voltage":"2S: nominal 7.4V, max 8.4V","continuation":"P3+; separate power branches; input range/load/wiring not verified"},
             {"id":"BAT_MINUS","endpoints":["BAT.minus","ESC.battery_minus","PSPI.vin_minus","PSHUB.vin_minus"],"voltage":"battery return","continuation":"P3-; power currents return on rated power harness, not ESP32"},
-            {"id":"PI_5V","endpoints":["PSPI.vout_plus","PI.power_5v"],"voltage":"regulated 5V class, exact model specification","condition":"select converter rated for full 2S range and Pi+C1+ESP USB loads; correct power connector/cable and USB-C negotiation if required; not BEC 6V"},
+            {"id":"PI_5V","endpoints":["PSPI.vout_plus","PI.power_5v"],"voltage":"5.1V regulated USB-C supply for Pi 4; recommended 3A","condition":"select converter rated for full 2S range and Pi+C1+ESP USB loads; correct power connector/cable and USB-C negotiation if required; not BEC 6V"},
             {"id":"PI_RETURN","endpoints":["PSPI.vout_minus","PI.power_gnd"],"voltage":"return in Pi power cable"},
             {"id":"HUB_DC","endpoints":["PSHUB.vout_plus","HUB.dc_plus"],"voltage":"as specified by selected powered hub, not assumed","condition":"hub must support dedicated DC input; confirm polarity/current for four cameras and no upstream VBUS backfeed to Pi"},
             {"id":"HUB_RETURN","endpoints":["PSHUB.vout_minus","HUB.dc_minus"],"voltage":"return in hub DC power cable"},
-            {"id":"GND","endpoints":["ESP.gnd","ESC.gnd","SERVO.gnd","AS.gnd","ENC.gnd"],"voltage":"common signal reference; servo power return directly to ESC/BEC, not through ESP32"},
+            {"id":"GND","endpoints":["ESP.gnd","ESC.gnd","SERVO.gnd","STEER.gnd","ENC.gnd","ENC.mode"],"voltage":"common signal reference; servo power return directly to ESC/BEC, not through ESP32"},
             {"id":"MOTOR_A","endpoints":["ESC.motor_a","MOTOR.a"],"voltage":"switched motor output; NOT logic GND"},
             {"id":"MOTOR_B","endpoints":["ESC.motor_b","MOTOR.b"],"voltage":"switched motor output; NOT logic GND"},
             {"id":"ESC_CTRL","endpoints":["ESP.esc_pwm","ESC.signal"],"gpio":4,"condition":"confirm ESC accepts 3.3V signal and pulse range"},
             {"id":"SERVO_CTRL","endpoints":["ESP.servo_pwm","SERVO.signal"],"gpio":5,"condition":"confirm stock servo signal/pinout"},
             {"id":"V_SERVO","endpoints":["ESC.bec_plus","SERVO.vplus"],"voltage":6.0,"reference_current_a":3.0,"condition":"connect ONLY after confirming the stock servo supports 6V, actual ESC BEC voltage and load current fit; no parallel supply; never to ESP32 rails or GPIO"},
-            {"id":"3V3","endpoints":["ESP.v3v3","AS.vcc","ENC.vcc"],"voltage":"3.3V","condition":"breakouts must support 3.3V; verify onboard regulator/pullups and total current"},
-            {"id":"SDA","endpoints":["ESP.sda","AS.sda"],"gpio":6,"condition":"pullups only to3.3V"},
-            {"id":"SCL","endpoints":["ESP.scl","AS.scl"],"gpio":7,"condition":"pullups only to3.3V"},
+            {"id":"3V3","endpoints":["ESP.v3v3","STEER.vcc","ENC.vcc","STEER.mode","STEER.z"],"voltage":"3.3V","condition":"breakouts must support 3.3V; verify onboard regulator/pullups and total current"},
+            {"id":"SDA","endpoints":["ESP.sda","STEER.sda"],"gpio":6,"condition":"pullups only to3.3V"},
+            {"id":"SCL","endpoints":["ESP.scl","STEER.scl"],"gpio":7,"condition":"pullups only to3.3V"},
             {"id":"ENC_A","endpoints":["ESP.enc_a","ENC.a"],"gpio":8,"condition":"confirm MT6701 module MODE and PPR"},
             {"id":"ENC_B","endpoints":["ESP.enc_b","ENC.b"],"gpio":9,"condition":"confirm MT6701 module MODE and PPR"},
         ],
@@ -373,7 +390,7 @@ def spec():
                      *[[f"HUB.usb{i}",f"CAM{i}.usb"] for i in range(1,5)]],
         "sensor_cable_links":[["ADAPTER.lidar","C1.connector"]],
         "wireless_links":[{"endpoints":["PC.wifi","PI.wifi"],"medium":"Wi-Fi LAN","electrical_wire":False}],
-        "isolated_ports":[],
+        "isolated_ports":["ENC.z"],
         "internal_links_to_verify":[
             {"endpoints":["ESC.battery_minus","ESC.gnd"],"condition":"ESC signal ground and battery return share the reference; verify actual ESC before wiring"},
             {"endpoints":["PSPI.vin_minus","PSPI.vout_minus"],"condition":"select non-isolated converter; verify common return"},
@@ -384,7 +401,7 @@ def spec():
         "charging_requirements":["battery disconnected from ESC and all vehicle loads","only one battery","B3 2S port only; 3S empty","main T contacts insulated"],
         "omitted_by_user":["emergency_stop","independent_motor_power_cutoff","additional_fuse"],
         "deferred":["ToF","IMU"],
-        "unverified":["Pi model and power supply rating, cable/connector and USB-C power negotiation","hub model, DC input rating and upstream VBUS backfeed prevention","2S branch harness, converter input range/load transients, voltage drop and heat","four-camera USB/Wi-Fi bandwidth and timestamps","stock servo 6V compatibility, load current and 3-wire pinout","actual ESC BEC voltage/current and 3.3V input acceptance","sensor breakout pad order, mode and mounting","adapter mating/polarity and motor stall current","firmware outputs and physical signal timing"],
+        "unverified":["Pi 4 USB-C supply, cable, voltage drop and USB total load (1.2A limit)","hub model, DC input rating and upstream VBUS backfeed prevention","2S branch harness, converter input range/load transients, voltage drop and heat","four-camera USB/Wi-Fi bandwidth and timestamps","stock servo 6V compatibility, load current and 3-wire pinout","actual ESC BEC voltage/current and 3.3V input acceptance","sensor breakout pad order, mode and mounting","adapter mating/polarity and motor stall current","firmware outputs and physical signal timing"],
     }
 
 
@@ -409,6 +426,14 @@ def validate_spec(data):
     assert data["sensor_cable_links"] == [["ADAPTER.lidar","C1.connector"]]
     assert data["wireless_links"][0]["endpoints"] == ["PC.wifi","PI.wifi"]
     assert not data["architecture"]["automatic_restart"]
+    assert data["components"]["STEER"] == "mt6701_steer"
+    assert data["components"]["ENC"] == "mt6701"
+    assert data["onboard_computer"]["ram_gb"] == 4
+    assert data["onboard_computer"]["microSD_gb"] == 64
+    rails = {net["id"]: set(net["endpoints"]) for net in data["operating_nets"]}
+    assert {"STEER.mode", "STEER.z"} <= rails["3V3"]
+    assert "ENC.mode" in rails["GND"]
+    assert "ENC.z" not in endpoints and data["isolated_ports"] == ["ENC.z"]
     assert len(endpoints) == len(set(endpoints)), "A port must not bridge different operating nets"
     assert "BAT.balance_mid" not in endpoints
     servo_power = next(n for n in data["operating_nets"] if n["id"]=="V_SERVO")

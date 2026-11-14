@@ -1,8 +1,8 @@
 # Bản vẽ 2D kết nối AutoPark
 
-Các bản vẽ thể hiện kiến trúc mục tiêu **Laptop ↔ Wi-Fi LAN ↔ Raspberry Pi trên xe ↔ USB ngắn ↔ ESP32**. Laptop chạy AI trên bốn camera, fusion, chọn ô và lập quỹ đạo; Pi thu cảm biến, định vị, bám quỹ đạo và dừng vật cản cục bộ; ESP32 nhận lệnh chấp hành, đọc encoder/góc lái và dừng khi lệnh hết hạn. C1 và hub bốn camera nối USB về Pi.
+Các bản vẽ thể hiện kiến trúc mục tiêu **Laptop ↔ Wi-Fi LAN ↔ Raspberry Pi trên xe ↔ USB ngắn ↔ ESP32**. Laptop chạy AI trên bốn camera, fusion, chọn ô và lập quỹ đạo; Pi thu cảm biến, định vị, bám quỹ đạo và dừng vật cản cục bộ; ESP32 nhận lệnh chấp hành, đọc encoder/góc lái và dừng khi lệnh hết hạn. C1 và hub bốn camera nối USB về Pi. Hai MT6701 riêng: #1 đo góc lái qua I²C; #2 đo tốc độ/quãng đường qua A/B. Cả hai nối ESP32, không nối trực tiếp Pi.
 
-Pin 2S chia nhánh cho ESC và hai bộ nguồn ổn áp riêng cho Pi/hub. Model Pi, bộ nguồn và hub có DC-in phù hợp đều chờ chọn/xác minh, kể cả kiểm chống cấp ngược USB. BEC 6 V chỉ cấp servo sau khi xác minh tương thích và tải; không cấp Pi, hub hoặc ESP32. Sạc B3 giữ chế độ pin tách khỏi toàn bộ xe.
+Pin 2S chia nhánh cho ESC và hai bộ nguồn ổn áp riêng cho Pi/hub. Đã chọn Pi 4 Model B RAM 4 GB, thẻ microSD 64 GB; bộ nguồn và hub có DC-in phù hợp còn chờ chọn/xác minh, kể cả kiểm chống cấp ngược USB. BEC 6 V chỉ cấp servo sau khi xác minh tương thích và tải; không cấp Pi, hub hoặc ESP32. Sạc B3 giữ chế độ pin tách khỏi toàn bộ xe.
 
 Đây là **thiết kế mục tiêu, chưa kiểm chứng phần cứng**. Mã hiện có phục vụ mô phỏng/đích gần đặt tay; hệ Pi phân tán và tự chọn ô chưa triển khai. Dừng khi hành lang có vật cản không an toàn, dữ liệu cũ hoặc mất liên kết; không tự chạy lại. Laptop lập lại từ pose mới đo khi xe đã dừng, rồi cần xác nhận lượt chạy mới. 4G chỉ là tùy chọn về sau.
 

@@ -10,16 +10,16 @@
 <rect x="40" y="160" width="540" height="310" rx="20" fill="#edf2f7" stroke="#c4d3df" stroke-width="1.5"/>
 <text x="60" y="199" font-size="24" fill="#526779" font-weight="700" text-anchor="start">NGUỒN DỮ LIỆU · TRÊN XE</text>
 <rect x="620" y="160" width="540" height="310" rx="20" fill="#edf8f3" stroke="#c4d3df" stroke-width="1.5"/>
-<text x="640" y="199" font-size="24" fill="#087c65" font-weight="700" text-anchor="start">RASPBERRY PI · THU VÀ ĐỊNH VỊ</text>
+<text x="640" y="199" font-size="24" fill="#087c65" font-weight="700" text-anchor="start">PI 4 · 4 GB · microSD 64 GB</text>
 <rect x="1200" y="160" width="560" height="310" rx="20" fill="#edf5fb" stroke="#c4d3df" stroke-width="1.5"/>
 <text x="1220" y="199" font-size="24" fill="#126ba3" font-weight="700" text-anchor="start">LAPTOP · AI VÀ HỢP NHẤT</text>
 <rect x="60" y="226" width="500" height="224" rx="16" fill="white" stroke="#526779" stroke-width="1.5"/>
 <text x="80" y="262" font-size="23" fill="#526779" font-weight="700" text-anchor="start">01  Camera, LiDAR, phản hồi</text>
 <text x="80" y="298" font-size="20" fill="#173247" font-weight="400" text-anchor="start">4 camera USB → hub USB → Pi</text>
 <text x="80" y="326" font-size="20" fill="#173247" font-weight="400" text-anchor="start">LiDAR C1 → adapter USB → Pi</text>
-<text x="80" y="354" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Encoder + góc lái → ESP32</text>
-<text x="80" y="382" font-size="20" fill="#173247" font-weight="400" text-anchor="start">ESP32 → USB ngắn → Pi</text>
-<text x="80" y="410" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Kết nối mục tiêu; cần hiệu chuẩn.</text>
+<text x="80" y="354" font-size="20" fill="#173247" font-weight="400" text-anchor="start">MT6701 #1: góc lái I²C → ESP32</text>
+<text x="80" y="382" font-size="20" fill="#173247" font-weight="400" text-anchor="start">MT6701 #2: xung A/B → ESP32</text>
+<text x="80" y="410" font-size="20" fill="#173247" font-weight="400" text-anchor="start">ESP32 → USB ngắn → Pi</text>
 <rect x="640" y="226" width="500" height="224" rx="16" fill="white" stroke="#087c65" stroke-width="1.5"/>
 <text x="660" y="262" font-size="23" fill="#087c65" font-weight="700" text-anchor="start">02  Dấu thời gian + tư thế cục bộ</text>
 <text x="660" y="298" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Mã cảm biến, số thứ tự, thời điểm đo</text>
@@ -129,7 +129,7 @@
 <text x="1240" y="1346" font-size="23" fill="#7652aa" font-weight="700" text-anchor="start">12  ESP32 → ESC và servo</text>
 <text x="1240" y="1382" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Kiểm phiên, thứ tự và hạn lệnh</text>
 <text x="1240" y="1410" font-size="20" fill="#173247" font-weight="400" text-anchor="start">PWM ga ESC / PWM lái servo</text>
-<text x="1240" y="1438" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Đọc encoder và cảm biến góc lái</text>
+<text x="1240" y="1438" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Đọc hai MT6701: góc lái + tốc độ</text>
 <text x="1240" y="1466" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Gửi số đo + trạng thái về Pi</text>
 <text x="1240" y="1494" font-size="20" fill="#173247" font-weight="400" text-anchor="start">Watchdog: hết lệnh / mất USB → dừng</text>
 <path d="M 560,1410 L 640,1410" fill="none" stroke="#087c65" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>

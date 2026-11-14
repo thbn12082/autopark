@@ -1,8 +1,16 @@
 # Bàn giao AutoPark cho Codex tiếp quản
 
-## Quyết định cập nhật ngày 13/11/2026
+## Chốt linh kiện ngày 14/11/2026
 
-**Đây là định hướng mới nhất.** Phần bàn giao ngày 08/11/2026 bên dưới được giữ làm lịch sử; các mô tả cũ về phạm vi và cách chia việc giữa thiết bị cần đọc theo cập nhật này.
+- Máy tính trên xe: **Raspberry Pi 4 Model B, RAM 4 GB; microSD 64 GB**.
+- Dùng **hai MT6701**: #1 đo góc lái tuyệt đối qua I²C (GPIO6/7), #2 đo chuyển động bánh/trục bằng A/B (GPIO8/9), mỗi module có nam châm/gá riêng.
+- MODE/Z của #1 được cấu hình I²C; #2 ở ABZ, Z không dùng. Kiểm breakout, mức 3V3, PPR và hiệu chuẩn trước khi lắp; xem hướng dẫn điện hiện hành.
+- Quyết định này thay lựa chọn cảm biến lái trong phần lịch sử bên dưới. AI vẫn ở laptop; Pi bám đường; ESP32 đọc cả hai MT6701 và điều khiển cơ cấu.
+- Chỉ cập nhật thiết kế, hình và tài liệu; chưa triển khai Pi/driver cảm biến thật hoặc bật PWM.
+
+## Quyết định kiến trúc ngày 13/11/2026
+
+**Đây là kiến trúc đã chốt; linh kiện đọc theo cập nhật 14/11 ở trên.** Phần bàn giao ngày 08/11/2026 bên dưới được giữ làm lịch sử; các mô tả cũ về phạm vi và cách chia việc giữa thiết bị cần đọc theo cập nhật này.
 
 | Thiết bị | Công việc dự kiến |
 |---|---|

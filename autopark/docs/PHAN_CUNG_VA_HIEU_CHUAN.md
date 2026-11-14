@@ -1,5 +1,7 @@
 # Phần cứng và hiệu chuẩn
 
+**Cấu hình chốt 14/11/2026:** Pi 4 Model B RAM 4 GB + microSD 64 GB. Hai MT6701 riêng nối ESP32: #1 góc lái tuyệt đối qua I²C; #2 chuyển động bánh/trục qua A/B. Module/gá/PPR cần đối chiếu; driver phần cứng chưa hoàn thiện.
+
 Chặng đầu đã hoàn tất trong mô phỏng. Xe thật chưa chạy thao tác; đầu ra chuyển động trên bo mặc định tắt và phần mềm chưa đọc tốc độ, góc lái thực. Kết quả mô phỏng không mở các điều kiện đang chặn xe thật.
 
 ## Bố trí mới dùng Raspberry Pi

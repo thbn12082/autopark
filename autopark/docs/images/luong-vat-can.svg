@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1840" height="2530" viewBox="0 0 1840 2530" role="img" aria-labelledby="title desc">
-<title id="title">Gặp vật cản — Kiến trúc mục tiêu 13/11/2026</title>
+<title id="title">Gặp vật cản — Kiến trúc mục tiêu 14/11/2026</title>
 <desc id="desc">Bốn làn: cảm biến, Raspberry Pi trên xe, laptop và ESP32. Camera qua hub USB tới Pi để nén, qua Wi-Fi tới AI và fusion trên laptop. LiDAR C1 tới Pi qua USB. Pi định vị, bám quỹ đạo và dừng cục bộ khi hành lang không an toàn hoặc dữ liệu, liên kết quá hạn, không chờ AI. ESP32 chấp hành, đọc phản hồi và xử lý lệnh hết hạn. Sau tốc độ đo về không, Pi gửi tư thế dừng mới để laptop lập lại; người dùng xác nhận lượt mới. Đây là thiết kế, chưa kiểm chứng trên xe thật.</desc>
 <rect width="1840" height="2530" fill="#f5f8fb"/>
 <g font-family="Segoe UI" font-size="20">
 <text x="40" y="65" font-size="40" fill="#183448" font-weight="600" text-anchor="start">Gặp vật cản: ai thấy, ai dừng, ai lập lại?</text>
-<text x="40" y="105" font-size="23" fill="#236bb0" font-weight="600" text-anchor="start">KIẾN TRÚC MỤC TIÊU · 13/11/2026</text>
+<text x="40" y="105" font-size="23" fill="#236bb0" font-weight="600" text-anchor="start">KIẾN TRÚC MỤC TIÊU · 14/11/2026</text>
 <rect x="40" y="129" width="1760" height="58" rx="12" fill="#19394d" stroke="none" stroke-width="1.5"/>
 <text x="60" y="166" font-size="22" fill="white" font-weight="600" text-anchor="start">Thiết kế cần triển khai và kiểm chứng trên xe thật. Code hiện tại: mô phỏng / người dùng chọn đích gần.</text>
 <path d="M 45,221 L 94,221" fill="none" stroke="#f5f8fb" stroke-width="8" stroke-linejoin="round"/>
@@ -30,7 +30,7 @@
 <text x="60" y="315" font-size="18" fill="white" font-weight="400" text-anchor="start">Thu nhận trên xe</text>
 <rect x="420" y="252" width="440" height="2100" rx="18" fill="#eaf6f3" stroke="none" stroke-width="1.5"/>
 <rect x="420" y="252" width="440" height="83" rx="14" fill="#087f78" stroke="none" stroke-width="1.5"/>
-<text x="440" y="286" font-size="23" fill="white" font-weight="600" text-anchor="start">RASPBERRY PI</text>
+<text x="440" y="286" font-size="23" fill="white" font-weight="600" text-anchor="start">PI 4 · 4 GB · SD 64 GB</text>
 <text x="440" y="315" font-size="18" fill="white" font-weight="400" text-anchor="start">Định vị · bám đường · dừng cục bộ</text>
 <rect x="900" y="252" width="440" height="2100" rx="18" fill="#edf2fb" stroke="none" stroke-width="1.5"/>
 <rect x="900" y="252" width="440" height="83" rx="14" fill="#236bb0" stroke="none" stroke-width="1.5"/>
@@ -91,8 +91,8 @@
 <rect x="1396" y="578" width="388" height="154" rx="16" fill="white" stroke="#7358a7" stroke-width="1.5"/>
 <rect x="1397" y="598" width="4" height="114" rx="2" fill="#7358a7" stroke="none" stroke-width="1.5"/>
 <text x="1416" y="613" font-size="22" fill="#7358a7" font-weight="600" text-anchor="start">Đọc phản hồi thực</text>
-<text x="1416" y="646" font-size="19" fill="#183448" font-weight="400" text-anchor="start">Encoder: tốc độ / quãng đường</text>
-<text x="1416" y="673" font-size="19" fill="#183448" font-weight="400" text-anchor="start">Cảm biến góc lái: góc đo</text>
+<text x="1416" y="646" font-size="19" fill="#183448" font-weight="400" text-anchor="start">MT6701 #2: tốc độ qua A/B</text>
+<text x="1416" y="673" font-size="19" fill="#183448" font-weight="400" text-anchor="start">MT6701 #1: góc lái qua I²C</text>
 <text x="1416" y="700" font-size="19" fill="#183448" font-weight="400" text-anchor="start">Gửi số đo và trạng thái về Pi</text>
 <path d="M 364,655 L 436,655" fill="none" stroke="#f5f8fb" stroke-width="8" stroke-linejoin="round"/>
 <path d="M 364,655 L 436,655" fill="none" stroke="#236bb0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>

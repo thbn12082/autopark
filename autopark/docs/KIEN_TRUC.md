@@ -1,5 +1,7 @@
 # Kiến trúc: laptop, Raspberry Pi và ESP32
 
+**Cấu hình chốt 14/11/2026:** Pi 4 Model B RAM 4 GB + microSD 64 GB. Hai MT6701 riêng nối ESP32: #1 góc lái tuyệt đối qua I²C; #2 chuyển động bánh/trục qua A/B. Module/gá/PPR cần đối chiếu; driver phần cứng chưa hoàn thiện.
+
 ## Phương án đã chốt ngày 13/11/2026
 
 Laptop chạy AI từ ảnh camera, hợp nhất thông tin môi trường, chọn chỗ đỗ và lập quỹ đạo. Raspberry Pi đặt trên xe thu cảm biến, cập nhật tư thế, bám quỹ đạo và yêu cầu dừng tại xe. ESP32 đọc tốc độ/góc lái thực, điều khiển ESC/servo và xử lý lệnh hết hạn. AI không phát trực tiếp tín hiệu ga hoặc lái.

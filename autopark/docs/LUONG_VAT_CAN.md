@@ -1,5 +1,7 @@
 # Gặp vật cản: ai thấy, ai dừng, ai lập lại?
 
+**Cấu hình chốt 14/11/2026:** Pi 4 Model B RAM 4 GB + microSD 64 GB. Hai MT6701 riêng nối ESP32: #1 góc lái tuyệt đối qua I²C; #2 chuyển động bánh/trục qua A/B. Module/gá/PPR cần đối chiếu; driver phần cứng chưa hoàn thiện.
+
 **Kiến trúc mục tiêu — 13/11/2026.** Laptop chạy AI trên ảnh từ bốn camera, hợp nhất dữ liệu, chọn ô đỗ và lập quỹ đạo. Raspberry Pi trên xe thu cảm biến, định vị, bám quỹ đạo và kiểm tra nguy cơ cục bộ. ESP32 điều khiển cơ cấu thật, đọc phản hồi tốc độ/góc lái và xử lý lệnh hết hạn.
 
 Đây là thiết kế cần triển khai, hiệu chuẩn và kiểm chứng. Mã hiện tại chủ yếu phục vụ mô phỏng thao tác ngắn với **đích gần do người dùng chọn**; chưa có hệ thống Pi phân tán hoặc quy trình tự chọn ô đỗ hoàn chỉnh, chưa có kết quả chứng minh luồng này chạy an toàn trên xe thật.

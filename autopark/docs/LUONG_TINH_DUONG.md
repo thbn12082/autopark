@@ -1,5 +1,7 @@
 # Luồng tính đường: từ cảm biến đến xe dừng đúng đích
 
+**Cấu hình chốt 14/11/2026:** Pi 4 Model B RAM 4 GB + microSD 64 GB. Hai MT6701 riêng nối ESP32: #1 góc lái tuyệt đối qua I²C; #2 chuyển động bánh/trục qua A/B. Module/gá/PPR cần đối chiếu; driver phần cứng chưa hoàn thiện.
+
 **Đây là kiến trúc mục tiêu Laptop–Raspberry Pi–ESP32, chưa phải hệ thống phân tán đã triển khai hoặc kết quả chạy xe thật.** Mã hiện có phục vụ mô phỏng và thao tác gần với đích do người dùng chọn. Tự nhận diện, xếp hạng và chọn ô đỗ còn là phần dự kiến.
 
 Laptop chạy AI trên ảnh của bốn camera, hợp nhất thông tin và lập quỹ đạo. Raspberry Pi trên xe thu cảm biến, định vị cục bộ, bám quỹ đạo và quyết định dừng khi hành lang chuyển động không an toàn. ESP32 thực hiện điều khiển cơ cấu, đọc encoder/góc lái và giám sát lệnh hết hạn. **AI không trực tiếp phát lệnh lái; Pi nhận quỹ đạo, rồi tự tính từng nhịp điều khiển bằng số đo trên xe.**
