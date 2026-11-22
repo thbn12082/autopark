@@ -2,29 +2,43 @@
 
 AutoPark hướng tới xe mô hình tự tìm ô đỗ phù hợp, tính đường tiến/lùi và thực hiện ở tốc độ thấp. **Kiến trúc mục tiêu gồm laptop chạy AI và lập đường, Raspberry Pi trên xe thu cảm biến và bám đường, ESP32 điều khiển cơ cấu thật.** Người dùng xem phương án và xác nhận trước mỗi lượt chạy.
 
-**Hiện tại, phần mềm chủ yếu phục vụ mô phỏng và thử từng khối:** người dùng chọn vị trí, hướng đích gần; ứng dụng tính đường, bám đường, dừng và lưu/phát lại lượt chạy. Chưa triển khai hệ phân tán Laptop–Pi–ESP32, chưa tự chọn ô đỗ và chưa có kết quả hoàn thành thao tác trên xe thật. Các sơ đồ dưới đây mô tả thiết kế mục tiêu, không phải bằng chứng phần cứng đã lắp hoặc chạy đạt.
+**Hiện trạng ngày 22/11/2026.** AutoPark đã mô phỏng được thao tác đến đích gần và đã thử đường thu dữ liệu trên xe thật khi xe đứng yên. Pi nhận phản hồi từ ESP32 qua USB, thu ảnh từ một camera cùng bản quét LiDAR C1, rồi truyền cả hai luồng lên laptop qua Wi-Fi. Tự chọn ô đỗ và bám quỹ đạo trên xe thật vẫn là các mốc phát triển tiếp theo.
 
-## Phần cứng đã chốt ngày 14/11/2026
+## Phần cứng
 
 | Thành phần | Cấu hình / nhiệm vụ |
 |---|---|
-| Máy tính trên xe | **Raspberry Pi 4 Model B, RAM 4 GB** |
+| Máy tính trên xe | **Raspberry Pi 4 Model B, RAM 8 GB**, chạy Raspberry Pi OS 64-bit trong lượt thử |
 | Lưu trữ trên Pi | **microSD 64 GB** cho hệ điều hành, chương trình, cấu hình và log; video ưu tiên lưu ở laptop |
 | Cảm biến góc lái | **MT6701 #1**, đọc góc tuyệt đối qua I²C vào ESP32; gá tại cơ cấu lái |
 | Cảm biến chuyển động | **MT6701 #2**, xuất xung A/B vào ESP32; gá trên bánh hoặc trục truyền động |
-| Điều khiển cơ cấu | ESP32-S3 + ESC QuicRun 1060 + servo lái |
-| Quan sát | LiDAR C1 và bốn camera USB; AI xử lý trên laptop |
+| Điều khiển cơ cấu | ESP32-S3 với flash 16 MB và PSRAM 8 MB trên bo đã thử. ESC QuicRun 1060 và servo đảm nhiệm ga và lái trong thiết kế |
+| Quan sát | Đã thử LiDAR C1 và **một camera USB**. Mục tiêu là bốn camera USB với AI xử lý trên laptop |
 
 **Dùng hai MT6701 riêng, kèm hai nam châm và hai vị trí gá.** Cảm biến #1 trả góc lái; cảm biến #2 trả chuyển động trục để quy đổi tốc độ/quãng đường. Hai module dùng khác chế độ, không đấu chung A/B của module #2 vào bus I²C của module #1. Tên chip đã chốt; module thương mại, chân thực tế, PPR và gá vẫn phải đối chiếu.
 
-Pi 4 không lưu hệ điều hành trong RAM: cần thẻ microSD. Nguồn Pi dự kiến USB-C ổn áp 5,1 V/3 A; tổng tải USB trực tiếp phải nằm trong giới hạn 1,2 A của Pi 4. Hub bốn camera có nguồn phù hợp riêng; đo tải C1/ESP32, độ trễ và CPU trước khi chốt FPS. Xem [hướng dẫn lắp và nguồn tham khảo](autopark/docs/LAP_RAP_DIEN_2D.md).
+Hệ điều hành của Pi nằm trên thẻ microSD. Thiết kế nguồn dùng USB-C ổn áp 5,1 V/3 A cho Pi, với giới hạn tổng tải USB trực tiếp là 1,2 A. Hub bốn camera cần nguồn riêng phù hợp. Cần đo độ trễ, tải USB và CPU với đủ thiết bị trước khi chốt FPS. Xem [hướng dẫn lắp và nguồn tham khảo](autopark/docs/LAP_RAP_DIEN_2D.md).
+
+## Kết quả bàn thử trên xe thật ngày 22/11/2026
+
+Các lượt dưới đây thực hiện khi xe đứng yên và pin ESC đã ngắt. Firmware AutoPark được nạp bằng bản build cho flash 16 MB với `AP_ENABLE_PWM_OUTPUTS=0`.
+
+| Hạng mục | Kết quả quan sát |
+|---|---|
+| Laptop và Pi | Đã đăng nhập SSH qua USB Gadget để cấu hình Pi, rồi kiểm tra lại SSH qua Wi-Fi khi Pi dùng sạc dự phòng. |
+| USB Pi–ESP32 | Bản firmware AutoPark trả `HELLO_ACK` và telemetry `DISARMED`, `fault=NONE`. Cả 10 lượt mở lại phiên kiểm USB đều đạt. |
+| Nguồn và thu dữ liệu tại Pi | Nguồn từ cổng USB laptop báo thiếu áp (`0x50005`). Khi dùng sạc dự phòng, camera và C1 chạy đồng thời hơn 5 phút với ESP32 vẫn nối USB. Camera giải mã 8.784 khung MJPG 640×480 ở trung bình 29,28 fps. C1 đọc 2.984 vòng ở trung bình 10,02 Hz. Cả 199 lần lấy mẫu nguồn đều báo `throttled=0x0`. |
+| Truyền qua Wi-Fi | Trong 45 giây, laptop nhận đủ 450/450 khung camera ở 10,00 fps và 452/452 vòng C1 ở 10,04 Hz. Số thứ tự hai luồng liên tục. Trung bình toàn phiên SSH là 3,06 Mb/s. Khoảng cách lớn nhất giữa hai mẫu nhận liên tiếp là 156 ms cho camera và 154 ms cho C1. |
+| Kiểm hướng quan sát | Trong cửa sổ quan sát thử nghiệm trên laptop, người thử di chuyển hộp lần lượt ra trước, sang trái và sang phải xe. Ảnh camera và cụm điểm C1 đều thay đổi đúng phía theo quan sát. |
+
+Mốc tiếp theo là kiểm mất luồng và nối lại với Pi thật, đồng thời đo tuổi dữ liệu đầu cuối. Để thử xe tự chạy, còn cần hai MT6701 cho phản hồi góc lái và tốc độ, tư thế thực hợp lệ, hiệu chuẩn cảm biến và phép đo quãng dừng. Xem [Kiểm thử và lộ trình](autopark/docs/KIEM_THU_VA_LO_TRINH.md) và [Phần cứng và hiệu chuẩn](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
 
 ## Hiện có và cần phát triển
 
 | Hạng mục | Hiện có trong repository | Phần cần phát triển theo thiết kế mục tiêu |
 |---|---|---|
 | Thao tác và đích đến | Giao diện chọn đích gần, lập và bám đường trong ứng dụng; mô phỏng cua hẹp, lách vật cản, chỉnh vào khe | Laptop nhận biết, đánh giá và chọn ô đỗ từ dữ liệu cảm biến |
-| Cảm nhận | Các khối camera/AI, LiDAR, hợp nhất vật cản và ước lượng tư thế; công cụ hiệu chuẩn, ghi và phát lại | Tích hợp thu cảm biến trên Pi, chuyển dữ liệu tới laptop và kiểm độ mới giữa các máy |
+| Cảm nhận | Các khối camera/AI, LiDAR, hợp nhất vật cản và ước lượng tư thế. Có công cụ hiệu chuẩn, ghi và phát lại | Tích hợp luồng một camera và C1 đã thử vào ứng dụng, đo tuổi dữ liệu qua Wi-Fi và kiểm mất luồng trước khi tăng số camera |
 | Thực hiện quỹ đạo | Bộ bám và xử lý dừng chạy trong ứng dụng hiện tại | Pi nhận quỹ đạo, định vị và bám đường cục bộ; giám sát vật cản và liên kết |
 | Bo điều khiển | Giao thức và logic firmware có xử lý hết hạn lệnh; PWM còn tắt, đọc encoder/góc lái thật chưa hoàn thiện | Hoàn thiện đầu ra ESC/servo, phản hồi thật và kiểm watchdog trên xe |
 
@@ -35,7 +49,7 @@ Kết quả mô phỏng đã ghi nhận nằm trong [Kiểm thử và lộ trìn
 | Thiết bị | Công việc chính | Dữ liệu trao đổi |
 |---|---|---|
 | **Laptop** | Chạy AI trên ảnh từ bốn camera; hợp nhất dữ liệu cảm biến; nhận biết và chọn ô đỗ; lập và kiểm tra quỹ đạo | Nhận ảnh, dữ liệu LiDAR, tư thế và trạng thái từ Pi; gửi quỹ đạo cùng điều kiện thực hiện xuống Pi |
-| **Pi 4 Model B · 4 GB trên xe** | Thu cảm biến; ước lượng vị trí và hướng xe; bám quỹ đạo theo phản hồi; chủ động yêu cầu dừng khi vùng chuyển động không an toàn hoặc dữ liệu/liên kết quá hạn | Nhận quỹ đạo qua Wi-Fi; gửi lệnh tốc độ/góc lái có hạn hiệu lực tới ESP32 qua USB ngắn; nhận phản hồi thật |
+| **Pi 4 Model B · 8 GB trên xe** | Thu cảm biến; ước lượng vị trí và hướng xe; bám quỹ đạo theo phản hồi; chủ động yêu cầu dừng khi vùng chuyển động không an toàn hoặc dữ liệu/liên kết quá hạn | Nhận quỹ đạo qua Wi-Fi; gửi lệnh tốc độ/góc lái có hạn hiệu lực tới ESP32 qua USB ngắn; nhận phản hồi thật |
 | **ESP32 trên xe** | Phát tín hiệu tới ESC và servo; đọc MT6701 #2 qua A/B và MT6701 #1 qua I²C; giám sát hạn lệnh và đưa cơ cấu về trạng thái dừng khi hết hạn | Nhận lệnh từ Pi; trả số đo và trạng thái lỗi về Pi |
 
 **AI không phát lệnh lái trực tiếp.** Laptop gửi quỹ đạo để Pi thực hiện; Pi tự tính các nhịp điều khiển tại xe. Wi-Fi không phải đường truyền từng nhịp đánh lái từ laptop.
@@ -62,7 +76,7 @@ Laptop dùng bản đồ vật cản và tư thế đo được để đánh gi�
 
 **Xe không tự chạy lại khi vật cản biến mất hoặc mạng/dữ liệu phục hồi.** Sau khi xác nhận xe đứng yên, Pi cung cấp tư thế mới đo được; laptop tính lại đường từ tư thế đó. Người dùng phải xác nhận lượt chạy mới. Nếu chưa có tư thế hoặc dữ liệu hợp lệ, xe tiếp tục đứng yên.
 
-Đọc [Luồng tính đường](autopark/docs/LUONG_TINH_DUONG.md) để phân biệt chọn ô, lập quỹ đạo, bám đường và tính lại sau khi dừng. Tự chọn ô và phân chia công việc qua Pi là phần dự kiến; cách dùng phần mềm hiện có vẫn là chọn đích gần thủ công.
+Đọc [Luồng tính đường](autopark/docs/LUONG_TINH_DUONG.md) để phân biệt chọn ô, lập quỹ đạo, bám đường và tính lại sau khi dừng. Ứng dụng mô phỏng hiện cho phép chọn đích gần thủ công. Tự chọn ô và bám quỹ đạo trên Pi là các bước triển khai tiếp theo.
 
 ## Phần cứng và nguồn điện
 
@@ -74,7 +88,7 @@ Ba nhánh nguồn cần phân biệt:
 - **Servo:** dự kiến lấy nguồn từ BEC 6 V của ESC, chỉ nối sau khi xác minh servo chịu được 6 V và BEC đáp ứng dòng tải lái. Chưa xác nhận tương thích servo gốc.
 - **Pi và thiết bị USB:** Pi cần nguồn ổn áp riêng phù hợp model và tổng tải. **Không cấp Pi bằng BEC 6 V của ESC.** ESP32 dùng USB từ Pi theo thiết kế; nguồn cho hub/camera và khả năng cấp dòng của từng cổng phải được kiểm tra.
 
-Bộ hình được dựng từ mã thành SVG và PNG để đọc trên GitHub. Các hình là bản thiết kế, chưa xác nhận lắp ráp hoặc kiểm thử phần cứng.
+Bộ hình SVG và PNG mô tả bố trí mục tiêu cho bốn camera và hai cảm biến phản hồi.
 
 ![Thiết kế mục tiêu: linh kiện và các đầu nối](autopark/docs/hardware/wiring-v1/00-components.png?v=9ac413ffc93c)
 
