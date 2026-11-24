@@ -1,6 +1,54 @@
 # Bàn giao AutoPark cho Codex tiếp quản
 
-## Chốt linh kiện ngày 14/11/2026
+## Bàn giao hiện hành ngày 24/11/2026
+
+Mục tiêu đang làm là hiệu chuẩn Bird’s Eye View theo **cách 2**, dùng bảng ô vuông điện tử trên màn hình. Bốn camera đã có nội tham đạt kiểm tra. Công việc đang dừng ở bước xác minh ngoại tham Camera 1 (Trước).
+
+### Kết nối và nguồn
+
+- Pi 4 Model B **8 GB**, Raspberry Pi OS 64-bit, thu bốn luồng MJPG 640×480 và bản quét C1. Laptop mở phiên quan sát qua SSH trên cùng mạng LAN. Thứ tự camera trên hub là 1 Trước, 2 Sau, 3 Trái, 4 Phải. Phiên gần nhất đã thấy cả bốn luồng và C1 hoạt động qua Wi-Fi.
+- Dùng nguồn USB-C ổn áp riêng cho Pi khi thu dữ liệu. USB Gadget nối laptop dùng cho chẩn đoán kết nối. Cấp nguồn Pi từ cổng laptop đã báo thiếu áp `0x50005` và chặn phiên quan sát. Sau khi chuyển sang nguồn riêng, phiên Wi-Fi đã mở lại. Nếu mất kết nối sau khởi động, kiểm nguồn Pi rồi xác nhận lại địa chỉ LAN hiện tại.
+- Xe đứng yên và pin ESC được ngắt khi hiệu chuẩn. ESP32-S3 đã chạy bản firmware kiểm kết nối cho flash 16 MB với `AP_ENABLE_PWM_OUTPUTS=0`. Kiểm kết nối USB đọc được telemetry `DISARMED`. Hai MT6701 và BNO085 vẫn chờ tích hợp phản hồi thật.
+
+### Nội tham bốn camera
+
+Các tệp trong `autopark/calibration/` dùng ảnh thật 640×480 và có `acceptance.all_pass=true`. Cỡ ô 20 mm trong các tệp này là giá trị danh định dùng khi tính nội tham. Số đo thật của bảng điện tử cho ngoại tham là **7,2 mm/ô**.
+
+| Cổng và hướng | Tệp | Ảnh dùng được / tổng | RMS chiếu lại |
+|---|---|---:|---:|
+| 1 Trước | `cam_p1.json` | 30 / 32 | 0,13564 px |
+| 2 Sau | `cam_p2.json` | 25 / 25 | 0,19099 px |
+| 3 Trái | `cam_p3.json` | 21 / 22 | 0,14311 px |
+| 4 Phải | `cam_p4.json` | 25 / 26 | 0,12959 px |
+
+### Ngoại tham Camera 1 đang chờ kiểm hướng bảng
+
+Bảng có **9×6 góc trong**, chiều rộng 10 ô đo được **72 mm**, và mặt màn hình cao **7 mm** so với sàn. Hệ xe lấy gốc trên sàn dưới tâm trục sau, x dương về trước, y dương sang trái. Hình chiếu mũi xe ở x = 247 mm. Khi hàng O → A hướng sang phải xe, góc của bảng là `yaw_deg=-90°`.
+
+Trong `autopark/runs/calib/bev_20261124/extrinsics/`, tệp `cam_p1_placements_guided.json` ghép hai ảnh theo cữ trượt. `cam_p1/cap_02dnc088.png` ứng với khoảng cách mũi xe đến O là 140 mm và x = 387 mm. `cam_p1/cap_8x2yf1_n.png` ứng với 155 mm và x = 402 mm. Cả hai dùng y = 0 theo cách căn O trên đường giữa. Kiểm tra lại giả định căn giữa khi nhìn từ trên xuống.
+
+Báo cáo `p1_guided_report/ket_qua.json` giữ được cả hai lần đặt với RMS riêng 0,6351 px và 0,7942 px. RMS chung **3,3962 px** đạt ngưỡng 4 px, độ lệch vị trí **13,12 mm** đạt ngưỡng 20 mm và độ lệch góc **3,6655°** vượt ngưỡng 1°. Thước cho độ dịch 15 mm, trong khi hai ảnh cho ước lượng khoảng 19,1 mm theo chiều dọc. Dùng chênh lệch này để kiểm lại cách đặt thước. Trạng thái toàn lượt là `ok=false`. Chưa có tệp `autopark/configs/rig/camera_rig_extrinsics_v1.json` và Bird’s Eye View vẫn ở chế độ xem thử.
+
+**Bước tiếp theo** là một ảnh chụp thẳng từ trên xuống thấy mũi xe, đường giữa, cữ trượt, thước và toàn bộ bảng. Lần đặt cuối mà người dùng xác nhận là 140 mm. Dùng ảnh để đối chiếu góc trong O, chiều O → A và cách đo từ hình chiếu mũi xe. Sau khi chốt mốc và đo lại hướng bảng, thu lại các tư thế độc lập khi cần. Khi từng camera đạt kiểm tra, ghép bốn ngoại tham đã đo vào v1 và kiểm độ khớp giữa hai camera bằng một vị trí bảng mới.
+
+### Mở lại công việc trên Windows
+
+Chạy từ gốc repository bằng môi trường `.venv` của thư mục `autopark`. Nhập địa chỉ Pi hiện tại trong cửa sổ quan sát, chọn đúng camera rồi lưu ảnh gốc. Chế độ `--calibration-floor` dùng cho bảng đặt sát sàn.
+
+```powershell
+cd autopark
+.\chay_kiem_huong.cmd --cameras 4 --seconds 600 --calibration-dir runs/calib/bev_20261124/extrinsics --calibration-floor
+```
+
+Khi có ảnh và danh sách lần đặt đã đo, chạy bộ giải từ cùng thư mục. Lệnh dưới tái kiểm tra bộ đã có và ghi báo cáo vào thư mục riêng.
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m autopark.perception.extrinsics_calib solve --placements runs/calib/bev_20261124/extrinsics/cam_p1_placements_guided.json --report runs/calib/bev_20261124/extrinsics/p1_guided_report_recheck
+```
+
+Sau lượt đạt, dùng `solve --out configs/rig/camera_rig_extrinsics_v1.json` để ghi ngoại tham. Khi bổ sung cổng tiếp theo, dùng cùng tệp v1 làm `--base` và `--out`, thêm `--overwrite` để bộ giải giữ các cổng đã đo và sao lưu bản trước. Dùng `extrinsics_calib check` để đọc lại v1 và đối chiếu bốn cổng. `runs/` là dữ liệu cục bộ gồm ảnh, phép đo và báo cáo. Khi chuyển máy, chuyển thư mục phiên cần thiết cùng tệp cấu hình.
+
+## Chốt linh kiện ngày 14/11/2026 (lịch sử)
 
 - Máy tính trên xe: **Raspberry Pi 4 Model B, RAM 4 GB; microSD 64 GB**.
 - Dùng **hai MT6701**: #1 đo góc lái tuyệt đối qua I²C (GPIO6/7), #2 đo chuyển động bánh/trục bằng A/B (GPIO8/9), mỗi module có nam châm/gá riêng.
@@ -10,7 +58,7 @@
 
 ## Quyết định kiến trúc ngày 13/11/2026
 
-**Đây là kiến trúc đã chốt; linh kiện đọc theo cập nhật 14/11 ở trên.** Phần bàn giao ngày 08/11/2026 bên dưới được giữ làm lịch sử; các mô tả cũ về phạm vi và cách chia việc giữa thiết bị cần đọc theo cập nhật này.
+**Đây là kiến trúc đã chốt.** Đọc cấu hình thực tế trong phần bàn giao ngày 24/11 ở trên. Phần bàn giao ngày 08/11/2026 bên dưới được giữ làm lịch sử; các mô tả cũ về phạm vi và cách chia việc giữa thiết bị cần đọc theo cập nhật này.
 
 | Thiết bị | Công việc dự kiến |
 |---|---|

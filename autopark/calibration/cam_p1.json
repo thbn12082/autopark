@@ -1,0 +1,920 @@
+{
+ "format": "autopark.fisheye_intrinsics/1",
+ "camera": {
+  "hub_port": 1,
+  "source_id": "cam_p1",
+  "device": "MN300 Camera 1 (front), digital checkerboard"
+ },
+ "image_size": [
+  640,
+  480
+ ],
+ "model": "opencv_fisheye_kannala_brandt",
+ "K": [
+  [
+   448.219153,
+   0.0,
+   339.56483
+  ],
+  [
+   0.0,
+   447.938095,
+   256.257762
+  ],
+  [
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "D": [
+  0.16503715690655532,
+  -0.011170286050804213,
+  -0.0028086523930817013,
+  -0.05537282847182339
+ ],
+ "flags": {
+  "value": 58720256,
+  "names": [
+   "CALIB_RECOMPUTE_EXTRINSIC",
+   "CALIB_FIX_SKEW",
+   "CALIB_CHECK_COND"
+  ]
+ },
+ "rms_px": 0.13564,
+ "opencv_rms": 0.13564,
+ "max_view_rms_px": 0.1794,
+ "n_images_used": 30,
+ "n_images_total": 32,
+ "rounds": 3,
+ "views": [
+  {
+   "name": "cap_2_rnf9u8.png",
+   "used": true,
+   "rms_px": 0.1733,
+   "max_error_px": 0.6612,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 47.66,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 2.292,
+    "contrast": 112.5,
+    "min_margin_px": 26.4,
+    "board_area_frac": 0.0854,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_2s5tma4e.png",
+   "used": true,
+   "rms_px": 0.1445,
+   "max_error_px": 0.2843,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 43.03,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.64,
+    "contrast": 129.3,
+    "min_margin_px": 160.4,
+    "board_area_frac": 0.0663,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_3jzf500o.png",
+   "used": true,
+   "rms_px": 0.139,
+   "max_error_px": 0.3076,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 36.75,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.731,
+    "contrast": 130.7,
+    "min_margin_px": 171.2,
+    "board_area_frac": 0.0695,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_3nn_oq67.png",
+   "used": true,
+   "rms_px": 0.1298,
+   "max_error_px": 0.2571,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 22.7,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.716,
+    "contrast": 138.9,
+    "min_margin_px": 130.8,
+    "board_area_frac": 0.0797,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_3vudz49y.png",
+   "used": true,
+   "rms_px": 0.1272,
+   "max_error_px": 0.2864,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 18.28,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.589,
+    "contrast": 142.3,
+    "min_margin_px": 144.9,
+    "board_area_frac": 0.0456,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_4cjmnsca.png",
+   "used": true,
+   "rms_px": 0.0976,
+   "max_error_px": 0.2001,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 22.67,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.659,
+    "contrast": 148.7,
+    "min_margin_px": 157.8,
+    "board_area_frac": 0.0352,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_6c21tiln.png",
+   "used": true,
+   "rms_px": 0.1618,
+   "max_error_px": 0.3165,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 37.42,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.931,
+    "contrast": 123.7,
+    "min_margin_px": 118.8,
+    "board_area_frac": 0.1537,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_9n5itjdz.png",
+   "used": true,
+   "rms_px": 0.1529,
+   "max_error_px": 0.3325,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 12.24,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.816,
+    "contrast": 137.7,
+    "min_margin_px": 106.2,
+    "board_area_frac": 0.1151,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_38sl2727.png",
+   "used": true,
+   "rms_px": 0.1161,
+   "max_error_px": 0.2416,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 34.21,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.666,
+    "contrast": 138.8,
+    "min_margin_px": 62.8,
+    "board_area_frac": 0.0708,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_89_pkue2.png",
+   "used": true,
+   "rms_px": 0.1275,
+   "max_error_px": 0.2427,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 27.23,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.861,
+    "contrast": 147.4,
+    "min_margin_px": 145.1,
+    "board_area_frac": 0.0448,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_7028shwa.png",
+   "used": true,
+   "rms_px": 0.1491,
+   "max_error_px": 0.2918,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 12.76,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.594,
+    "contrast": 142.9,
+    "min_margin_px": 74.9,
+    "board_area_frac": 0.1343,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_aq9q2q5k.png",
+   "used": true,
+   "rms_px": 0.1343,
+   "max_error_px": 0.3078,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 39.54,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 2.323,
+    "contrast": 118.5,
+    "min_margin_px": 63.3,
+    "board_area_frac": 0.1558,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_cnlqja7n.png",
+   "used": true,
+   "rms_px": 0.1681,
+   "max_error_px": 0.3594,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 42.73,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 2.544,
+    "contrast": 117.6,
+    "min_margin_px": 57.6,
+    "board_area_frac": 0.1259,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_ctgfw233.png",
+   "used": true,
+   "rms_px": 0.1175,
+   "max_error_px": 0.2247,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 22.71,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.905,
+    "contrast": 135.2,
+    "min_margin_px": 79.6,
+    "board_area_frac": 0.0609,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_d8malk08.png",
+   "used": true,
+   "rms_px": 0.1265,
+   "max_error_px": 0.2221,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 14.08,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.595,
+    "contrast": 155.8,
+    "min_margin_px": 79.4,
+    "board_area_frac": 0.0742,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_ejahth09.png",
+   "used": false,
+   "rms_px": 1.0391,
+   "max_error_px": 6.4415,
+   "rejected_reason": "RMS riêng 1.04 px > ngưỡng 1.00 px (vòng 2)",
+   "distance_m": null,
+   "tilt_deg": 24.55,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.69,
+    "contrast": 133.4,
+    "min_margin_px": 63.8,
+    "board_area_frac": 0.046,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_ghtjq1_k.png",
+   "used": true,
+   "rms_px": 0.1008,
+   "max_error_px": 0.2015,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 13.64,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.829,
+    "contrast": 143.0,
+    "min_margin_px": 75.8,
+    "board_area_frac": 0.038,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_hlrba9vk.png",
+   "used": true,
+   "rms_px": 0.1402,
+   "max_error_px": 0.3234,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 23.58,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.759,
+    "contrast": 141.3,
+    "min_margin_px": 85.8,
+    "board_area_frac": 0.1455,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_jvuohjah.png",
+   "used": true,
+   "rms_px": 0.1626,
+   "max_error_px": 0.3352,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 35.87,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 2.787,
+    "contrast": 117.8,
+    "min_margin_px": 87.3,
+    "board_area_frac": 0.2226,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_l4nwy777.png",
+   "used": true,
+   "rms_px": 0.1205,
+   "max_error_px": 0.2307,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 44.13,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.869,
+    "contrast": 114.8,
+    "min_margin_px": 77.2,
+    "board_area_frac": 0.1003,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_lsch443n.png",
+   "used": true,
+   "rms_px": 0.1794,
+   "max_error_px": 0.3308,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 22.71,
+   "quality": {
+    "found": true,
+    "method": "sb+subpix",
+    "damaged": null,
+    "edge_width_px": 2.271,
+    "contrast": 127.6,
+    "min_margin_px": 40.1,
+    "board_area_frac": 0.2097,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_nq8ecnp9.png",
+   "used": true,
+   "rms_px": 0.108,
+   "max_error_px": 0.2075,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 4.55,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.609,
+    "contrast": 148.5,
+    "min_margin_px": 137.3,
+    "board_area_frac": 0.0407,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_nv1irr0r.png",
+   "used": true,
+   "rms_px": 0.1492,
+   "max_error_px": 0.2726,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 11.83,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.773,
+    "contrast": 140.5,
+    "min_margin_px": 86.5,
+    "board_area_frac": 0.1532,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_qw0htfp6.png",
+   "used": true,
+   "rms_px": 0.1163,
+   "max_error_px": 0.2558,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 15.38,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.845,
+    "contrast": 147.5,
+    "min_margin_px": 78.8,
+    "board_area_frac": 0.0456,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_s4uzyc6y.png",
+   "used": true,
+   "rms_px": 0.1347,
+   "max_error_px": 0.3078,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 42.09,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.951,
+    "contrast": 118.4,
+    "min_margin_px": 63.3,
+    "board_area_frac": 0.1126,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_stl03av6.png",
+   "used": true,
+   "rms_px": 0.1089,
+   "max_error_px": 0.2161,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 37.65,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.068,
+    "contrast": 128.2,
+    "min_margin_px": 63.6,
+    "board_area_frac": 0.0568,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_tvp8bzqq.png",
+   "used": true,
+   "rms_px": 0.1371,
+   "max_error_px": 0.2523,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 6.44,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.593,
+    "contrast": 145.6,
+    "min_margin_px": 119.4,
+    "board_area_frac": 0.0751,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_u3n03zqr.png",
+   "used": false,
+   "rms_px": 3.1713,
+   "max_error_px": 18.2611,
+   "rejected_reason": "RMS riêng 3.16 px > ngưỡng 1.00 px (vòng 1)",
+   "distance_m": null,
+   "tilt_deg": 11.08,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.054,
+    "contrast": 128.2,
+    "min_margin_px": 70.0,
+    "board_area_frac": 0.0337,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_uayg4kae.png",
+   "used": true,
+   "rms_px": 0.1173,
+   "max_error_px": 0.2197,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 20.36,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.68,
+    "contrast": 142.6,
+    "min_margin_px": 122.4,
+    "board_area_frac": 0.0689,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_x3qqkx84.png",
+   "used": true,
+   "rms_px": 0.1506,
+   "max_error_px": 0.3155,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 43.27,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 2.462,
+    "contrast": 111.9,
+    "min_margin_px": 53.6,
+    "board_area_frac": 0.1692,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_y9o3witq.png",
+   "used": true,
+   "rms_px": 0.1225,
+   "max_error_px": 0.2668,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 41.61,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.658,
+    "contrast": 133.0,
+    "min_margin_px": 56.9,
+    "board_area_frac": 0.0451,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_yifj8m9z.png",
+   "used": true,
+   "rms_px": 0.1039,
+   "max_error_px": 0.2151,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 22.47,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.765,
+    "contrast": 144.4,
+    "min_margin_px": 62.2,
+    "board_area_frac": 0.0399,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  }
+ ],
+ "board": {
+  "cols": 9,
+  "rows": 6,
+  "square_mm": 20.0,
+  "pattern": "chessboard"
+ },
+ "square_mm_measured": null,
+ "square_mm_note": "cỡ ô chỉ ảnh hưởng distance_m của từng ảnh (và ngoại tham sau này), không ảnh hưởng K, D",
+ "coverage": {
+  "grid": [
+   8,
+   6
+  ],
+  "cells_covered": 44,
+  "cells_total": 48,
+  "fraction": 0.9167,
+  "border_fraction": 0.8333,
+  "corner_blocks": {
+   "tl": true,
+   "tr": true,
+   "bl": true,
+   "br": true
+  },
+  "counts": [
+   [
+    0,
+    0,
+    0,
+    2,
+    6,
+    0,
+    3,
+    1
+   ],
+   [
+    3,
+    30,
+    47,
+    59,
+    73,
+    76,
+    47,
+    7
+   ],
+   [
+    3,
+    50,
+    91,
+    151,
+    156,
+    140,
+    98,
+    19
+   ],
+   [
+    5,
+    23,
+    50,
+    86,
+    92,
+    70,
+    45,
+    8
+   ],
+   [
+    6,
+    16,
+    24,
+    33,
+    25,
+    25,
+    19,
+    3
+   ],
+   [
+    2,
+    5,
+    6,
+    5,
+    3,
+    3,
+    3,
+    1
+   ]
+  ]
+ },
+ "field_of_view_deg": {
+  "horizontal_deg": 76.51,
+  "vertical_deg": 58.87,
+  "diagonal_deg": 93.6,
+  "theta_image_corners_deg": [
+   49.51,
+   46.16,
+   47.43,
+   43.94
+  ],
+  "model_monotonic_limit_deg": 65.82,
+  "theta_observed_max_deg": 41.47
+ },
+ "woodscape_intrinsic": {
+  "model": "radial_poly",
+  "poly_order": 4,
+  "width": 640,
+  "height": 480,
+  "k1": 453.9970905956372,
+  "k2": -52.99326979829838,
+  "k3": 214.2473140661252,
+  "k4": -117.07109089469837,
+  "cx_offset": 20.064829881799653,
+  "cy_offset": 16.757761737055944,
+  "aspect_ratio": 0.9993729449272658,
+  "theta_max_deg": 49.5096,
+  "theta_max_source": "image_corners",
+  "theta_image_corner_deg": 49.5096,
+  "theta_max_raise_deg": 0.0,
+  "max_fit_error_px": 0.191,
+  "rms_fit_error_px": 0.135,
+  "max_error_allowed_px": 0.5,
+  "projection_check_max_px": 0.1908,
+  "monotonic": true,
+  "corners_invertible": true,
+  "ok": true,
+  "reason": null
+ },
+ "extrinsic": null,
+ "rig": null,
+ "note": "Chưa gắn lên rig: tệp này chỉ có nội tham (K, D) của một camera, KHÔNG có ngoại tham (vị trí/hướng camera so với xe). Ngoại tham đo riêng bằng perception/extrinsics_calib.py sau khi gá camera, ghi vào configs/rig/camera_rig_extrinsics_v1.json (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham).",
+ "images_dir": "runs\\calib\\bev_20261124\\auto_intrinsics\\cam_p1",
+ "created_local": "2026-11-24T17:07:53",
+ "software": {
+  "opencv": "5.0.0",
+  "numpy": "2.5.3",
+  "python": "3.12.10"
+ },
+ "acceptance": {
+  "status": "đề xuất, chưa kiểm trên camera thật",
+  "all_pass": true,
+  "checks": [
+   {
+    "key": "rms_px",
+    "label": "RMS chiếu lại toàn bộ (px)",
+    "value": 0.1356,
+    "op": "<=",
+    "threshold": 0.5,
+    "pass": true
+   },
+   {
+    "key": "max_view_rms_px",
+    "label": "RMS ảnh tệ nhất còn dùng (px)",
+    "value": 0.1794,
+    "op": "<=",
+    "threshold": 1.0,
+    "pass": true
+   },
+   {
+    "key": "images",
+    "label": "số ảnh dùng",
+    "value": 30,
+    "op": ">=",
+    "threshold": 15,
+    "pass": true
+   },
+   {
+    "key": "coverage",
+    "label": "tỉ lệ ô lưới 8×6 có góc",
+    "value": 0.9167,
+    "op": ">=",
+    "threshold": 0.7,
+    "pass": true
+   },
+   {
+    "key": "corner_blocks",
+    "label": "số góc ảnh có điểm",
+    "value": 4,
+    "op": ">=",
+    "threshold": 4,
+    "pass": true
+   },
+   {
+    "key": "tilted_images",
+    "label": "số ảnh bảng nghiêng ≥ 20°",
+    "value": 21,
+    "op": ">=",
+    "threshold": 4,
+    "pass": true
+   },
+   {
+    "key": "fit_error_px",
+    "label": "sai số chuyển sang mô hình dự án (px)",
+    "value": 0.191,
+    "op": "<=",
+    "threshold": 0.5,
+    "pass": true
+   }
+  ]
+ }
+}

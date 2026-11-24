@@ -1,0 +1,773 @@
+{
+ "format": "autopark.fisheye_intrinsics/1",
+ "camera": {
+  "hub_port": 2,
+  "source_id": "cam_p2",
+  "device": "MN300 Camera 2, digital checkerboard"
+ },
+ "image_size": [
+  640,
+  480
+ ],
+ "model": "opencv_fisheye_kannala_brandt",
+ "K": [
+  [
+   448.66113,
+   0.0,
+   334.406863
+  ],
+  [
+   0.0,
+   448.617867,
+   239.666125
+  ],
+  [
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "D": [
+  0.1546407270197068,
+  0.07915978959089638,
+  -0.35873892087831905,
+  0.39146789387176806
+ ],
+ "flags": {
+  "value": 58720256,
+  "names": [
+   "CALIB_RECOMPUTE_EXTRINSIC",
+   "CALIB_FIX_SKEW",
+   "CALIB_CHECK_COND"
+  ]
+ },
+ "rms_px": 0.19099,
+ "opencv_rms": 0.19099,
+ "max_view_rms_px": 0.65421,
+ "n_images_used": 25,
+ "n_images_total": 25,
+ "rounds": 1,
+ "views": [
+  {
+   "name": "cap_1e2jf6s7.png",
+   "used": true,
+   "rms_px": 0.1109,
+   "max_error_px": 0.2386,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 36.98,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.853,
+    "contrast": 140.6,
+    "min_margin_px": 78.1,
+    "board_area_frac": 0.0717,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_3vzzzcra.png",
+   "used": true,
+   "rms_px": 0.1437,
+   "max_error_px": 0.2985,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 21.19,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.916,
+    "contrast": 149.2,
+    "min_margin_px": 149.5,
+    "board_area_frac": 0.0188,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_4yhkagve.png",
+   "used": true,
+   "rms_px": 0.1304,
+   "max_error_px": 0.3268,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 52.34,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.867,
+    "contrast": 139.8,
+    "min_margin_px": 77.2,
+    "board_area_frac": 0.0312,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_6pibhzdz.png",
+   "used": true,
+   "rms_px": 0.1649,
+   "max_error_px": 0.2906,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 3.71,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.035,
+    "contrast": 139.3,
+    "min_margin_px": 134.9,
+    "board_area_frac": 0.0222,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_6xa2eeyz.png",
+   "used": true,
+   "rms_px": 0.2453,
+   "max_error_px": 0.5302,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 4.91,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.061,
+    "contrast": 97.4,
+    "min_margin_px": 95.5,
+    "board_area_frac": 0.0141,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_9jforrb2.png",
+   "used": true,
+   "rms_px": 0.1105,
+   "max_error_px": 0.2525,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 12.19,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.792,
+    "contrast": 150.3,
+    "min_margin_px": 198.1,
+    "board_area_frac": 0.0197,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_38_8u03b.png",
+   "used": true,
+   "rms_px": 0.1518,
+   "max_error_px": 0.2751,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 43.01,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.026,
+    "contrast": 128.2,
+    "min_margin_px": 54.3,
+    "board_area_frac": 0.0196,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_63o530d6.png",
+   "used": true,
+   "rms_px": 0.1734,
+   "max_error_px": 0.2964,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 18.93,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.091,
+    "contrast": 115.6,
+    "min_margin_px": 122.5,
+    "board_area_frac": 0.0172,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_70b1y6va.png",
+   "used": true,
+   "rms_px": 0.113,
+   "max_error_px": 0.2469,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 14.69,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.887,
+    "contrast": 141.8,
+    "min_margin_px": 50.4,
+    "board_area_frac": 0.0463,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_203hojqe.png",
+   "used": true,
+   "rms_px": 0.1176,
+   "max_error_px": 0.2247,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 33.33,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.87,
+    "contrast": 122.9,
+    "min_margin_px": 105.2,
+    "board_area_frac": 0.0937,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap__p_xyg3d.png",
+   "used": true,
+   "rms_px": 0.1223,
+   "max_error_px": 0.2513,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 45.7,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.923,
+    "contrast": 139.6,
+    "min_margin_px": 48.4,
+    "board_area_frac": 0.0623,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_a3yv7zgo.png",
+   "used": true,
+   "rms_px": 0.1307,
+   "max_error_px": 0.2662,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 19.46,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.725,
+    "contrast": 136.8,
+    "min_margin_px": 130.2,
+    "board_area_frac": 0.0581,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_ayvi4nzb.png",
+   "used": true,
+   "rms_px": 0.109,
+   "max_error_px": 0.2287,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 9.65,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.798,
+    "contrast": 147.0,
+    "min_margin_px": 176.6,
+    "board_area_frac": 0.0614,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_bwdfenel.png",
+   "used": true,
+   "rms_px": 0.1283,
+   "max_error_px": 0.2606,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 22.54,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.949,
+    "contrast": 133.0,
+    "min_margin_px": 147.1,
+    "board_area_frac": 0.0899,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_d6gtlac_.png",
+   "used": true,
+   "rms_px": 0.1078,
+   "max_error_px": 0.2353,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 15.3,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.824,
+    "contrast": 154.3,
+    "min_margin_px": 49.8,
+    "board_area_frac": 0.0454,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_dvtnfg90.png",
+   "used": true,
+   "rms_px": 0.6542,
+   "max_error_px": 3.3926,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 49.69,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.927,
+    "contrast": 135.1,
+    "min_margin_px": 125.7,
+    "board_area_frac": 0.0294,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_dz5ckbyp.png",
+   "used": true,
+   "rms_px": 0.1018,
+   "max_error_px": 0.1936,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 7.95,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.021,
+    "contrast": 146.8,
+    "min_margin_px": 109.9,
+    "board_area_frac": 0.0272,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_gya0k1kr.png",
+   "used": true,
+   "rms_px": 0.1286,
+   "max_error_px": 0.2616,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 51.88,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.397,
+    "contrast": 119.8,
+    "min_margin_px": 60.3,
+    "board_area_frac": 0.0488,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_hkx5yfau.png",
+   "used": true,
+   "rms_px": 0.1187,
+   "max_error_px": 0.2401,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 39.23,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.891,
+    "contrast": 135.9,
+    "min_margin_px": 91.5,
+    "board_area_frac": 0.0718,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_nntr8snl.png",
+   "used": true,
+   "rms_px": 0.2023,
+   "max_error_px": 0.3683,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 37.46,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.162,
+    "contrast": 109.4,
+    "min_margin_px": 74.7,
+    "board_area_frac": 0.0209,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_o9qmrx4a.png",
+   "used": true,
+   "rms_px": 0.0981,
+   "max_error_px": 0.2225,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 12.32,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.77,
+    "contrast": 149.0,
+    "min_margin_px": 124.2,
+    "board_area_frac": 0.0516,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_qrmyl314.png",
+   "used": true,
+   "rms_px": 0.1281,
+   "max_error_px": 0.2229,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 24.33,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 1.868,
+    "contrast": 144.8,
+    "min_margin_px": 172.5,
+    "board_area_frac": 0.0569,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_rtzs9qx9.png",
+   "used": true,
+   "rms_px": 0.1867,
+   "max_error_px": 0.5869,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 35.12,
+   "quality": {
+    "found": true,
+    "method": "sb_exhaustive+subpix",
+    "damaged": null,
+    "edge_width_px": 2.393,
+    "contrast": 126.4,
+    "min_margin_px": 57.7,
+    "board_area_frac": 0.1529,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_xwbp32mh.png",
+   "used": true,
+   "rms_px": 0.1199,
+   "max_error_px": 0.2729,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 7.3,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 1.794,
+    "contrast": 144.0,
+    "min_margin_px": 204.3,
+    "board_area_frac": 0.0156,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  },
+  {
+   "name": "cap_zw579hf8.png",
+   "used": true,
+   "rms_px": 0.1597,
+   "max_error_px": 0.3193,
+   "rejected_reason": null,
+   "distance_m": null,
+   "tilt_deg": 40.23,
+   "quality": {
+    "found": true,
+    "method": "classic+subpix",
+    "damaged": null,
+    "edge_width_px": 2.031,
+    "contrast": 111.0,
+    "min_margin_px": 148.6,
+    "board_area_frac": 0.0158,
+    "subpix_reverted": 0,
+    "ok": true,
+    "reasons": []
+   }
+  }
+ ],
+ "board": {
+  "cols": 9,
+  "rows": 6,
+  "square_mm": 20.0,
+  "pattern": "chessboard"
+ },
+ "square_mm_measured": null,
+ "square_mm_note": "cỡ ô chỉ ảnh hưởng distance_m của từng ảnh (và ngoại tham sau này), không ảnh hưởng K, D",
+ "coverage": {
+  "grid": [
+   8,
+   6
+  ],
+  "cells_covered": 39,
+  "cells_total": 48,
+  "fraction": 0.8125,
+  "border_fraction": 0.625,
+  "corner_blocks": {
+   "tl": true,
+   "tr": true,
+   "bl": true,
+   "br": true
+  },
+  "counts": [
+   [
+    0,
+    6,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    2,
+    31,
+    43,
+    16,
+    16,
+    24,
+    8,
+    0
+   ],
+   [
+    14,
+    42,
+    68,
+    69,
+    89,
+    99,
+    67,
+    8
+   ],
+   [
+    8,
+    45,
+    133,
+    100,
+    104,
+    65,
+    26,
+    4
+   ],
+   [
+    3,
+    27,
+    56,
+    45,
+    41,
+    37,
+    24,
+    2
+   ],
+   [
+    0,
+    3,
+    7,
+    4,
+    4,
+    4,
+    5,
+    0
+   ]
+  ]
+ },
+ "field_of_view_deg": {
+  "horizontal_deg": 76.47,
+  "vertical_deg": 58.85,
+  "diagonal_deg": 92.37,
+  "theta_image_corners_deg": [
+   47.23,
+   45.06,
+   47.21,
+   45.05
+  ],
+  "model_monotonic_limit_deg": 90.0,
+  "theta_observed_max_deg": 35.72
+ },
+ "woodscape_intrinsic": {
+  "model": "radial_poly",
+  "poly_order": 4,
+  "width": 640,
+  "height": 480,
+  "k1": 438.68613308866514,
+  "k2": 84.07141717369993,
+  "k3": -127.18770935205254,
+  "k4": 137.7445054479864,
+  "cx_offset": 14.906863471478687,
+  "cy_offset": 0.16612520986421941,
+  "aspect_ratio": 0.9999035728234893,
+  "theta_max_deg": 47.2604,
+  "theta_max_source": "image_corners",
+  "theta_image_corner_deg": 47.2279,
+  "theta_max_raise_deg": 0.03251,
+  "max_fit_error_px": 0.3722,
+  "rms_fit_error_px": 0.2516,
+  "max_error_allowed_px": 0.5,
+  "projection_check_max_px": 0.3556,
+  "monotonic": true,
+  "corners_invertible": true,
+  "ok": true,
+  "reason": null
+ },
+ "extrinsic": null,
+ "rig": null,
+ "note": "Chưa gắn lên rig: tệp này chỉ có nội tham (K, D) của một camera, KHÔNG có ngoại tham (vị trí/hướng camera so với xe). Ngoại tham đo riêng bằng perception/extrinsics_calib.py sau khi gá camera, ghi vào configs/rig/camera_rig_extrinsics_v1.json (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham).",
+ "images_dir": "runs\\calib\\bev_20261124\\auto_intrinsics\\cam_p2",
+ "created_local": "2026-11-24T17:17:56",
+ "software": {
+  "opencv": "5.0.0",
+  "numpy": "2.5.3",
+  "python": "3.12.10"
+ },
+ "acceptance": {
+  "status": "đề xuất, chưa kiểm trên camera thật",
+  "all_pass": true,
+  "checks": [
+   {
+    "key": "rms_px",
+    "label": "RMS chiếu lại toàn bộ (px)",
+    "value": 0.191,
+    "op": "<=",
+    "threshold": 0.5,
+    "pass": true
+   },
+   {
+    "key": "max_view_rms_px",
+    "label": "RMS ảnh tệ nhất còn dùng (px)",
+    "value": 0.6542,
+    "op": "<=",
+    "threshold": 1.0,
+    "pass": true
+   },
+   {
+    "key": "images",
+    "label": "số ảnh dùng",
+    "value": 25,
+    "op": ">=",
+    "threshold": 15,
+    "pass": true
+   },
+   {
+    "key": "coverage",
+    "label": "tỉ lệ ô lưới 8×6 có góc",
+    "value": 0.8125,
+    "op": ">=",
+    "threshold": 0.7,
+    "pass": true
+   },
+   {
+    "key": "corner_blocks",
+    "label": "số góc ảnh có điểm",
+    "value": 4,
+    "op": ">=",
+    "threshold": 4,
+    "pass": true
+   },
+   {
+    "key": "tilted_images",
+    "label": "số ảnh bảng nghiêng ≥ 20°",
+    "value": 14,
+    "op": ">=",
+    "threshold": 4,
+    "pass": true
+   },
+   {
+    "key": "fit_error_px",
+    "label": "sai số chuyển sang mô hình dự án (px)",
+    "value": 0.3722,
+    "op": "<=",
+    "threshold": 0.5,
+    "pass": true
+   }
+  ]
+ }
+}

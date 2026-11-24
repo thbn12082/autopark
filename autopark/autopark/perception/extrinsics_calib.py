@@ -583,6 +583,23 @@ def _compose(board: BoardPose, rvec, tvec) -> tuple[np.ndarray, np.ndarray]:
     return R_cv, t_cv
 
 
+def detect_floor_board(image: np.ndarray, spec: BoardSpec) -> fc.Detection:
+    detection = fc.detect_corners(image, spec)
+    if detection.found:
+        return detection
+
+    # Bảng nằm ngang nhìn từ camera thấp có các hàng ô rất dẹt. Dò lại trên ảnh
+    # kéo theo chiều dọc rồi trả các góc về hệ pixel của ảnh gốc cho phép chiếu.
+    scale_y = 3
+    stretched = cv2.resize(fc.to_gray(image), None, fx=1, fy=scale_y, interpolation=cv2.INTER_CUBIC)
+    detection = fc.detect_corners(stretched, spec)
+    if not detection.found:
+        return detection
+    corners = detection.corners.copy()
+    corners[:, 1] = (corners[:, 1] + 0.5) / scale_y - 0.5
+    return fc.Detection(True, corners, f"{detection.method}+floor", detection.reverted)
+
+
 def analyse_placement(inp: PlacementInput, spec: BoardSpec, intr: CameraIntrinsics) -> PlacementResult:
     """Dò, đánh số, giải một lần đặt bảng. Lần đặt không dùng được thì `used` = False và `reason` ghi lý do."""
     res = PlacementResult(inp.name, inp.image_path, inp.placement, spec=spec)
@@ -599,7 +616,7 @@ def analyse_placement(inp: PlacementInput, spec: BoardSpec, intr: CameraIntrinsi
             if damaged:
                 raise ExtrinsicsError(f"khung MJPEG hỏng: {damaged}; chụp lại")
         res.board = board_pose(inp.placement, spec)
-        det = fc.detect_corners(image, spec, mode="accurate")
+        det = detect_floor_board(image, spec)
         if not det.found:
             raise ExtrinsicsError(f"không thấy đủ {spec.cols}×{spec.rows} góc trong của bảng: bảng phải nằm trọn trong "
                                   f"ảnh (cả viền trắng), đủ sáng, không lóa; bảng quá xa thì ô quá dẹt — đặt gần hơn")

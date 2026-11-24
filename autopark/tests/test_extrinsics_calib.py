@@ -177,6 +177,33 @@ def test_rig_angles_inverts_bev_rig_rotation():
 
 
 # ---- ảnh tổng hợp: dò, đánh số, giải ----------------------------------------------------------------------------------
+def test_floor_board_retry_maps_stretched_corners_to_original_pixels(monkeypatch):
+    image = np.zeros((60, 80, 3), dtype=np.uint8)
+    image[::3, :, 1] = 255
+    image[1::4, :, 2] = 75
+    native_corners = np.array([(6.5 + 7 * x, 5.25 + 6 * y)
+                               for y in range(SPEC.rows) for x in range(SPEC.cols)], dtype=np.float32)
+    stretched_corners = native_corners.copy()
+    stretched_corners[:, 1] = (native_corners[:, 1] + 0.5) * 3 - 0.5
+    seen = []
+
+    def detect(frame, spec):
+        assert spec == SPEC
+        seen.append(frame)
+        if len(seen) == 1:
+            return fc.Detection(False)
+        return fc.Detection(True, stretched_corners, "classic+subpix")
+
+    monkeypatch.setattr(fc, "detect_corners", detect)
+    result = ec.detect_floor_board(image, SPEC)
+
+    assert result.found
+    assert len(seen) == 2 and seen[0] is image
+    expected = cv2.resize(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), (80, 180), interpolation=cv2.INTER_CUBIC)
+    np.testing.assert_array_equal(seen[1], expected)
+    np.testing.assert_allclose(result.corners, native_corners, rtol=0, atol=1e-5)
+
+
 def test_rendered_board_and_orientation_match_hand_computed_corners(intr):
     for k in range(len(BOARDS)):
         img = board_image(k)
