@@ -17,7 +17,7 @@ COLORS = {
 NATIVE_SIZES = {
     "esp32": (280, 390), "esc1060": (360, 240), "motor280": (300, 180),
     "servo": (290, 210), "battery2s": (300, 200), "b3_charger": (280, 240),
-    "mt6701_steer": (260, 200), "mt6701": (260, 200), "laptop": (360, 260),
+    "mt6701_steer": (260, 210), "mt6701": (260, 210), "bno085": (300, 200), "laptop": (360, 260),
     "usb_hub": (330, 180), "lidar": (250, 220), "lidar_adapter": (250, 150),
     "camera": (200, 150), "servo_supply": (280, 190), "stock_board": (250, 250),
     "raspberry_pi": (360, 250), "pi_supply": (280, 190), "hub_supply": (280, 190),
@@ -33,14 +33,9 @@ PORT_SPECS = {
     "esp32": {
         "usb_uart": _p(92, 390, "bottom", "USB–UART", "usb"),
         "usb_native": _p(185, 390, "bottom", "USB native", "usb"),
-        "v3v3": _p(68, 48, "left", "3V3", "logic"),
         "gnd": _p(68, 335.7, "left", "GND", "ground"),
         "esc_pwm": _p(68, 89.1, "left", "GPIO4", "signal"),
         "servo_pwm": _p(68, 102.8, "left", "GPIO5", "signal"),
-        "sda": _p(68, 116.5, "left", "GPIO6", "signal"),
-        "scl": _p(68, 130.2, "left", "GPIO7", "signal"),
-        "enc_a": _p(68, 198.7, "left", "GPIO8", "signal"),
-        "enc_b": _p(68, 239.8, "left", "GPIO9", "signal"),
     },
     "esc1060": {
         "battery_plus": _p(0, 70, "left", "BAT +", "red"),
@@ -74,20 +69,23 @@ PORT_SPECS = {
         "balance_plus": _p(231, 240, "bottom", "B+", "red"),
     },
     "mt6701_steer": {
-        "vcc": _p(0, 70, "left", "VCC 3V3*", "logic", True),
-        "gnd": _p(0, 103, "left", "GND", "ground", True),
-        "sda": _p(0, 136, "left", "A / SDA*", "signal", True),
-        "scl": _p(0, 169, "left", "B / SCL*", "signal", True),
-        "mode": _p(260, 90, "right", "MODE*", "logic", True),
-        "z": _p(260, 130, "right", "Z / CSN*", "logic", True),
+        "vdd": _p(86, 74, "left", "VDD", "logic"),
+        "gnd": _p(86, 98, "left", "GND", "ground"),
+        "out": _p(86, 122, "left", "Analog/PWM", "amber"),
+        "scl": _p(86, 146, "left", "SCL", "signal"),
+        "sda": _p(86, 170, "left", "SDA", "signal"),
     },
-    "mt6701": {
-        "vcc": _p(0, 70, "left", "VCC 3V3*", "logic", True),
-        "gnd": _p(0, 103, "left", "GND", "ground", True),
-        "a": _p(0, 136, "left", "A (ABZ)*", "signal", True),
-        "b": _p(0, 169, "left", "B (ABZ)*", "signal", True),
-        "mode": _p(260, 90, "right", "MODE*", "ground", True),
-        "z": _p(260, 130, "right", "Z*", "signal", True),
+    "bno085": {
+        "vcc": _p(52, 150, "bottom", "VCC", "logic"),
+        "gnd": _p(74, 150, "bottom", "GND", "ground"),
+        "scl": _p(96, 150, "bottom", "SCL", "signal"),
+        "sda": _p(118, 150, "bottom", "SDA", "signal"),
+        "ado": _p(140, 150, "bottom", "ADO", "logic"),
+        "cs": _p(162, 150, "bottom", "CS", "logic"),
+        "int": _p(184, 150, "bottom", "INT", "amber"),
+        "rst": _p(206, 150, "bottom", "RST", "amber"),
+        "ps1": _p(228, 150, "bottom", "PS1", "logic"),
+        "ps0": _p(250, 150, "bottom", "PS0", "logic"),
     },
     "laptop": {
         "wifi": _p(360, 112, "right", "Wi-Fi LAN", "usb"),
@@ -125,6 +123,10 @@ PORT_SPECS = {
     "stock_board": {},
 }
 
+PORT_SPECS["mt6701"] = {key: dict(value) for key, value in PORT_SPECS["mt6701_steer"].items()}
+# Bo màu tối: chữ chân in trắng ngay cạnh chân, như chữ in trên bo thật.
+SILK_KINDS = {"mt6701_steer", "mt6701", "bno085"}
+
 # Separate converters; these are selection requirements, not identified hardware.
 for _kind in ("pi_supply", "hub_supply"):
     PORT_SPECS[_kind] = {key: dict(value) for key, value in PORT_SPECS["servo_supply"].items()}
@@ -133,23 +135,24 @@ TITLES = {
     "esp32": "ESP32-S3 DevKitC-1", "esc1060": "ESC 1060 BRUSHED",
     "motor280": "MOTOR GỐC 280–60T", "servo": "CỤM LÁI GỐC · 3 DÂY",
     "battery2s": "PIN LiPo 2S · DỰ KIẾN", "b3_charger": "B3 PRO · SẠC CÂN BẰNG",
-    "mt6701_steer": "MT6701 #1 · GÓC LÁI · I²C", "mt6701": "MT6701 #2 · BÁNH/TRỤC · A/B",
+    "mt6701_steer": "MT6701 #1 · GÓC LÁI", "mt6701": "MT6701 #2 · TỐC ĐỘ",
+    "bno085": "BNO085 · GY-BNO08X · IMU",
     "laptop": "MÁY TÍNH CHẠY AUTOPARK", "usb_hub": "HUB USB HIỆN CÓ",
     "lidar": "RPLIDAR C1", "lidar_adapter": "ADAPTER USB CỦA C1",
     "camera": "CAMERA USB", "servo_supply": "NGUỒN SERVO · CHƯA CHỌN",
     "stock_board": "XL1986RT · BO GỐC",
-    "raspberry_pi": "RASPBERRY PI 4 MODEL B · 4 GB",
+    "raspberry_pi": "RASPBERRY PI 4 MODEL B · 8 GB",
     "pi_supply": "DC–DC CHO PI · CHỜ CHỌN",
     "hub_supply": "DC–DC CHO HUB · CHỜ CHỌN",
 }
 
-DESIGN_DATE = "14/11/2026"
+DESIGN_DATE = "26/11/2026"
 CATALOG_KINDS = ("laptop", "raspberry_pi", "esp32", "esc1060", "motor280", "servo",
                  "battery2s", "pi_supply", "hub_supply", "usb_hub", "camera", "lidar",
-                 "lidar_adapter", "mt6701_steer", "mt6701", "b3_charger", "stock_board")
+                 "lidar_adapter", "mt6701_steer", "mt6701", "bno085", "b3_charger", "stock_board")
 
 ALIASES = {"regulated_servo_supply": "servo_supply", "esc": "esc1060", "battery": "battery2s",
-           "encoder": "mt6701", "charger": "b3_charger", "motor": "motor280"}
+           "encoder": "mt6701", "imu": "bno085", "charger": "b3_charger", "motor": "motor280"}
 
 
 def _n(value):
@@ -216,6 +219,12 @@ def _ports(kind, labels=None):
         out.append(circle(x, y, 4.5, "white", spec["color"], 2,
                           **({"stroke-dasharray": "3 2"} if spec["provisional"] else {})))
         caption = (labels or {}).get(key, spec["label"])
+        if kind in SILK_KINDS:
+            if spec["side"] == "bottom":
+                out.append(text(x, y - 11, caption, 8.5, "#f4f0ff", "middle", 700))
+            else:
+                out.append(text(x + 14, y + 4, caption, 11, "#f1f5f9", weight=700))
+            continue
         if kind == "esp32" and spec["side"] == "left":
             out.append(text(x - 9, y + 3, caption, 9.5, spec["color"], "end", 700))
         elif spec["side"] == "left":
@@ -410,28 +419,36 @@ def _b3_charger():
 
 
 def _angle_module(kind):
-    is_steer = kind == "mt6701_steer"
-    chipname = "MT6701"
-    out = [rect(94, 55, 126, 121, "#16725e" if is_steer else "#236b87", "#0c433a", 8, 2),
-           circle(107, 68, 4, "#f1e9ca", "#9f955e", 1), circle(207, 163, 4, "#f1e9ca", "#9f955e", 1),
-           _chip(142, 99, 43, 35, chipname, 4),
-           rect(144, 151, 19, 8, "#b6c7bd", rx=1), rect(172, 151, 16, 8, "#b6c7bd", rx=1),
-           circle(165, 65, 24, "#d9dee3", "#84939f", 1.5),
-           path("M165 41 A24 24 0 0 0 165 89 Z", fill="#be4545", stroke="none"),
-           path("M165 41 A24 24 0 0 1 165 89 Z", fill="#456fa8", stroke="none"),
-           text(154, 69, "N", 11, "white", "middle", 700), text(176, 69, "S", 11, "white", "middle", 700),
-           path("M190 53 Q202 64 191 76", stroke=COLORS["amber"], sw=2),
-           path("M190 76 l0 -7 l6 3 Z", fill=COLORS["amber"]),
-           text(165, 34, "Nam châm gá trên trục", 9.7, COLORS["muted"], "middle"),
-           text(130, 194, "* Module / thứ tự chân cần đối chiếu", 10, COLORS["amber"], "middle", 700)]
+    """Module MT6701 thực nhận: bo đen vuông, 4 lỗ bắt vít, một hàng 5 chân J1 ở cạnh trái, IC U1 (SOIC-8)
+    cùng R1, R2, C1. Chữ chân theo chữ in ở mặt sau bo. Nam châm đặt đồng trục với tâm IC U1."""
+    out = [rect(66, 40, 168, 150, "#16191d", "#05070a", 7, 2),
+           _screw(80, 54, 5), _screw(220, 54, 5), _screw(80, 176, 5), _screw(220, 176, 5),
+           rect(78, 62, 16, 120, "none", "#e5e7eb", 1, 1),
+           text(72, 125, "J1", 9, "#e5e7eb", "middle", 700, transform="rotate(-90 72 125)"),
+           rect(188, 70, 10, 16, "#d6d3c4", "#8c8a7c", 1), rect(206, 70, 10, 16, "#d6d3c4", "#8c8a7c", 1),
+           text(193, 66, "R1", 8, "#e5e7eb", "middle"), text(211, 66, "R2", 8, "#e5e7eb", "middle"),
+           _chip(186, 98, 36, 32, "MT6701", 4),
+           text(204, 143, "U1", 8, "#e5e7eb", "middle"),
+           rect(190, 152, 14, 9, "#c9a46a", "#8a6d3d", 1), text(210, 160, "C1", 8, "#e5e7eb"),
+           circle(204, 114, 22, "none", "#e05a5a", 1.6, stroke_dasharray="4 3"),
+           text(150, 205, "Chưa đấu nối · nam châm đồng trục với U1", 10, COLORS["amber"], "middle", 700)]
     for key, spec in PORT_SPECS[kind].items():
-        yy = spec["y"]
-        if spec["side"] == "right":
-            out += [_wire([(220, yy), (260, yy)], spec["color"], 2.5, True),
-                    circle(213, yy, 3.2, "#d6bd6d", "#f8e5a2", 1)]
-            continue
-        out += [_wire([(0, yy), (82, yy), (94, yy)], spec["color"], 2.5, True),
-                circle(103, yy, 3.2, "#d6bd6d", "#f8e5a2", 1)]
+        out.append(rect(spec["x"] - 4, spec["y"] - 4, 8, 8, "#e0b84f", "#f6e2a6", 1))
+    return "".join(out)
+
+
+def _bno085():
+    """Bo GY-BNO08X (chip BNO085): bo tím, hai lỗ bắt vít, hàng 10 chân ở cạnh dưới, nút BOOT ở góc phải."""
+    out = [rect(30, 40, 240, 132, "#5b2c86", "#2f1450", 8, 2),
+           circle(56, 68, 11, "#e0b84f", "#f6e2a6", 1.5), circle(56, 68, 6, "#2f1450"),
+           circle(244, 68, 11, "#e0b84f", "#f6e2a6", 1.5), circle(244, 68, 6, "#2f1450"),
+           _chip(126, 60, 48, 42, "BNO085", 5),
+           text(150, 55, "GY-BNO08X", 9, "#efe7ff", "middle", 700),
+           rect(220, 100, 14, 9, "#e0b84f"), text(214, 108, "BOOT", 7.5, "#efe7ff", "end"),
+           text(150, 190, "Chưa đấu nối · chưa gắn lên khung", 10, COLORS["amber"], "middle", 700)]
+    for key, spec in PORT_SPECS["bno085"].items():
+        out += [circle(spec["x"], spec["y"], 6, "#e0b84f", "#f6e2a6", 1),
+                rect(spec["x"] - 2, spec["y"] + 6, 4, 14, "#c4c9cf")]
     return "".join(out)
 
 
@@ -479,7 +496,7 @@ def _raspberry_pi():
            rect(102, 49, 153, 17, "#172b25", rx=2),
            _chip(140, 95, 67, 62, "SoC", 7),
            rect(219, 92, 35, 36, "#b9c5c6", "#637e78", 3),
-           text(175, 187, "Pi 4 · RAM 4 GB", 17, "#edf8ed", "middle", 700),
+           text(175, 187, "Pi 4 · RAM 8 GB", 17, "#edf8ed", "middle", 700),
            text(175, 206, "microSD 64 GB · cổng chức năng*", 10, "#e1efdf", "middle"),
            rect(72, 154, 27, 30, "#c8d3d5", "#63787e", 4),
            _wire([(0,145),(45,145),(72,165)], COLORS["red"], 3, True),
@@ -578,6 +595,7 @@ _DRAWERS.update({
     "esp32": _esp32, "esc1060": _esc1060, "motor280": _motor280, "servo": _servo,
     "battery2s": _battery2s, "b3_charger": _b3_charger,
     "mt6701_steer": lambda: _angle_module("mt6701_steer"), "mt6701": lambda: _angle_module("mt6701"),
+    "bno085": _bno085,
     "servo_supply": _servo_supply, "laptop": _laptop, "usb_hub": _usb_hub,
     "lidar": _lidar, "lidar_adapter": _lidar_adapter, "camera": _camera, "stock_board": _stock_board,
     "raspberry_pi": _raspberry_pi,
@@ -604,8 +622,8 @@ def component_catalog_svg():
         scale = min(365 / nw, 275 / nh)
         dw, dh = nw * scale, nh * scale
         out.append(draw_component(kind, x + (410 - dw) / 2, y + 40 + (280 - dh) / 2, dw, dh))
-    out += [text(55, height-60, "Pi 4: 4 GB + microSD 64 GB. Hai MT6701. Nguồn Pi/hub: chờ chọn. BEC 6 V chỉ tới servo tương thích; không tới Pi hoặc hub.",
+    out += [text(55, height-60, "Pi 4: 8 GB + microSD 64 GB. Nguồn Pi/hub: chờ chọn. BEC 6 V chỉ cấp servo; không tới Pi hoặc hub.",
                  17, COLORS["amber"], weight=700),
-            text(55, height-27, "MT6701 có hai module riêng (#1 lái, #2 bánh/trục); camera dùng 4 lần. Vòng nét đứt = chờ đối chiếu chân; ảnh nguồn không được nhúng.",
+            text(55, height-27, "Hai MT6701 (module 5 chân) và BNO085 đã có nhưng CHƯA ĐẤU NỐI vào xe. Chữ chân theo chữ in trên bo thật; camera dùng 4 lần.",
                  16, COLORS["muted"]), "</svg>"]
     return "".join(out)

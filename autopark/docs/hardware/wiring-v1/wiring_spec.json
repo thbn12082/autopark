@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "revision": "pi4_dual_mt6701_target_v4",
+  "revision": "pi4_sensors_unwired_v5",
   "status": "proposed_not_hardware_verified",
-  "date": "2026-11-14",
+  "date": "2026-11-26",
   "catalog_component_kinds": [
     "laptop",
     "raspberry_pi",
@@ -19,10 +19,11 @@
     "lidar_adapter",
     "mt6701_steer",
     "mt6701",
+    "bno085",
     "b3_charger",
     "stock_board"
   ],
-  "catalog_component_count": 17,
+  "catalog_component_count": 18,
   "architecture": {
     "status": "target_not_distributed_implementation",
     "laptop": [
@@ -38,8 +39,8 @@
       "local obstacle stop"
     ],
     "esp32": [
-      "real actuator outputs (target)",
-      "encoder and measured steering feedback",
+      "ESC/servo PWM outputs (bench-tested 2026-11-25)",
+      "steering/speed feedback once MT6701 is wired",
       "expired-command watchdog"
     ],
     "link": "Wi-Fi LAN; 4G optional remote access later",
@@ -54,45 +55,67 @@
     ],
     "automatic_restart": false,
     "restart": "stop; measure new pose; laptop replans; explicit new run confirmation",
-    "current_code": "simulation/manual nearby goal; distributed Pi and automatic slot selection not implemented; PWM disabled; physical feedback drivers unfinished"
+    "current_code": "simulation; LiDAR slot finding and UI slot picking; Pi trajectory tracking not implemented; ESC/servo PWM enabled (env esp32s3_16mb_pwm); no MT6701/BNO085 driver"
   },
   "reference_board": "ESP32-S3-DevKitC-1 N16R8",
   "onboard_computer": {
     "model": "Raspberry Pi 4 Model B",
-    "ram_gb": 4,
+    "ram_gb": 8,
     "microSD_gb": 64,
-    "hardware_tested": false
+    "hardware_tested": true
   },
   "feedback_sensors": {
     "STEER": {
       "chip": "MT6701",
-      "quantity": 1,
       "role": "absolute steering angle",
-      "interface": "I2C",
-      "mode": "HIGH at 3.3V",
-      "z_csn": "HIGH at 3.3V",
-      "module_pinout_verified": false
+      "module_pins": [
+        "VDD",
+        "GND",
+        "Analog/PWM",
+        "SCL",
+        "SDA"
+      ],
+      "wired": false,
+      "interface": "not chosen (I2C or Analog/PWM)"
     },
     "ENC": {
       "chip": "MT6701",
-      "quantity": 1,
       "role": "wheel/drivetrain speed and distance",
-      "interface": "quadrature A/B",
-      "mode": "LOW at GND; ABZ configuration verified before use",
-      "z": "unconnected output",
-      "ppr": "must select and measure; not inferred from 14-bit angle",
-      "module_pinout_verified": false
+      "module_pins": [
+        "VDD",
+        "GND",
+        "Analog/PWM",
+        "SCL",
+        "SDA"
+      ],
+      "wired": false,
+      "interface": "not chosen; module has no A/B/MODE/Z pins",
+      "note": "same fixed I2C address as STEER: separate bus or Analog/PWM"
+    },
+    "IMU": {
+      "chip": "BNO085",
+      "board": "GY-BNO08X",
+      "module_pins": [
+        "VCC",
+        "GND",
+        "SCL",
+        "SDA",
+        "ADO",
+        "CS",
+        "INT",
+        "RST",
+        "PS1",
+        "PS0"
+      ],
+      "wired": false,
+      "interface": "not chosen"
     }
   },
   "proposed_gpio": {
     "ESC_CTRL": 4,
-    "SERVO_CTRL": 5,
-    "SDA": 6,
-    "SCL": 7,
-    "ENC_A": 8,
-    "ENC_B": 9
+    "SERVO_CTRL": 5
   },
-  "firmware_pinmap_changed": false,
+  "firmware_pwm_env": "esp32s3_16mb_pwm: ESC GPIO4, servo GPIO5",
   "components": {
     "PC": "laptop",
     "HUB": "usb_hub",
@@ -109,6 +132,7 @@
     "SERVO": "servo",
     "STEER": "mt6701_steer",
     "ENC": "mt6701",
+    "IMU": "bno085",
     "B3": "b3_charger",
     "PI": "raspberry_pi",
     "PSPI": "pi_supply",
@@ -176,10 +200,7 @@
       "endpoints": [
         "ESP.gnd",
         "ESC.gnd",
-        "SERVO.gnd",
-        "STEER.gnd",
-        "ENC.gnd",
-        "ENC.mode"
+        "SERVO.gnd"
       ],
       "voltage": "common signal reference; servo power return directly to ESC/BEC, not through ESP32"
     },
@@ -206,7 +227,7 @@
         "ESC.signal"
       ],
       "gpio": 4,
-      "condition": "confirm ESC accepts 3.3V signal and pulse range"
+      "condition": "bench-tested 2026-11-25, throttle limited to 1375-1625 us"
     },
     {
       "id": "SERVO_CTRL",
@@ -215,7 +236,7 @@
         "SERVO.signal"
       ],
       "gpio": 5,
-      "condition": "confirm stock servo signal/pinout"
+      "condition": "bench-tested 2026-11-25, servo limited to 1200-1800 us"
     },
     {
       "id": "V_SERVO",
@@ -225,55 +246,7 @@
       ],
       "voltage": 6.0,
       "reference_current_a": 3.0,
-      "condition": "connect ONLY after confirming the stock servo supports 6V, actual ESC BEC voltage and load current fit; no parallel supply; never to ESP32 rails or GPIO"
-    },
-    {
-      "id": "3V3",
-      "endpoints": [
-        "ESP.v3v3",
-        "STEER.vcc",
-        "ENC.vcc",
-        "STEER.mode",
-        "STEER.z"
-      ],
-      "voltage": "3.3V",
-      "condition": "breakouts must support 3.3V; verify onboard regulator/pullups and total current"
-    },
-    {
-      "id": "SDA",
-      "endpoints": [
-        "ESP.sda",
-        "STEER.sda"
-      ],
-      "gpio": 6,
-      "condition": "pullups only to3.3V"
-    },
-    {
-      "id": "SCL",
-      "endpoints": [
-        "ESP.scl",
-        "STEER.scl"
-      ],
-      "gpio": 7,
-      "condition": "pullups only to3.3V"
-    },
-    {
-      "id": "ENC_A",
-      "endpoints": [
-        "ESP.enc_a",
-        "ENC.a"
-      ],
-      "gpio": 8,
-      "condition": "confirm MT6701 module MODE and PPR"
-    },
-    {
-      "id": "ENC_B",
-      "endpoints": [
-        "ESP.enc_b",
-        "ENC.b"
-      ],
-      "gpio": 9,
-      "condition": "confirm MT6701 module MODE and PPR"
+      "condition": "servo ran on the ESC 6V BEC on the bench 2026-11-24; no parallel supply; never to ESP32 rails or GPIO"
     }
   ],
   "usb_links": [
@@ -322,8 +295,10 @@
       "electrical_wire": false
     }
   ],
-  "isolated_ports": [
-    "ENC.z"
+  "unwired_components": [
+    "STEER",
+    "ENC",
+    "IMU"
   ],
   "internal_links_to_verify": [
     {
@@ -391,17 +366,15 @@
     "additional_fuse"
   ],
   "deferred": [
-    "ToF",
-    "IMU"
+    "ToF"
   ],
   "unverified": [
     "Pi 4 USB-C supply, cable, voltage drop and USB total load (1.2A limit)",
     "hub model, DC input rating and upstream VBUS backfeed prevention",
     "2S branch harness, converter input range/load transients, voltage drop and heat",
     "four-camera USB/Wi-Fi bandwidth and timestamps",
-    "stock servo 6V compatibility, load current and 3-wire pinout",
-    "actual ESC BEC voltage/current and 3.3V input acceptance",
-    "sensor breakout pad order, mode and mounting",
+    "servo load current on the floor (bench only so far)",
+    "MT6701/BNO085 wiring, bus and GPIO choice, speed-measurement method and mounting (not wired yet)",
     "adapter mating/polarity and motor stall current",
     "firmware outputs and physical signal timing"
   ]

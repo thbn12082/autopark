@@ -17,23 +17,23 @@ AutoPark hướng tới xe mô hình tự tìm ô đỗ phù hợp, tính đư�
 |---|---|
 | Máy tính trên xe | **Raspberry Pi 4 Model B, RAM 8 GB**, chạy Raspberry Pi OS 64-bit trong lượt thử |
 | Lưu trữ trên Pi | **microSD 64 GB** cho hệ điều hành, chương trình, cấu hình và log; video ưu tiên lưu ở laptop |
-| Cảm biến góc lái | **MT6701 #1**, đọc góc tuyệt đối qua I²C vào ESP32; gá tại cơ cấu lái. Đã có module, **chưa lắp** |
-| Cảm biến chuyển động | **MT6701 #2**, dự kiến đếm xung A/B qua ESP32 để tính tốc độ và quãng đường; gá trên bánh hoặc trục truyền động. **Chưa lắp** |
-| IMU hỗ trợ định vị | **BNO085**, dự kiến đọc qua ESP32; gắn cố định lên khung để đo góc quay thân xe và đối chiếu với LiDAR C1. **Chưa lắp** |
+| Cảm biến góc lái | **MT6701 #1**, đo góc tuyệt đối tại cơ cấu lái. Đã có module, **chưa lắp, chưa đấu nối** |
+| Cảm biến chuyển động | **MT6701 #2**, đo góc trục hoặc bánh để suy ra tốc độ và quãng đường; module 5 chân không có A/B. **Chưa lắp, chưa đấu nối** |
+| IMU hỗ trợ định vị | **BNO085**, gắn cố định lên khung để đo góc quay thân xe và đối chiếu với LiDAR C1. **Chưa lắp, chưa đấu nối** |
 | Điều khiển cơ cấu | ESP32-S3 với flash 16 MB và PSRAM 8 MB, cắm USB vào Pi. ESC QuicRun 1060 (GPIO4) và servo (GPIO5) đã chạy bằng firmware AutoPark trên bàn thử |
 | Quan sát | Đã nhận đồng thời **bốn camera USB qua hub có nguồn riêng** và LiDAR C1. Laptop hiển thị ảnh, bản quét và tab BEV |
 
-**Phương án cảm biến gồm hai MT6701 và một BNO085.** Tốc độ và góc lái đo được là hai phản hồi cần có để thử tự chạy, nên không đo tay góc lái hay tốc độ trước khi lắp MT6701. BNO085 là nguồn dữ liệu bổ sung cho định vị. Mỗi MT6701 có một nam châm và một vị trí gá. Đường xung A/B của MT6701 #2 dự kiến nối riêng vào ESP32, còn MT6701 #1 dùng bus I²C. Thứ tự thử khi lắp:
+**Phương án cảm biến gồm hai MT6701 và một BNO085.** Tốc độ và góc lái đo được là hai phản hồi cần có để thử tự chạy, nên không đo tay góc lái hay tốc độ trước khi lắp MT6701. BNO085 là nguồn dữ liệu bổ sung cho định vị. Mỗi MT6701 có một nam châm và một vị trí gá. Module MT6701 thực nhận chỉ có 5 chân `VDD`, `GND`, `Analog/PWM`, `SCL`, `SDA`, không có A/B. Hai module cùng địa chỉ I²C nên không chung một bus. Cách đấu vào ESP32 sẽ chốt khi lắp. Thứ tự thử khi lắp:
 
 1. **Thử BNO085 trước.** Ngắt pin ESC, đọc góc trên bàn rồi xoay bo khoảng 90° để kiểm hướng và độ lớn góc đo. Sau đó gá lên khung để đối chiếu hướng quay với C1 khi di chuyển xe bằng tay.
 2. **Thử MT6701 #1.** Dùng bo 5 chân đang có để kiểm đọc góc qua I²C trên bàn. Sau khi tìm được vị trí gá tại cơ cấu lái, hiệu chuẩn chiều trái/phải, điểm giữa và quan hệ giữa góc cảm biến với góc bánh trước.
-3. **Thử MT6701 #2.** Xác minh chế độ A/B trên module định dùng trước khi gá. Sau khi lắp, quay bánh bằng tay để kiểm chiều đếm và đo số xung trên một vòng bánh trước khi quy đổi tốc độ, quãng đường.
+3. **Thử MT6701 #2.** Chọn cách đọc (bus I²C thứ hai hoặc Analog/PWM). Sau khi lắp, quay bánh bằng tay để kiểm chiều quay và quan hệ góc trục với quãng đường trước khi quy đổi tốc độ.
 
 Hệ điều hành của Pi nằm trên thẻ microSD. Thiết kế nguồn dùng USB-C ổn áp 5,1 V/3 A cho Pi, với giới hạn tổng tải USB trực tiếp là 1,2 A. Hub bốn camera cần nguồn riêng phù hợp. Cần đo độ trễ, tải USB và CPU với đủ thiết bị trước khi chốt FPS. Xem [hướng dẫn lắp và nguồn tham khảo](autopark/docs/LAP_RAP_DIEN_2D.md).
 
 ### Module MT6701 5 chân và cách gá nam châm
 
-Module thực tế có các chân `VDD`, `GND`, `Analog/PWM`, `SCL` và `SDA`. Đây là ứng viên để thử đọc góc lái qua I²C. Cần xác minh cấu hình `MODE` và tín hiệu A/B trên breakout trước khi dùng cho encoder bánh.
+Module thực tế có các chân `VDD`, `GND`, `Analog/PWM`, `SCL` và `SDA`. Module không đưa ra chân `MODE` hay A/B. Bản vẽ cũ nối A/B và MODE là sai, đã bỏ.
 
 <table>
   <tr>
@@ -166,7 +166,7 @@ Kết quả mô phỏng đã ghi nhận nằm trong [Kiểm thử và lộ trìn
 |---|---|---|
 | **Laptop** | Chạy AI trên ảnh từ bốn camera; hợp nhất dữ liệu cảm biến; nhận biết và chọn ô đỗ; lập và kiểm tra quỹ đạo | Nhận ảnh, dữ liệu LiDAR, tư thế và trạng thái từ Pi; gửi quỹ đạo cùng điều kiện thực hiện xuống Pi |
 | **Pi 4 Model B · 8 GB trên xe** | Thu cảm biến; ước lượng vị trí và hướng xe; bám quỹ đạo theo phản hồi; chủ động yêu cầu dừng khi vùng chuyển động không an toàn hoặc dữ liệu/liên kết quá hạn | Nhận quỹ đạo qua Wi-Fi; gửi lệnh tốc độ/góc lái có hạn hiệu lực tới ESP32 qua USB ngắn; nhận phản hồi thật |
-| **ESP32 trên xe** | Phát tín hiệu tới ESC và servo; đọc MT6701 #2 qua A/B và MT6701 #1 qua I²C; giám sát hạn lệnh và đưa cơ cấu về trạng thái dừng khi hết hạn | Nhận lệnh từ Pi; trả số đo và trạng thái lỗi về Pi |
+| **ESP32 trên xe** | Phát tín hiệu tới ESC và servo; đọc hai MT6701 và BNO085 khi đã đấu nối; giám sát hạn lệnh và đưa cơ cấu về trạng thái dừng khi hết hạn | Nhận lệnh từ Pi; trả số đo và trạng thái lỗi về Pi |
 
 **AI không phát lệnh lái trực tiếp.** Laptop gửi quỹ đạo để Pi thực hiện; Pi tự tính các nhịp điều khiển tại xe. Wi-Fi không phải đường truyền từng nhịp đánh lái từ laptop.
 
@@ -204,7 +204,7 @@ Ba nhánh nguồn cần phân biệt:
 - **Servo:** lấy nguồn từ BEC 6 V của ESC; đã chạy ổn trên bàn thử ngày 24/11/2026.
 - **Pi và thiết bị USB:** Pi cần nguồn ổn áp riêng phù hợp model và tổng tải. **Không cấp Pi bằng BEC 6 V của ESC.** ESP32 dùng USB từ Pi theo thiết kế; nguồn cho hub/camera và khả năng cấp dòng của từng cổng phải được kiểm tra.
 
-Bộ hình SVG và PNG mô tả bố trí mục tiêu cho bốn camera và hai MT6701. Sơ đồ chân BNO085 sẽ được bổ sung sau lượt thử trên bàn.
+Bộ hình SVG và PNG mô tả bố trí trên xe. Hai MT6701 và BNO085 được vẽ theo chân in trên bo thật nhưng **chưa đấu nối**; dây của chúng sẽ thêm khi lắp.
 
 ![Thiết kế mục tiêu: linh kiện và các đầu nối](autopark/docs/hardware/wiring-v1/00-components.png?v=9ac413ffc93c)
 
@@ -216,7 +216,7 @@ Bộ hình SVG và PNG mô tả bố trí mục tiêu cho bốn camera và hai M
 
 ![Thiết kế mục tiêu: USB, tín hiệu điều khiển và phản hồi](autopark/docs/hardware/wiring-v1/02-signal-feedback.png?v=8a5bdf9db514)
 
-*C1 và hub bốn camera nối Pi; Pi nối ESP32 bằng USB ngắn. MT6701 #1 (I²C, góc lái) và MT6701 #2 (A/B, chuyển động) trả phản hồi về ESP32.*
+*C1 và hub bốn camera nối Pi; Pi nối ESP32 bằng USB ngắn. Hai MT6701 và BNO085 vẽ theo chân thật nhưng **chưa đấu nối**: chưa có dây nào tới ESP32.*
 
 ![Thiết kế sạc riêng cho pin LiPo 2S](autopark/docs/hardware/wiring-v1/03-charging.png?v=6f5b5dda4a87)
 

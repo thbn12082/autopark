@@ -1,6 +1,6 @@
 # Kiến trúc: laptop, Raspberry Pi và ESP32
 
-**Cấu hình chốt 14/11/2026:** Pi 4 Model B RAM 4 GB + microSD 64 GB. Hai MT6701 riêng nối ESP32: #1 góc lái tuyệt đối qua I²C; #2 chuyển động bánh/trục qua A/B. Module/gá/PPR cần đối chiếu; driver phần cứng chưa hoàn thiện.
+**Cấu hình cập nhật 26/11/2026:** Pi 4 Model B RAM 8 GB + microSD 64 GB. Hai MT6701 (module 5 chân VDD, GND, Analog/PWM, SCL, SDA) và một BNO085 đã có nhưng **chưa lắp, chưa đấu nối**; cách đấu sẽ chốt khi lắp lên xe. Bản vẽ cũ nối MT6701 #2 qua A/B là sai vì module không có chân A/B.
 
 ## Phương án đã chốt ngày 13/11/2026
 

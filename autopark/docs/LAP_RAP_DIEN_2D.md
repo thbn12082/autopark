@@ -1,41 +1,42 @@
 # Kết nối điện AutoPark — mục tiêu Laptop, Pi trên xe và ESP32
 
-Ngày cập nhật thiết kế: 14/11/2026. Cấu hình tham chiếu: ESP32-S3-DevKitC-1 N16R8 và Hobbywing QuicRun 1060 Brushed giắc T. Đã chốt Raspberry Pi 4 Model B RAM 4 GB, thẻ microSD 64 GB và hai MT6701 riêng cho góc lái/chuyển động. Nguồn Pi/hub, module cảm biến, PPR, đầu nối và gá còn phải chọn/đo kiểm.
+Ngày cập nhật thiết kế: 26/11/2026. Cấu hình: ESP32-S3-DevKitC-1 N16R8, Hobbywing QuicRun 1060 Brushed giắc T, Raspberry Pi 4 Model B RAM 8 GB, thẻ microSD 64 GB. Hai MT6701 (module 5 chân VDD, GND, Analog/PWM, SCL, SDA) và một BNO085 đã có nhưng **chưa lắp, chưa đấu nối**; cách đấu sẽ chốt khi lắp lên xe. Bản vẽ cũ nối MT6701 #2 qua A/B là sai vì module không có chân A/B. Nguồn Pi/hub, đầu nối và gá còn phải chọn/đo kiểm.
 
 **Đây là thiết kế kết nối và bản đồ chân đề xuất, chưa phải kết quả lắp chạy trên xe.** Hình dáng motor, cụm lái và bo gốc được đối chiếu với ảnh người dùng. Các linh kiện dự định mua được vẽ theo hình dáng tham chiếu; vị trí chân trên module cảm biến, đầu nối servo và điện áp servo vẫn cần đối chiếu với hàng thực nhận. Màu cam/nét đứt chỉ phần chờ xác minh, không phải dây đã được phép cấp điện.
 
 **Kiến trúc mục tiêu:** laptop chạy AI trên bốn luồng camera, fusion, chọn ô đỗ và lập quỹ đạo. Pi thu LiDAR/camera, định vị cục bộ từ số đo, bám quỹ đạo và dừng vật cản ngay trên xe. ESP32 thực hiện ga/lái, đọc encoder và góc lái thực, dừng khi lệnh từ Pi hết hạn. Laptop ↔ Pi qua Wi-Fi LAN; Pi ↔ ESP32 qua USB ngắn trên xe. Pi nhận quỹ đạo, không nhận từng nhịp góc lái từ laptop; AI không trực tiếp điều khiển chấp hành. 4G chỉ là tùy chọn điều khiển từ xa về sau.
 
-**Mã hiện có chưa triển khai đầy đủ kiến trúc này:** ứng dụng đang phục vụ mô phỏng và thao tác đích gần do người dùng đặt; Pi phân tán và tự chọn ô đỗ chưa được triển khai trên xe. Firmware còn tắt PWM và chưa hoàn thiện đọc phản hồi vật lý. Các hình dưới đây đều là thiết kế mục tiêu, không phải sơ đồ một hệ đã lắp chạy.
+**Mã hiện có chưa triển khai đầy đủ kiến trúc này:** ứng dụng phục vụ mô phỏng, tự tìm ô đỗ trên bản đồ LiDAR và cho chọn ô trong giao diện; Pi bám quỹ đạo chưa được triển khai trên xe. Firmware đã bật PWM ESC/servo (env `esp32s3_16mb_pwm`, thử bàn 25/11/2026), chưa có driver MT6701/BNO085. Các hình dưới đây đều là thiết kế mục tiêu, không phải sơ đồ một hệ đã lắp chạy.
 
 ## Bảng linh kiện và ba bản vẽ
 
-Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các chân — SVG](hardware/wiring-v1/00-components.svg) hoặc [PNG](hardware/wiring-v1/00-components.png?v=9ac413ffc93c).
+Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các chân — SVG](hardware/wiring-v1/00-components.svg) hoặc [PNG](hardware/wiring-v1/00-components.png?v=a05ccfffc361).
 
-1. [Kết nối tổng thể — SVG](hardware/wiring-v1/01-system.svg) · [PNG](hardware/wiring-v1/01-system.png?v=b04a45841440).
-2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png?v=8a5bdf9db514).
-3. [Sạc pin tách khỏi xe — SVG](hardware/wiring-v1/03-charging.svg) · [PNG](hardware/wiring-v1/03-charging.png?v=6f5b5dda4a87).
+1. [Kết nối tổng thể — SVG](hardware/wiring-v1/01-system.svg) · [PNG](hardware/wiring-v1/01-system.png?v=dabc0300dad4).
+2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png?v=dcacd80e9f21).
+3. [Sạc pin tách khỏi xe — SVG](hardware/wiring-v1/03-charging.svg) · [PNG](hardware/wiring-v1/03-charging.png?v=26de4b2acaab).
 
-![Kết nối tổng thể](hardware/wiring-v1/01-system.png?v=b04a45841440)
+![Kết nối tổng thể](hardware/wiring-v1/01-system.png?v=dabc0300dad4)
 
-![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png?v=8a5bdf9db514)
+![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png?v=dcacd80e9f21)
 
-![Sạc pin tách khỏi xe](hardware/wiring-v1/03-charging.png?v=6f5b5dda4a87)
+![Sạc pin tách khỏi xe](hardware/wiring-v1/03-charging.png?v=26de4b2acaab)
 
 ## Những bộ phận được giữ và thay
 
 | Bộ phận | Vai trò trong bản thiết kế |
 |---|---|
 | Laptop chạy AutoPark | Mục tiêu: AI bốn camera, fusion, chọn ô và lập quỹ đạo; trao đổi dữ liệu với Pi qua Wi-Fi LAN |
-| Raspberry Pi 4 Model B — RAM 4 GB, microSD 64 GB | Mục tiêu: thu cảm biến, định vị cục bộ, bám quỹ đạo, kiểm hành lang và dừng vật cản; làm USB host cho ESP32, C1 và hub camera |
+| Raspberry Pi 4 Model B — RAM 8 GB, microSD 64 GB | Mục tiêu: thu cảm biến, định vị cục bộ, bám quỹ đạo, kiểm hành lang và dừng vật cản; làm USB host cho ESP32, C1 và hub camera |
 | ESP32-S3-DevKitC-1 N16R8 | Mục tiêu: nhận lệnh ngắn hạn từ Pi, phát ga/lái, đọc tốc độ/góc lái thực, watchdog dừng khi lệnh hết hạn |
 | Nguồn ổn áp cho Pi — chờ chọn | Nhánh riêng từ pin 2S; nguồn đúng yêu cầu Pi và tải USB C1/ESP32, qua cổng nguồn đúng model; không dùng BEC 6 V |
 | Nguồn hub — chờ chọn | Nhánh riêng từ pin 2S; chỉ cấp DC-in được hãng hub hỗ trợ, đúng điện áp/cực/dòng cho bốn camera; kiểm không cấp ngược USB về Pi |
 | QuicRun 1060 Brushed bản T | Điều khiển công suất cho motor kéo |
 | Motor 280–60T trên xe | Giữ motor và truyền động hiện có |
-| Cụm lái gốc nối ba dây | Dự kiến giữ; cần xác minh model, nguồn và tín hiệu trước khi nối |
-| MT6701 #2 — bánh/trục | Xung A/B để đo chiều quay, tốc độ và quãng đường; nam châm/gá riêng; module, chế độ ABZ và PPR thực nhận cần kiểm |
-| MT6701 #1 — góc lái | Góc tuyệt đối qua I²C; nam châm/gá riêng trên cơ cấu lái; module thực nhận cần kiểm |
+| Cụm lái gốc nối ba dây | Giữ; đã chạy bằng GPIO5 và BEC 6 V của ESC trên bàn thử (24–25/11/2026) |
+| MT6701 #1 — góc lái | Module 5 chân (VDD, GND, Analog/PWM, SCL, SDA); **chưa lắp, chưa đấu nối** |
+| MT6701 #2 — tốc độ | Module 5 chân giống #1, không có chân A/B; **chưa lắp, chưa đấu nối**; cách đo tốc độ chốt khi lắp |
+| BNO085 (GY-BNO08X) | IMU đo góc quay thân xe; **chưa lắp, chưa đấu nối** |
 | LiDAR C1, adapter USB, bốn camera và hub | C1 → adapter USB → Pi; bốn camera USB → hub → Pi. Hub cũ chưa xác minh DC-in, cần chọn hub có nguồn phù hợp nếu không đạt; phải hiệu chuẩn và đo vị trí gá |
 | Pin LiPo 2S 7,4 V, 1.500 mAh, giắc T | Pin dự định dùng; tối đa 8,4 V khi đầy, kích thước phải vừa xe |
 | Sạc B3 Pro | Sạc riêng qua giắc cân bằng 2S; không nối trong lúc chạy xe |
@@ -69,29 +70,26 @@ Các số J1 dưới đây đối chiếu header DevKitC-1 chính thức. Hình 
 
 | Chức năng | Chân ESP32 đề xuất | Vị trí header tham chiếu | Đầu bên kia | Trạng thái |
 |---|---|---|---|---|
-| `ESC_CTRL` | GPIO4 | J1-4 | Signal của giắc điều khiển ESC | Chờ xác minh ESC nhận mức 3,3 V |
-| `SERVO_CTRL` | GPIO5 | J1-5 | Signal của servo | Chờ xác minh giao tiếp và mức tín hiệu servo |
-| `STEER_SDA` | GPIO6 | J1-6 | A/SDA của MT6701 #1 | Module phải có I²C mức 3,3 V |
-| `STEER_SCL` | GPIO7 | J1-7 | B/SCL của MT6701 #1 | Điện trở kéo lên chỉ tới 3,3 V |
-| `ENC_A` | GPIO8 | J1-12 | A của module MT6701 cấu hình A/B | Chờ module, chế độ và gá thực |
-| `ENC_B` | GPIO9 | J1-15 | B của module MT6701 cấu hình A/B | Chờ module, chế độ và gá thực |
-| Nguồn cảm biến | 3V3 | J1-1 hoặc J1-2 | Nguồn 3,3 V của module đã xác minh | Không phải đầu vào nguồn 6 V |
+| `ESC_CTRL` | GPIO4 | J1-4 | Signal của giắc điều khiển ESC | Đã chạy trên bàn thử 25/11/2026 |
+| `SERVO_CTRL` | GPIO5 | J1-5 | Signal của servo | Đã chạy trên bàn thử 25/11/2026 |
+| Cảm biến MT6701 / BNO085 | Chưa gán | — | — | Chốt khi lắp |
 | Tham chiếu logic | GND | J1-22 | GND chung | Đối chiếu thông mạch khi chưa cấp nguồn |
 
-Đây là lựa chọn chân của bản thiết kế, không phải chức năng tự có của GPIO4…9. Firmware phải cấu hình chúng tương ứng. Không dùng GPIO19/20 cho các tín hiệu trên vì dành cho USB native; không dùng chân strapping hoặc chân bộ nhớ của biến thể N16R8 trong bảng này.
+GPIO4/5 là lựa chọn chân của firmware AutoPark (env `esp32s3_16mb_pwm`). Firmware phải cấu hình chúng tương ứng. Không dùng GPIO19/20 cho các tín hiệu trên vì dành cho USB native; không dùng chân strapping hoặc chân bộ nhớ của biến thể N16R8 trong bảng này.
 
-## Hai MT6701: chế độ và vị trí gá khác nhau
+## MT6701 và BNO085: chưa đấu nối
 
-| Module | Đường về ESP32 | Cấu hình tại module, sau khi đối chiếu pinout |
+Ba module dưới đây đã có nhưng **chưa gá lên xe và chưa nối vào ESP32** (26/11/2026). Bản vẽ không vẽ dây nào cho chúng. Cách đấu (bus I²C hay Analog/PWM, chân GPIO, cách đo tốc độ) sẽ chốt khi lắp.
+
+| Module | Chân theo chữ in trên bo thật | Ghi chú |
 |---|---|---|
-| #1 / `STEER` — góc lái | GPIO6 → A/SDA; GPIO7 → B/SCL | I²C: MODE và Z/CSN giữ ở 3V3 theo mạch tham chiếu; pull-up dữ liệu chỉ về 3V3 |
-| #2 / `ENC` — bánh/trục | A → GPIO8; B → GPIO9 | MODE về GND, chọn đầu ra ABZ; Z là đầu ra không dùng nên để trống, không nối lên 3V3 |
+| MT6701 #1 — góc lái | `VDD`, `GND`, `Analog/PWM`, `SCL`, `SDA` (một hàng 5 chân J1) | Nam châm trụ hai cực đặt đồng trục với IC `U1` |
+| MT6701 #2 — tốc độ | Giống #1 | Module **không có chân A/B, MODE hay Z**: không đếm xung A/B được như bản vẽ cũ. Hai module cùng địa chỉ I²C cố định, nên không chung một bus I²C; dùng bus thứ hai của ESP32-S3 hoặc ngõ Analog/PWM |
+| BNO085 (bo GY-BNO08X) | `VCC`, `GND`, `SCL`, `SDA`, `ADO`, `CS`, `INT`, `RST`, `PS1`, `PS0` | Gắn cố định lên khung khi lắp |
 
-Hai module lấy VCC 3V3 và GND chung với ESP32 nếu breakout thực nhận hỗ trợ. Nối MODE/Z có thể đã được thực hiện bằng jumper/điện trở trên module: kiểm trước, không đấu chồng với cấu hình trái ngược. Các nhãn MODE/Z trong hình là chân chức năng, không phải số thứ tự trên mọi breakout. Không đọc I²C và A/B cùng lúc trên các chân dùng chung của một chip.
+Bản vẽ trước ngày 26/11/2026 nối MT6701 #1 vào GPIO6/7 với MODE, Z/CSN lên 3V3, và MT6701 #2 vào GPIO8/9 theo A/B với MODE về GND. Cách nối đó không khớp module thực nhận và đã bỏ.
 
-Độ phân giải góc tuyệt đối 14 bit không phải số xung/vòng của đầu ra A/B. Chọn PPR cho #2 theo vị trí gá và tốc độ thấp, kiểm số xung và chiều quay thực; không mặc định mọi module đều 1.024 PPR. #1 cần hiệu chuẩn thẳng lái, giới hạn trái/phải và quan hệ góc cảm biến với góc bánh; góc servo ra lệnh không thay cho số đo.
-
-Tham chiếu: [MagnTek MT6701 Rev.1.8](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf), mục 1, 2, 7.1, 7.2 và 7.7. Nguồn Pi/USB: [Raspberry Pi — phần cứng và nguồn](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html). Đã chốt chip, chưa xác nhận module và chưa triển khai driver phản hồi thật.
+Tham chiếu: [MagnTek MT6701 Rev.1.8](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf). Nguồn Pi/USB: [Raspberry Pi — phần cứng và nguồn](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html).
 
 ## Các giắc dễ nhầm
 
@@ -99,7 +97,7 @@ Tham chiếu: [MagnTek MT6701 Rev.1.8](https://www.magntek.com.cn/upload/pdf/202
 |---|---|
 | T/Deans hai cực | Pin → bộ dây chia ESC / nguồn Pi / nguồn hub; đúng cặp đầu nối và cực. Rút tại đầu pin chung sẽ tách mọi tải khi sạc |
 | Giắc cân bằng LiPo 2S ba chân | Chỉ tới cổng 2S của B3 khi pin đã tách khỏi xe; là các điểm cell, không phải Signal/nguồn/GND của servo |
-| Ba dây nhỏ của ESC | Signal → GPIO4; GND → servo/GND chung; BEC dương → nguồn servo, chỉ khi xác minh dùng được 6 V |
+| Ba dây nhỏ của ESC | Signal → GPIO4; GND → servo/GND chung; BEC dương 6 V → nguồn servo (đã chạy trên bàn thử) |
 | Ba dây của servo | Signal → GPIO5 riêng biệt với Signal của ESC; nguồn → BEC dương; GND → ESC/BEC và GND chung. Đối chiếu chân thực trước khi nối |
 | Bullet ở đầu motor ESC | Nối sang giắc motor hai chân bằng dây chuyển được xác nhận; chiều tiến/lùi được kiểm và hiệu chuẩn sau |
 | USB C1 | C1 giữ adapter USB đang có; adapter nối Pi trên xe. Không nối UART của C1 sang chân ESP trong phương án này |
@@ -111,11 +109,9 @@ Nếu ESC hoặc servo không nhận mức tín hiệu 3,3 V, cần chọn mạc
 
 ## Lắp cơ khí và phản hồi
 
-Encoder tốc độ đo góc/số vòng ở trục hoặc bánh được chọn, rồi quy đổi ra tốc độ và quãng đường bằng tỷ số truyền, đường kính bánh và chiều quay đã đo. Với MT6701, phải chốt đúng module và chế độ A/B; các chân A/B có thể dùng chung chức năng với giao tiếp khác tùy chế độ. Không lấy thứ tự pad trên hình minh họa làm pinout của mọi module MT6701.
+MT6701 #2 đo góc của nam châm gắn trên trục hoặc bánh; tốc độ và quãng đường suy ra từ đổi góc theo thời gian, tỷ số truyền, đường kính bánh (lốp Ø 74 mm) và chiều quay đã đo. Module thực nhận chỉ đưa ra I²C và Analog/PWM, không có xung A/B.
 
-Tên MT6701 chưa đủ để xác nhận độ phân giải: một số biến thể mặc định chỉ có 1 xung/vòng ở đầu ra A/B. Cần chọn hoặc cấu hình đúng số xung/vòng (PPR) rồi kiểm lại ở tốc độ thấp trên vị trí gá thực. Ưu tiên module đã được cấu hình và kiểm PPR; không tự nâng nguồn 3V3 của ESP32 để lập trình EEPROM cho cảm biến.
-
-MT6701 #1 đo góc tuyệt đối của nam châm gắn với cơ cấu lái qua I²C. MT6701 #2 là cảm biến khác gắn trên bánh/trục; một module không đo đồng thời hai chuyển động cơ khí độc lập. Gá phải giữ khoảng cách/hướng nam châm đúng yêu cầu cảm biến và hiệu chuẩn ra góc bánh xe. Đường nét đứt giữa nam châm và trục/cảm biến biểu diễn liên hệ cơ khí/từ trường, không phải dây điện.
+MT6701 #1 đo góc tuyệt đối của nam châm gắn với cơ cấu lái. MT6701 #2 là cảm biến khác gắn trên bánh/trục; một module không đo đồng thời hai chuyển động cơ khí độc lập. Gá phải giữ khoảng cách/hướng nam châm đúng yêu cầu cảm biến và hiệu chuẩn ra góc bánh xe. Đường nét đứt giữa nam châm và trục/cảm biến biểu diễn liên hệ cơ khí/từ trường, không phải dây điện.
 
 Hub hiện có chưa được xác nhận model và khả năng nhận nguồn phụ. Chỉ dùng cổng nguồn phụ nếu đúng thiết kế của hub, đúng điện áp và cách cấp nguồn; không tự ghép nguồn vào dây USB. Gá LiDAR/camera chắc chắn rồi đo vị trí, hướng, vùng che và hiệu chuẩn trước khi dùng làm tư thế/vật cản cho xe thật.
 

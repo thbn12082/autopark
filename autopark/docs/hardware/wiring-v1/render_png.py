@@ -92,11 +92,11 @@ def render_one(stem: str, scale: float) -> dict:
 def write_index() -> None:
     content = """# Bản vẽ 2D kết nối AutoPark
 
-Các bản vẽ thể hiện kiến trúc mục tiêu **Laptop ↔ Wi-Fi LAN ↔ Raspberry Pi trên xe ↔ USB ngắn ↔ ESP32**. Laptop chạy AI trên bốn camera, fusion, chọn ô và lập quỹ đạo; Pi thu cảm biến, định vị, bám quỹ đạo và dừng vật cản cục bộ; ESP32 nhận lệnh chấp hành, đọc encoder/góc lái và dừng khi lệnh hết hạn. C1 và hub bốn camera nối USB về Pi. Hai MT6701 riêng: #1 đo góc lái qua I²C; #2 đo tốc độ/quãng đường qua A/B. Cả hai nối ESP32, không nối trực tiếp Pi.
+Các bản vẽ thể hiện kiến trúc mục tiêu **Laptop ↔ Wi-Fi LAN ↔ Raspberry Pi trên xe ↔ USB ngắn ↔ ESP32**. Laptop chạy AI trên bốn camera, fusion, chọn ô và lập quỹ đạo; Pi thu cảm biến, định vị, bám quỹ đạo và dừng vật cản cục bộ; ESP32 nhận lệnh chấp hành và dừng khi lệnh hết hạn; ESC (GPIO4) và servo (GPIO5) đã chạy trên bàn thử. C1 và hub bốn camera nối USB về Pi. Hai MT6701 (module 5 chân VDD, GND, Analog/PWM, SCL, SDA) và BNO085 được vẽ theo chân in trên bo thật nhưng **chưa đấu nối**; cách đấu chốt khi lắp.
 
-Pin 2S chia nhánh cho ESC và hai bộ nguồn ổn áp riêng cho Pi/hub. Đã chọn Pi 4 Model B RAM 4 GB, thẻ microSD 64 GB; bộ nguồn và hub có DC-in phù hợp còn chờ chọn/xác minh, kể cả kiểm chống cấp ngược USB. BEC 6 V chỉ cấp servo sau khi xác minh tương thích và tải; không cấp Pi, hub hoặc ESP32. Sạc B3 giữ chế độ pin tách khỏi toàn bộ xe.
+Pin 2S chia nhánh cho ESC và hai bộ nguồn ổn áp riêng cho Pi/hub. Pi 4 Model B RAM 8 GB, thẻ microSD 64 GB; bộ nguồn và hub có DC-in phù hợp còn chờ chọn/xác minh, kể cả kiểm chống cấp ngược USB. BEC 6 V cấp servo (đã chạy trên bàn thử 24/11/2026); không cấp Pi, hub hoặc ESP32. Sạc B3 giữ chế độ pin tách khỏi toàn bộ xe.
 
-Đây là **thiết kế mục tiêu, chưa kiểm chứng phần cứng**. Mã hiện có phục vụ mô phỏng/đích gần đặt tay; hệ Pi phân tán và tự chọn ô chưa triển khai. Dừng khi hành lang có vật cản không an toàn, dữ liệu cũ hoặc mất liên kết; không tự chạy lại. Laptop lập lại từ pose mới đo khi xe đã dừng, rồi cần xác nhận lượt chạy mới. 4G chỉ là tùy chọn về sau.
+Đây là **thiết kế mục tiêu**; mới kiểm trên bàn phần ESC/servo. Phần mềm đã tự tìm ô đỗ trên bản đồ LiDAR; Pi bám quỹ đạo chưa triển khai. Dừng khi hành lang có vật cản không an toàn, dữ liệu cũ hoặc mất liên kết; không tự chạy lại. Laptop lập lại từ pose mới đo khi xe đã dừng, rồi cần xác nhận lượt chạy mới. 4G chỉ là tùy chọn về sau.
 
 | Tờ | PNG để xem | SVG để phóng to |
 |---|---|---|
@@ -158,7 +158,7 @@ def main() -> int:
     exported = [render_one(stem, args.scale) for stem in SHEETS]
     manifest = {
         "schema_version": 2, "scope": "target_design_not_hardware_verified",
-        "revision": "pi4_dual_mt6701_target_v4", "design_date": DESIGN_DATE,
+        "revision": "pi4_sensors_unwired_v5", "design_date": DESIGN_DATE,
         "catalog_component_count": len(CATALOG_KINDS),
         "renderer": "QtSvg", "qt_version": qVersion(), "fonts": ["Segoe UI", "Arial"],
         "scale": args.scale, "external_media": False,

@@ -1,6 +1,6 @@
 # Phần cứng và hiệu chuẩn
 
-**Cấu hình chốt 14/11/2026:** Pi 4 Model B RAM 4 GB + microSD 64 GB. Hai MT6701 riêng nối ESP32: #1 góc lái tuyệt đối qua I²C; #2 chuyển động bánh/trục qua A/B. Module/gá/PPR cần đối chiếu; driver phần cứng chưa hoàn thiện.
+**Cấu hình cập nhật 26/11/2026:** Pi 4 Model B RAM 8 GB + microSD 64 GB. Hai MT6701 (module 5 chân VDD, GND, Analog/PWM, SCL, SDA) và một BNO085 đã có nhưng **chưa lắp, chưa đấu nối**; cách đấu sẽ chốt khi lắp lên xe. Bản vẽ cũ nối MT6701 #2 qua A/B là sai vì module không có chân A/B.
 
 Chặng đầu đã hoàn tất trong mô phỏng. Xe thật chưa chạy thao tác; đầu ra chuyển động trên bo mặc định tắt và phần mềm chưa đọc tốc độ, góc lái thực. Kết quả mô phỏng không mở các điều kiện đang chặn xe thật.
 
