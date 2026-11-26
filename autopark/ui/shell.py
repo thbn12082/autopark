@@ -11,7 +11,7 @@ AutoPark
 │   └── Đỗ xe ............ mô phỏng, tìm ô đỗ, tính đường; ngăn LiDAR thật và ghi cảm biến (ui.lidar_app)
 ├── Xe thật
 │   ├── Quan sát Pi ...... 4 camera + LiDAR từ Pi qua Wi-Fi, ghi LiDAR (ui.remote_sensor_view)
-│   └── Lái tay .......... vô lăng, Space tiến, W lùi; qua Pi, USB hoặc mô phỏng (ui.manual_drive)
+│   └── Lái tay .......... vô lăng, Space tiến, W lùi; xe thật qua Pi hoặc mô phỏng (ui.manual_drive)
 ├── Hiệu chuẩn
 │   ├── Nội tham camera .. bàn cờ, camera cắm laptop (ui.calib_app)
 │   ├── Ngoại tham, ROI .. (ui.roi_app)

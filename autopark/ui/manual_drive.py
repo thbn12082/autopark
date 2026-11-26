@@ -4,7 +4,6 @@
 Lái tay
 ├── Kết nối qua
 │   ├── Pi qua Wi-Fi ...... ssh xe@<ip> → cầu nối trên Pi → USB → ESP32 (transport/ssh_serial.py)
-│   ├── ESP32 cắm laptop .. cổng COM trực tiếp
 │   └── Mô phỏng .......... SimVehicleIO + FirmwareModel, không cần xe
 ├── Vô lăng ............... kéo chuột để xoay, ← → cũng xoay, nhấp đúp về giữa; giữ nguyên góc khi nhả chuột
 ├── Space / W ............. giữ để tiến / lùi với tốc độ đặt bằng thanh trượt; nhả phím là về 0; giữ cả hai là 0
@@ -47,9 +46,9 @@ DEFAULT_SPEED_MPS = 0.10
 FALLBACK_MAX_SPEED_MPS = 0.30
 PING_IDLE_S = 0.2
 
-MODES = (("pi", "Pi qua Wi-Fi"), ("usb", "ESP32 cắm laptop"), ("sim", "Mô phỏng"))
-VALIDITY_S = {"pi": 0.25, "usb": 0.15, "sim": 0.15}
-TELEMETRY_TIMEOUT_S = {"pi": 0.5, "usb": 0.3, "sim": 0.3}
+MODES = (("pi", "Xe thật (qua Pi)"), ("sim", "Mô phỏng"))
+VALIDITY_S = {"pi": 0.25, "sim": 0.15}
+TELEMETRY_TIMEOUT_S = {"pi": 0.5, "sim": 0.3}
 
 
 # ------------------------------------------------------------------------------------------------ phần tính thuần
@@ -310,8 +309,6 @@ class Connector:
         timeout = TELEMETRY_TIMEOUT_S[self.mode]
         if self.mode == "sim":
             return SimVehicleIO.from_files(self.sim_config, telemetry_timeout_s=timeout)
-        if self.mode == "usb":
-            return SerialVehicleIO.open(self.target, telemetry_timeout_s=timeout)
         from autopark.transport.ssh_serial import SshSerialPort
 
         port = SshSerialPort.to_pi(self.target)
@@ -452,11 +449,6 @@ class ManualDriveWindow(QWidget):
         self.host.setPlaceholderText("Địa chỉ IP của Pi")
         self.host.setMaximumWidth(200)
         self.host.returnPressed.connect(self.toggle_connection)
-        self.port_box = QComboBox()
-        self.port_box.setMinimumWidth(240)
-        self.port_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.refresh_ports = QPushButton("Dò cổng")
-        self.refresh_ports.clicked.connect(self.list_ports)
         self.connect_button = QPushButton("Kết nối")
         self.connect_button.clicked.connect(self.toggle_connection)
         self.arm_button = QPushButton("Bật lái")
@@ -466,8 +458,6 @@ class ManualDriveWindow(QWidget):
         bar.addWidget(QLabel("Kết nối qua"))
         bar.addWidget(self.mode_box)
         bar.addWidget(self.host)
-        bar.addWidget(self.port_box)
-        bar.addWidget(self.refresh_ports)
         bar.addWidget(self.connect_button)
         bar.addWidget(self.arm_button)
         bar.addStretch(1)
@@ -627,38 +617,17 @@ class ManualDriveWindow(QWidget):
     def _mode_changed(self, index: int) -> None:
         self.mode = self.mode_box.itemData(index) or "pi"
         self.host.setVisible(self.mode == "pi")
-        self.port_box.setVisible(self.mode == "usb")
-        self.refresh_ports.setVisible(self.mode == "usb")
         self.track_panel.setVisible(self.mode == "sim")
         notes = {
             "pi": "Lái qua Wi-Fi: laptop SSH vào Pi, Pi chuyển lệnh sang ESP32 qua USB. Gõ mật khẩu Pi trong cửa sổ "
                   "dòng lệnh đã mở app nếu được hỏi. Muốn xem camera cùng lúc thì mở trang Quan sát Pi TRƯỚC.",
-            "usb": "ESP32 cắm thẳng vào laptop bằng cáp USB.",
             "sim": "Không cần xe: firmware mô phỏng và mô hình xe chạy trên laptop.",
         }
         self.link_note.setText(notes[self.mode])
-        if self.mode == "usb" and self.port_box.count() == 0:
-            self.list_ports()
-
-    def list_ports(self) -> None:
-        self.port_box.clear()
-        try:
-            from serial.tools import list_ports
-            ports = sorted(list_ports.comports(), key=lambda p: (p.vid != 0x303A, p.device))
-        except Exception as exc:
-            self._log(f"Không dò được cổng COM: {exc}")
-            return
-        for p in ports:
-            tag = " · ESP32" if p.vid == 0x303A else ""
-            self.port_box.addItem(f"{p.device}{tag} · {p.description}", p.device)
-        if not ports:
-            self.port_box.addItem("Không thấy cổng COM nào", "")
 
     def _target(self) -> str:
         if self.mode == "pi":
             return self.host.text().strip()
-        if self.mode == "usb":
-            return self.port_box.currentData() or ""
         return "sim"
 
     # ---- kết nối ------------------------------------------------------------------------------------------------
@@ -673,7 +642,7 @@ class ManualDriveWindow(QWidget):
             return
         target = self._target()
         if not target:
-            self._log("Chưa nhập địa chỉ Pi." if self.mode == "pi" else "Chưa chọn cổng COM.")
+            self._log("Chưa nhập địa chỉ IP của Pi.")
             return
         self._save_setting("mode", self.mode)
         if self.mode == "pi":
@@ -853,8 +822,6 @@ class ManualDriveWindow(QWidget):
         self.connect_button.setText("Hủy" if connecting else ("Ngắt" if io is not None else "Kết nối"))
         self.mode_box.setEnabled(not busy)
         self.host.setEnabled(not busy)
-        self.port_box.setEnabled(not busy)
-        self.refresh_ports.setEnabled(not busy)
         latest = io.latest() if io is not None else None
         state = self._board_state(io) if io is not None else None
         can_drive = (io is not None and self.driving_allowed and not io.rearm_required
