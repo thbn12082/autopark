@@ -60,6 +60,7 @@ from PySide6.QtGui import QColor, QFont, QImage, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel, QListWidget,
                                QMainWindow, QPushButton, QScrollArea, QSlider, QVBoxLayout, QWidget)
 
+from autopark.ui import theme
 from autopark.perception import fisheye_calib as fc
 from autopark.perception.calib_board import BoardSpec
 from autopark.power_throttling import apply_ecoqos_policy
@@ -248,6 +249,7 @@ class CalibWindow(QMainWindow):
         if camera_name is not None and (error := fc.camera_name_error(camera_name)):
             raise ValueError(error)
         super().__init__()
+        theme.apply_dark(self)          # nền tối chung của AutoPark (26/11/2026)
         self.camera_name, self.camera_index = camera_name, camera_index
         self.open_camera, self.size, self.spec = open_camera, tuple(size), spec
         self.port = None if camera_name is not None else int(port)

@@ -55,6 +55,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComb
                                QLineEdit, QMainWindow, QPushButton, QSpinBox, QTableWidget, QTableWidgetItem,
                                QTabWidget, QVBoxLayout, QWidget)
 
+from autopark.ui import theme
 from autopark.evaluation import overhead_ref as R
 from autopark.evaluation import overhead_tc1 as T
 from autopark.perception.aruco_sheet import DICTIONARIES
@@ -178,6 +179,7 @@ class OverheadWindow(QMainWindow):
                  size: tuple[int, int] = rec.DEFAULT_SIZE, runs_dir=R.DEFAULT_RUNS,
                  track_dir=PROJECT / "runs" / "nghiem_thu"):
         super().__init__()
+        theme.apply_dark(self)          # nền tối chung của AutoPark (26/11/2026)
         self.open_camera_factory, self.camera_index, self.camera_name = open_camera, camera_index, camera_name
         self.size_requested = tuple(size)
         self.runs_dir, self.track_dir = Path(runs_dir), Path(track_dir)

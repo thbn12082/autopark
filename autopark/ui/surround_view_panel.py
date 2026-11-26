@@ -16,8 +16,8 @@ from autopark.ui.rig_app import to_qimage
 
 _RENDER_INTERVAL_S = 0.10
 _NOTICE_STYLE = "padding: 7px 10px; border-radius: 5px; font-weight: 600;"
-_NOTICE_NEUTRAL = _NOTICE_STYLE + "color: #244c63; background: #e5eef5;"
-_NOTICE_PREVIEW = _NOTICE_STYLE + "color: #5c3a12; background: #ffedc8;"
+_NOTICE_NEUTRAL = _NOTICE_STYLE + "color: #9cafbe; background: #1c2a36;"
+_NOTICE_PREVIEW = _NOTICE_STYLE + "color: #efb76b; background: #3a2e1c;"
 
 
 def _make_renderer():

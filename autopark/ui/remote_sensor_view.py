@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 from autopark.perception import fisheye_calib
 from autopark.perception.calib_board import BoardSpec
 from autopark.rig.remote_view_link import RemoteSensorLink
+from autopark.ui import theme
 from autopark.ui.rig_app import CameraTile, to_qimage, write_image
 from autopark.ui.scan_view import ScanView
 from autopark.ui.surround_view_panel import SurroundViewPanel
@@ -29,35 +30,6 @@ DISPLAY_STALE_S = 0.75
 ACTIVE = {"connecting", "live"}
 # Vị trí đã đối chiếu trên xe theo thứ tự cổng USB của bộ bốn camera.
 FOUR_CAMERA_LABELS = ("Camera 1 · Trước", "Camera 2 · Sau", "Camera 3 · Trái", "Camera 4 · Phải")
-
-STYLE = """
-QMainWindow, QWidget#page { background: #eef3f8; color: #172a3a; }
-QFrame#panel { background: white; border: 1px solid #cbd6e1; border-radius: 9px; }
-QLabel#title { font-size: 26px; font-weight: 700; color: #152c3d; }
-QLabel#caption { font-size: 15px; font-weight: 700; color: #152c3d; }
-QLabel#guide { color: #334f64; font-size: 14px; }
-QLabel#calibrationStatus { color: #1c3e54; font-weight: 600; }
-QLabel#axis { color: #244c63; font-weight: 700; }
-QLineEdit { background: white; border: 1px solid #94a8b9; border-radius: 5px;
-            color: #172a3a; padding: 7px 9px; }
-QComboBox#calibrationCamera { background: white; color: #172a3a;
-            border: 1px solid #94a8b9; border-radius: 5px; padding: 7px 9px; }
-QComboBox#calibrationCamera QAbstractItemView { background: white; color: #172a3a;
-            selection-background-color: #126761; selection-color: white; }
-QPushButton { background: #dfe8f0; color: #1c3e54; border: 1px solid #9eb3c3;
-              border-radius: 5px; padding: 7px 13px; font-weight: 600; }
-QPushButton#connect { background: #126761; border-color: #126761; color: white; }
-QPushButton:checked { background: #126761; border-color: #126761; color: white; }
-QPushButton:disabled, QPushButton#connect:disabled { background: #e7edf2;
-              border-color: #ccd7df; color: #778895; }
-QTabWidget::pane { border: 0; }
-QTabBar::tab { color: #334f64; background: #dfe8f0; padding: 8px 16px;
-               border: 1px solid #cbd6e1; border-top-left-radius: 5px;
-               border-top-right-radius: 5px; margin-right: 4px; }
-QTabBar::tab:selected { color: #126761; background: white; border-top: 2px solid #126761;
-                        font-weight: 600; }
-"""
-
 
 class RemoteSensorWindow(QMainWindow):
     def __init__(self, host="", *, camera_count=1, duration_s=180.0, log_path=None,
@@ -219,7 +191,7 @@ class RemoteSensorWindow(QMainWindow):
             layout.addWidget(camera_page, 1)
         layout.addWidget(self.link_status)
         self.setCentralWidget(page)
-        self.setStyleSheet(STYLE)
+        theme.apply_dark(self)          # nền tối chung của AutoPark (26/11/2026)
 
         self.timer = QTimer(self)
         self.timer.setInterval(60)
@@ -364,7 +336,7 @@ class RemoteSensorWindow(QMainWindow):
 
     @staticmethod
     def _set_sensor_status(label, text, fresh):
-        style = "color: #0e6b58; font-weight: 700" if fresh else "color: #86522a"
+        style = f"color: {theme.OK}; font-weight: 700" if fresh else f"color: {theme.WARN}"
         if label.text() != text:
             label.setText(text)
         if label.styleSheet() != style:

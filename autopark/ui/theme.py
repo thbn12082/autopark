@@ -254,3 +254,94 @@ def icon(name: str, color: str = ACCENT) -> QIcon:
         p.drawRoundedRect(QRectF(5, 5, 14, 14), 2, 2)
     p.end()
     return QIcon(pix)
+
+
+# ------------------------------------------------------------------ nền tối chung cho mọi công cụ (26/11/2026)
+# Các công cụ (quan sát Pi, hiệu chuẩn, gán nhãn, camera trên cao) dùng chung bộ màu với trang Đỗ xe.
+INPUT_BG = "#0f1922"
+HOVER = "#263947"
+SELECT = "#1f3a35"
+
+TOOL_STYLE = f"""
+QMainWindow, QDialog {{ background: {BG}; }}
+QWidget {{ color: {TEXT}; font-family: {SANS}; font-size: 13px; }}
+QWidget#page, QWidget#centralWidget, QScrollArea, QScrollArea > QWidget > QWidget {{ background: {BG}; }}
+QLabel {{ background: transparent; color: {TEXT}; }}
+QFrame#panel {{ background: {SURFACE}; border: 1px solid {BORDER_SOFT}; border-radius: 10px; }}
+QLabel#title {{ font-size: 24px; font-weight: 600; color: {TEXT}; }}
+QLabel#caption {{ font-size: 15px; font-weight: 600; color: {TEXT}; }}
+QLabel#guide, QLabel#calibrationStatus {{ color: {TEXT_DIM}; }}
+QLabel#axis {{ color: {ACCENT}; font-weight: 600; }}
+QGroupBox {{ background: {SURFACE}; border: 1px solid {BORDER_SOFT}; border-radius: 10px;
+    margin-top: 14px; padding: 12px 10px 10px 10px; }}
+QGroupBox::title {{ subcontrol-origin: margin; left: 12px; padding: 0 4px; color: {TEXT_DIM}; }}
+QPushButton, QToolButton {{ background: {SURFACE_2}; color: {TEXT}; border: 1px solid {BORDER};
+    border-radius: 8px; padding: 7px 13px; }}
+QPushButton:hover, QToolButton:hover {{ background: {HOVER}; border-color: #698092; }}
+QPushButton:pressed, QToolButton:pressed {{ background: #304757; }}
+QPushButton:checked, QToolButton:checked, QPushButton#connect {{ background: {SELECT}; color: {ACCENT};
+    border-color: {ACCENT}; }}
+QPushButton:disabled, QToolButton:disabled {{ background: {SURFACE}; color: #4d6373; border-color: #233441; }}
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTextEdit, QPlainTextEdit, QDateTimeEdit {{
+    background: {INPUT_BG}; color: {TEXT}; border: 1px solid {BORDER}; border-radius: 6px; padding: 5px 8px;
+    selection-background-color: {SELECT}; selection-color: {ACCENT}; }}
+QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled {{ color: {TEXT_FAINT}; }}
+QComboBox QAbstractItemView {{ background: {SURFACE}; color: {TEXT}; border: 1px solid {BORDER};
+    selection-background-color: {SELECT}; selection-color: {ACCENT}; }}
+QListWidget, QListView, QTreeView, QTableView, QTableWidget {{ background: {INPUT_BG}; color: {TEXT};
+    border: 1px solid {BORDER_SOFT}; border-radius: 6px; alternate-background-color: {SURFACE};
+    selection-background-color: {SELECT}; selection-color: {ACCENT}; }}
+QHeaderView::section {{ background: {SURFACE}; color: {TEXT_DIM}; border: none;
+    border-bottom: 1px solid {BORDER_SOFT}; padding: 5px 8px; }}
+QCheckBox, QRadioButton {{ background: transparent; color: {TEXT}; spacing: 7px; }}
+QTabWidget::pane {{ border: 0; }}
+QTabBar::tab {{ color: {TEXT_DIM}; background: {SURFACE}; padding: 8px 16px; border: 1px solid {BORDER_SOFT};
+    border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px; }}
+QTabBar::tab:selected {{ color: {ACCENT}; background: {SURFACE_2}; border-top: 2px solid {ACCENT}; }}
+QSlider::groove:horizontal {{ height: 4px; background: {BORDER}; border-radius: 2px; }}
+QSlider::handle:horizontal {{ background: {ACCENT}; width: 14px; margin: -6px 0; border-radius: 7px; }}
+QProgressBar {{ background: {INPUT_BG}; border: 1px solid {BORDER_SOFT}; border-radius: 5px; color: {TEXT};
+    text-align: center; }}
+QProgressBar::chunk {{ background: {ACCENT}; border-radius: 4px; }}
+QStatusBar {{ background: {SURFACE}; color: {TEXT_DIM}; }}
+QMenuBar {{ background: {SURFACE}; color: {TEXT}; }}
+QMenuBar::item:selected, QMenu::item:selected {{ background: {HOVER}; }}
+QMenu {{ background: {SURFACE}; color: {TEXT}; border: 1px solid {BORDER}; }}
+QToolBar {{ background: {SURFACE}; border: none; }}
+QDockWidget {{ color: {TEXT}; }}
+QDockWidget::title {{ background: {SURFACE}; padding: 6px; }}
+QSplitter::handle {{ background: {BORDER_SOFT}; }}
+QScrollBar:vertical {{ background: {BG}; width: 11px; margin: 0; }}
+QScrollBar:horizontal {{ background: {BG}; height: 11px; margin: 0; }}
+QScrollBar::handle {{ background: {BORDER}; border-radius: 5px; min-height: 24px; min-width: 24px; }}
+QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}
+QToolTip {{ background: {SURFACE_2}; color: {TEXT}; border: 1px solid {BORDER}; }}
+"""
+
+
+def dark_palette():
+    """Bảng màu tối cho phần Qt tự vẽ mà stylesheet không phủ (ô danh sách, hộp thoại, mũi tên của ô chọn)."""
+    from PySide6.QtGui import QPalette
+
+    pal = QPalette()
+    roles = {
+        QPalette.ColorRole.Window: BG, QPalette.ColorRole.WindowText: TEXT,
+        QPalette.ColorRole.Base: INPUT_BG, QPalette.ColorRole.AlternateBase: SURFACE,
+        QPalette.ColorRole.Text: TEXT, QPalette.ColorRole.Button: SURFACE_2,
+        QPalette.ColorRole.ButtonText: TEXT, QPalette.ColorRole.Highlight: SELECT,
+        QPalette.ColorRole.HighlightedText: ACCENT, QPalette.ColorRole.ToolTipBase: SURFACE_2,
+        QPalette.ColorRole.ToolTipText: TEXT, QPalette.ColorRole.PlaceholderText: TEXT_FAINT,
+        QPalette.ColorRole.Link: ACCENT, QPalette.ColorRole.BrightText: WARN,
+    }
+    for role, color in roles.items():
+        pal.setColor(role, QColor(color))
+    for role in (QPalette.ColorRole.WindowText, QPalette.ColorRole.Text, QPalette.ColorRole.ButtonText):
+        pal.setColor(QPalette.ColorGroup.Disabled, role, QColor("#4d6373"))
+    return pal
+
+
+def apply_dark(widget: QWidget, extra_style: str = "") -> None:
+    """Nền tối chung cho một cửa sổ công cụ: bảng màu tối + TOOL_STYLE (+ quy tắc riêng của công cụ)."""
+    widget.setPalette(dark_palette())
+    widget.setAutoFillBackground(True)
+    widget.setStyleSheet(TOOL_STYLE + extra_style)

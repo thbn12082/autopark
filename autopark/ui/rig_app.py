@@ -60,6 +60,7 @@ from PySide6.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
                                QPushButton, QSlider, QVBoxLayout, QWidget)
 
+from autopark.ui import theme
 from autopark.evaluation.sync_marks import DEFAULT_SYNC_DIR, SyncMarkLog, sync_file_path
 from autopark.power_throttling import apply_ecoqos_policy
 from autopark.ui.process_status import add_ecoqos_label
@@ -152,6 +153,7 @@ class RigWindow(QMainWindow):
     def __init__(self, rig, checkpoints: list[Path] | None = None, snapshot_dir: Path = Path("runs/rig_snapshots"),
                  start: bool = True, record_root: Path = Path("runs/rig_recordings"), record_options: dict | None = None):
         super().__init__()
+        theme.apply_dark(self)          # nền tối chung của AutoPark (26/11/2026)
         self.rig, self.clock, self.snapshot_dir = rig, rig.clock, snapshot_dir
         self.record_root, self.record_options = Path(record_root), dict(record_options or {})
         replay = getattr(rig, "replay", None)

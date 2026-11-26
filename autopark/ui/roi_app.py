@@ -49,6 +49,7 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
                                QHBoxLayout, QLabel, QLineEdit, QListWidget, QMainWindow, QPushButton, QRadioButton,
                                QScrollArea, QSpinBox, QTabWidget, QVBoxLayout, QWidget)
 
+from autopark.ui import theme
 from autopark.perception import extrinsics_calib as ec
 from autopark.perception import fisheye_calib as fc
 from autopark.perception import roi_tool as rt
@@ -168,6 +169,7 @@ class ExtrinsicsRoiWindow(QMainWindow):
                  rig_base=ec.DEFAULT_BASE, roi_dir=rt.DEFAULT_ROI_DIR, runs_dir=ec.DEFAULT_RUNS,
                  roi_runs_dir=PROJECT / "runs/roi", live_size: tuple[int, int] = fc.DEFAULT_SIZE):
         super().__init__()
+        theme.apply_dark(self)          # nền tối chung của AutoPark (26/11/2026)
         self.open_camera, self.port, self.live_size = open_camera, int(port), tuple(live_size)
         self.calibration_dir, self.runs_dir, self.roi_runs_dir = Path(calibration_dir), Path(runs_dir), Path(roi_runs_dir)
         self.image: np.ndarray | None = None
@@ -1077,7 +1079,7 @@ class ExtrinsicsRoiWindow(QMainWindow):
             text = (text + "\n" if text else "") + f"bảng trên ảnh: {self.ext_note}"
         self.message_label.setText(text)
         alert = text.startswith(("LỖI", "TỪ CHỐI", "KHÔNG", "CẢNH BÁO"))
-        self.message_label.setStyleSheet("color: #d9534f;" if alert else "")
+        self.message_label.setStyleSheet(f"color: {theme.DANGER};" if alert else "")
 
     def closeEvent(self, event):
         self.timer.stop()

@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
                                QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMessageBox, QPushButton, QSlider,
                                QSplitter, QVBoxLayout, QWidget)
 
+from autopark.ui import theme
 from autopark.perception.labels import (BLOCKED, DEFAULT_PROJECT, FREE, IGNORE, STATUS_NAMES, LabelEditor, LabelError,
                                         LabelProject)
 
@@ -330,6 +331,7 @@ class LabelCanvas(QWidget):
 class LabelWindow(QMainWindow):
     def __init__(self, project: LabelProject, start_id: str | None = None):
         super().__init__()
+        theme.apply_dark(self)          # nền tối chung của AutoPark (26/11/2026)
         self.project = project
         self.current_id: str | None = None
         self.editor: LabelEditor | None = None
