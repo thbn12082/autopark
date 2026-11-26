@@ -114,13 +114,14 @@ def test_real_pages_registered_and_cli(qapp):
 
 
 def test_parking_and_pi_pages_build_without_devices(qapp):
-    """Hai trang chính dựng được mà không mở LiDAR, camera hay kết nối Pi."""
-    window = shell.ShellWindow()
+    """Hai trang chính dựng được mà không mở LiDAR, camera hay kết nối Pi (tắt tự kết nối của Quan sát Pi)."""
+    window = shell.ShellWindow(shell.ShellOptions(auto_connect=False))
     try:
         parking = window.widgets["do_xe"]
         assert type(parking).__name__ == "BenchWindow" and parking.dock.source is None
         assert parking.session.scenario.name
         pi = window.show_page("quan_sat_pi")
         assert type(pi).__name__ == "RemoteSensorWindow" and pi.link is None
+        assert next(p for p in shell.PAGES if p.key == "quan_sat_pi").eager     # app: dựng và tự kết nối từ đầu
     finally:
         window.close()

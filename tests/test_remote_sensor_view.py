@@ -228,31 +228,43 @@ class RecordingLink(FakeLink):
         RecordingLink.made.append(self)
 
 
-def test_app_viewer_follows_car_connection_and_skips_esp32(qapp):
-    """Trong app (27/11/2026): IP lấy từ tab Kết nối xe, xe kết nối thì tự xem, Pi không mở cổng ESP32."""
+def test_app_viewer_connects_by_itself_and_reconnects(qapp):
+    """Trong app (27/11/2026): không ô IP hay nút; tự xem từ lúc dựng bằng IP của tab Kết nối xe (hoặc IP đã lưu),
+    tự nối lại khi phiên hỏng, chuyển Pi khi tab Kết nối xe đổi Pi; Pi không mở cổng ESP32."""
+    RecordingLink.made.clear()
+    now = [0.0]
+    conn = SimpleNamespace(mode="pi", target="", io=None)
+    window = RemoteSensorWindow("", camera_count=4, link_factory=RecordingLink, connection=conn, check_esp32=False,
+                                saved_host=lambda: "192.168.1.50", clock=lambda: now[0])
+    window.timer.stop()
+    try:
+        assert not any(w.isVisibleTo(window) for w in (window.host, window.connect_button, window.stop_button))
+        assert len(RecordingLink.made) == 1                                         # tự kết nối ngay khi dựng
+        first = RecordingLink.made[0]
+        assert first.host == "192.168.1.50" and first.check_esp32 is False
+
+        first.state.status = "error"                                                # Pi tắt / Wi-Fi rớt
+        now[0] = 1.0
+        window._tick()
+        assert len(RecordingLink.made) == 1                                         # chưa đủ RECONNECT_S
+        now[0] = 1.0 + remote_sensor_view.RECONNECT_S
+        window._tick()
+        assert len(RecordingLink.made) == 2 and RecordingLink.made[1].state.status == "connecting"
+
+        conn.target = "192.168.1.60"                                                # tab Kết nối xe nối Pi khác
+        window._tick()
+        assert RecordingLink.made[1].closed and RecordingLink.made[-1].host == "192.168.1.60"
+    finally:
+        window.close()
+
+
+def test_app_viewer_without_ip_waits(qapp):
     RecordingLink.made.clear()
     conn = SimpleNamespace(mode="pi", target="", io=None)
-    window = RemoteSensorWindow("", camera_count=4, link_factory=RecordingLink, connection=conn,
-                                check_esp32=False, saved_host=lambda: "192.168.1.50")
+    window = RemoteSensorWindow("", camera_count=4, link_factory=RecordingLink, connection=conn, check_esp32=False)
     window.timer.stop()
-    window.show()
     try:
-        window._tick()
-        assert window.host.text() == "192.168.1.50" and window.host.isReadOnly()     # IP đã lưu ở tab Kết nối xe
-        assert window.link is None                                                   # xe chưa kết nối: chưa tự xem
-
-        conn.target, conn.io = "192.168.1.60", object()                              # vừa kết nối xe
-        window._tick()
-        assert len(RecordingLink.made) == 1
-        link = RecordingLink.made[0]
-        assert link.host == "192.168.1.60" and link.check_esp32 is False and link.state.status == "connecting"
-
-        window.stop_link()                                                           # người dùng bấm Dừng
-        window._tick()
-        assert len(RecordingLink.made) == 1                                          # không tự mở lại cùng phiên xe
-        conn.io = object()                                                           # kết nối xe lần mới
-        window._tick()
-        assert len(RecordingLink.made) == 2
+        assert RecordingLink.made == [] and "Kết nối xe" in window.link_status.text()
     finally:
         window.close()
 

@@ -28,6 +28,7 @@ from autopark.ui.surround_view_panel import SurroundViewPanel
 
 
 DISPLAY_STALE_S = 0.75
+RECONNECT_S = 5.0               # app: phiên xem hỏng/hết giờ thì mở lại sau ngần này giây
 ACTIVE = {"connecting", "live"}
 # Vị trí đã đối chiếu trên xe theo thứ tự cổng USB của bộ bốn camera.
 FOUR_CAMERA_LABELS = ("Camera 1 · Trước", "Camera 2 · Sau", "Camera 3 · Trái", "Camera 4 · Phải")
@@ -35,7 +36,7 @@ FOUR_CAMERA_LABELS = ("Camera 1 · Trước", "Camera 2 · Sau", "Camera 3 · Tr
 class RemoteSensorWindow(QMainWindow):
     def __init__(self, host="", *, camera_count=1, duration_s=180.0, log_path=None,
                  calibration_dir=None, calibration_floor=False, link_factory=RemoteSensorLink, clock=time.monotonic,
-                 lidar_dir=None, connection=None, check_esp32=True, saved_host=None):
+                 lidar_dir=None, connection=None, check_esp32=True, saved_host=None, auto_connect=True):
         super().__init__()
         # Trong app (27/11/2026): `connection` là CarConnection của tab Kết nối xe. IP Pi lấy từ đó (hoặc IP đã lưu ở tab
         # đó), và mở tab này khi xe đã kết nối thì tự bắt đầu xem. `check_esp32=False`: Pi không mở cổng ESP32 mà tab
@@ -43,7 +44,9 @@ class RemoteSensorWindow(QMainWindow):
         self.connection = connection
         self.check_esp32 = check_esp32
         self.saved_host = saved_host or (lambda: "")
-        self._auto_started_for = None
+        self.auto_connect = connection is not None and auto_connect
+        self._last_attempt = float("-inf")
+        self.link_host = ""
         if camera_count not in (1, 4):
             raise ValueError("Chọn chế độ một hoặc bốn camera")
         self.setWindowTitle("AutoPark — Kiểm hướng cảm biến")
@@ -85,7 +88,8 @@ class RemoteSensorWindow(QMainWindow):
         toolbar = QHBoxLayout()
         toolbar.setSpacing(10)
         toolbar.addWidget(title, 1)
-        toolbar.addWidget(QLabel("IP của Pi"))
+        self.host_label = QLabel("IP của Pi")
+        toolbar.addWidget(self.host_label)
         toolbar.addWidget(self.host)
         toolbar.addWidget(self.connect_button)
         toolbar.addWidget(self.stop_button)
@@ -209,10 +213,11 @@ class RemoteSensorWindow(QMainWindow):
         self.timer.setInterval(60)
         self.timer.timeout.connect(self._tick)
         self.timer.start()
-        if connection is not None:
-            self.host.setReadOnly(True)
-            self.host.setToolTip("IP lấy từ tab Kết nối xe")
-            self.link_status.setText("Kết nối xe ở tab Kết nối xe; khi xe đã kết nối, tab này tự bắt đầu xem.")
+        if self.auto_connect:
+            # App (27/11/2026): không có ô IP hay nút; tự xem từ lúc mở app, tự nối lại (_sync_connection).
+            for widget in (self.host_label, self.host, self.connect_button, self.stop_button):
+                widget.hide()
+            self.link_status.setText("Đang kết nối tới Pi của tab Kết nối xe.")
             self._sync_connection()
 
     # ---- nối với tab Kết nối xe ------------------------------------------------------------------------------------
@@ -226,27 +231,32 @@ class RemoteSensorWindow(QMainWindow):
         return self.saved_host() or self.host.text().strip()
 
     def _sync_connection(self) -> None:
-        c = self.connection
-        if c is None:
+        """App: luôn giữ một phiên xem tới Pi của tab Kết nối xe. Chưa có phiên (mở app, phiên hết giờ, lỗi, Pi tắt)
+        thì mở lại, cách nhau ít nhất RECONNECT_S; tab Kết nối xe nối sang Pi khác thì chuyển sang Pi đó."""
+        if not self.auto_connect:
             return
-        active = self.link is not None and self.link.snapshot().status in ACTIVE
         host = self.connection_host()
-        if not active and host and self.host.text() != host:
-            self.host.setText(host)
-        # Xe vừa kết nối (qua Pi) và tab đang hiện: tự xem, mỗi lần kết nối xe một lần (bấm Dừng thì không tự mở lại).
-        session = c.io
-        if (session is not None and c.mode == "pi" and session is not self._auto_started_for and not active
-                and self.isVisible()):
-            self._auto_started_for = session
-            self.connect_link()
+        status = self.link.snapshot().status if self.link is not None else None
+        if status in ACTIVE:
+            if host and self.link_host != host:
+                self.stop_link()                    # tab Kết nối xe đã đổi Pi: nối sang Pi mới ngay, không chờ
+                self._last_attempt = float("-inf")
+            else:
+                return
+        if not host:
+            self.link_status.setText("Chưa có IP của Pi: nhập ở tab Kết nối xe.")
+            return
+        now = self.clock()
+        if now - self._last_attempt < RECONNECT_S:
+            return
+        self._last_attempt = now
+        self.host.setText(host)
+        self.connect_link()
 
     def _tick(self) -> None:
         self._sync_connection()
-        self.refresh()
-
-    def showEvent(self, event) -> None:
-        super().showEvent(event)
-        self._sync_connection()
+        if self.connection is None or self.isVisible():   # app: tab ẩn thì vẫn giữ phiên xem nhưng không vẽ
+            self.refresh()
 
     @staticmethod
     def _panel(title, status, canvas):
@@ -436,6 +446,7 @@ class RemoteSensorWindow(QMainWindow):
         if self.link is not None and self.link.snapshot().status in ACTIVE:
             return
         self.stop_link()
+        self.link_host = self.host.text().strip()
         try:
             extra = {} if self.check_esp32 else {"check_esp32": False}
             self.link = self.link_factory(self.host.text().strip(), duration_s=self.duration_s,
@@ -584,8 +595,10 @@ class RemoteSensorWindow(QMainWindow):
             "connecting": "Đang kết nối. Nhập mật khẩu Pi ở cửa sổ SSH nếu được hỏi.",
             "live": f"Wi-Fi · {sum(camera_fresh)}/{self.camera_count} camera trực tiếp"
                     f" · C1 {'đang cập nhật' if scan_fresh else 'đang chờ mẫu mới'}.",
-            "ended": "Phiên quan sát đã kết thúc. Chọn Kết nối để mở lại.",
-            "error": "Kết nối có lỗi. Kiểm tra cửa sổ SSH rồi thử lại.",
+            "ended": "Phiên quan sát đã kết thúc." + (" Đang tự kết nối lại." if self.connection is not None
+                                                      else " Chọn Kết nối để mở lại."),
+            "error": "Kết nối có lỗi." + (" Tự thử lại sau vài giây." if self.connection is not None
+                                          else " Kiểm tra cửa sổ SSH rồi thử lại."),
             "stopped": "Phiên quan sát đã dừng.",
         }.get(view.status, view.status)
         if view.status == "error" and view.detail:

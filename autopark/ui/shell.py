@@ -22,7 +22,8 @@ AutoPark
     └── Camera trên cao .. tham chiếu đánh giá (ui.overhead_app)
 ```
 
-Không trang nào tự mở camera hay LiDAR khi dựng: thiết bị chỉ mở khi bấm nút trong trang. Trang dựng lỗi (thiếu dữ liệu,
+Trừ Quan sát Pi (dựng ngay khi mở app và tự kết nối tới Pi của tab Kết nối xe, 27/11/2026), không trang nào tự mở
+camera hay LiDAR khi dựng: thiết bị chỉ mở khi bấm nút trong trang. Trang dựng lỗi (thiếu dữ liệu,
 thiếu thiết bị) hiện lý do và nút "Thử lại" thay vì làm sập cả ứng dụng. Các lệnh `python -m autopark.ui.<công cụ>` cũ
 vẫn chạy được khi cần tham số riêng.
 """
@@ -35,7 +36,7 @@ import traceback
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton,
                                QStackedWidget, QVBoxLayout, QWidget)
 
@@ -53,12 +54,14 @@ class Page:
     title: str
     hint: str
     factory: Callable[["ShellOptions"], QWidget]
+    eager: bool = False              # dựng ngay khi mở app (sau trang đầu), không chờ bấm tới
 
 
 @dataclass(frozen=True)
 class ShellOptions:
     scenario: Path | None = DEFAULT_SCENARIO
     host: str = ""
+    auto_connect: bool = True        # Quan sát Pi tự kết nối Pi từ lúc mở app (test tắt để không chạm mạng thật)
 
 
 # ------------------------------------------------------------------------------------------------- dựng từng trang
@@ -80,7 +83,8 @@ def _pi_viewer(opts: ShellOptions) -> QWidget:
 
     # Dùng IP của tab Kết nối xe, tự xem khi xe đã kết nối; không mở cổng ESP32 (tab Kết nối xe giữ nó); phiên 1 giờ.
     return RemoteSensorWindow(opts.host, camera_count=4, duration_s=3600.0, connection=shared_connection(),
-                              check_esp32=False, saved_host=saved_host)
+                              check_esp32=False, saved_host=saved_host,
+                              auto_connect=opts.auto_connect)
 
 
 def _car_connection(opts: ShellOptions) -> QWidget:
@@ -137,7 +141,8 @@ PAGES: tuple[Page, ...] = (
     Page("ket_noi_xe", "XE THẬT", "Kết nối xe", "Kết nối tới ESP32 qua Pi, dùng chung cho các tab lái",
          _car_connection),
     Page("lai_tay", "XE THẬT", "Lái tay", "Vô lăng, Space tiến, W lùi, Esc dừng", _manual_drive),
-    Page("quan_sat_pi", "XE THẬT", "Quan sát Pi", "4 camera + LiDAR qua Wi-Fi, ghi LiDAR", _pi_viewer),
+    Page("quan_sat_pi", "XE THẬT", "Quan sát Pi", "4 camera + LiDAR qua Wi-Fi, ghi LiDAR", _pi_viewer,
+         eager=True),                # tự kết nối tới Pi từ lúc mở app (27/11/2026)
     Page("noi_tham", "HIỆU CHUẨN", "Nội tham camera", "Bàn cờ, camera cắm laptop", _intrinsics),
     Page("ngoai_tham", "HIỆU CHUẨN", "Ngoại tham, ROI", "Tư thế camera, vùng quan tâm", _extrinsics_roi),
     Page("bo_camera", "HIỆU CHUẨN", "Bộ camera", "4 camera + AI trên laptop", _camera_rig),
@@ -259,6 +264,9 @@ class ShellWindow(QMainWindow):
         self.setCentralWidget(central)
         self.resize(1700, 980)
         self.show_page(start_page or pages[0].key)
+        eager = [p.key for p in pages if p.eager]
+        if eager:                    # sau khi cửa sổ hiện: trang đầu không phải chờ các trang dựng sẵn
+            QTimer.singleShot(0, lambda: [self.page_widget(key) for key in eager])
 
     # ------------------------------------------------------------------ trang
     def page_widget(self, key: str) -> QWidget:
