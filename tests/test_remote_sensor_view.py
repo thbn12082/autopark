@@ -217,3 +217,47 @@ def test_auto_calibration_saves_distinct_held_poses_once(qapp, tmp_path, monkeyp
         assert len(list(saved_dir.glob("cap_*.png"))) == 2
     finally:
         window.close()
+
+
+class RecordingLink(FakeLink):
+    made = []
+
+    def __init__(self, host, *, duration_s, camera_count, check_esp32=True):
+        super().__init__(host, duration_s=duration_s, camera_count=camera_count)
+        self.host, self.check_esp32 = host, check_esp32
+        RecordingLink.made.append(self)
+
+
+def test_app_viewer_follows_car_connection_and_skips_esp32(qapp):
+    """Trong app (27/11/2026): IP lấy từ tab Kết nối xe, xe kết nối thì tự xem, Pi không mở cổng ESP32."""
+    RecordingLink.made.clear()
+    conn = SimpleNamespace(mode="pi", target="", io=None)
+    window = RemoteSensorWindow("", camera_count=4, link_factory=RecordingLink, connection=conn,
+                                check_esp32=False, saved_host=lambda: "192.168.1.50")
+    window.timer.stop()
+    window.show()
+    try:
+        window._tick()
+        assert window.host.text() == "192.168.1.50" and window.host.isReadOnly()     # IP đã lưu ở tab Kết nối xe
+        assert window.link is None                                                   # xe chưa kết nối: chưa tự xem
+
+        conn.target, conn.io = "192.168.1.60", object()                              # vừa kết nối xe
+        window._tick()
+        assert len(RecordingLink.made) == 1
+        link = RecordingLink.made[0]
+        assert link.host == "192.168.1.60" and link.check_esp32 is False and link.state.status == "connecting"
+
+        window.stop_link()                                                           # người dùng bấm Dừng
+        window._tick()
+        assert len(RecordingLink.made) == 1                                          # không tự mở lại cùng phiên xe
+        conn.io = object()                                                           # kết nối xe lần mới
+        window._tick()
+        assert len(RecordingLink.made) == 2
+    finally:
+        window.close()
+
+
+def test_sender_source_passes_esp32_flag():
+    from autopark.rig.remote_view_link import _sender_source
+    assert b"VIEW_CHECK_ESP32 = False\n" in _sender_source(10.0, 4, False)
+    assert b"VIEW_CHECK_ESP32 = True\n" in _sender_source(10.0, 4)

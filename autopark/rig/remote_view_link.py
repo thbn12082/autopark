@@ -83,7 +83,7 @@ def _camera_kinds(camera_count: int) -> tuple[str, ...]:
     return ("camera",) if camera_count == 1 else _FOUR_CAMERAS
 
 
-def _sender_source(duration_s: float, camera_count: int = 1) -> bytes:
+def _sender_source(duration_s: float, camera_count: int = 1, check_esp32: bool = True) -> bytes:
     camera_count = len(_camera_kinds(camera_count))
     package = Path(__file__).resolve().parents[1]
     with io.BytesIO() as archive:
@@ -95,6 +95,7 @@ def _sender_source(duration_s: float, camera_count: int = 1) -> bytes:
         f"LIDAR_PACKAGE = {encoded!r}\n"
         f"VIEW_DURATION = {duration_s!r}\n"
         f"VIEW_CAMERA_COUNT = {camera_count}\n"
+        f"VIEW_CHECK_ESP32 = {bool(check_esp32)!r}\n"
     )
     return prefix.encode("ascii") + Path(__file__).with_name("remote_view_sender.py").read_bytes()
 
@@ -190,7 +191,7 @@ class RemoteSensorLink:
     """Một phiên quan sát, giữ mẫu mới nhất của từng camera và LiDAR."""
 
     def __init__(self, host: str, *, user: str = "xe", host_key_alias: str = "10.12.194.1",
-                 duration_s: float = 180.0, camera_count: int = 1):
+                 duration_s: float = 180.0, camera_count: int = 1, check_esp32: bool = True):
         self.host = _host_name(host)
         self.host_key_alias = _host_name(host_key_alias)
         if not isinstance(user, str) or not _USER.fullmatch(user):
@@ -199,6 +200,7 @@ class RemoteSensorLink:
         if type(duration_s) not in (int, float) or not math.isfinite(duration_s) or duration_s <= 0:
             raise ValueError("Thời lượng quan sát phải là số giây dương")
         self.duration_s = float(duration_s)
+        self.check_esp32 = bool(check_esp32)     # False: Pi không mở cổng ESP32 (app; tab Kết nối xe đang giữ cổng)
         self._camera_indices = {kind: index for index, kind in enumerate(_camera_kinds(camera_count))}
         self.camera_count = camera_count
         self._empty_cameras = (None,) * camera_count
@@ -331,7 +333,7 @@ class RemoteSensorLink:
         process = None
         try:
             with tempfile.TemporaryFile() as sender:
-                sender.write(_sender_source(self.duration_s, self.camera_count))
+                sender.write(_sender_source(self.duration_s, self.camera_count, self.check_esp32))
                 sender.seek(0)
                 with self._lock:
                     if self._cancel.is_set():

@@ -646,7 +646,7 @@ class CarConnectionPage(QWidget):
         self.host.setVisible(mode == "pi")
         self.note.setText(
             "Laptop SSH vào Pi qua Wi-Fi; Pi chuyển lệnh sang ESP32 đang cắm USB vào Pi. Gõ mật khẩu Pi trong cửa sổ "
-            "dòng lệnh đã mở app nếu được hỏi. Muốn xem camera cùng lúc thì mở Quan sát Pi trước rồi mới kết nối."
+            "dòng lệnh đã mở app nếu được hỏi. Tab Quan sát Pi dùng IP này và tự bắt đầu xem khi xe đã kết nối."
             if mode == "pi" else "Không cần xe: firmware mô phỏng và mô hình xe chạy trên laptop.")
         if not self.connection.connected and not self.connection.connecting:
             self._show_steps(mode, 0, None)

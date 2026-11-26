@@ -13,8 +13,9 @@ An toàn khi đứt giữa chừng: laptop đóng hoặc Wi-Fi rớt thì lệnh
 DISARMED sau `link_timeout` 500 ms (firmware), không cần cầu nối làm gì. SSH thấy stdin hết (EOF) thì cầu nối thoát và
 đóng cổng.
 
-Cầu nối khóa cổng bằng TIOCEXCL: trong lúc lái, tiến trình khác trên Pi (ví dụ bước kiểm ESP32 của trang Quan sát Pi)
-không mở được cổng, nên không chen HELLO làm mất phiên lái. Vì vậy mở Quan sát Pi TRƯỚC rồi mới kết nối lái tay.
+Cầu nối khóa cổng bằng TIOCEXCL: trong lúc lái, tiến trình khác trên Pi không mở được cổng, nên không chen HELLO làm
+mất phiên lái. Tab Quan sát Pi của app không đụng tới cổng ESP32 (check_esp32=False, 27/11/2026) nên chạy song song được;
+chỉ công cụ dòng lệnh cũ (`ui.remote_sensor_view` chạy riêng) còn bước kiểm ESP32 và sẽ báo cổng bận.
 
 Mật khẩu SSH (Pi chỉ cho đăng nhập bằng mật khẩu) được hỏi trong cửa sổ dòng lệnh đã mở app, như trang Quan sát Pi;
 stderr của ssh để nguyên ra cửa sổ đó.

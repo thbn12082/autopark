@@ -69,8 +69,18 @@ def _parking(opts: ShellOptions) -> QWidget:
 
 
 def _pi_viewer(opts: ShellOptions) -> QWidget:
+    from PySide6.QtCore import QSettings
+
+    from autopark.ui.car_connection import shared_connection
     from autopark.ui.remote_sensor_view import RemoteSensorWindow
-    return RemoteSensorWindow(opts.host, camera_count=4)
+
+    def saved_host() -> str:                # IP đã lưu ở tab Kết nối xe
+        value = QSettings("AutoPark", "AutoPark").value("ket_noi_xe/host", "")
+        return value if isinstance(value, str) else ""
+
+    # Dùng IP của tab Kết nối xe, tự xem khi xe đã kết nối; không mở cổng ESP32 (tab Kết nối xe giữ nó); phiên 1 giờ.
+    return RemoteSensorWindow(opts.host, camera_count=4, duration_s=3600.0, connection=shared_connection(),
+                              check_esp32=False, saved_host=saved_host)
 
 
 def _car_connection(opts: ShellOptions) -> QWidget:

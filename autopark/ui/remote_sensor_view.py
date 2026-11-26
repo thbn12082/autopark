@@ -35,8 +35,15 @@ FOUR_CAMERA_LABELS = ("Camera 1 · Trước", "Camera 2 · Sau", "Camera 3 · Tr
 class RemoteSensorWindow(QMainWindow):
     def __init__(self, host="", *, camera_count=1, duration_s=180.0, log_path=None,
                  calibration_dir=None, calibration_floor=False, link_factory=RemoteSensorLink, clock=time.monotonic,
-                 lidar_dir=None):
+                 lidar_dir=None, connection=None, check_esp32=True, saved_host=None):
         super().__init__()
+        # Trong app (27/11/2026): `connection` là CarConnection của tab Kết nối xe. IP Pi lấy từ đó (hoặc IP đã lưu ở tab
+        # đó), và mở tab này khi xe đã kết nối thì tự bắt đầu xem. `check_esp32=False`: Pi không mở cổng ESP32 mà tab
+        # Kết nối xe đang giữ.
+        self.connection = connection
+        self.check_esp32 = check_esp32
+        self.saved_host = saved_host or (lambda: "")
+        self._auto_started_for = None
         if camera_count not in (1, 4):
             raise ValueError("Chọn chế độ một hoặc bốn camera")
         self.setWindowTitle("AutoPark — Kiểm hướng cảm biến")
@@ -200,8 +207,46 @@ class RemoteSensorWindow(QMainWindow):
 
         self.timer = QTimer(self)
         self.timer.setInterval(60)
-        self.timer.timeout.connect(self.refresh)
+        self.timer.timeout.connect(self._tick)
         self.timer.start()
+        if connection is not None:
+            self.host.setReadOnly(True)
+            self.host.setToolTip("IP lấy từ tab Kết nối xe")
+            self.link_status.setText("Kết nối xe ở tab Kết nối xe; khi xe đã kết nối, tab này tự bắt đầu xem.")
+            self._sync_connection()
+
+    # ---- nối với tab Kết nối xe ------------------------------------------------------------------------------------
+    def connection_host(self) -> str:
+        """IP Pi của tab Kết nối xe: IP đang kết nối, nếu chưa thì IP đã lưu ở tab đó."""
+        c = self.connection
+        if c is None:
+            return self.host.text().strip()
+        if c.mode == "pi" and c.target:
+            return c.target
+        return self.saved_host() or self.host.text().strip()
+
+    def _sync_connection(self) -> None:
+        c = self.connection
+        if c is None:
+            return
+        active = self.link is not None and self.link.snapshot().status in ACTIVE
+        host = self.connection_host()
+        if not active and host and self.host.text() != host:
+            self.host.setText(host)
+        # Xe vừa kết nối (qua Pi) và tab đang hiện: tự xem, mỗi lần kết nối xe một lần (bấm Dừng thì không tự mở lại).
+        session = c.io
+        if (session is not None and c.mode == "pi" and session is not self._auto_started_for and not active
+                and self.isVisible()):
+            self._auto_started_for = session
+            self.connect_link()
+
+    def _tick(self) -> None:
+        self._sync_connection()
+        self.refresh()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._sync_connection()
 
     @staticmethod
     def _panel(title, status, canvas):
@@ -392,8 +437,9 @@ class RemoteSensorWindow(QMainWindow):
             return
         self.stop_link()
         try:
+            extra = {} if self.check_esp32 else {"check_esp32": False}
             self.link = self.link_factory(self.host.text().strip(), duration_s=self.duration_s,
-                                          camera_count=self.camera_count)
+                                          camera_count=self.camera_count, **extra)
             self.link.start()
         except (OSError, RuntimeError, ValueError) as exc:
             self.link = None

@@ -337,7 +337,9 @@ def send_sensor(output, item, counts):
     counts[kind] += 1
 
 
-def main(duration=DEFAULT_DURATION, camera_count=1):
+def main(duration=DEFAULT_DURATION, camera_count=1, check_esp32=True):
+    # check_esp32=False (app AutoPark, 27/11/2026): không mở cổng ESP32. Tab Kết nối xe giữ cổng đó (khóa TIOCEXCL)
+    # trong lúc lái, và xem camera/LiDAR không cần bo; bước kiểm boot_id chỉ dành cho bài thử nguồn dòng lệnh.
     if not math.isfinite(duration) or duration <= 0:
         raise ValueError("view duration must be a positive finite number")
     if type(camera_count) is not int or camera_count not in (1, 4):
@@ -378,11 +380,12 @@ def main(duration=DEFAULT_DURATION, camera_count=1):
         finally:
             output.emit("start", json_bytes(start))
         port = device_port(*LIDAR_USB)
-        esp_port = device_port(*ESP32_USB)
+        esp_port = device_port(*ESP32_USB) if check_esp32 else None
         power_start = power_flags()
         if power_start:
             raise RuntimeError(f"Pi power check at start: {power_start:#x}")
-        esp_start = esp32_probe(esp_port)
+        if check_esp32:
+            esp_start = esp32_probe(esp_port)
         output.check()
         workers = [(kind, camera_worker, (kind, cameras[kind], target_fps)) for kind in kinds]
         workers.append(("lidar", lidar_worker, (port,)))
@@ -433,8 +436,9 @@ def main(duration=DEFAULT_DURATION, camera_count=1):
                 esp_end = esp32_probe(device_port(*ESP32_USB))
         except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
             state.fail(str(exc))
+        esp_ok = not check_esp32 or (bool(esp_start) and esp_start == esp_end)
         ok = (not state.errors and elapsed >= duration - 0.1 and power_end == 0
-              and bool(esp_start) and esp_start == esp_end and all(sent.values()))
+              and esp_ok and all(sent.values()))
         output.emit("end", json_bytes({
             "ok": ok, "sent": sent, "published": state.published, "replaced": state.replaced,
             "duration_s": elapsed, "power_start": power_start, "power_end": power_end,
@@ -451,4 +455,4 @@ if __name__ == "__main__":
         driver.write_bytes(base64.b64decode(LIDAR_PACKAGE, validate=True))
         sys.path.insert(0, str(driver))
         raise SystemExit(main(float(globals().get("VIEW_DURATION", DEFAULT_DURATION)),
-                              globals().get("VIEW_CAMERA_COUNT", 1)))
+                              globals().get("VIEW_CAMERA_COUNT", 1), globals().get("VIEW_CHECK_ESP32", True)))

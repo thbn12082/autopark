@@ -271,7 +271,9 @@ Trang chỉ được dựng khi bấm tới, và không tự mở camera hay LiD
 
 **Kết nối xe** là tab riêng để nối tới xe, một lần cho cả app. Chọn **Xe thật (qua Pi)**, nhập IP của Pi rồi bấm Kết nối. Laptop SSH vào Pi qua Wi-Fi, và Pi chuyển nguyên byte lệnh sang ESP32 đang cắm USB vào Pi (`autopark/transport/ssh_serial.py`). Pi cần python3 và pyserial, như trang Quan sát Pi. Mật khẩu Pi được hỏi trong cửa sổ dòng lệnh đã mở app. Tab này hiện từng bước kết nối (SSH, mở ESP32, bắt tay, ARM), cùng thông tin bo, giới hạn bo báo và chất lượng liên lạc. Chọn **Mô phỏng** để thử khi không có xe.
 
-**Lái tay** dùng kết nối của tab Kết nối xe. Giữ Space để tiến, giữ W để lùi, nhả phím là về 0. Kéo vô lăng bằng chuột hoặc giữ ← →. Esc để DISARM, bấm "Bật lái" để chạy lại. Mỗi lệnh chỉ có hạn 150–250 ms, nên app treo, Wi-Fi rớt hay chuyển sang cửa sổ khác thì xe tự dừng. Cầu nối khóa cổng ESP32 trên Pi, nên muốn xem camera cùng lúc thì mở Quan sát Pi trước rồi mới kết nối xe.
+**Lái tay** dùng kết nối của tab Kết nối xe. Giữ Space để tiến, giữ W để lùi, nhả phím là về 0. Kéo vô lăng bằng chuột hoặc giữ ← →. Esc để DISARM, bấm "Bật lái" để chạy lại. Mỗi lệnh chỉ có hạn 150–250 ms, nên app treo, Wi-Fi rớt hay chuyển sang cửa sổ khác thì xe tự dừng.
+
+**Quan sát Pi** dùng IP của tab Kết nối xe, và tự bắt đầu xem 4 camera và LiDAR khi xe đã kết nối. Tab này không mở cổng ESP32, nên chạy song song với Lái tay. Một phiên xem kéo dài 1 giờ, bấm Kết nối để mở phiên mới.
 
 Hoặc trong PowerShell:
 
