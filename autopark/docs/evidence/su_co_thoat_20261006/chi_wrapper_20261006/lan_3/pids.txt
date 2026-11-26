@@ -1,2 +1,0 @@
-launcher=22376
-python=6228

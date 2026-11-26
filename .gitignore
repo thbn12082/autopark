@@ -1,4 +1,35 @@
-# Staging folder for files awaiting manual deletion (redundant dataset ZIPs, broken venvs)
-_CHO_XOA/
-# Former nested repository of autopark/ (had no commits); kept renamed instead of deleted
-autopark/.git.cu/
+# Môi trường Python
+.venv/
+.venv-train/
+.venv.hong-tu-may-cu/
+.venv-train.hong-tu-may-cu/
+*.egg-info/
+__pycache__/
+*.pyc
+
+# Kiểm thử
+.pytest_cache/
+.pytest_tmp/
+.coverage*
+htmlcov/
+
+# Dữ liệu chạy, log, mô hình (chỉ trên máy)
+runs/
+logs/
+models/
+review_artifacts/
+*.csv
+!docs/camera_modes.csv
+
+# Bộ dữ liệu lớn tải về
+datasets/prepared/
+datasets/raw/
+datasets/avm_ss/
+datasets/drow/
+datasets/woodscape_subset/
+datasets/download_metadata/
+datasets/training/
+datasets/benchmark_tools/
+
+# Ảnh chụp gốc của người dùng (bản dùng trong tài liệu nằm ở docs/images/)
+anh_goc/

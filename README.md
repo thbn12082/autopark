@@ -39,13 +39,13 @@ AutoPark hướng tới xe mô hình tự tìm ô đỗ phù hợp, tính đư�
 | PS1 | — | — | 3V3 |
 | PS0 | — | — | GPIO16 (WAKE; kéo lên 3V3) |
 
-Đọc [hướng dẫn đấu nối và pull-up](autopark/docs/LAP_RAP_DIEN_2D.md#mt6701-và-bno085-đấu-nối-đề-xuất) trước khi cấp nguồn. ESC vẫn ở GPIO4, servo vẫn ở GPIO5. Cảm biến dùng nguồn 3,3 V, không dùng BEC 6 V. Thứ tự thử khi lắp:
+Đọc [hướng dẫn đấu nối và pull-up](docs/LAP_RAP_DIEN_2D.md#mt6701-và-bno085-đấu-nối-đề-xuất) trước khi cấp nguồn. ESC vẫn ở GPIO4, servo vẫn ở GPIO5. Cảm biến dùng nguồn 3,3 V, không dùng BEC 6 V. Thứ tự thử khi lắp:
 
 1. **Thử BNO085 trước.** Ngắt pin ESC, đọc góc trên bàn rồi xoay bo khoảng 90° để kiểm hướng và độ lớn góc đo. Sau đó gá lên khung để đối chiếu hướng quay với C1 khi di chuyển xe bằng tay.
 2. **Thử MT6701 #1.** Dùng bo 5 chân đang có để kiểm đọc góc qua I²C trên bàn. Sau khi tìm được vị trí gá tại cơ cấu lái, hiệu chuẩn chiều trái/phải, điểm giữa và quan hệ giữa góc cảm biến với góc bánh trước.
 3. **Thử MT6701 #2.** Đọc góc qua bus I²C thứ hai. Sau khi lắp, quay bánh bằng tay để kiểm chiều quay và quan hệ góc trục với quãng đường trước khi quy đổi tốc độ.
 
-Hệ điều hành của Pi nằm trên thẻ microSD. Thiết kế nguồn dùng USB-C ổn áp 5,1 V/3 A cho Pi, với giới hạn tổng tải USB trực tiếp là 1,2 A. Hub bốn camera cần nguồn riêng phù hợp. Cần đo độ trễ, tải USB và CPU với đủ thiết bị trước khi chốt FPS. Xem [hướng dẫn lắp và nguồn tham khảo](autopark/docs/LAP_RAP_DIEN_2D.md).
+Hệ điều hành của Pi nằm trên thẻ microSD. Thiết kế nguồn dùng USB-C ổn áp 5,1 V/3 A cho Pi, với giới hạn tổng tải USB trực tiếp là 1,2 A. Hub bốn camera cần nguồn riêng phù hợp. Cần đo độ trễ, tải USB và CPU với đủ thiết bị trước khi chốt FPS. Xem [hướng dẫn lắp và nguồn tham khảo](docs/LAP_RAP_DIEN_2D.md).
 
 ### Module MT6701 5 chân và cách gá nam châm
 
@@ -53,22 +53,22 @@ Module thực tế có các chân `VDD`, `GND`, `Analog/PWM`, `SCL` và `SDA`. M
 
 <table>
   <tr>
-    <td align="center"><img src="autopark/docs/images/mt6701-mat-truoc.jpg" alt="Mặt trước module MT6701 5 chân" width="280"><br>Mặt trước</td>
-    <td align="center"><img src="autopark/docs/images/mt6701-mat-sau.jpg" alt="Mặt sau module MT6701 5 chân" width="280"><br>Mặt sau</td>
+    <td align="center"><img src="docs/images/mt6701-mat-truoc.jpg" alt="Mặt trước module MT6701 5 chân" width="280"><br>Mặt trước</td>
+    <td align="center"><img src="docs/images/mt6701-mat-sau.jpg" alt="Mặt sau module MT6701 5 chân" width="280"><br>Mặt sau</td>
   </tr>
 </table>
 
 Cố định bo và gắn nam châm lên chi tiết quay. Canh trục nam châm qua tâm hình học của vỏ IC đen tại vị trí `U1`, với mặt nam châm song song mặt trên IC. MagnTek khuyến nghị nam châm trụ hai cực từ hóa theo đường kính **Ø6 × 2,5 mm**. Khe hở từ mặt nam châm đến mặt IC là **0,5–2 mm**, danh định **1 mm**, với lệch tâm tối đa **0,3 mm**. [Datasheet MagnTek, mục 6](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf#page=9)
 
-![Sơ đồ gá nam châm đồng trục với IC U1 trên module MT6701](autopark/docs/images/ga-nam-cham-mt6701.png)
+![Sơ đồ gá nam châm đồng trục với IC U1 trên module MT6701](docs/images/ga-nam-cham-mt6701.png)
 
 Bắt đầu bằng lượt ướm trên bàn với pin ESC đã ngắt. Dán nam châm vào đầu trục và bắt bo lên giá đỡ riêng cố định với khung. Đặt miếng căn nhựa không từ tính dày khoảng **1 mm** giữa mặt nam châm và mặt trên `U1` để giữ khe trong lúc cố định gá. Khi gá đã chắc, rút miếng căn rồi xoay trục bằng tay để kiểm khe hở suốt hành trình.
 
-![Cách dùng miếng căn nhựa tạm để chỉnh khe hở nam châm MT6701](autopark/docs/images/can-khe-ho-mt6701.png)
+![Cách dùng miếng căn nhựa tạm để chỉnh khe hở nam châm MT6701](docs/images/can-khe-ho-mt6701.png)
 
 ### IMU BNO085 để thử đo hướng thân xe
 
-![Bo IMU BNO085 GY-BNO08X và hàng chân cắm](autopark/docs/images/gy-bno08x-imu.jpg)
+![Bo IMU BNO085 GY-BNO08X và hàng chân cắm](docs/images/gy-bno08x-imu.jpg)
 
 Bo `GY-BNO08X` của xe dùng chip **BNO085** theo xác nhận của người lắp. Chọn SPI để tránh các vấn đề tương thích I²C của BNO08X với ESP32-S3. Sơ đồ trên dùng chân theo chức năng SPI của chip: ADO là MOSI, SDA là MISO; không nhầm với nhãn của các module SPI khác. Driver AutoPark và đấu nối thực tế vẫn chờ thử trên bàn. [Datasheet Ceva BNO08X, mục 1.2.4](https://www.ceva-ip.com/wp-content/uploads/BNO080_085-Datasheet.pdf#page=18)
 
@@ -81,9 +81,9 @@ Bo `GY-BNO08X` của xe dùng chip **BNO085** theo xác nhận của người l�
 | Phần nhô trước | 37 mm | Tâm trục trước đến mũi xe |
 | Phần nhô sau | 47 mm | Tâm trục sau đến đuôi xe |
 
-Phần mềm dùng các số này qua [`autopark/configs/vehicle_measured.json`](autopark/configs/vehicle_measured.json). Góc lái tối đa 30° và giới hạn tốc độ trong tệp đó vẫn là giả định, chờ đo bằng MT6701.
+Phần mềm dùng các số này qua [`configs/vehicle_measured.json`](configs/vehicle_measured.json). Góc lái tối đa 30° và giới hạn tốc độ trong tệp đó vẫn là giả định, chờ đo bằng MT6701.
 
-![Sơ đồ kích thước MN300 đo thực](autopark/docs/images/kich-thuoc-mn300-do-thuc.png)
+![Sơ đồ kích thước MN300 đo thực](docs/images/kich-thuoc-mn300-do-thuc.png)
 
 ### Vị trí gá LiDAR C1 đo thực
 
@@ -95,13 +95,13 @@ Gốc tọa độ nằm trên mặt sàn, ngay dưới tâm trục sau.
 | `y` | +30 mm | Từ đường tâm dọc của xe sang trái, đến tâm quay C1 |
 | `z` | 160 mm | Từ mặt sàn lên mặt phẳng quét LiDAR |
 
-Góc hướng của C1 cần được đo khi hiệu chuẩn. Tệp định vị `autopark/configs/dinh_vi_lidar_v0.json` vẫn ghi vị trí gá giả định, chưa cập nhật theo số đo này.
+Góc hướng của C1 cần được đo khi hiệu chuẩn. Tệp định vị `configs/dinh_vi_lidar_v0.json` vẫn ghi vị trí gá giả định, chưa cập nhật theo số đo này.
 
-![Sơ đồ vị trí gá LiDAR C1 đo thực trên MN300](autopark/docs/images/vi-tri-ga-lidar-c1-do-thuc.png)
+![Sơ đồ vị trí gá LiDAR C1 đo thực trên MN300](docs/images/vi-tri-ga-lidar-c1-do-thuc.png)
 
 ### Hướng gá bốn camera
 
-<img src="autopark/docs/images/bo-camera-usb.jpg" alt="Bo camera USB thực tế với ống kính và giắc trắng" width="300">
+<img src="docs/images/bo-camera-usb.jpg" alt="Bo camera USB thực tế với ống kính và giắc trắng" width="300">
 
 Thử đặt bo camera theo chiều dọc như sơ đồ, với đầu có ống kính ở trên, giắc trắng và dây hướng xuống sàn. Hướng mặt ống kính ra ngoài theo vị trí trong bảng.
 
@@ -118,29 +118,29 @@ Chúc nhẹ thân camera xuống để nhìn được phần sàn sát xe. Hư�
 
 Giữ từng camera ở cổng hub đã đối chiếu với ô hiển thị trong ứng dụng.
 
-![Sơ đồ hướng gá bốn camera trên MN300](autopark/docs/images/huong-ga-bon-camera.png)
+![Sơ đồ hướng gá bốn camera trên MN300](docs/images/huong-ga-bon-camera.png)
 
 ## Hiệu chuẩn Bird’s Eye View trên xe thật
 
-![Ảnh ghép Bird’s Eye View từ bốn camera MN300 trước khi hiệu chuẩn](autopark/docs/images/bev-chua-hieu-chuan.jpg)
+![Ảnh ghép Bird’s Eye View từ bốn camera MN300 trước khi hiệu chuẩn](docs/images/bev-chua-hieu-chuan.jpg)
 
-Mỗi camera dùng mô hình ống kính đo riêng (nội tham). Ảnh trên là mốc trước hiệu chuẩn. Tab BEV vẫn hiển thị hình chiếu ước lượng cho tới khi có ngoại tham. Khi có tệp rig `v1`, tab chiếu ảnh bốn camera về cùng mặt sàn để kiểm các đường nối. [Quy trình hiệu chuẩn camera](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md#hiệu-chuẩn-camera)
+Mỗi camera dùng mô hình ống kính đo riêng (nội tham). Ảnh trên là mốc trước hiệu chuẩn. Tab BEV vẫn hiển thị hình chiếu ước lượng cho tới khi có ngoại tham. Khi có tệp rig `v1`, tab chiếu ảnh bốn camera về cùng mặt sàn để kiểm các đường nối. [Quy trình hiệu chuẩn camera](docs/PHAN_CUNG_VA_HIEU_CHUAN.md#hiệu-chuẩn-camera)
 
 | Camera | Ảnh dùng khi tính nội tham | RMS chiếu lại (px) | Tệp 640×480 |
 |---|---:|---:|---|
-| 1 · Trước | 30/32 | 0,136 | [cam_p1.json](autopark/calibration/cam_p1.json) |
-| 2 · Sau | 25/25 | 0,191 | [cam_p2.json](autopark/calibration/cam_p2.json) |
-| 3 · Trái | 21/22 | 0,143 | [cam_p3.json](autopark/calibration/cam_p3.json) |
-| 4 · Phải | 25/26 | 0,130 | [cam_p4.json](autopark/calibration/cam_p4.json) |
+| 1 · Trước | 30/32 | 0,136 | [cam_p1.json](calibration/cam_p1.json) |
+| 2 · Sau | 25/25 | 0,191 | [cam_p2.json](calibration/cam_p2.json) |
+| 3 · Trái | 21/22 | 0,143 | [cam_p3.json](calibration/cam_p3.json) |
+| 4 · Phải | 25/26 | 0,130 | [cam_p4.json](calibration/cam_p4.json) |
 
 **Ngoại tham dùng bốn tờ A4 in mẫu ChArUco, không đo thước.** Cách cũ dùng bàn cờ trên tablet cộng thước đã bỏ, vì tọa độ nhập tay lệch tới 4–5 cm. Theo cách mới:
 
-1. In [bốn tờ ChArUco](autopark/calibration/bang_in/to_ngoai_tham/to_ngoai_tham_A4_4trang.pdf) (trước, sau, trái, phải).
+1. In [bốn tờ ChArUco](calibration/bang_in/to_ngoai_tham/to_ngoai_tham_A4_4trang.pdf) (trước, sau, trái, phải).
 2. Đặt mỗi tờ sao cho mép tờ chạm lốp. Không cần nhập số đo nào.
 3. Chụp mỗi camera một ảnh.
 4. Chạy `autopark/perception/sheet_extrinsics.py solve` để giải tư thế bốn camera, kiểm chéo và ghi tệp rig.
 
-Bộ giải đã đạt trên ảnh tổng hợp. **Đang chờ in tờ để chụp trên xe thật.** [Chi tiết](BAN_GIAO_CODEX.md#cập-nhật-tối-24112026-ngoại-tham-bằng-tờ-in-bỏ-đo-thước)
+Bộ giải đã đạt trên ảnh tổng hợp. **Đang chờ in tờ để chụp trên xe thật.** [Chi tiết](BAN_GIAO_CODEX.md)
 
 ## Kết quả bàn thử trên xe thật
 
@@ -162,7 +162,7 @@ Trước lượt tự chạy trên sàn, cần:
 - bản đồ LiDAR của sa bàn;
 - xác nhận tư thế xe bằng định vị LiDAR;
 - kiểm mất luồng;
-- đo quãng dừng. Xem [Kiểm thử và lộ trình](autopark/docs/KIEM_THU_VA_LO_TRINH.md) và [Phần cứng và hiệu chuẩn](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
+- đo quãng dừng. Xem [Kiểm thử và lộ trình](docs/KIEM_THU_VA_LO_TRINH.md) và [Phần cứng và hiệu chuẩn](docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
 
 ## Hiện có và cần phát triển
 
@@ -174,7 +174,7 @@ Trước lượt tự chạy trên sàn, cần:
 | Thực hiện quỹ đạo | Bộ bám và xử lý dừng chạy trong ứng dụng hiện tại | Pi nhận quỹ đạo, định vị và bám đường cục bộ; giám sát vật cản và liên kết |
 | Bo điều khiển | Giao thức và logic firmware có xử lý hết hạn lệnh; PWM ESC/servo đã chạy trên bàn thử (25/11/2026, bánh nhấc); đọc encoder/góc lái thật chưa hoàn thiện | Đo điểm chặn servo và ánh xạ xung–góc/tốc độ, phản hồi thật và kiểm watchdog trên xe |
 
-Kết quả mô phỏng đã ghi nhận nằm trong [Kiểm thử và lộ trình](autopark/docs/KIEM_THU_VA_LO_TRINH.md). Kết quả đó chỉ áp dụng cho mô hình và bộ tình huống đã thử.
+Kết quả mô phỏng đã ghi nhận nằm trong [Kiểm thử và lộ trình](docs/KIEM_THU_VA_LO_TRINH.md). Kết quả đó chỉ áp dụng cho mô hình và bộ tình huống đã thử.
 
 ## Phân công trong kiến trúc mục tiêu
 
@@ -224,7 +224,7 @@ Xe **không bao giờ tự chạy lại**. Đã làm trong mô phỏng: tìm ô,
 
 ## Phần cứng và nguồn điện
 
-Chi tiết linh kiện, chân GPIO đề xuất, đầu nối, điều kiện tương thích, cách gá phản hồi và trình tự kiểm tra được giữ tại [Lắp ráp điện 2D](autopark/docs/LAP_RAP_DIEN_2D.md). Đây là tài liệu cần đối chiếu trước khi đi dây.
+Chi tiết linh kiện, chân GPIO đề xuất, đầu nối, điều kiện tương thích, cách gá phản hồi và trình tự kiểm tra được giữ tại [Lắp ráp điện 2D](docs/LAP_RAP_DIEN_2D.md). Đây là tài liệu cần đối chiếu trước khi đi dây.
 
 Ba nhánh nguồn cần phân biệt:
 
@@ -234,28 +234,27 @@ Ba nhánh nguồn cần phân biệt:
 
 Bộ hình SVG và PNG mô tả bố trí trên xe. Tờ 02 đã bổ sung dây đề xuất từ hai MT6701 và BNO085 tới ESP32-S3, có nhãn GPIO, nguồn và GND theo chữ in trên bo thật. **Chưa lắp, chưa thử dây thực tế, chưa có driver cảm biến.**
 
-![Thiết kế mục tiêu: linh kiện và các đầu nối](autopark/docs/hardware/wiring-v1/00-components.png?v=0c99078718ba)
+![Thiết kế mục tiêu: linh kiện và các đầu nối](docs/hardware/wiring-v1/00-components.png?v=0c99078718ba)
 
 *Nhận diện linh kiện và đầu nối; module, điện áp và cách gá chưa chốt phải được đối chiếu với thiết bị thực nhận.*
 
-![Thiết kế mục tiêu: nguồn và kết nối các khối trên xe](autopark/docs/hardware/wiring-v1/01-system.png?v=ac7472bcd97c)
+![Thiết kế mục tiêu: nguồn và kết nối các khối trên xe](docs/hardware/wiring-v1/01-system.png?v=ac7472bcd97c)
 
 *Nguồn Pi tách biệt với nhánh BEC cấp servo.*
 
-![Thiết kế mục tiêu: USB, tín hiệu điều khiển và phản hồi](autopark/docs/hardware/wiring-v1/02-signal-feedback.png?v=ddc926dc9a8b)
+![Thiết kế mục tiêu: USB, tín hiệu điều khiển và phản hồi](docs/hardware/wiring-v1/02-signal-feedback.png?v=ddc926dc9a8b)
 
 *C1 và hub bốn camera nối Pi; Pi nối ESP32 bằng USB ngắn. Hai MT6701 nối hai bus I²C riêng, BNO085 nối SPI. Mỗi dây tín hiệu chạy liên tục đến đúng chân ESP32; nguồn 3V3 (đỏ) và GND (đen) được chia nhánh có chấm nối. Giao cắt không chấm là hai dây riêng. Sơ đồ đề xuất, chưa thử trên bo thật.*
 
-![Thiết kế sạc riêng cho pin LiPo 2S](autopark/docs/hardware/wiring-v1/03-charging.png?v=aecc2af97ca9)
+![Thiết kế sạc riêng cho pin LiPo 2S](docs/hardware/wiring-v1/03-charging.png?v=aecc2af97ca9)
 
 *Sạc B3 dùng giắc cân bằng 2S khi pin đã tách khỏi ESC và mọi tải trên xe. Không chạy xe đồng thời với sạc.*
 
 ## Chạy mô phỏng hiện có
 
-Từ thư mục gốc repository, dùng Python 3.11 trở lên trong PowerShell:
+Từ thư mục gốc repository, trên Windows: chạy `cai_dat.cmd` một lần để tạo `.venv`, rồi `chay_app.cmd`. Hoặc trong PowerShell:
 
 ```powershell
-cd autopark
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
 .\.venv\Scripts\python.exe run_app.py scenarios/thao_tac_cua_hep.json
@@ -269,20 +268,49 @@ Có thể thay kịch bản bằng `scenarios/thao_tac_lui_vao_khe.json`. Trong 
 .\.venv\Scripts\python.exe -X utf8 -m autopark.simulation.slot_run --scenario scenarios/tim_khe_vuong_goc.json --out runs/slot_run
 ```
 
-![Giao diện mô phỏng cảnh cua hẹp](autopark/docs/images/giao-dien-cua-hep.png)
+![Giao diện mô phỏng cảnh cua hẹp](docs/images/giao-dien-cua-hep.png)
 
 *Ảnh mô phỏng đường tiến/lùi và vùng thân xe quét qua. Giới hạn của các cảnh mẫu thuộc cấu hình mô phỏng, chưa phải thông số đã đo trên xe.*
+
+## Cấu trúc thư mục
+
+```
+autopark/                 (gốc repository)
+├── autopark/             mã Python
+│   ├── application/      phiên đỗ, liên kết xe
+│   ├── planning/         tìm ô, lập quỹ đạo
+│   ├── control/          bộ bám đường
+│   ├── simulation/       xe mô phỏng
+│   ├── lidar/            đọc C1, bản đồ, định vị
+│   ├── perception/       camera, BEV, AI
+│   ├── fusion/           hợp nhất vật cản
+│   ├── transport/        giao thức với ESP32
+│   ├── rig/              cửa sổ quan sát, ghi dữ liệu từ Pi
+│   ├── ui/               giao diện
+│   └── …                 domain, geometry, safety, storage, video, evaluation
+├── firmware/esp32_vehicle/   firmware ESP32
+├── configs/              cấu hình xe, cảm biến, tham chiếu
+├── calibration/          nội tham camera, tờ in hiệu chuẩn
+├── scenarios/            sa bàn mẫu
+├── datasets/             siêu dữ liệu bộ dữ liệu AI
+├── docs/                 tài liệu, bản vẽ điện, hình
+├── tests/                kiểm thử (pytest)
+├── *.cmd                 cài đặt và chạy nhanh trên Windows
+└── BAN_GIAO_CODEX.md     bàn giao: hiện trạng, việc còn lại
+```
+
+Chỉ có trên máy, không đưa lên git: `.venv/`, `runs/` (dữ liệu ghi, ảnh hiệu chuẩn), `anh_goc/` (ảnh chụp gốc).
 
 ## Đọc tiếp theo công việc
 
 | Bạn muốn tìm hiểu | Tài liệu |
 |---|---|
-| Cách dữ liệu trở thành vật cản và yêu cầu dừng | [Luồng vật cản](autopark/docs/LUONG_VAT_CAN.md) |
-| Cách chọn ô, tính đường và chạy một lượt | [Luồng tính đường](autopark/docs/LUONG_TINH_DUONG.md) |
-| Cấu trúc các khối phần mềm | [Kiến trúc](autopark/docs/KIEN_TRUC.md) |
-| Cách dùng, lưu và phát lại mô phỏng | [Vận hành](autopark/docs/VAN_HANH.md) |
-| Đi dây, cấp nguồn và đối chiếu chân | [Lắp ráp điện 2D](autopark/docs/LAP_RAP_DIEN_2D.md) |
-| Đo xe, gá và hiệu chuẩn cảm biến | [Phần cứng và hiệu chuẩn](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md) |
+| Cách dữ liệu trở thành vật cản và yêu cầu dừng | [Luồng vật cản](docs/LUONG_VAT_CAN.md) |
+| Cách chọn ô, tính đường và chạy một lượt | [Luồng tính đường](docs/LUONG_TINH_DUONG.md) |
+| Cấu trúc các khối phần mềm | [Kiến trúc](docs/KIEN_TRUC.md) |
+| Cách dùng, lưu và phát lại mô phỏng | [Vận hành](docs/VAN_HANH.md) |
+| Đi dây, cấp nguồn và đối chiếu chân | [Lắp ráp điện 2D](docs/LAP_RAP_DIEN_2D.md) |
+| Đo xe, gá và hiệu chuẩn cảm biến | [Phần cứng và hiệu chuẩn](docs/PHAN_CUNG_VA_HIEU_CHUAN.md) |
 | Việc đang làm và cách tiếp tục | [Bàn giao AutoPark](BAN_GIAO_CODEX.md) |
-| Bằng chứng hiện có và các bước còn thiếu | [Kiểm thử và lộ trình](autopark/docs/KIEM_THU_VA_LO_TRINH.md) |
-| Nguồn dữ liệu và điều kiện sử dụng | [Dữ liệu và giấy phép](autopark/docs/DU_LIEU_VA_GIAY_PHEP.md) |
+| Bằng chứng hiện có và các bước còn thiếu | [Kiểm thử và lộ trình](docs/KIEM_THU_VA_LO_TRINH.md) |
+| Nguồn dữ liệu và điều kiện sử dụng | [Dữ liệu và giấy phép](docs/DU_LIEU_VA_GIAY_PHEP.md) |
