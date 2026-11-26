@@ -36,6 +36,18 @@ PORT_SPECS = {
         "gnd": _p(68, 335.7, "left", "GND", "ground"),
         "esc_pwm": _p(68, 89.1, "left", "GPIO4", "signal"),
         "servo_pwm": _p(68, 102.8, "left", "GPIO5", "signal"),
+        "v3v3": _p(68, 48, "left", "3V3", "red"),
+        "steer_sda": _p(68, 116.5, "left", "GPIO6", "signal"),
+        "steer_scl": _p(68, 130.2, "left", "GPIO7", "usb"),
+        "enc_sda": _p(68, 198.7, "left", "GPIO8", "signal"),
+        "enc_scl": _p(68, 239.8, "left", "GPIO9", "usb"),
+        "imu_cs": _p(68, 253.5, "left", "GPIO10", "logic"),
+        "imu_mosi": _p(68, 267.2, "left", "GPIO11", "logic"),
+        "imu_sck": _p(68, 280.9, "left", "GPIO12", "logic"),
+        "imu_miso": _p(68, 294.6, "left", "GPIO13", "logic"),
+        "imu_int": _p(68, 308.3, "left", "GPIO14", "amber"),
+        "imu_rst": _p(68, 143.9, "left", "GPIO15", "amber"),
+        "imu_wake": _p(68, 157.6, "left", "GPIO16", "amber"),
     },
     "esc1060": {
         "battery_plus": _p(0, 70, "left", "BAT +", "red"),
@@ -215,6 +227,9 @@ def _screw(x, y, radius=5):
 def _ports(kind, labels=None):
     out = []
     for key, spec in PORT_SPECS[kind].items():
+        if kind == "esp32" and key not in {"usb_uart", "usb_native", "gnd", "esc_pwm", "servo_pwm"}:
+            # Sensor connections are shown as named wire continuations on sheet 02.
+            continue
         x, y = spec["x"], spec["y"]
         out.append(circle(x, y, 4.5, "white", spec["color"], 2,
                           **({"stroke-dasharray": "3 2"} if spec["provisional"] else {})))
@@ -431,21 +446,20 @@ def _angle_module(kind):
            text(204, 143, "U1", 8, "#e5e7eb", "middle"),
            rect(190, 152, 14, 9, "#c9a46a", "#8a6d3d", 1), text(210, 160, "C1", 8, "#e5e7eb"),
            circle(204, 114, 22, "none", "#e05a5a", 1.6, stroke_dasharray="4 3"),
-           text(150, 205, "Chưa đấu nối · nam châm đồng trục với U1", 10, COLORS["amber"], "middle", 700)]
+           text(150, 205, "Nam châm đồng trục với U1 · I²C 0x06 mặc định", 10, COLORS["amber"], "middle", 700)]
     for key, spec in PORT_SPECS[kind].items():
         out.append(rect(spec["x"] - 4, spec["y"] - 4, 8, 8, "#e0b84f", "#f6e2a6", 1))
     return "".join(out)
 
 
 def _bno085():
-    """Bo GY-BNO08X (chip BNO085): bo tím, hai lỗ bắt vít, hàng 10 chân ở cạnh dưới, nút BOOT ở góc phải."""
+    """Bo GY-BNO08X (chip BNO085): bo tím, hai lỗ bắt vít, hàng 10 chân ở cạnh dưới, pad BOOT ở góc phải."""
     out = [rect(30, 40, 240, 132, "#5b2c86", "#2f1450", 8, 2),
            circle(56, 68, 11, "#e0b84f", "#f6e2a6", 1.5), circle(56, 68, 6, "#2f1450"),
            circle(244, 68, 11, "#e0b84f", "#f6e2a6", 1.5), circle(244, 68, 6, "#2f1450"),
            _chip(126, 60, 48, 42, "BNO085", 5),
            text(150, 55, "GY-BNO08X", 9, "#efe7ff", "middle", 700),
-           rect(220, 100, 14, 9, "#e0b84f"), text(214, 108, "BOOT", 7.5, "#efe7ff", "end"),
-           text(150, 190, "Chưa đấu nối · chưa gắn lên khung", 10, COLORS["amber"], "middle", 700)]
+           circle(227, 104, 5.5, "#e0b84f", "#f6e2a6", 1), text(214, 108, "BOOT", 7.5, "#efe7ff", "end")]
     for key, spec in PORT_SPECS["bno085"].items():
         out += [circle(spec["x"], spec["y"], 6, "#e0b84f", "#f6e2a6", 1),
                 rect(spec["x"] - 2, spec["y"] + 6, 4, 14, "#c4c9cf")]
@@ -624,6 +638,6 @@ def component_catalog_svg():
         out.append(draw_component(kind, x + (410 - dw) / 2, y + 40 + (280 - dh) / 2, dw, dh))
     out += [text(55, height-60, "Pi 4: 8 GB + microSD 64 GB. Nguồn Pi/hub: chờ chọn. BEC 6 V chỉ cấp servo; không tới Pi hoặc hub.",
                  17, COLORS["amber"], weight=700),
-            text(55, height-27, "Hai MT6701 (module 5 chân) và BNO085 đã có nhưng CHƯA ĐẤU NỐI vào xe. Chữ chân theo chữ in trên bo thật; camera dùng 4 lần.",
+            text(55, height-27, "Hai MT6701 (5 chân) và BNO085: sơ đồ dây đề xuất ở Tờ 2, chưa thử trên bo thật. Camera dùng 4 lần.",
                  16, COLORS["muted"]), "</svg>"]
     return "".join(out)

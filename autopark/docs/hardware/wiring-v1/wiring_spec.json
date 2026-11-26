@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "pi4_sensors_unwired_v5",
+  "revision": "pi4_sensors_wiring_v6",
   "status": "proposed_not_hardware_verified",
   "date": "2026-11-26",
   "catalog_component_kinds": [
@@ -76,7 +76,8 @@
         "SDA"
       ],
       "wired": false,
-      "interface": "not chosen (I2C or Analog/PWM)"
+      "interface": "I2C controller 0",
+      "address_default_7bit": "0x06"
     },
     "ENC": {
       "chip": "MT6701",
@@ -89,8 +90,9 @@
         "SDA"
       ],
       "wired": false,
-      "interface": "not chosen; module has no A/B/MODE/Z pins",
-      "note": "same fixed I2C address as STEER: separate bus or Analog/PWM"
+      "interface": "I2C controller 1",
+      "address_default_7bit": "0x06",
+      "note": "separate bus; no A/B/MODE/Z pins"
     },
     "IMU": {
       "chip": "BNO085",
@@ -108,12 +110,24 @@
         "PS0"
       ],
       "wired": false,
-      "interface": "not chosen"
+      "interface": "SPI mode 3",
+      "note": "SCL=SCK, SDA=MISO, ADO=MOSI, PS1=3V3, PS0=WAKE"
     }
   },
   "proposed_gpio": {
     "ESC_CTRL": 4,
-    "SERVO_CTRL": 5
+    "SERVO_CTRL": 5,
+    "STEER_SDA": 6,
+    "STEER_SCL": 7,
+    "ENC_SDA": 8,
+    "ENC_SCL": 9,
+    "IMU_CS": 10,
+    "IMU_MOSI": 11,
+    "IMU_SCK": 12,
+    "IMU_MISO": 13,
+    "IMU_INT": 14,
+    "IMU_RST": 15,
+    "IMU_WAKE": 16
   },
   "firmware_pwm_env": "esp32s3_16mb_pwm: ESC GPIO4, servo GPIO5",
   "components": {
@@ -200,9 +214,123 @@
       "endpoints": [
         "ESP.gnd",
         "ESC.gnd",
-        "SERVO.gnd"
+        "SERVO.gnd",
+        "STEER.gnd",
+        "ENC.gnd",
+        "IMU.gnd"
       ],
       "voltage": "common signal reference; servo power return directly to ESC/BEC, not through ESP32"
+    },
+    {
+      "id": "SENSOR_3V3",
+      "endpoints": [
+        "ESP.v3v3",
+        "STEER.vdd",
+        "ENC.vdd",
+        "IMU.vcc",
+        "IMU.ps1"
+      ],
+      "voltage": 3.3,
+      "condition": "verify module VCC/logic rating and ESP32 regulator load; never connect BEC or 5V"
+    },
+    {
+      "id": "STEER_SDA",
+      "endpoints": [
+        "ESP.steer_sda",
+        "STEER.sda"
+      ],
+      "gpio": 6,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "STEER_SCL",
+      "endpoints": [
+        "ESP.steer_scl",
+        "STEER.scl"
+      ],
+      "gpio": 7,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "ENC_SDA",
+      "endpoints": [
+        "ESP.enc_sda",
+        "ENC.sda"
+      ],
+      "gpio": 8,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "ENC_SCL",
+      "endpoints": [
+        "ESP.enc_scl",
+        "ENC.scl"
+      ],
+      "gpio": 9,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "IMU_CS",
+      "endpoints": [
+        "ESP.imu_cs",
+        "IMU.cs"
+      ],
+      "gpio": 10,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "IMU_MOSI",
+      "endpoints": [
+        "ESP.imu_mosi",
+        "IMU.ado"
+      ],
+      "gpio": 11,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "IMU_SCK",
+      "endpoints": [
+        "ESP.imu_sck",
+        "IMU.scl"
+      ],
+      "gpio": 12,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "IMU_MISO",
+      "endpoints": [
+        "ESP.imu_miso",
+        "IMU.sda"
+      ],
+      "gpio": 13,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "IMU_INT",
+      "endpoints": [
+        "ESP.imu_int",
+        "IMU.int"
+      ],
+      "gpio": 14,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "IMU_RST",
+      "endpoints": [
+        "ESP.imu_rst",
+        "IMU.rst"
+      ],
+      "gpio": 15,
+      "voltage": "3.3V logic"
+    },
+    {
+      "id": "IMU_WAKE",
+      "endpoints": [
+        "ESP.imu_wake",
+        "IMU.ps0"
+      ],
+      "gpio": 16,
+      "voltage": "3.3V logic"
     },
     {
       "id": "MOTOR_A",
@@ -295,10 +423,38 @@
       "electrical_wire": false
     }
   ],
-  "unwired_components": [
+  "unwired_components": [],
+  "physically_unverified_components": [
     "STEER",
     "ENC",
     "IMU"
+  ],
+  "not_connected_ports": [
+    "STEER.out",
+    "ENC.out"
+  ],
+  "conditional_pullups": [
+    {
+      "nets": [
+        "STEER_SDA",
+        "STEER_SCL",
+        "ENC_SDA",
+        "ENC_SCL"
+      ],
+      "to": "SENSOR_3V3",
+      "ohms_each": 4700,
+      "condition": "provide one effective pull-up per line; inspect onboard resistors first; buses remain separate"
+    },
+    {
+      "nets": [
+        "IMU_WAKE",
+        "IMU_CS",
+        "IMU_RST"
+      ],
+      "to": "SENSOR_3V3",
+      "ohms_each": 10000,
+      "condition": "if not already pulled high on module; PS0 and PS1 high through first INT assertion after reset, then PS0 GPIO for wake"
+    }
   ],
   "internal_links_to_verify": [
     {
@@ -374,7 +530,7 @@
     "2S branch harness, converter input range/load transients, voltage drop and heat",
     "four-camera USB/Wi-Fi bandwidth and timestamps",
     "servo load current on the floor (bench only so far)",
-    "MT6701/BNO085 wiring, bus and GPIO choice, speed-measurement method and mounting (not wired yet)",
+    "proposed MT6701/BNO085 wiring, module power/pullups, sensor drivers, speed measurement and mounting (not physically wired/tested)",
     "adapter mating/polarity and motor stall current",
     "firmware outputs and physical signal timing"
   ]

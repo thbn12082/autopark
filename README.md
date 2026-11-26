@@ -23,11 +23,27 @@ AutoPark hướng tới xe mô hình tự tìm ô đỗ phù hợp, tính đư�
 | Điều khiển cơ cấu | ESP32-S3 với flash 16 MB và PSRAM 8 MB, cắm USB vào Pi. ESC QuicRun 1060 (GPIO4) và servo (GPIO5) đã chạy bằng firmware AutoPark trên bàn thử |
 | Quan sát | Đã nhận đồng thời **bốn camera USB qua hub có nguồn riêng** và LiDAR C1. Laptop hiển thị ảnh, bản quét và tab BEV |
 
-**Phương án cảm biến gồm hai MT6701 và một BNO085.** Tốc độ và góc lái đo được là hai phản hồi cần có để thử tự chạy, nên không đo tay góc lái hay tốc độ trước khi lắp MT6701. BNO085 là nguồn dữ liệu bổ sung cho định vị. Mỗi MT6701 có một nam châm và một vị trí gá. Module MT6701 thực nhận chỉ có 5 chân `VDD`, `GND`, `Analog/PWM`, `SCL`, `SDA`, không có A/B. Hai module cùng địa chỉ I²C nên không chung một bus. Cách đấu vào ESP32 sẽ chốt khi lắp. Thứ tự thử khi lắp:
+**Phương án cảm biến gồm hai MT6701 và một BNO085.** Tốc độ và góc lái đo được là hai phản hồi cần có để thử tự chạy, nên không đo tay góc lái hay tốc độ trước khi lắp MT6701. BNO085 là nguồn dữ liệu bổ sung cho định vị. Mỗi MT6701 có một nam châm và một vị trí gá. Module MT6701 thực nhận chỉ có 5 chân `VDD`, `GND`, `Analog/PWM`, `SCL`, `SDA`, không có A/B. Hai MT6701 có địa chỉ I²C mặc định 0x06 nên dùng hai bus độc lập; BNO085 dùng SPI. Sơ đồ chân đề xuất dưới đây chưa được đấu thử trên bo thật:
+
+| Chân trên module | MT6701 #1 — góc lái (I²C 0) | MT6701 #2 — tốc độ (I²C 1) | BNO085 — IMU (SPI) |
+|---|---|---|---|
+| VDD / VCC | 3V3 | 3V3 | 3V3 |
+| GND | GND | GND | GND |
+| SCL | GPIO7 | GPIO9 | GPIO12 (SCK) |
+| SDA | GPIO6 | GPIO8 | GPIO13 (MISO) |
+| Analog/PWM | Không nối | Không nối | — |
+| ADO | — | — | GPIO11 (MOSI) |
+| CS | — | — | GPIO10 |
+| INT | — | — | GPIO14 |
+| RST | — | — | GPIO15 |
+| PS1 | — | — | 3V3 |
+| PS0 | — | — | GPIO16 (WAKE; kéo lên 3V3) |
+
+Đọc [hướng dẫn đấu nối và pull-up](autopark/docs/LAP_RAP_DIEN_2D.md#mt6701-và-bno085-đấu-nối-đề-xuất) trước khi cấp nguồn. ESC vẫn ở GPIO4, servo vẫn ở GPIO5. Cảm biến dùng nguồn 3,3 V, không dùng BEC 6 V. Thứ tự thử khi lắp:
 
 1. **Thử BNO085 trước.** Ngắt pin ESC, đọc góc trên bàn rồi xoay bo khoảng 90° để kiểm hướng và độ lớn góc đo. Sau đó gá lên khung để đối chiếu hướng quay với C1 khi di chuyển xe bằng tay.
 2. **Thử MT6701 #1.** Dùng bo 5 chân đang có để kiểm đọc góc qua I²C trên bàn. Sau khi tìm được vị trí gá tại cơ cấu lái, hiệu chuẩn chiều trái/phải, điểm giữa và quan hệ giữa góc cảm biến với góc bánh trước.
-3. **Thử MT6701 #2.** Chọn cách đọc (bus I²C thứ hai hoặc Analog/PWM). Sau khi lắp, quay bánh bằng tay để kiểm chiều quay và quan hệ góc trục với quãng đường trước khi quy đổi tốc độ.
+3. **Thử MT6701 #2.** Đọc góc qua bus I²C thứ hai. Sau khi lắp, quay bánh bằng tay để kiểm chiều quay và quan hệ góc trục với quãng đường trước khi quy đổi tốc độ.
 
 Hệ điều hành của Pi nằm trên thẻ microSD. Thiết kế nguồn dùng USB-C ổn áp 5,1 V/3 A cho Pi, với giới hạn tổng tải USB trực tiếp là 1,2 A. Hub bốn camera cần nguồn riêng phù hợp. Cần đo độ trễ, tải USB và CPU với đủ thiết bị trước khi chốt FPS. Xem [hướng dẫn lắp và nguồn tham khảo](autopark/docs/LAP_RAP_DIEN_2D.md).
 
@@ -54,7 +70,7 @@ Bắt đầu bằng lượt ướm trên bàn với pin ESC đã ngắt. Dán na
 
 ![Bo IMU BNO085 GY-BNO08X và hàng chân cắm](autopark/docs/images/gy-bno08x-imu.jpg)
 
-Bo `GY-BNO08X` của xe dùng chip **BNO085** theo xác nhận của người lắp. Phần đọc dữ liệu trong AutoPark và chân nối BNO085 đang chờ lượt thử trên bàn. [Datasheet Ceva BNO08X, mục 2.2](https://www.ceva-ip.com/wp-content/uploads/BNO080_085-Datasheet.pdf#page=31)
+Bo `GY-BNO08X` của xe dùng chip **BNO085** theo xác nhận của người lắp. Chọn SPI để tránh các vấn đề tương thích I²C của BNO08X với ESP32-S3. Sơ đồ trên dùng chân theo chức năng SPI của chip: ADO là MOSI, SDA là MISO; không nhầm với nhãn của các module SPI khác. Driver AutoPark và đấu nối thực tế vẫn chờ thử trên bàn. [Datasheet Ceva BNO08X, mục 1.2.4](https://www.ceva-ip.com/wp-content/uploads/BNO080_085-Datasheet.pdf#page=18)
 
 ### Kích thước MN300 đo thực
 
@@ -216,21 +232,21 @@ Ba nhánh nguồn cần phân biệt:
 - **Servo:** lấy nguồn từ BEC 6 V của ESC; đã chạy ổn trên bàn thử ngày 24/11/2026.
 - **Pi và thiết bị USB:** Pi cần nguồn ổn áp riêng phù hợp model và tổng tải. **Không cấp Pi bằng BEC 6 V của ESC.** ESP32 dùng USB từ Pi theo thiết kế; nguồn cho hub/camera và khả năng cấp dòng của từng cổng phải được kiểm tra.
 
-Bộ hình SVG và PNG mô tả bố trí trên xe. Hai MT6701 và BNO085 được vẽ theo chân in trên bo thật nhưng **chưa đấu nối**; dây của chúng sẽ thêm khi lắp.
+Bộ hình SVG và PNG mô tả bố trí trên xe. Tờ 02 đã bổ sung dây đề xuất từ hai MT6701 và BNO085 tới ESP32-S3, có nhãn GPIO, nguồn và GND theo chữ in trên bo thật. **Chưa lắp, chưa thử dây thực tế, chưa có driver cảm biến.**
 
-![Thiết kế mục tiêu: linh kiện và các đầu nối](autopark/docs/hardware/wiring-v1/00-components.png?v=9ac413ffc93c)
+![Thiết kế mục tiêu: linh kiện và các đầu nối](autopark/docs/hardware/wiring-v1/00-components.png?v=0c99078718ba)
 
 *Nhận diện linh kiện và đầu nối; module, điện áp và cách gá chưa chốt phải được đối chiếu với thiết bị thực nhận.*
 
-![Thiết kế mục tiêu: nguồn và kết nối các khối trên xe](autopark/docs/hardware/wiring-v1/01-system.png?v=b04a45841440)
+![Thiết kế mục tiêu: nguồn và kết nối các khối trên xe](autopark/docs/hardware/wiring-v1/01-system.png?v=ac7472bcd97c)
 
 *Nguồn Pi tách biệt với nhánh BEC cấp servo.*
 
-![Thiết kế mục tiêu: USB, tín hiệu điều khiển và phản hồi](autopark/docs/hardware/wiring-v1/02-signal-feedback.png?v=8a5bdf9db514)
+![Thiết kế mục tiêu: USB, tín hiệu điều khiển và phản hồi](autopark/docs/hardware/wiring-v1/02-signal-feedback.png?v=82bd3e2dbe5c)
 
-*C1 và hub bốn camera nối Pi; Pi nối ESP32 bằng USB ngắn. Hai MT6701 và BNO085 vẽ theo chân thật nhưng **chưa đấu nối**: chưa có dây nào tới ESP32.*
+*C1 và hub bốn camera nối Pi; Pi nối ESP32 bằng USB ngắn. Hai MT6701 nối hai bus I²C riêng, BNO085 nối SPI; các đầu dây có cùng nhãn GPIO/3V3/GND nối với nhau. Sơ đồ đề xuất, chưa thử trên bo thật.*
 
-![Thiết kế sạc riêng cho pin LiPo 2S](autopark/docs/hardware/wiring-v1/03-charging.png?v=6f5b5dda4a87)
+![Thiết kế sạc riêng cho pin LiPo 2S](autopark/docs/hardware/wiring-v1/03-charging.png?v=aecc2af97ca9)
 
 *Sạc B3 dùng giắc cân bằng 2S khi pin đã tách khỏi ESC và mọi tải trên xe. Không chạy xe đồng thời với sạc.*
 

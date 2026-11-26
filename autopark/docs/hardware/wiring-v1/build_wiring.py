@@ -24,6 +24,24 @@ SIGNAL = "#138d86"
 AMBER = "#bf7414"
 BLUE2 = "#35a9c4"
 
+# One source for the proposed signal wires, netlist, and labelled drawing.
+# PS0/WAKE is GPIO-controlled after SPI selection; keep it high during reset.
+FEEDBACK_SIGNALS = (
+    ("STEER_SDA", "steer_sda", "STEER.sda", 6, SIGNAL),
+    ("STEER_SCL", "steer_scl", "STEER.scl", 7, USB),
+    ("ENC_SDA", "enc_sda", "ENC.sda", 8, SIGNAL),
+    ("ENC_SCL", "enc_scl", "ENC.scl", 9, USB),
+    ("IMU_CS", "imu_cs", "IMU.cs", 10, LOGIC),
+    ("IMU_MOSI", "imu_mosi", "IMU.ado", 11, LOGIC),
+    ("IMU_SCK", "imu_sck", "IMU.scl", 12, LOGIC),
+    ("IMU_MISO", "imu_miso", "IMU.sda", 13, LOGIC),
+    ("IMU_INT", "imu_int", "IMU.int", 14, AMBER),
+    ("IMU_RST", "imu_rst", "IMU.rst", 15, AMBER),
+    ("IMU_WAKE", "imu_wake", "IMU.ps0", 16, AMBER),
+)
+FEEDBACK_POWER = ("STEER.vdd", "ENC.vdd", "IMU.vcc", "IMU.ps1")
+FEEDBACK_GROUND = ("STEER.gnd", "ENC.gnd", "IMU.gnd")
+
 
 def number(v):
     return f"{v:.2f}".rstrip("0").rstrip(".")
@@ -67,14 +85,14 @@ class Sheet:
         self.background = [box(0, 0, width, height, BG, BG, 0), text(70, 73, title, 44, weight=700),
                            text(70, 114, subtitle, 23, MUTED),
                            box(70, 142, width - 140, 65, "#fff4df", "#e8bf75", 12),
-                           text(92, 181, "THIẾT KẾ MỤC TIÊU • ESC/servo đã thử trên bàn • MT6701 và BNO085 chưa đấu nối • Pi bám quỹ đạo chưa triển khai", 25, "#82500d", 600)]
+                           text(92, 181, "THIẾT KẾ MỤC TIÊU • ESC/servo đã thử bàn • Dây cảm biến đề xuất, chưa thử thực tế • Pi chưa bám quỹ đạo", 25, "#82500d", 600)]
         self.drawings, self.wires, self.overlays = [], [], []
         self.overlays.append(text(width - 70, height - 28, f"AutoPark · {DESIGN_DATE} · Tờ {index}/3", 21, MUTED, anchor="end"))
 
-    def node(self, name, kind, x, y, w, h, label=None, subtitle=None):
+    def node(self, name, kind, x, y, w, h, label=None, subtitle=None, port_labels=None):
         n = Node(kind, x, y, w, h, label, subtitle)
         self.nodes[name] = n
-        self.drawings.append(draw_component(kind, x, y, w, h, label=label, subtitle=subtitle))
+        self.drawings.append(draw_component(kind, x, y, w, h, label=label, subtitle=subtitle, port_labels=port_labels))
         return n
 
     def point(self, endpoint):
@@ -217,9 +235,9 @@ def system_sheet():
 
 
 def signal_sheet():
-    s = Sheet(2800, 2440, "02 · LAPTOP ↔ WI-FI ↔ PI TRÊN XE ↔ USB ↔ ESP32", "Pi thu cảm biến, định vị và bám quỹ đạo tại xe. Laptop gửi quỹ đạo, không gửi từng nhịp lái qua Wi-Fi.", 2)
+    s = Sheet(2800, 3080, "02 · LAPTOP ↔ WI-FI ↔ PI TRÊN XE ↔ USB ↔ ESP32", "Pi thu cảm biến, định vị và bám quỹ đạo tại xe. Laptop gửi quỹ đạo, không gửi từng nhịp lái qua Wi-Fi.", 2)
     s.background += [box(70, 240, 2660, 730, "white", "#d6e0e9", 20),
-                     box(70, 1030, 2660, 865, "white", "#d6e0e9", 20)]
+                     box(70, 1030, 2660, 1620, "white", "#d6e0e9", 20)]
     s.node("PC", "laptop", 120, 285, 360, 260)
     s.node("PI", "raspberry_pi", 850, 285, 400, 277.78)
     s.node("HUB", "usb_hub", 1500, 280, 330, 180, label="HUB CÓ NGUỒN · CHỜ CHỌN")
@@ -227,7 +245,7 @@ def signal_sheet():
         s.node(f"CAM{i}", "camera", x, y, 230, 172.5, label=f"CAMERA USB {i}")
     s.node("C1", "lidar", 800, 670, 300, 264)
     s.node("ADAPTER", "lidar_adapter", 1250, 700, 300, 180)
-    s.node("ESP", "esp32", 230, 1160, 420, 585)
+    s.node("ESP", "esp32", 460, 1200, 650, 905.36, port_labels={"gnd": ""})
     pc, pi = s.point("PC.wifi"), s.point("PI.wifi")
     s.wire("PC.wifi", "PI.wifi", [(700,pc[1]),(700,pi[1])], USB, True, 6)
     s.label(515, 285, ["N1 · Wi-Fi LAN", "Hai chiều · không phải dây"], 22, USB)
@@ -253,29 +271,68 @@ def signal_sheet():
     s.wire("C1.connector","ADAPTER.lidar",[(1180,cp[1]),(1180,al[1])],USB,width=8)
     s.label(1140, 900, ["U7 · C1 + adapter USB → Pi.", "U8 · Cáp C1 gốc; không chuyển sang GPIO ESP."], 21, USB)
     pu,eu=s.point("PI.usb1"),s.point("ESP.usb_native")
-    s.wire("PI.usb1","ESP.usb_native",[(1300,pu[1]),(1300,625),(45,625),(45,1870),(eu[0],1870)],USB,width=9)
+    s.wire("PI.usb1","ESP.usb_native",[(1300,pu[1]),(1300,625),(45,625),(45,2160),(eu[0],2160)],USB,width=9)
     s.note(100, 690, 610, ["LAPTOP: AI trên 4 luồng camera,", "fusion + chọn ô đỗ + lập quỹ đạo.", "PI: thu C1/camera, định vị cục bộ,", "bám quỹ đạo và dừng vật cản tại xe.", "AI không trực tiếp xuất ga / góc lái.", "4G: tùy chọn điều khiển từ xa về sau."], MUTED, "#f3f7fb", 22)
     s.label(80, 990, "U1 · USB NGẮN TRÊN XE: Pi ↔ USB native/CDC của ESP32; dữ liệu + nguồn. Không kéo USB từ laptop ra xe.", 23, USB)
-    # MT6701 và BNO085: đã có module nhưng CHƯA lắp, CHƯA đấu vào ESP32 (người dùng xác nhận 26/11/2026).
-    # Không vẽ dây nào: cách đấu (bus, GPIO, cách đo tốc độ) chốt khi lắp lên xe.
-    s.background.append(f'<rect x="980" y="1080" width="1720" height="545" rx="18" fill="#fbfcfd" '
-                        f'stroke="{AMBER}" stroke-width="3" stroke-dasharray="16 10"/>')
-    s.label(1010, 1125, "CHƯA ĐẤU NỐI VÀO XE · không có dây nào tới ESP32", 30, AMBER, 700)
-    s.label(1010, 1162, "Chữ chân lấy theo chữ in trên bo thật. Cách đấu sẽ chốt khi lắp lên xe.", 22, MUTED)
-    s.node("STEER", "mt6701_steer", 1020, 1200, 380, 307)
-    s.node("ENC", "mt6701", 1440, 1200, 380, 307)
-    s.node("IMU", "bno085", 1880, 1195, 420, 280)
-    s.note(2330, 1195, 350, ["Ba module đã có,", "chưa gá lên xe,", "chưa nối nguồn", "và tín hiệu."], AMBER, "#fff8ea", 22)
-    s.note(1010, 1640, 1690, ["MT6701 (2 module giống nhau): MỘT hàng 5 chân VDD · GND · Analog/PWM · SCL · SDA.",
-                              "Module KHÔNG đưa ra chân A/B, MODE hay Z: bản vẽ cũ nối A/B và MODE là sai, đã bỏ.",
-                              "Đọc qua I²C (SCL/SDA) hoặc Analog/PWM; hai module cùng địa chỉ I²C nên không chung một bus.",
-                              "BNO085 (GY-BNO08X): VCC · GND · SCL · SDA · ADO · CS · INT · RST · PS1 · PS0."],
+    s.label(100, 1080, "ĐẤU DÂY CẢM BIẾN VÀO ESP32-S3 · mức logic 3,3 V", 31, INK, 700)
+    s.label(100, 1120, "Hai đầu dây cùng nhãn GPIO / 3V3 / GND là cùng một kết nối điện (không phải đầu nối bổ sung).", 23, MUTED)
+    s.label(100, 1160, "Giữ GPIO4 → ESC, GPIO5 → servo. Chỉ cấp ESP32 qua USB; không đưa BEC 6 V vào cảm biến.", 22, AMBER)
+    s.background += [box(1100, 1170, 800, 440, "#f3f7fb", "#d6e0e9", 15),
+                     box(1920, 1170, 780, 440, "#f3f7fb", "#d6e0e9", 15),
+                     box(1100, 1630, 1600, 735, "#f3f7fb", "#d6e0e9", 15)]
+    s.node("STEER", "mt6701_steer", 1440, 1200, 420, 339.23)
+    s.node("ENC", "mt6701", 2250, 1200, 420, 339.23)
+    s.node("IMU", "bno085", 1170, 1640, 1460, 600)
+
+    def left_tag(endpoint, caption, color, x, w=210):
+        px, py = s.point(endpoint)
+        s.line([(px, py), (x + w, py)], color, width=5)
+        s.junction(px, py, color)
+        s.overlays.append(box(x, py - 13, w, 26, "white", color, 5, 1.5))
+        s.label(x + w / 2, py + 7, caption, 19, color, 700, "middle")
+
+    def bottom_tag(endpoint, caption, color):
+        px, py = s.point(endpoint)
+        s.line([(px, py), (px, 2270)], color, width=5)
+        s.junction(px, py, color)
+        s.overlays.append(box(px - 49, 2270, 98, 34, "white", color, 5, 1.5))
+        s.label(px, 2293, caption, 19, color, 700, "middle")
+
+    left_tag("ESP.v3v3", "3V3", RED, 120, 300)
+    left_tag("ESP.gnd", "GND", GND, 120, 300)
+    for net, esp_port, sensor_port, gpio, color in FEEDBACK_SIGNALS:
+        caption = f"GPIO{gpio}"
+        left_tag(f"ESP.{esp_port}", f"{caption} · {net}", color, 120, 300)
+        if sensor_port.startswith("IMU."):
+            bottom_tag(sensor_port, caption, color)
+        else:
+            left_tag(sensor_port, caption, color, 1120 if sensor_port.startswith("STEER.") else 1940)
+    for ep in FEEDBACK_POWER + FEEDBACK_GROUND:
+        is_power = ep in FEEDBACK_POWER
+        caption, color = ("3V3", RED) if is_power else ("GND", GND)
+        if ep.startswith("IMU."):
+            bottom_tag(ep, caption, color)
+        else:
+            left_tag(ep, caption, color, 1120 if ep.startswith("STEER.") else 1940)
+    for name, x in (("STEER", 1120), ("ENC", 1940)):
+        px, py = s.point(f"{name}.out")
+        s.label(x + 105, py + 7, "NC · không nối", 19, MUTED, 600, "middle")
+        s.label(x + 15, 1580, "I²C riêng · 0x06 · 4 dây", 23, SIGNAL)
+    s.label(1900, 2340, "SPI: SCL = SCK · SDA = MISO · ADO = MOSI · PS0 = WAKE", 24, LOGIC, 700, "middle")
+    s.note(100, 2200, 940, ["NÊN KIỂM TRƯỚC KHI CẤP USB",
+                            "Chỉ nối 3V3 và GND chung cho cảm biến.",
+                            "Hai bus I²C độc lập, mỗi bus có pull-up SDA/SCL",
+                            "lên 3V3 (4,7 kΩ nếu module chưa có).",
+                            "Không nối chân Analog/PWM của hai MT6701.",
+                            "USB native đến Pi; driver cảm biến chưa có."], MUTED, "#f3f7fb", 22)
+    s.note(1100, 2390, 1600, ["BNO085 chọn SPI: PS1 nối 3V3; PS0 nối GPIO16, kéo lên 3V3 qua 10 kΩ nếu bo chưa có.",
+                              "PS0 và PS1 phải ở mức cao khi reset đến hết báo ngắt INT đầu tiên; sau đó PS0 dùng WAKE.",
+                              "CS/RST giữ cao lúc khởi động (pull-up 10 kΩ nếu bo chưa có); INT và RST tích cực thấp.",
+                              "Không kéo pad BOOT xuống GND. Kiểm điện trở strap trên bo để bảo đảm PS0/PS1 lên cao."],
            MUTED, "#f3f7fb", 22)
-    s.label(100, 1075, ["ESP32 hiện dùng: GPIO4 → ESC, GPIO5 → servo (Tờ 1),",
-                        "USB native → Pi. Chân cho cảm biến: chưa gán."], 21, AMBER)
-    s.label(70, 1990, "ToF được hoãn. Bốn camera không thay cho phép đo tốc độ và góc lái.", 23, MUTED)
-    s.note(80, 2030, 1290, ["DỪNG VÀ GIỮ DỪNG — YÊU CẦU KIẾN TRÚC", "Pi dừng nếu vật cản khiến hành lang quỹ đạo không an toàn,", "hoặc dữ liệu / pose / quỹ đạo hết hạn, hoặc mất liên kết laptop.", "ESP32 dừng khi lệnh từ Pi hết hạn / mất USB. Không tự chạy lại.", "Laptop lập lại từ pose mới đo khi xe đã dừng; xác nhận lượt chạy mới."], RED, "#fff3f2", 25)
-    s.note(1430, 2030, 1270, ["PHÂN BIỆT HIỆN TẠI VỚI MỤC TIÊU", "Phần mềm: mô phỏng; tự tìm ô đỗ trên bản đồ LiDAR, chọn ô trong giao diện.", "Chưa triển khai Pi bám quỹ đạo trên xe.", "Firmware đã bật PWM ESC/servo; chưa có driver MT6701 / BNO085.", "Hình không xác nhận an toàn hay độ chính xác cảm biến."], MUTED, "#f3f7fb", 25)
+    s.label(70, 2700, "ToF được hoãn. Bốn camera không thay cho phép đo tốc độ và góc lái.", 23, MUTED)
+    s.note(80, 2740, 1290, ["DỪNG VÀ GIỮ DỪNG — YÊU CẦU KIẾN TRÚC", "Pi dừng nếu vật cản khiến hành lang quỹ đạo không an toàn,", "hoặc dữ liệu / pose / quỹ đạo hết hạn, hoặc mất liên kết laptop.", "ESP32 dừng khi lệnh từ Pi hết hạn / mất USB. Không tự chạy lại.", "Laptop lập lại từ pose mới đo khi xe đã dừng; xác nhận lượt chạy mới."], RED, "#fff3f2", 25)
+    s.note(1430, 2740, 1270, ["PHÂN BIỆT HIỆN TẠI VỚI MỤC TIÊU", "Phần mềm: mô phỏng; tự tìm ô đỗ trên bản đồ LiDAR, chọn ô trong giao diện.", "Chưa triển khai Pi bám quỹ đạo trên xe.", "Firmware đã bật PWM ESC/servo; chưa có driver MT6701 / BNO085.", "Hình không xác nhận an toàn hay độ chính xác cảm biến."], MUTED, "#f3f7fb", 25)
     return s.save("02-signal-feedback.svg")
 
 
@@ -307,10 +364,10 @@ def charge_sheet():
 
 
 def spec():
-    gpio={"ESC_CTRL":4,"SERVO_CTRL":5}
+    gpio={"ESC_CTRL":4,"SERVO_CTRL":5, **{net: pin for net, _, _, pin, _ in FEEDBACK_SIGNALS}}
     return {
         "schema_version":2,
-        "revision":"pi4_sensors_unwired_v5",
+        "revision":"pi4_sensors_wiring_v6",
         "status":"proposed_not_hardware_verified",
         "date":"-".join(reversed(DESIGN_DATE.split("/"))),
         "catalog_component_kinds":list(CATALOG_KINDS),
@@ -332,9 +389,9 @@ def spec():
         "reference_board":"ESP32-S3-DevKitC-1 N16R8",
         "onboard_computer":{"model":"Raspberry Pi 4 Model B","ram_gb":8,"microSD_gb":64,"hardware_tested":True},
         "feedback_sensors":{
-            "STEER":{"chip":"MT6701","role":"absolute steering angle","module_pins":["VDD","GND","Analog/PWM","SCL","SDA"],"wired":False,"interface":"not chosen (I2C or Analog/PWM)"},
-            "ENC":{"chip":"MT6701","role":"wheel/drivetrain speed and distance","module_pins":["VDD","GND","Analog/PWM","SCL","SDA"],"wired":False,"interface":"not chosen; module has no A/B/MODE/Z pins","note":"same fixed I2C address as STEER: separate bus or Analog/PWM"},
-            "IMU":{"chip":"BNO085","board":"GY-BNO08X","module_pins":["VCC","GND","SCL","SDA","ADO","CS","INT","RST","PS1","PS0"],"wired":False,"interface":"not chosen"},
+            "STEER":{"chip":"MT6701","role":"absolute steering angle","module_pins":["VDD","GND","Analog/PWM","SCL","SDA"],"wired":False,"interface":"I2C controller 0","address_default_7bit":"0x06"},
+            "ENC":{"chip":"MT6701","role":"wheel/drivetrain speed and distance","module_pins":["VDD","GND","Analog/PWM","SCL","SDA"],"wired":False,"interface":"I2C controller 1","address_default_7bit":"0x06","note":"separate bus; no A/B/MODE/Z pins"},
+            "IMU":{"chip":"BNO085","board":"GY-BNO08X","module_pins":["VCC","GND","SCL","SDA","ADO","CS","INT","RST","PS1","PS0"],"wired":False,"interface":"SPI mode 3","note":"SCL=SCK, SDA=MISO, ADO=MOSI, PS1=3V3, PS0=WAKE"},
         },
         "proposed_gpio":gpio,
         "firmware_pwm_env":"esp32s3_16mb_pwm: ESC GPIO4, servo GPIO5",
@@ -351,7 +408,9 @@ def spec():
             {"id":"PI_RETURN","endpoints":["PSPI.vout_minus","PI.power_gnd"],"voltage":"return in Pi power cable"},
             {"id":"HUB_DC","endpoints":["PSHUB.vout_plus","HUB.dc_plus"],"voltage":"as specified by selected powered hub, not assumed","condition":"hub must support dedicated DC input; confirm polarity/current for four cameras and no upstream VBUS backfeed to Pi"},
             {"id":"HUB_RETURN","endpoints":["PSHUB.vout_minus","HUB.dc_minus"],"voltage":"return in hub DC power cable"},
-            {"id":"GND","endpoints":["ESP.gnd","ESC.gnd","SERVO.gnd"],"voltage":"common signal reference; servo power return directly to ESC/BEC, not through ESP32"},
+            {"id":"GND","endpoints":["ESP.gnd","ESC.gnd","SERVO.gnd",*FEEDBACK_GROUND],"voltage":"common signal reference; servo power return directly to ESC/BEC, not through ESP32"},
+            {"id":"SENSOR_3V3","endpoints":["ESP.v3v3",*FEEDBACK_POWER],"voltage":3.3,"condition":"verify module VCC/logic rating and ESP32 regulator load; never connect BEC or 5V"},
+            *({"id":net,"endpoints":[f"ESP.{port}",sensor],"gpio":pin,"voltage":"3.3V logic"} for net,port,sensor,pin,_ in FEEDBACK_SIGNALS),
             {"id":"MOTOR_A","endpoints":["ESC.motor_a","MOTOR.a"],"voltage":"switched motor output; NOT logic GND"},
             {"id":"MOTOR_B","endpoints":["ESC.motor_b","MOTOR.b"],"voltage":"switched motor output; NOT logic GND"},
             {"id":"ESC_CTRL","endpoints":["ESP.esc_pwm","ESC.signal"],"gpio":4,"condition":"bench-tested 2026-11-25, throttle limited to 1375-1625 us"},
@@ -362,7 +421,13 @@ def spec():
                      *[[f"HUB.usb{i}",f"CAM{i}.usb"] for i in range(1,5)]],
         "sensor_cable_links":[["ADAPTER.lidar","C1.connector"]],
         "wireless_links":[{"endpoints":["PC.wifi","PI.wifi"],"medium":"Wi-Fi LAN","electrical_wire":False}],
-        "unwired_components":["STEER","ENC","IMU"],
+        "unwired_components":[],
+        "physically_unverified_components":["STEER","ENC","IMU"],
+        "not_connected_ports":["STEER.out","ENC.out"],
+        "conditional_pullups":[
+            {"nets":["STEER_SDA","STEER_SCL","ENC_SDA","ENC_SCL"],"to":"SENSOR_3V3","ohms_each":4700,"condition":"provide one effective pull-up per line; inspect onboard resistors first; buses remain separate"},
+            {"nets":["IMU_WAKE","IMU_CS","IMU_RST"],"to":"SENSOR_3V3","ohms_each":10000,"condition":"if not already pulled high on module; PS0 and PS1 high through first INT assertion after reset, then PS0 GPIO for wake"},
+        ],
         "internal_links_to_verify":[
             {"endpoints":["ESC.battery_minus","ESC.gnd"],"condition":"ESC signal ground and battery return share the reference; verify actual ESC before wiring"},
             {"endpoints":["PSPI.vin_minus","PSPI.vout_minus"],"condition":"select non-isolated converter; verify common return"},
@@ -373,13 +438,15 @@ def spec():
         "charging_requirements":["battery disconnected from ESC and all vehicle loads","only one battery","B3 2S port only; 3S empty","main T contacts insulated"],
         "omitted_by_user":["emergency_stop","independent_motor_power_cutoff","additional_fuse"],
         "deferred":["ToF"],
-        "unverified":["Pi 4 USB-C supply, cable, voltage drop and USB total load (1.2A limit)","hub model, DC input rating and upstream VBUS backfeed prevention","2S branch harness, converter input range/load transients, voltage drop and heat","four-camera USB/Wi-Fi bandwidth and timestamps","servo load current on the floor (bench only so far)","MT6701/BNO085 wiring, bus and GPIO choice, speed-measurement method and mounting (not wired yet)","adapter mating/polarity and motor stall current","firmware outputs and physical signal timing"],
+        "unverified":["Pi 4 USB-C supply, cable, voltage drop and USB total load (1.2A limit)","hub model, DC input rating and upstream VBUS backfeed prevention","2S branch harness, converter input range/load transients, voltage drop and heat","four-camera USB/Wi-Fi bandwidth and timestamps","servo load current on the floor (bench only so far)","proposed MT6701/BNO085 wiring, module power/pullups, sensor drivers, speed measurement and mounting (not physically wired/tested)","adapter mating/polarity and motor stall current","firmware outputs and physical signal timing"],
     }
 
 
 def validate_spec(data):
     """Catch internal drawing/netlist contradictions; this is not hardware validation."""
-    assert data["proposed_gpio"] == {"ESC_CTRL": 4, "SERVO_CTRL": 5}
+    assert data["proposed_gpio"] == {"ESC_CTRL": 4, "SERVO_CTRL": 5, **{net: pin for net, _, _, pin, _ in FEEDBACK_SIGNALS}}
+    assert len(set(data["proposed_gpio"].values())) == len(data["proposed_gpio"])
+    assert not set(data["proposed_gpio"].values()) & {0, 3, 19, 20, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 45, 46}
     for net in [*data["operating_nets"],*data["charging_nets"],*data["wireless_links"],
                 *data["internal_links_to_verify"],
                 *({"endpoints":x} for x in data["usb_links"]+data["sensor_cable_links"])]:
@@ -402,10 +469,20 @@ def validate_spec(data):
     assert data["components"]["IMU"] == "bno085"
     assert data["onboard_computer"]["ram_gb"] == 8
     assert data["onboard_computer"]["microSD_gb"] == 64
-    # MT6701 x2 và BNO085 chưa đấu nối: không cổng nào của chúng nằm trong net hay liên kết nào.
-    assert data["unwired_components"] == ["STEER", "ENC", "IMU"]
-    linked = [*endpoints, *(p for link in data["usb_links"] + data["sensor_cable_links"] for p in link)]
-    assert not any(p.split(".")[0] in data["unwired_components"] for p in linked)
+    assert not data["unwired_components"]
+    assert all(not sensor["wired"] for sensor in data["feedback_sensors"].values())
+    nets = {net["id"]: net for net in data["operating_nets"]}
+    assert set(nets["SENSOR_3V3"]["endpoints"]) == {"ESP.v3v3", *FEEDBACK_POWER}
+    assert set(FEEDBACK_GROUND) <= set(nets["GND"]["endpoints"])
+    for net, port, sensor, pin, _ in FEEDBACK_SIGNALS:
+        assert nets[net]["endpoints"] == [f"ESP.{port}", sensor]
+        assert nets[net]["gpio"] == pin
+        assert PORT_SPECS["esp32"][port]["label"] == f"GPIO{pin}"
+    for name in ("STEER", "ENC", "IMU"):
+        assert {f"{name}.{p}" for p in PORT_SPECS[data["components"][name]]} == {
+            p for p in endpoints + data["not_connected_ports"] if p.startswith(name + ".")
+        }
+    assert not set(data["not_connected_ports"]) & set(endpoints)
     for name in ("STEER", "ENC"):
         assert set(PORT_SPECS[data["components"][name]]) == {"vdd", "gnd", "out", "scl", "sda"}
     assert len(endpoints) == len(set(endpoints)), "A port must not bridge different operating nets"

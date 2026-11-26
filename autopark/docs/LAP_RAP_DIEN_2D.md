@@ -1,6 +1,6 @@
 # Kết nối điện AutoPark — mục tiêu Laptop, Pi trên xe và ESP32
 
-Ngày cập nhật thiết kế: 26/11/2026. Cấu hình: ESP32-S3-DevKitC-1 N16R8, Hobbywing QuicRun 1060 Brushed giắc T, Raspberry Pi 4 Model B RAM 8 GB, thẻ microSD 64 GB. Hai MT6701 (module 5 chân VDD, GND, Analog/PWM, SCL, SDA) và một BNO085 đã có nhưng **chưa lắp, chưa đấu nối**; cách đấu sẽ chốt khi lắp lên xe. Bản vẽ cũ nối MT6701 #2 qua A/B là sai vì module không có chân A/B. Nguồn Pi/hub, đầu nối và gá còn phải chọn/đo kiểm.
+Ngày cập nhật thiết kế: 26/11/2026. Cấu hình: ESP32-S3-DevKitC-1 N16R8, Hobbywing QuicRun 1060 Brushed giắc T, Raspberry Pi 4 Model B RAM 8 GB, thẻ microSD 64 GB. Hai MT6701 (module 5 chân VDD, GND, Analog/PWM, SCL, SDA) và một BNO085 đã có nhưng **chưa lắp, chưa đấu nối thực tế**; sơ đồ mới đề xuất hai bus I²C độc lập và SPI cho IMU. Bản vẽ cũ nối MT6701 #2 qua A/B là sai vì module không có chân A/B. Nguồn Pi/hub, đầu nối và gá còn phải chọn/đo kiểm.
 
 **Đây là thiết kế kết nối và bản đồ chân đề xuất, chưa phải kết quả lắp chạy trên xe.** Hình dáng motor, cụm lái và bo gốc được đối chiếu với ảnh người dùng. Các linh kiện dự định mua được vẽ theo hình dáng tham chiếu; vị trí chân trên module cảm biến, đầu nối servo và điện áp servo vẫn cần đối chiếu với hàng thực nhận. Màu cam/nét đứt chỉ phần chờ xác minh, không phải dây đã được phép cấp điện.
 
@@ -10,17 +10,17 @@ Ngày cập nhật thiết kế: 26/11/2026. Cấu hình: ESP32-S3-DevKitC-1 N16
 
 ## Bảng linh kiện và ba bản vẽ
 
-Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các chân — SVG](hardware/wiring-v1/00-components.svg) hoặc [PNG](hardware/wiring-v1/00-components.png?v=a05ccfffc361).
+Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các chân — SVG](hardware/wiring-v1/00-components.svg) hoặc [PNG](hardware/wiring-v1/00-components.png?v=0c99078718ba).
 
-1. [Kết nối tổng thể — SVG](hardware/wiring-v1/01-system.svg) · [PNG](hardware/wiring-v1/01-system.png?v=dabc0300dad4).
-2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png?v=dcacd80e9f21).
-3. [Sạc pin tách khỏi xe — SVG](hardware/wiring-v1/03-charging.svg) · [PNG](hardware/wiring-v1/03-charging.png?v=26de4b2acaab).
+1. [Kết nối tổng thể — SVG](hardware/wiring-v1/01-system.svg) · [PNG](hardware/wiring-v1/01-system.png?v=ac7472bcd97c).
+2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png?v=82bd3e2dbe5c).
+3. [Sạc pin tách khỏi xe — SVG](hardware/wiring-v1/03-charging.svg) · [PNG](hardware/wiring-v1/03-charging.png?v=aecc2af97ca9).
 
-![Kết nối tổng thể](hardware/wiring-v1/01-system.png?v=dabc0300dad4)
+![Kết nối tổng thể](hardware/wiring-v1/01-system.png?v=ac7472bcd97c)
 
-![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png?v=dcacd80e9f21)
+![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png?v=82bd3e2dbe5c)
 
-![Sạc pin tách khỏi xe](hardware/wiring-v1/03-charging.png?v=26de4b2acaab)
+![Sạc pin tách khỏi xe](hardware/wiring-v1/03-charging.png?v=aecc2af97ca9)
 
 ## Những bộ phận được giữ và thay
 
@@ -35,7 +35,7 @@ Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các ch�
 | Motor 280–60T trên xe | Giữ motor và truyền động hiện có |
 | Cụm lái gốc nối ba dây | Giữ; đã chạy bằng GPIO5 và BEC 6 V của ESC trên bàn thử (24–25/11/2026) |
 | MT6701 #1 — góc lái | Module 5 chân (VDD, GND, Analog/PWM, SCL, SDA); **chưa lắp, chưa đấu nối** |
-| MT6701 #2 — tốc độ | Module 5 chân giống #1, không có chân A/B; **chưa lắp, chưa đấu nối**; cách đo tốc độ chốt khi lắp |
+| MT6701 #2 — tốc độ | Module 5 chân giống #1, không có chân A/B; I²C riêng để suy ra tốc độ từ góc trục/bánh; **chưa lắp, chưa đấu nối thực tế** |
 | BNO085 (GY-BNO08X) | IMU đo góc quay thân xe; **chưa lắp, chưa đấu nối** |
 | LiDAR C1, adapter USB, bốn camera và hub | C1 → adapter USB → Pi; bốn camera USB → hub → Pi. Hub cũ chưa xác minh DC-in, cần chọn hub có nguồn phù hợp nếu không đạt; phải hiệu chuẩn và đo vị trí gá |
 | Pin LiPo 2S 7,4 V, 1.500 mAh, giắc T | Pin dự định dùng; tối đa 8,4 V khi đầy, kích thước phải vừa xe |
@@ -72,24 +72,37 @@ Các số J1 dưới đây đối chiếu header DevKitC-1 chính thức. Hình 
 |---|---|---|---|---|
 | `ESC_CTRL` | GPIO4 | J1-4 | Signal của giắc điều khiển ESC | Đã chạy trên bàn thử 25/11/2026 |
 | `SERVO_CTRL` | GPIO5 | J1-5 | Signal của servo | Đã chạy trên bàn thử 25/11/2026 |
-| Cảm biến MT6701 / BNO085 | Chưa gán | — | — | Chốt khi lắp |
+| Nguồn cảm biến | 3V3 | J1-1 hoặc J1-2 | VDD của hai MT6701, VCC và PS1 của BNO085 | Đề xuất |
+| I²C 0 SDA/SCL | GPIO6 / GPIO7 | J1-6 / J1-7 | MT6701 #1 SDA/SCL | Đề xuất |
+| I²C 1 SDA/SCL | GPIO8 / GPIO9 | J1-12 / J1-15 | MT6701 #2 SDA/SCL | Đề xuất |
+| SPI CS | GPIO10 | J1-16 | BNO085 CS | Đề xuất |
+| SPI MOSI | GPIO11 | J1-17 | BNO085 ADO | Đề xuất |
+| SPI SCK | GPIO12 | J1-18 | BNO085 SCL | Đề xuất |
+| SPI MISO | GPIO13 | J1-19 | BNO085 SDA | Đề xuất |
+| Ngắt | GPIO14 | J1-20 | BNO085 INT | Đề xuất |
+| Reset | GPIO15 | J1-8 | BNO085 RST | Đề xuất |
+| Chọn SPI/WAKE | GPIO16 | J1-9 | BNO085 PS0 (pull-up) | Đề xuất |
 | Tham chiếu logic | GND | J1-22 | GND chung | Đối chiếu thông mạch khi chưa cấp nguồn |
 
 GPIO4/5 là lựa chọn chân của firmware AutoPark (env `esp32s3_16mb_pwm`). Firmware phải cấu hình chúng tương ứng. Không dùng GPIO19/20 cho các tín hiệu trên vì dành cho USB native; không dùng chân strapping hoặc chân bộ nhớ của biến thể N16R8 trong bảng này.
 
-## MT6701 và BNO085: chưa đấu nối
+## MT6701 và BNO085: đấu nối đề xuất
 
-Ba module dưới đây đã có nhưng **chưa gá lên xe và chưa nối vào ESP32** (26/11/2026). Bản vẽ không vẽ dây nào cho chúng. Cách đấu (bus I²C hay Analog/PWM, chân GPIO, cách đo tốc độ) sẽ chốt khi lắp.
+Ba module dưới đây đã có nhưng **chưa gá lên xe và chưa nối vào ESP32 thực tế** (26/11/2026). Tờ 02 thể hiện sơ đồ chuẩn bị đi dây. Các nhãn trùng nhau ở ESP32 và module biểu thị một kết nối điện; chia nhánh nguồn 3V3 và GND chung cho cả ba bo.
 
 | Module | Chân theo chữ in trên bo thật | Ghi chú |
 |---|---|---|
-| MT6701 #1 — góc lái | `VDD`, `GND`, `Analog/PWM`, `SCL`, `SDA` (một hàng 5 chân J1) | Nam châm trụ hai cực đặt đồng trục với IC `U1` |
-| MT6701 #2 — tốc độ | Giống #1 | Module **không có chân A/B, MODE hay Z**: không đếm xung A/B được như bản vẽ cũ. Hai module cùng địa chỉ I²C cố định, nên không chung một bus I²C; dùng bus thứ hai của ESP32-S3 hoặc ngõ Analog/PWM |
-| BNO085 (bo GY-BNO08X) | `VCC`, `GND`, `SCL`, `SDA`, `ADO`, `CS`, `INT`, `RST`, `PS1`, `PS0` | Gắn cố định lên khung khi lắp |
+| MT6701 #1 — góc lái | VDD → 3V3; GND → GND; Analog/PWM → không nối; SCL → GPIO7; SDA → GPIO6 | I²C controller 0, địa chỉ mặc định 0x06 |
+| MT6701 #2 — tốc độ | VDD → 3V3; GND → GND; Analog/PWM → không nối; SCL → GPIO9; SDA → GPIO8 | I²C controller 1, địa chỉ mặc định 0x06; không nối chung SDA/SCL với #1 |
+| BNO085 (bo GY-BNO08X) | VCC → 3V3; GND → GND; SCL → GPIO12; SDA → GPIO13; ADO → GPIO11; CS → GPIO10; INT → GPIO14; RST → GPIO15; PS1 → 3V3; PS0 → GPIO16 | SPI mode 3; gắn cố định lên khung |
+
+- **MT6701:** hai bus riêng dùng địa chỉ mặc định 7 bit `0x06` mà không cần ghi EEPROM. Mỗi bus cần một cặp pull-up SDA/SCL lên 3V3 (khoảng 4,7 kΩ nếu bo chưa có); kiểm điện trở có sẵn trước khi thêm. Không nối Analog/PWM.
+- **BNO085:** ưu tiên SPI vì đã ghi nhận vấn đề tương thích I²C trên ESP32-S3. Theo pinout BNO08X, chân in ADO (AD0) là MOSI, SDA là MISO, SCL là SCK. PS1 nối 3V3, PS0/WAKE nối GPIO16 và kéo lên 3V3 qua 10 kΩ nếu bo chưa có pull-up. PS0 và PS1 phải ở mức cao từ trước reset đến hết lần INT đầu tiên; kiểm cấu hình điện trở kéo sẵn trên module (nếu có pull-down cần bảo đảm lại mức cao, không mắc thêm pull-up cùng trị số rồi mặc định là mức cao). Sau đó PS0 có thể điều khiển WAKE mức thấp. Giữ CS/RST ở mức cao khi khởi động (pull-up 10 kΩ nếu thiếu); INT và RST tích cực mức thấp. Không kéo pad BOOT xuống GND khi khởi động thường.
+- **Nguồn:** tháo pin ESC trước khi đi dây. Cấp ESP32 qua USB, kiểm GND chung, điện áp 3V3 và khả năng cấp dòng của bo; đối chiếu sơ đồ/chân thực của GY-BNO08X và các điện trở trên module. Không cấp 5 V hoặc BEC 6 V vào cảm biến hay GPIO. Thử lần lượt từng module khi chưa nối động lực.
 
 Bản vẽ trước ngày 26/11/2026 nối MT6701 #1 vào GPIO6/7 với MODE, Z/CSN lên 3V3, và MT6701 #2 vào GPIO8/9 theo A/B với MODE về GND. Cách nối đó không khớp module thực nhận và đã bỏ.
 
-Tham chiếu: [MagnTek MT6701 Rev.1.8](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf). Nguồn Pi/USB: [Raspberry Pi — phần cứng và nguồn](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html).
+Tham chiếu: [MagnTek MT6701 Rev.1.8, mục 7.7](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf#page=20), [CEVA BNO08X, mục 1.2.4](https://www.ceva-ip.com/wp-content/uploads/BNO080_085-Datasheet.pdf#page=18), [ESP32-S3-DevKitC-1 — bảng chân Espressif](https://docs.espressif.com/projects/esp-idf/en/v4.4.3/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1.html), [ghi nhận tương thích BNO085/ESP32-S3 I²C](https://github.com/adafruit/Adafruit_CircuitPython_BNO08x/issues/53). Nguồn Pi/USB: [Raspberry Pi — phần cứng và nguồn](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html).
 
 ## Các giắc dễ nhầm
 
@@ -152,7 +165,7 @@ Không coi giắc cân bằng ba chân là SM3P nguồn chỉ vì có cùng số
 - [Hobbywing — QuicRun 1060 Brushed](https://www.hobbywingdirect.com/products/quicrun-10-brushed-esc): giắc T, motor chổi than, nguồn 2S/3S và BEC 6 V/3 A của model được công bố.
 - [Hobbywing — hướng dẫn 1625/1060/860](https://www.hobbywing.com/en/uploads/file/20240315/e8525a6a27f4e1dcbe3af554c06deac0.pdf): dây motor/nguồn, chế độ F/R và thao tác hiệu chuẩn. Chưa tìm thấy ngưỡng đầu vào chứng minh 3,3 V cho chiếc ESC thực nhận.
 - [B3 Pro — hướng dẫn của imaxRC, bản lưu tại RC Factory](https://www.rc-factory.cz/assets/docs/da21c8a03bc75ae73c4b5362c3acef7c/1321-1/b3-pro-manual.pdf): hai cổng cân bằng 2S/3S và dòng công bố. Tên trên gian hàng không tự xác nhận chất lượng chiếc sạc.
-- [MagnTek — MT6701](https://www.magntek.com.cn/136/108) và [datasheet Rev1.8](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf): cảm biến góc từ, các kiểu đầu ra và PPR theo biến thể; module, nam châm, chế độ và gá của dự án chưa chốt.
+- [MagnTek — MT6701](https://www.magntek.com.cn/136/108) và [datasheet Rev1.8](https://www.magntek.com.cn/upload/pdf/202407/MT6701_Rev.1.8.pdf): cảm biến góc từ, các kiểu đầu ra và PPR theo biến thể; module 5 chân dùng hai bus I²C riêng theo thiết kế, nam châm và gá vẫn chờ thử thực tế.
 - [SLAMTEC — RPLIDAR C1](https://www.slamtec.com/en/c1/spec): giao tiếp của cảm biến; hệ thống này dùng adapter USB hiện có.
 - Ảnh xe người dùng tại thư mục `ảnh mạch/`: xác nhận nhãn 280–60T, bo XL1986RT và vị trí cụm lái. Ảnh gốc không được nhúng vào bản vẽ hay tự đưa lên GitHub.
 

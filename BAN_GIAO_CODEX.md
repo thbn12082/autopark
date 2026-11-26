@@ -104,6 +104,12 @@ Khi có ảnh và danh sách lần đặt đã đo, chạy bộ giải từ cùn
 
 Sau lượt đạt, dùng `solve --out configs/rig/camera_rig_extrinsics_v1.json` để ghi ngoại tham. Khi bổ sung cổng tiếp theo, dùng cùng tệp v1 làm `--base` và `--out`, thêm `--overwrite` để bộ giải giữ các cổng đã đo và sao lưu bản trước. Dùng `extrinsics_calib check` để đọc lại v1 và đối chiếu bốn cổng. `runs/` là dữ liệu cục bộ gồm ảnh, phép đo và báo cáo. Khi chuyển máy, chuyển thư mục phiên cần thiết cùng tệp cấu hình.
 
+## Sơ đồ đấu cảm biến ngày 26/11/2026 (đề xuất chưa thử)
+
+- Hai module MT6701 5 chân: I²C 0 SDA GPIO6/SCL GPIO7 cho góc lái; I²C 1 SDA GPIO8/SCL GPIO9 cho tốc độ. VDD 3V3, GND chung, Analog/PWM không nối.
+- BNO085 GY-BNO08X: SPI CS GPIO10, ADO/MOSI GPIO11, SCL/SCK GPIO12, SDA/MISO GPIO13, INT GPIO14, RST GPIO15, PS0/WAKE GPIO16 (pull-up), PS1 3V3, VCC 3V3, GND chung.
+- [Tờ 02 và bảng chân](autopark/docs/LAP_RAP_DIEN_2D.md) thay cách đấu A/B ở mục lịch sử bên dưới. Chưa nối phần cứng hay triển khai driver.
+
 ## Chốt linh kiện ngày 14/11/2026 (lịch sử)
 
 - Máy tính trên xe: **Raspberry Pi 4 Model B, RAM 4 GB; microSD 64 GB**.

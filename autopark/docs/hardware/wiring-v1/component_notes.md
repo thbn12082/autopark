@@ -26,12 +26,12 @@ component_catalog_svg() -> str
 | Motor 280–60T | Ảnh xe thật, file kết thúc `e21cdef01d0662a6967b24660e555dde.jpg` | Giắc trắng hai chân phía motor chưa xác định tên/chuẩn chính xác; A/B là tên hai đường motor, không phải bảo đảm chiều tiến |
 | Cụm lái ba dây | Ảnh toàn xe, file kết thúc `8b01c57c48141e46baf637dc70e85de5.jpg` | Hình servo minh họa vị trí vỏ/horn/cáp; điện áp, model, thứ tự chân và tầm xung thực chưa được xác minh |
 | XL1986RT | Ảnh trực tiếp mặt linh kiện của bo gốc | Chỉ để nhận dạng bo được thay chức năng, không nối nó song song với ESC mới |
-| ESP32-S3 DevKitC-1 | Bố cục bo và bảng J1/J3 trong tài liệu Espressif v1.0 | Mã N16R8 được người dùng xác nhận qua câu trả lời; chưa có ảnh rõ revision và silk của bo thực. Firmware AutoPark dùng GPIO4 (ESC) và GPIO5 (servo), đã chạy trên bàn thử 25/11/2026; chưa gán chân cho cảm biến |
+| ESP32-S3 DevKitC-1 | Bố cục bo và bảng J1/J3 trong tài liệu Espressif v1.0 | Mã N16R8 được người dùng xác nhận qua câu trả lời; chưa có ảnh rõ revision và silk của bo thực. Firmware AutoPark dùng GPIO4 (ESC) và GPIO5 (servo), đã chạy trên bàn thử 25/11/2026; GPIO6–16 đề xuất cho cảm biến chưa thử thực tế |
 | ESC 1060 Brushed | Hình dạng ESC 1060: tản nhiệt có cánh, tụ, công tắc, dây RC và hai đầu motor | SKU/hàng shop vẫn cần đối chiếu; không suy ra mức BEC hoặc mức logic chỉ từ hình dáng. Nguồn BEC 6 V chỉ tới servo (đã chạy trên bàn thử 24/11/2026); không tới ESP32 |
 | Pin LiPo 2S | Pack chữ nhật với dây nguồn T và nhánh cân bằng ba dây | Chưa mua/chưa có ảnh pin thực; kích thước chỉ minh họa, không khẳng định vừa khay xe |
 | B3 Pro | Vỏ hộp, ba LED, ổ AC và cổng 2S/3S theo hướng dẫn B3 Pro | Vị trí cổng có thể khác theo phiên bản; luôn đọc nhãn 2S trên sạc. B−/BM/B+ trên hình là thứ tự điện chức năng, không xác nhận hướng nhìn vào giắc của hàng mua |
 | Hai MT6701 (#1 góc lái / #2 tốc độ) | Ảnh module thực nhận (`docs/images/mt6701-mat-truoc.jpg`, `mt6701-mat-sau.jpg`): bo đen vuông, 4 lỗ vít, IC U1 SOIC-8, R1, R2, C1, một hàng 5 chân J1 | Chữ chân theo chữ in mặt sau: VDD, GND, Analog/PWM, SCL, SDA. Không có chân MODE, Z hay A/B. **Chưa lắp, chưa đấu nối** |
-| BNO085 (GY-BNO08X) | Ảnh bo (`docs/images/gy-bno08x-imu.jpg`): bo tím, hai lỗ vít, hàng 10 chân, nút BOOT | Chữ chân: VCC, GND, SCL, SDA, ADO, CS, INT, RST, PS1, PS0. **Chưa lắp, chưa đấu nối** |
+| BNO085 (GY-BNO08X) | Ảnh bo (`docs/images/gy-bno08x-imu.jpg`): bo tím, hai lỗ vít, hàng 10 chân, pad BOOT | Chữ chân: VCC, GND, SCL, SDA, ADO, CS, INT, RST, PS1, PS0. **Chưa lắp, chưa đấu nối** |
 | LiDAR C1 | Đầu quét tròn trên đế vuông có góc bo tròn | Dùng nguyên cáp C1 và adapter USB tương ứng; hình không diễn giải từng chân riêng của cáp |
 | Hub / camera / máy tính | Hình tham chiếu chung, giữ phong cách vector cũ | Laptop chỉ nối Wi-Fi với Pi; bốn camera qua hub tới Pi. Hub cũ chưa xác minh DC-in; chọn hub có nguồn phù hợp và kiểm không cấp ngược VBUS về Pi |
 | Raspberry Pi | PCB xanh, SoC, hàng chân và cổng USB để nhận dạng loại máy tính đơn bo | Pi 4 Model B RAM 8 GB, microSD 64 GB. Mốc USB/nguồn là chức năng, không khẳng định vị trí cổng của Pi cụ thể; cấp nguồn qua cổng đúng model, không suy ra cấp qua header GPIO |
@@ -45,9 +45,14 @@ Mặt trước bo, anten phía trên và USB phía dưới; dãy J1 nằm bên t
 |---|---|---:|
 | ESC_CTRL | GPIO4 | 4 |
 | SERVO_CTRL | GPIO5 | 5 |
+| Nguồn cảm biến | 3V3 | 1 hoặc 2 |
+| MT6701 #1 SDA/SCL | GPIO6/GPIO7 | 6/7 |
+| MT6701 #2 SDA/SCL | GPIO8/GPIO9 | 12/15 |
+| BNO085 CS/MOSI/SCK/MISO | GPIO10/11/12/13 | 16/17/18/19 |
+| BNO085 INT/RST/PS0 | GPIO14/15/16 | 20/8/9 |
 | GND chung | GND | 22 |
 
-Chân cho MT6701 và BNO085 chưa gán: chốt khi lắp.
+Xem [bảng đấu dây và pull-up](../../LAP_RAP_DIEN_2D.md#mt6701-và-bno085-đấu-nối-đề-xuất). BNO085 PS1 nối 3V3; Analog/PWM của hai MT6701 không nối.
 
 Hai đầu USB phải nhận dạng theo silk/chức năng trên bo thật. Cổng native USB đi tới USB của ESP32-S3, còn USB–UART đi qua chip cầu USB/UART. Không hoán đổi tên chỉ dựa vào kiểu đầu micro-USB/USB-C hoặc vị trí trên một bo sao chép.
 
