@@ -20,7 +20,8 @@ Phần mềm (chạy trong mô phỏng)
 ├── nút "Tìm ô đỗ", bấm chọn ô ......... autopark/ui/slot_picker.py
 ├── chạy kín quét → tìm ô → đỗ ......... autopark/simulation/slot_run.py
 ├── xe đo thật ......................... configs/vehicle_measured.json (góc lái, tốc độ còn giả định)
-└── nút "Ghi LiDAR" trên cửa sổ Pi ..... autopark/ui/remote_sensor_view.py → runs/lidar_pi/
+├── nút "Ghi LiDAR" trên cửa sổ Pi ..... autopark/ui/remote_sensor_view.py → runs/lidar_pi/
+└── thẻ "3D quanh xe" (trang Quan sát Pi) autopark/perception/surround_3d.py, ui/surround_3d_panel.py
 
 Hiệu chuẩn camera
 ├── nội tham 4 camera đạt ............. calibration/cam_p1..p4.json

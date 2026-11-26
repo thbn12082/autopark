@@ -1,0 +1,253 @@
+"""Thẻ "3D quanh xe" (thêm 26/11/2026): cảnh 3D từ bốn camera, kéo chuột để xoay, lăn để phóng to.
+
+Dựng hình chạy ở một luồng nền (`perception.surround_3d.Surround3DRenderer`). Khi kéo chuột, bảng tra dựng ở nửa độ phân
+giải cho mượt; thả chuột thì dựng lại bản nét. Chưa có ảnh từ Pi thì hiện **cảnh mẫu** (sa bàn tổng hợp) để xem thử.
+"""
+from __future__ import annotations
+
+from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import replace
+import threading
+import time
+
+import numpy as np
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QPainter, QPixmap
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+
+from autopark.ui import theme
+
+LIVE_TIMEOUT_S = 1.5          # quá chừng này không có ảnh mới từ Pi thì quay về cảnh mẫu
+FRAME_INTERVAL_S = 0.10       # tối đa 10 khung/giây
+DRAG_QUALITY = 0.5
+
+
+def _make_renderer():
+    from autopark.perception.surround_3d import Surround3DRenderer
+    return Surround3DRenderer()
+
+
+class _Canvas(QWidget):
+    """Vẽ ảnh mới nhất giữ tỷ lệ; báo kéo chuột và lăn chuột."""
+
+    dragged = Signal(float, float)       # dx, dy (pixel) từ lúc nhấn
+    pressed = Signal()
+    released = Signal()
+    wheeled = Signal(float)              # số nấc lăn (dương = lăn ra xa)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMinimumSize(420, 280)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        self.pixmap: QPixmap | None = None
+        self._start: QPointF | None = None
+
+    def present(self, pixmap: QPixmap) -> None:
+        self.pixmap = pixmap
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(theme.BG))
+        if self.pixmap is not None:
+            scale = min(self.width() / self.pixmap.width(), self.height() / self.pixmap.height())
+            w, h = self.pixmap.width() * scale, self.pixmap.height() * scale
+            target = QRectF((self.width() - w) / 2, (self.height() - h) / 2, w, h)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+            painter.drawPixmap(target, self.pixmap, QRectF(self.pixmap.rect()))
+        else:
+            painter.setPen(QColor(theme.TEXT_DIM))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Đang dựng cảnh 3D…")
+        painter.end()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._start = event.position()
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            self.pressed.emit()
+
+    def mouseMoveEvent(self, event):
+        if self._start is not None:
+            delta = event.position() - self._start
+            self.dragged.emit(delta.x(), delta.y())
+
+    def mouseReleaseEvent(self, event):
+        if self._start is not None and event.button() == Qt.MouseButton.LeftButton:
+            self._start = None
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+            self.released.emit()
+
+    def wheelEvent(self, event):
+        self.wheeled.emit(-event.angleDelta().y() / 120.0)
+
+
+class Surround3DPanel(QWidget):
+    """Cảnh 3D quanh xe. `submit(frames, overlays)` khi có ảnh mới; không gọi thì hiện cảnh mẫu."""
+
+    rendered = Signal(bool, bool)        # (đang xem thử gá giả định, đang dùng cảnh mẫu)
+    _completed = Signal(object)
+
+    def __init__(self, parent=None, *, renderer_factory=None, clock=time.monotonic):
+        super().__init__(parent)
+        from autopark.perception.surround_3d import PRESETS
+
+        self._presets = PRESETS
+        self.notice = QLabel("Đang chuẩn bị cảnh 3D…")
+        self.notice.setWordWrap(True)
+        self.notice.setStyleSheet(f"color: {theme.TEXT_DIM}; padding: 4px 2px;")
+        self.preset_buttons: dict[str, QPushButton] = {}
+        row = QHBoxLayout()
+        row.setSpacing(6)
+        for key, (label, _view) in PRESETS.items():
+            button = QPushButton(label)
+            button.clicked.connect(lambda _checked=False, k=key: self.use_preset(k))
+            self.preset_buttons[key] = button
+            row.addWidget(button)
+        row.addStretch(1)
+        hint = QLabel("Kéo chuột để xoay · lăn để phóng to")
+        hint.setStyleSheet(f"color: {theme.TEXT_FAINT};")
+        row.addWidget(hint)
+        self.canvas = _Canvas(self)
+        self.canvas.pressed.connect(self._drag_start)
+        self.canvas.dragged.connect(self._drag)
+        self.canvas.released.connect(self._drag_end)
+        self.canvas.wheeled.connect(self._zoom)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+        layout.addWidget(self.notice)
+        layout.addLayout(row)
+        layout.addWidget(self.canvas, 1)
+
+        self.clock = clock
+        self.view = PRESETS["sau_phai"][1]
+        self.quality = 1.0
+        self._drag_from = None
+        self._renderer_factory = renderer_factory or _make_renderer
+        self._renderer = None
+        self._demo = None
+        self._frames: dict[int, np.ndarray] = {}
+        self._overlays = None
+        self._live_at: float | None = None
+        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="autopark-3d")
+        self._closed = threading.Event()
+        self._active: Future | None = None
+        self._dirty = True
+        self._last_start = -1e9
+        self.using_demo = True
+        self._timer = QTimer(self)
+        self._timer.setInterval(int(FRAME_INTERVAL_S * 1000))
+        self._timer.timeout.connect(self._tick)
+        self._completed.connect(self._finish, Qt.ConnectionType.QueuedConnection)
+        self._timer.start()
+
+    # ------------------------------------------------------------------ đầu vào
+    def submit(self, frames: dict[int, np.ndarray], overlays=None) -> None:
+        """Ảnh mới từ Pi (cổng → BGR 640×480) và lớp vẽ chồng (`surround_3d.Overlays`)."""
+        if frames:
+            self._frames = dict(frames)
+            self._live_at = self.clock()
+        if overlays is not None:
+            self._overlays = overlays
+        self._dirty = True
+
+    def use_preset(self, key: str) -> None:
+        self.view = self._presets[key][1]
+        self.quality = 1.0
+        self._dirty = True
+
+    def set_view(self, view, quality: float = 1.0) -> None:
+        self.view = view.clamped()
+        self.quality = quality
+        self._dirty = True
+
+    def _drag_start(self):
+        self._drag_from = self.view
+
+    def _drag(self, dx, dy):
+        if self._drag_from is None:
+            return
+        base = self._drag_from
+        self.set_view(replace(base, azimuth_deg=base.azimuth_deg - 0.4 * dx,
+                              elevation_deg=base.elevation_deg + 0.3 * dy), DRAG_QUALITY)
+
+    def _drag_end(self):
+        self._drag_from = None
+        self.set_view(self.view, 1.0)
+
+    def _zoom(self, steps):
+        self.set_view(replace(self.view, distance_m=self.view.distance_m * (1.1 ** steps)), 1.0)
+
+    # ------------------------------------------------------------------ dựng nền
+    def _tick(self):
+        live = self._live_at is not None and self.clock() - self._live_at <= LIVE_TIMEOUT_S
+        if live == self.using_demo:            # đổi giữa ảnh thật và cảnh mẫu
+            self._dirty = True
+        if self._closed.is_set() or self._active is not None or not self._dirty or not self.isVisible():
+            return
+        self._dirty = False
+        self._last_start = self.clock()
+        job = (self.view.scaled(self.quality) if self.quality < 1.0 else self.view,
+               dict(self._frames) if live else None, self._overlays)
+        self._active = self._executor.submit(self._render, *job)
+        self._active.add_done_callback(self._notify)
+
+    def _render(self, view, frames, overlays):
+        from autopark.perception import surround_3d as s3
+        from autopark.ui.rig_app import to_qimage
+        if self._renderer is None:
+            self._renderer = self._renderer_factory()
+        r = self._renderer
+        if r.view is None or r.view != replace(view, target=r.view.target):
+            r.set_view(view)
+        demo = frames is None
+        if demo:
+            if self._demo is None:
+                self._demo = s3.demo_frames(r.cameras)
+            frames = self._demo
+        image = r.render(frames, overlays)
+        return to_qimage(np.ascontiguousarray(image)), r.is_preview, demo, r.notice
+
+    def _notify(self, future):
+        if not self._closed.is_set():
+            try:
+                self._completed.emit(future)
+            except RuntimeError:
+                pass
+
+    def _finish(self, future):
+        if future is not self._active:
+            return
+        self._active = None
+        if self._closed.is_set():
+            return
+        try:
+            image, is_preview, demo, notice = future.result()
+        except Exception as exc:  # noqa: BLE001 - báo lỗi dựng hình trong giao diện
+            self.notice.setText(f"Lỗi dựng cảnh 3D: {' '.join(str(exc).split())[:200]}")
+            return
+        self.using_demo = demo
+        parts = ["Cảnh mẫu (sa bàn tổng hợp, chưa có ảnh từ Pi)" if demo else "Ảnh trực tiếp từ Pi", notice]
+        self.notice.setText(" · ".join(p for p in parts if p))
+        self.notice.setStyleSheet(f"color: {theme.WARN if (is_preview or demo) else theme.TEXT_DIM}; padding: 4px 2px;")
+        self.canvas.present(QPixmap.fromImage(image))
+        self.rendered.emit(is_preview, demo)
+
+    def wait_idle(self, timeout: float = 30.0) -> bool:
+        """Chờ lần dựng đang chạy xong (cho test)."""
+        future = self._active
+        if future is None:
+            return True
+        future.result(timeout)
+        return True
+
+    def shutdown(self) -> None:
+        if not self._closed.is_set():
+            self._closed.set()
+            self._timer.stop()
+            self._executor.shutdown(wait=False, cancel_futures=True)
+
+    def closeEvent(self, event):
+        self.shutdown()
+        super().closeEvent(event)

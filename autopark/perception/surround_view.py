@@ -78,18 +78,28 @@ def _view_map(camera, x, y, ground, outside_body, preview):
     return _View(*maps, np.where(valid, weights, 0).astype(np.float32))
 
 
+BODY = _BODY                     # hộp thân xe đo thật (hệ xe, gốc tâm trục sau), dùng chung với khung 3D
+
+
+def display_cameras(*, extrinsics_path=_MEASURED_RIG, calibration_dir=bev.DEFAULT_CALIBRATION_DIR,
+                    roi_dir=_ROI_DIR) -> tuple[dict, bool, str]:
+    """Bốn camera để hiển thị: (camera theo cổng, đang xem thử?, lời báo).
+
+    Đủ bốn camera đã đo ngoại tham và đạt nội tham thì dùng chúng. Không thì xem thử bằng gá giả định ở mép thân xe."""
+    cameras = _measured_cameras(extrinsics_path, calibration_dir, roi_dir)
+    if cameras:
+        return cameras, False, "Hình chiếu mặt sàn đã hiệu chuẩn. Vật cao có thể bị méo."
+    try:
+        return _preview_cameras(), True, "Hình chiếu ước lượng, chưa hiệu chuẩn đủ bốn camera."
+    except (bev.RigConfigError, ValueError, TypeError, AttributeError):
+        return {}, True, "Không đọc được cấu hình hình chiếu."
+
+
 class SurroundViewRenderer:
     def __init__(self, *, extrinsics_path=_MEASURED_RIG, calibration_dir=bev.DEFAULT_CALIBRATION_DIR,
                  roi_dir=_ROI_DIR):
-        cameras = _measured_cameras(extrinsics_path, calibration_dir, roi_dir)
-        self.is_preview = not cameras
-        self.notice = "Hình chiếu mặt sàn đã hiệu chuẩn. Vật cao có thể bị méo."
-        if self.is_preview:
-            self.notice = "Hình chiếu ước lượng, chưa hiệu chuẩn đủ bốn camera."
-            try:
-                cameras = _preview_cameras()
-            except (bev.RigConfigError, ValueError, TypeError, AttributeError):
-                self.notice = "Không đọc được cấu hình hình chiếu."
+        cameras, self.is_preview, self.notice = display_cameras(
+            extrinsics_path=extrinsics_path, calibration_dir=calibration_dir, roi_dir=roi_dir)
 
         offset = (np.arange(_CANVAS_SIZE) + 0.5 - _CANVAS_SIZE / 2) * (_GROUND_WIDTH_M / _CANVAS_SIZE)
         y, x = np.meshgrid(-offset, _CENTER_X - offset)

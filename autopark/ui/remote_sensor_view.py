@@ -23,6 +23,7 @@ from autopark.rig.remote_view_link import RemoteSensorLink
 from autopark.ui import theme
 from autopark.ui.rig_app import CameraTile, to_qimage, write_image
 from autopark.ui.scan_view import ScanView
+from autopark.ui.surround_3d_panel import Surround3DPanel
 from autopark.ui.surround_view_panel import SurroundViewPanel
 
 
@@ -55,6 +56,8 @@ class RemoteSensorWindow(QMainWindow):
         self.last_event = None
         self.tabs = None
         self.bird_eye = None
+        self.surround_3d = None
+        self._lidar_mount = None
         self._bev_sequences = None
         self._bev_logged = False
 
@@ -185,6 +188,8 @@ class RemoteSensorWindow(QMainWindow):
             self.tabs = QTabWidget()
             self.tabs.addTab(camera_page, "Camera và C1")
             self.tabs.addTab(self.bird_eye, "Nhìn từ trên (BEV)")
+            self.surround_3d = Surround3DPanel()
+            self.tabs.addTab(self.surround_3d, "3D quanh xe")
             self.tabs.currentChanged.connect(self._change_tab)
             layout.addWidget(self.tabs, 1)
         else:
@@ -464,6 +469,22 @@ class RemoteSensorWindow(QMainWindow):
         if frames:
             self.bird_eye.submit(frames)
 
+    def _refresh_3d(self, view, camera_fresh, scan_fresh):
+        """Thẻ 3D quanh xe: ảnh camera còn mới và điểm LiDAR (gá theo configs/dinh_vi_lidar_v0.json)."""
+        if self.tabs is None or self.surround_3d is None or self.tabs.currentWidget() is not self.surround_3d:
+            return
+        from autopark.perception import surround_3d as s3
+        frames = {index: sample.frame for index, (sample, fresh) in enumerate(zip(view.cameras, camera_fresh), 1)
+                  if fresh}
+        lidar = None
+        if scan_fresh:
+            if self._lidar_mount is None:
+                from autopark.lidar.pose_config import load_lidar_pose_config
+                self._lidar_mount = load_lidar_pose_config().mount
+            lidar = s3.scan_to_vehicle(view.scan, self._lidar_mount)
+        height = self._lidar_mount.z_m if self._lidar_mount is not None and self._lidar_mount.z_m else s3.LIDAR_HEIGHT_M
+        self.surround_3d.submit(frames, s3.Overlays(lidar_xy=lidar, lidar_z=height))
+
     def _record_bev_frame(self, camera_count, is_preview):
         if camera_count == self.camera_count and not self._bev_logged:
             self._bev_logged = True
@@ -487,6 +508,7 @@ class RemoteSensorWindow(QMainWindow):
         self._refresh_bev(view.cameras, camera_fresh)
         scan_fresh = (is_active and view.scan is not None and view.scan_at is not None
                       and 0 <= now - view.scan_at <= DISPLAY_STALE_S)
+        self._refresh_3d(view, camera_fresh, scan_fresh)
 
         recording = self.lidar_record_button.isChecked()
         self.lidar_record_button.setEnabled(recording or (scan_fresh and self._can_record_lidar()))
@@ -541,6 +563,8 @@ class RemoteSensorWindow(QMainWindow):
             self._calibration_executor.shutdown(wait=False, cancel_futures=True)
         if self.bird_eye is not None:
             self.bird_eye.shutdown()
+        if self.surround_3d is not None:
+            self.surround_3d.shutdown()
         super().closeEvent(event)
 
 
