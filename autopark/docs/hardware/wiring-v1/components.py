@@ -228,7 +228,7 @@ def _ports(kind, labels=None):
     out = []
     for key, spec in PORT_SPECS[kind].items():
         if kind == "esp32" and key not in {"usb_uart", "usb_native", "gnd", "esc_pwm", "servo_pwm"}:
-            # Sensor connections are shown as named wire continuations on sheet 02.
+            # The wired pins are annotated individually on sheet 02.
             continue
         x, y = spec["x"], spec["y"]
         out.append(circle(x, y, 4.5, "white", spec["color"], 2,
@@ -254,17 +254,29 @@ def _ports(kind, labels=None):
 _DRAWERS = {}
 
 
-def component_ports(kind, x=0, y=0, w=None, h=None):
+def _rotation_geometry(kind, rotation):
+    nw, nh = NATIVE_SIZES[kind]
+    if rotation == 0:
+        return nw, nh, "", lambda px, py: (px, py)
+    if rotation == 180:
+        return nw, nh, f"translate({nw} {nh}) rotate(180)", lambda px, py: (nw - px, nh - py)
+    if rotation == -90:
+        return nh, nw, f"translate(0 {nw}) rotate(-90)", lambda px, py: (py, nw - px)
+    raise ValueError(f"Unsupported rotation: {rotation}")
+
+
+def component_ports(kind, x=0, y=0, w=None, h=None, *, rotation=0):
     """Absolute wiring-anchor coordinates for this component's requested rectangle."""
     kind = ALIASES.get(kind, kind)
-    nw, nh = NATIVE_SIZES[kind]
+    nw, nh, _, transform = _rotation_geometry(kind, rotation)
     sx, sy = (nw if w is None else w) / nw, (nh if h is None else h) / nh
-    return {name: (x + spec["x"] * sx, y + spec["y"] * sy)
-            for name, spec in PORT_SPECS[kind].items()}
+    return {name: (x + px * sx, y + py * sy)
+            for name, spec in PORT_SPECS[kind].items()
+            for px, py in [transform(spec["x"], spec["y"])]}
 
 
 def draw_component(kind, x=0, y=0, w=None, h=None, *, label=None, subtitle=None,
-                   port_labels=None, show_ports=True):
+                   port_labels=None, show_ports=True, rotation=0):
     """Return a self-contained SVG group; it contains no external images or fonts.
 
     Terminals are functional diagram anchors. They never assert the physical pin
@@ -272,13 +284,29 @@ def draw_component(kind, x=0, y=0, w=None, h=None, *, label=None, subtitle=None,
     after the actual hardware has been verified; keys stay stable for routing.
     """
     kind = ALIASES.get(kind, kind)
-    nw, nh = NATIVE_SIZES[kind]
+    nw, nh, body_transform, port_transform = _rotation_geometry(kind, rotation)
     sx, sy = (nw if w is None else w) / nw, (nh if h is None else h) / nh
     body = _DRAWERS.get(kind, lambda: "")()
+    if rotation:
+        # Physical PCB rotation, never a reflection: header pin order stays correct.
+        # Redraw pin annotations horizontally instead of turning the silk labels.
+        body = f'<g transform="{body_transform}">{body}</g>'
+        port_art = []
+        if show_ports:
+            for key, spec in PORT_SPECS[kind].items():
+                px, py = port_transform(spec["x"], spec["y"])
+                cap = (port_labels or {}).get(key, spec["label"])
+                port_art.append(circle(px, py, 4.5, "white", spec["color"], 2))
+                port_art.append(text(px - 12, py + 3.5, cap, 10, "#f1f5f9", "end", 700))
+        ports = "".join(port_art)
+    else:
+        ports = _ports(kind, port_labels) if show_ports else ""
+        if kind in {"mt6701", "mt6701_steer"}:
+            body += text(150, 205, "Nam châm đồng trục với U1 · I²C 0x06 mặc định", 10, COLORS["amber"], "middle", 700)
     header = text(nw / 2, 16, label or TITLES[kind], 13, anchor="middle", weight=700)
     foot = text(nw / 2, nh - 5, subtitle, 10, COLORS["muted"], "middle") if subtitle else ""
     return (f'<g transform="translate({_n(x)} {_n(y)}) scale({_n(sx)} {_n(sy)})" data-component="{kind}">'
-            + header + body + (_ports(kind, port_labels) if show_ports else "") + foot + "</g>")
+            + header + body + ports + foot + "</g>")
 
 
 def _esp32():
@@ -445,8 +473,7 @@ def _angle_module(kind):
            _chip(186, 98, 36, 32, "MT6701", 4),
            text(204, 143, "U1", 8, "#e5e7eb", "middle"),
            rect(190, 152, 14, 9, "#c9a46a", "#8a6d3d", 1), text(210, 160, "C1", 8, "#e5e7eb"),
-           circle(204, 114, 22, "none", "#e05a5a", 1.6, stroke_dasharray="4 3"),
-           text(150, 205, "Nam châm đồng trục với U1 · I²C 0x06 mặc định", 10, COLORS["amber"], "middle", 700)]
+           circle(204, 114, 22, "none", "#e05a5a", 1.6, stroke_dasharray="4 3")]
     for key, spec in PORT_SPECS[kind].items():
         out.append(rect(spec["x"] - 4, spec["y"] - 4, 8, 8, "#e0b84f", "#f6e2a6", 1))
     return "".join(out)

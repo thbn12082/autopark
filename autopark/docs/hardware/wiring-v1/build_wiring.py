@@ -24,20 +24,20 @@ SIGNAL = "#138d86"
 AMBER = "#bf7414"
 BLUE2 = "#35a9c4"
 
-# One source for the proposed signal wires, netlist, and labelled drawing.
+# One source for the proposed signal wires, netlist, and continuous drawing.
 # PS0/WAKE is GPIO-controlled after SPI selection; keep it high during reset.
 FEEDBACK_SIGNALS = (
     ("STEER_SDA", "steer_sda", "STEER.sda", 6, SIGNAL),
     ("STEER_SCL", "steer_scl", "STEER.scl", 7, USB),
-    ("ENC_SDA", "enc_sda", "ENC.sda", 8, SIGNAL),
-    ("ENC_SCL", "enc_scl", "ENC.scl", 9, USB),
-    ("IMU_CS", "imu_cs", "IMU.cs", 10, LOGIC),
-    ("IMU_MOSI", "imu_mosi", "IMU.ado", 11, LOGIC),
-    ("IMU_SCK", "imu_sck", "IMU.scl", 12, LOGIC),
-    ("IMU_MISO", "imu_miso", "IMU.sda", 13, LOGIC),
-    ("IMU_INT", "imu_int", "IMU.int", 14, AMBER),
-    ("IMU_RST", "imu_rst", "IMU.rst", 15, AMBER),
-    ("IMU_WAKE", "imu_wake", "IMU.ps0", 16, AMBER),
+    ("ENC_SDA", "enc_sda", "ENC.sda", 8, "#008e45"),
+    ("ENC_SCL", "enc_scl", "ENC.scl", 9, "#6479c7"),
+    ("IMU_CS", "imu_cs", "IMU.cs", 10, "#9a52b1"),
+    ("IMU_MOSI", "imu_mosi", "IMU.ado", 11, "#bd4c8f"),
+    ("IMU_SCK", "imu_sck", "IMU.scl", 12, "#bc7b0a"),
+    ("IMU_MISO", "imu_miso", "IMU.sda", 13, "#236b62"),
+    ("IMU_INT", "imu_int", "IMU.int", 14, "#a14d2d"),
+    ("IMU_RST", "imu_rst", "IMU.rst", 15, "#6d59c6"),
+    ("IMU_WAKE", "imu_wake", "IMU.ps0", 16, "#1e91ad"),
 )
 FEEDBACK_POWER = ("STEER.vdd", "ENC.vdd", "IMU.vcc", "IMU.ps1")
 FEEDBACK_GROUND = ("STEER.gnd", "ENC.gnd", "IMU.gnd")
@@ -73,9 +73,10 @@ class Node:
     h: float
     label: str | None = None
     subtitle: str | None = None
+    rotation: int = 0
 
     def ports(self):
-        return component_ports(self.kind, self.x, self.y, self.w, self.h)
+        return component_ports(self.kind, self.x, self.y, self.w, self.h, rotation=self.rotation)
 
 
 class Sheet:
@@ -87,26 +88,32 @@ class Sheet:
                            box(70, 142, width - 140, 65, "#fff4df", "#e8bf75", 12),
                            text(92, 181, "THIẾT KẾ MỤC TIÊU • ESC/servo đã thử bàn • Dây cảm biến đề xuất, chưa thử thực tế • Pi chưa bám quỹ đạo", 25, "#82500d", 600)]
         self.drawings, self.wires, self.overlays = [], [], []
+        self.electrical_routes = []
         self.overlays.append(text(width - 70, height - 28, f"AutoPark · {DESIGN_DATE} · Tờ {index}/3", 21, MUTED, anchor="end"))
 
-    def node(self, name, kind, x, y, w, h, label=None, subtitle=None, port_labels=None):
-        n = Node(kind, x, y, w, h, label, subtitle)
+    def node(self, name, kind, x, y, w, h, label=None, subtitle=None, port_labels=None, rotation=0):
+        n = Node(kind, x, y, w, h, label, subtitle, rotation)
         self.nodes[name] = n
-        self.drawings.append(draw_component(kind, x, y, w, h, label=label, subtitle=subtitle, port_labels=port_labels))
+        self.drawings.append(draw_component(kind, x, y, w, h, label=label, subtitle=subtitle, port_labels=port_labels, rotation=rotation))
         return n
 
     def point(self, endpoint):
         name, port = endpoint.split(".")
         return self.nodes[name].ports()[port]
 
-    def line(self, points, color=SIGNAL, dashed=False, width=5):
+    def line(self, points, color=SIGNAL, dashed=False, width=5, net=None, endpoints=None):
         pts = " ".join(f"{number(x)},{number(y)}" for x, y in points)
         self.wires.append(f'<polyline points="{pts}" fill="none" stroke="white" stroke-width="{width + 7}" stroke-linecap="round" stroke-linejoin="round"/>')
         dash = ' stroke-dasharray="13 9"' if dashed else ""
-        self.wires.append(f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round" stroke-linejoin="round"{dash}/>')
+        attrs = f' data-net="{escape(net)}"' if net else ""
+        if endpoints:
+            attrs += f' data-endpoints="{escape(" ".join(endpoints))}"'
+        self.wires.append(f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round" stroke-linejoin="round"{dash}{attrs}/>')
+        if net:
+            self.electrical_routes.append((net, tuple(endpoints or ()), tuple(points)))
 
-    def wire(self, a, b, vias=(), color=SIGNAL, dashed=False, width=5):
-        self.line([self.point(a), *vias, self.point(b)], color, dashed, width)
+    def wire(self, a, b, vias=(), color=SIGNAL, dashed=False, width=5, net=None):
+        self.line([self.point(a), *vias, self.point(b)], color, dashed, width, net, (a, b) if net else None)
 
     def junction(self, x, y, color=GND):
         self.overlays.append(f'<circle cx="{number(x)}" cy="{number(y)}" r="7" fill="{color}" stroke="white" stroke-width="2"/>')
@@ -235,9 +242,9 @@ def system_sheet():
 
 
 def signal_sheet():
-    s = Sheet(2800, 3080, "02 · LAPTOP ↔ WI-FI ↔ PI TRÊN XE ↔ USB ↔ ESP32", "Pi thu cảm biến, định vị và bám quỹ đạo tại xe. Laptop gửi quỹ đạo, không gửi từng nhịp lái qua Wi-Fi.", 2)
+    s = Sheet(2800, 3650, "02 · LAPTOP ↔ WI-FI ↔ PI TRÊN XE ↔ USB ↔ ESP32", "Pi thu cảm biến, định vị và bám quỹ đạo tại xe. Laptop gửi quỹ đạo, không gửi từng nhịp lái qua Wi-Fi.", 2)
     s.background += [box(70, 240, 2660, 730, "white", "#d6e0e9", 20),
-                     box(70, 1030, 2660, 1620, "white", "#d6e0e9", 20)]
+                     box(70, 1030, 2660, 2190, "white", "#d6e0e9", 20)]
     s.node("PC", "laptop", 120, 285, 360, 260)
     s.node("PI", "raspberry_pi", 850, 285, 400, 277.78)
     s.node("HUB", "usb_hub", 1500, 280, 330, 180, label="HUB CÓ NGUỒN · CHỜ CHỌN")
@@ -245,7 +252,7 @@ def signal_sheet():
         s.node(f"CAM{i}", "camera", x, y, 230, 172.5, label=f"CAMERA USB {i}")
     s.node("C1", "lidar", 800, 670, 300, 264)
     s.node("ADAPTER", "lidar_adapter", 1250, 700, 300, 180)
-    s.node("ESP", "esp32", 460, 1200, 650, 905.36, port_labels={"gnd": ""})
+    s.node("ESP", "esp32", 2080, 1560, 640, 891.43, port_labels={"gnd": ""})
     pc, pi = s.point("PC.wifi"), s.point("PI.wifi")
     s.wire("PC.wifi", "PI.wifi", [(700,pc[1]),(700,pi[1])], USB, True, 6)
     s.label(515, 285, ["N1 · Wi-Fi LAN", "Hai chiều · không phải dây"], 22, USB)
@@ -271,69 +278,112 @@ def signal_sheet():
     s.wire("C1.connector","ADAPTER.lidar",[(1180,cp[1]),(1180,al[1])],USB,width=8)
     s.label(1140, 900, ["U7 · C1 + adapter USB → Pi.", "U8 · Cáp C1 gốc; không chuyển sang GPIO ESP."], 21, USB)
     pu,eu=s.point("PI.usb1"),s.point("ESP.usb_native")
-    s.wire("PI.usb1","ESP.usb_native",[(1300,pu[1]),(1300,625),(45,625),(45,2160),(eu[0],2160)],USB,width=9)
+    s.wire("PI.usb1","ESP.usb_native",[(1300,pu[1]),(1300,625),(45,625),(45,1015),(2755,1015),
+                                         (2755,eu[1]+80),(eu[0],eu[1]+80)],USB,width=9)
     s.note(100, 690, 610, ["LAPTOP: AI trên 4 luồng camera,", "fusion + chọn ô đỗ + lập quỹ đạo.", "PI: thu C1/camera, định vị cục bộ,", "bám quỹ đạo và dừng vật cản tại xe.", "AI không trực tiếp xuất ga / góc lái.", "4G: tùy chọn điều khiển từ xa về sau."], MUTED, "#f3f7fb", 22)
     s.label(80, 990, "U1 · USB NGẮN TRÊN XE: Pi ↔ USB native/CDC của ESP32; dữ liệu + nguồn. Không kéo USB từ laptop ra xe.", 23, USB)
     s.label(100, 1080, "ĐẤU DÂY CẢM BIẾN VÀO ESP32-S3 · mức logic 3,3 V", 31, INK, 700)
-    s.label(100, 1120, "Hai đầu dây cùng nhãn GPIO / 3V3 / GND là cùng một kết nối điện (không phải đầu nối bổ sung).", 23, MUTED)
+    s.label(100, 1120, "Theo từng dây màu từ chân ESP32 tới chân module. Giao cắt không chấm = không nối; chấm tròn = điểm chia dây.", 23, MUTED)
     s.label(100, 1160, "Giữ GPIO4 → ESC, GPIO5 → servo. Chỉ cấp ESP32 qua USB; không đưa BEC 6 V vào cảm biến.", 22, AMBER)
-    s.background += [box(1100, 1170, 800, 440, "#f3f7fb", "#d6e0e9", 15),
-                     box(1920, 1170, 780, 440, "#f3f7fb", "#d6e0e9", 15),
-                     box(1100, 1630, 1600, 735, "#f3f7fb", "#d6e0e9", 15)]
-    s.node("STEER", "mt6701_steer", 1440, 1200, 420, 339.23)
-    s.node("ENC", "mt6701", 2250, 1200, 420, 339.23)
-    s.node("IMU", "bno085", 1170, 1640, 1460, 600)
+    # Rotate the modules so their actual connector rows face the ESP32.
+    # All anchors rotate along with the PCB; pin labels remain upright.
+    s.node("STEER", "mt6701_steer", 115, 1210, 545, 440, rotation=180)
+    s.node("ENC", "mt6701", 115, 1670, 545, 440, rotation=180)
+    s.node("IMU", "bno085", 100, 2165, 530, 795, rotation=-90)
+    s.label(380, 1625, "I²C 0 · 0x06 · 4 dây", 23, SIGNAL, 700, "middle")
+    s.label(380, 2085, "I²C 1 · 0x06 · 4 dây", 23, SIGNAL, 700, "middle")
+    s.label(365, 2950, "SPI · gắn cố định lên khung", 23, LOGIC, 700, "middle")
 
-    def left_tag(endpoint, caption, color, x, w=210):
-        px, py = s.point(endpoint)
-        s.line([(px, py), (x + w, py)], color, width=5)
-        s.junction(px, py, color)
-        s.overlays.append(box(x, py - 13, w, 26, "white", color, 5, 1.5))
-        s.label(x + w / 2, py + 7, caption, 19, color, 700, "middle")
+    # One real 3V3 branch rail and one real GND branch rail, each joined to
+    # the ESP32 pin and every relevant sensor pin. Dots denote a splice.
+    def branch_rail(net, esp, targets, gutter, color):
+        ex, ey = s.point(esp)
+        contacts = [(ep, *s.point(ep)) for ep in targets]
+        rows = [ey, *(py for _, _, py in contacts)]
+        s.line([(gutter, min(rows)), (gutter, max(rows))], color, width=7, net=net)
+        s.line([(ex, ey), (gutter, ey)], color, width=7, net=net, endpoints=(esp,))
+        for ep, px, py in contacts:
+            s.line([(px, py), (gutter, py)], color, width=7, net=net, endpoints=(ep,))
+            s.junction(px, py, color)
+        for yy in rows:
+            s.junction(gutter, yy, color)
+        s.junction(ex, ey, color)
+        s.label(ex - 23, ey - 10, "3V3" if color == RED else "GND", 20, color, 700, "end")
 
-    def bottom_tag(endpoint, caption, color):
-        px, py = s.point(endpoint)
-        s.line([(px, py), (px, 2270)], color, width=5)
-        s.junction(px, py, color)
-        s.overlays.append(box(px - 49, 2270, 98, 34, "white", color, 5, 1.5))
-        s.label(px, 2293, caption, 19, color, 700, "middle")
+    branch_rail("SENSOR_3V3", "ESP.v3v3", FEEDBACK_POWER, 690, RED)
+    branch_rail("GND", "ESP.gnd", FEEDBACK_GROUND, 785, GND)
 
-    left_tag("ESP.v3v3", "3V3", RED, 120, 300)
-    left_tag("ESP.gnd", "GND", GND, 120, 300)
+    # Dedicated routing lanes, ordered to minimize perpendicular crossings.
+    lane_order = ("IMU_WAKE", "IMU_RST", "IMU_INT", "IMU_CS", "IMU_MOSI",
+                  "IMU_MISO", "IMU_SCK", "ENC_SCL", "ENC_SDA", "STEER_SCL", "STEER_SDA")
+    lanes = {net: 950 + i * 95 for i, net in enumerate(lane_order)}
+    assert set(lanes) == {net for net, *_ in FEEDBACK_SIGNALS}
+    short_names = {"STEER_SDA": "SDA 0", "STEER_SCL": "SCL 0", "ENC_SDA": "SDA 1", "ENC_SCL": "SCL 1",
+                   "IMU_CS": "CS", "IMU_MOSI": "MOSI", "IMU_SCK": "SCK", "IMU_MISO": "MISO",
+                   "IMU_INT": "INT", "IMU_RST": "RST", "IMU_WAKE": "WAKE"}
     for net, esp_port, sensor_port, gpio, color in FEEDBACK_SIGNALS:
-        caption = f"GPIO{gpio}"
-        left_tag(f"ESP.{esp_port}", f"{caption} · {net}", color, 120, 300)
-        if sensor_port.startswith("IMU."):
-            bottom_tag(sensor_port, caption, color)
-        else:
-            left_tag(sensor_port, caption, color, 1120 if sensor_port.startswith("STEER.") else 1940)
-    for ep in FEEDBACK_POWER + FEEDBACK_GROUND:
-        is_power = ep in FEEDBACK_POWER
-        caption, color = ("3V3", RED) if is_power else ("GND", GND)
-        if ep.startswith("IMU."):
-            bottom_tag(ep, caption, color)
-        else:
-            left_tag(ep, caption, color, 1120 if ep.startswith("STEER.") else 1940)
-    for name, x in (("STEER", 1120), ("ENC", 1940)):
+        source = sensor_port
+        target = f"ESP.{esp_port}"
+        ax, ay = s.point(source)
+        bx, by = s.point(target)
+        lane = lanes[net]
+        s.wire(source, target, [(lane, ay), (lane, by)], color, width=6, net=net)
+        s.junction(ax, ay, color)
+        s.junction(bx, by, color)
+        s.label(bx - 23, by - 10, f"GPIO{gpio} · {short_names[net]}", 19, color, 700, "end")
+    for name in ("STEER", "ENC"):
         px, py = s.point(f"{name}.out")
-        s.label(x + 105, py + 7, "NC · không nối", 19, MUTED, 600, "middle")
-        s.label(x + 15, 1580, "I²C riêng · 0x06 · 4 dây", 23, SIGNAL)
-    s.label(1900, 2340, "SPI: SCL = SCK · SDA = MISO · ADO = MOSI · PS0 = WAKE", 24, LOGIC, 700, "middle")
-    s.note(100, 2200, 940, ["NÊN KIỂM TRƯỚC KHI CẤP USB",
-                            "Chỉ nối 3V3 và GND chung cho cảm biến.",
-                            "Hai bus I²C độc lập, mỗi bus có pull-up SDA/SCL",
-                            "lên 3V3 (4,7 kΩ nếu module chưa có).",
-                            "Không nối chân Analog/PWM của hai MT6701.",
-                            "USB native đến Pi; driver cảm biến chưa có."], MUTED, "#f3f7fb", 22)
-    s.note(1100, 2390, 1600, ["BNO085 chọn SPI: PS1 nối 3V3; PS0 nối GPIO16, kéo lên 3V3 qua 10 kΩ nếu bo chưa có.",
-                              "PS0 và PS1 phải ở mức cao khi reset đến hết báo ngắt INT đầu tiên; sau đó PS0 dùng WAKE.",
-                              "CS/RST giữ cao lúc khởi động (pull-up 10 kΩ nếu bo chưa có); INT và RST tích cực thấp.",
-                              "Không kéo pad BOOT xuống GND. Kiểm điện trở strap trên bo để bảo đảm PS0/PS1 lên cao."],
+        s.label(px + 65, py + 7, "NC", 19, MUTED, 700)
+
+    s.note(2060, 2600, 635, ["CHÚ GIẢI DÂY",
+                             "Đỏ: nguồn 3V3",
+                             "Đen: GND chung",
+                             "Dây màu: từng tín hiệu I²C / SPI.",
+                             "Chấm tròn tại chỗ chia nhánh:",
+                             "nối điện; giao cắt không chấm:",
+                             "hai dây đi qua nhau.",
+                             "NC: để trống, không nối."], MUTED, "#f3f7fb", 23)
+    s.note(100, 2980, 1260, ["MT6701: hai bus I²C riêng, mỗi bus cần pull-up SDA/SCL",
+                             "lên 3V3 (4,7 kΩ nếu module chưa có). Analog/PWM để trống.",
+                             "Kiểm điện áp, chữ chân và thông mạch trước khi cấp USB.",
+                             "Các bo được xoay để hướng hàng chân về ESP32; không đảo thứ tự chân."], MUTED, "#f3f7fb", 22)
+    s.note(1400, 2980, 1300, ["BNO085 SPI: SCL=SCK; SDA=MISO; ADO=MOSI; PS0=WAKE.",
+                              "PS1 lên 3V3; PS0 nối GPIO16, kéo lên 3V3 qua 10 kΩ nếu thiếu.",
+                              "PS0/PS1 giữ cao đến hết INT đầu tiên. CS/RST kéo cao lúc reset.",
+                              "Không kéo pad BOOT xuống GND; kiểm điện trở kéo sẵn trên bo."],
            MUTED, "#f3f7fb", 22)
-    s.label(70, 2700, "ToF được hoãn. Bốn camera không thay cho phép đo tốc độ và góc lái.", 23, MUTED)
-    s.note(80, 2740, 1290, ["DỪNG VÀ GIỮ DỪNG — YÊU CẦU KIẾN TRÚC", "Pi dừng nếu vật cản khiến hành lang quỹ đạo không an toàn,", "hoặc dữ liệu / pose / quỹ đạo hết hạn, hoặc mất liên kết laptop.", "ESP32 dừng khi lệnh từ Pi hết hạn / mất USB. Không tự chạy lại.", "Laptop lập lại từ pose mới đo khi xe đã dừng; xác nhận lượt chạy mới."], RED, "#fff3f2", 25)
-    s.note(1430, 2740, 1270, ["PHÂN BIỆT HIỆN TẠI VỚI MỤC TIÊU", "Phần mềm: mô phỏng; tự tìm ô đỗ trên bản đồ LiDAR, chọn ô trong giao diện.", "Chưa triển khai Pi bám quỹ đạo trên xe.", "Firmware đã bật PWM ESC/servo; chưa có driver MT6701 / BNO085.", "Hình không xác nhận an toàn hay độ chính xác cảm biến."], MUTED, "#f3f7fb", 25)
+    s.label(70, 3270, "ToF được hoãn. Bốn camera không thay cho phép đo tốc độ và góc lái.", 23, MUTED)
+    s.note(80, 3310, 1290, ["DỪNG VÀ GIỮ DỪNG — YÊU CẦU KIẾN TRÚC", "Pi dừng nếu vật cản khiến hành lang quỹ đạo không an toàn,", "hoặc dữ liệu / pose / quỹ đạo hết hạn, hoặc mất liên kết laptop.", "ESP32 dừng khi lệnh từ Pi hết hạn / mất USB. Không tự chạy lại.", "Laptop lập lại từ pose mới đo khi xe đã dừng; xác nhận lượt chạy mới."], RED, "#fff3f2", 25)
+    s.note(1430, 3310, 1270, ["PHÂN BIỆT HIỆN TẠI VỚI MỤC TIÊU", "Phần mềm: mô phỏng; tự tìm ô đỗ trên bản đồ LiDAR, chọn ô trong giao diện.", "Chưa triển khai Pi bám quỹ đạo trên xe.", "Firmware đã bật PWM ESC/servo; chưa có driver MT6701 / BNO085.", "Hình không xác nhận an toàn hay độ chính xác cảm biến."], MUTED, "#f3f7fb", 25)
+    validate_feedback_routes(s)
     return s.save("02-signal-feedback.svg")
+
+
+def validate_feedback_routes(s):
+    """Check each drawn continuous route against its physical endpoints."""
+    routes = s.electrical_routes
+    for net, port, sensor, _, _ in FEEDBACK_SIGNALS:
+        matching = [(ends, pts) for name, ends, pts in routes if name == net]
+        assert len(matching) == 1, net
+        ends, pts = matching[0]
+        assert ends == (sensor, f"ESP.{port}"), net
+        assert pts[0] == s.point(ends[0]) and pts[-1] == s.point(ends[1]), net
+    for net, terminals in (
+        ("SENSOR_3V3", ("ESP.v3v3", *FEEDBACK_POWER)),
+        ("GND", ("ESP.gnd", *FEEDBACK_GROUND)),
+    ):
+        matching = [(ends, pts) for name, ends, pts in routes if name == net]
+        rails = [pts for ends, pts in matching if not ends]
+        assert len(rails) == 1, net
+        ((rx, top), (rx2, bottom)) = rails[0]
+        assert rx == rx2 and top < bottom, net
+        branches = {ends[0]: pts for ends, pts in matching if len(ends) == 1}
+        assert set(branches) == set(terminals), net
+        for endpoint, pts in branches.items():
+            assert pts[0] == s.point(endpoint), endpoint
+            assert pts[-1][0] == rx and top <= pts[-1][1] <= bottom, endpoint
+    for net, _, pts in routes:
+        assert all(a[0] == b[0] or a[1] == b[1] for a, b in zip(pts, pts[1:])), net
 
 
 def charge_sheet():
@@ -367,7 +417,7 @@ def spec():
     gpio={"ESC_CTRL":4,"SERVO_CTRL":5, **{net: pin for net, _, _, pin, _ in FEEDBACK_SIGNALS}}
     return {
         "schema_version":2,
-        "revision":"pi4_sensors_wiring_v6",
+        "revision":"pi4_sensors_routed_v7",
         "status":"proposed_not_hardware_verified",
         "date":"-".join(reversed(DESIGN_DATE.split("/"))),
         "catalog_component_kinds":list(CATALOG_KINDS),

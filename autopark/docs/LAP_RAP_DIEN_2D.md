@@ -13,12 +13,12 @@ Ngày cập nhật thiết kế: 26/11/2026. Cấu hình: ESP32-S3-DevKitC-1 N16
 Trước khi xem dây nối, mở [bảng nhận diện linh kiện và các chân — SVG](hardware/wiring-v1/00-components.svg) hoặc [PNG](hardware/wiring-v1/00-components.png?v=0c99078718ba).
 
 1. [Kết nối tổng thể — SVG](hardware/wiring-v1/01-system.svg) · [PNG](hardware/wiring-v1/01-system.png?v=ac7472bcd97c).
-2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png?v=82bd3e2dbe5c).
+2. [Chi tiết tín hiệu và cảm biến — SVG](hardware/wiring-v1/02-signal-feedback.svg) · [PNG](hardware/wiring-v1/02-signal-feedback.png?v=ddc926dc9a8b).
 3. [Sạc pin tách khỏi xe — SVG](hardware/wiring-v1/03-charging.svg) · [PNG](hardware/wiring-v1/03-charging.png?v=aecc2af97ca9).
 
 ![Kết nối tổng thể](hardware/wiring-v1/01-system.png?v=ac7472bcd97c)
 
-![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png?v=82bd3e2dbe5c)
+![Chi tiết tín hiệu và cảm biến](hardware/wiring-v1/02-signal-feedback.png?v=ddc926dc9a8b)
 
 ![Sạc pin tách khỏi xe](hardware/wiring-v1/03-charging.png?v=aecc2af97ca9)
 
@@ -88,7 +88,7 @@ GPIO4/5 là lựa chọn chân của firmware AutoPark (env `esp32s3_16mb_pwm`).
 
 ## MT6701 và BNO085: đấu nối đề xuất
 
-Ba module dưới đây đã có nhưng **chưa gá lên xe và chưa nối vào ESP32 thực tế** (26/11/2026). Tờ 02 thể hiện sơ đồ chuẩn bị đi dây. Các nhãn trùng nhau ở ESP32 và module biểu thị một kết nối điện; chia nhánh nguồn 3V3 và GND chung cho cả ba bo.
+Ba module dưới đây đã có nhưng **chưa gá lên xe và chưa nối vào ESP32 thực tế** (26/11/2026). Tờ 02 vẽ từng dây màu liên tục từ chân ESP32 tới chân module. Nguồn 3V3 (đỏ) và GND (đen) chia nhánh cho cả ba bo; chấm tròn là điểm nối điện, giao cắt không chấm không nối. Các module được xoay để hàng chân hướng về ESP32, không đảo thứ tự chân.
 
 | Module | Chân theo chữ in trên bo thật | Ghi chú |
 |---|---|---|

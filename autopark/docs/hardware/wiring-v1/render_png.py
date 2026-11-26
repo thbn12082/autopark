@@ -92,7 +92,7 @@ def render_one(stem: str, scale: float) -> dict:
 def write_index() -> None:
     content = """# Bản vẽ 2D kết nối AutoPark
 
-Các bản vẽ thể hiện kiến trúc mục tiêu **Laptop ↔ Wi-Fi LAN ↔ Raspberry Pi trên xe ↔ USB ngắn ↔ ESP32**. Laptop chạy AI trên bốn camera, fusion, chọn ô và lập quỹ đạo; Pi thu cảm biến, định vị, bám quỹ đạo và dừng vật cản cục bộ; ESP32 nhận lệnh chấp hành và dừng khi lệnh hết hạn; ESC (GPIO4) và servo (GPIO5) đã chạy trên bàn thử. C1 và hub bốn camera nối USB về Pi. Tờ 02 bổ sung dây đề xuất: hai MT6701 trên hai bus I²C (GPIO6/7 và GPIO8/9), BNO085 qua SPI (GPIO10–16), nguồn 3V3 và GND chung. Các nhãn đầu dây trùng nhau là cùng kết nối. **Chưa đấu thử thực tế, chưa có driver cảm biến.**
+Các bản vẽ thể hiện kiến trúc mục tiêu **Laptop ↔ Wi-Fi LAN ↔ Raspberry Pi trên xe ↔ USB ngắn ↔ ESP32**. Laptop chạy AI trên bốn camera, fusion, chọn ô và lập quỹ đạo; Pi thu cảm biến, định vị, bám quỹ đạo và dừng vật cản cục bộ; ESP32 nhận lệnh chấp hành và dừng khi lệnh hết hạn; ESC (GPIO4) và servo (GPIO5) đã chạy trên bàn thử. C1 và hub bốn camera nối USB về Pi. Tờ 02 vẽ từng dây liên tục từ hai MT6701 trên hai bus I²C (GPIO6/7 và GPIO8/9) và BNO085 qua SPI (GPIO10–16) đến chân ESP32; nguồn 3V3 đỏ và GND đen chia nhánh có chấm nối. Giao cắt không chấm không nối điện. **Chưa đấu thử thực tế, chưa có driver cảm biến.**
 
 Pin 2S chia nhánh cho ESC và hai bộ nguồn ổn áp riêng cho Pi/hub. Pi 4 Model B RAM 8 GB, thẻ microSD 64 GB; bộ nguồn và hub có DC-in phù hợp còn chờ chọn/xác minh, kể cả kiểm chống cấp ngược USB. BEC 6 V cấp servo (đã chạy trên bàn thử 24/11/2026); không cấp Pi, hub hoặc ESP32. Sạc B3 giữ chế độ pin tách khỏi toàn bộ xe.
 
@@ -158,13 +158,13 @@ def main() -> int:
     exported = [render_one(stem, args.scale) for stem in SHEETS]
     manifest = {
         "schema_version": 2, "scope": "target_design_not_hardware_verified",
-        "revision": "pi4_sensors_wiring_v6", "design_date": DESIGN_DATE,
+        "revision": "pi4_sensors_routed_v7", "design_date": DESIGN_DATE,
         "catalog_component_count": len(CATALOG_KINDS),
         "renderer": "QtSvg", "qt_version": qVersion(), "fonts": ["Segoe UI", "Arial"],
         "scale": args.scale, "external_media": False,
         "sources": {name: digest(OUT / name) for name in ("components.py", "build_wiring.py", "render_png.py", "wiring_spec.json")},
         "artifacts": exported,
-        "checks": ["SVG XML and viewBox parsed", "No external or embedded media", "QtSvg accepted all sheets", "PNGs reopened at expected dimensions", "Nonblank raster samples"],
+        "checks": ["SVG XML and viewBox parsed", "No external or embedded media", "Continuous sensor paths match rotated module and ESP32 pins; 3V3/GND branch rails connected", "QtSvg accepted all sheets", "PNGs reopened at expected dimensions", "Nonblank raster samples"],
     }
     (OUT / "export_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     write_index()

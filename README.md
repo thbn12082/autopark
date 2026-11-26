@@ -242,9 +242,9 @@ Bộ hình SVG và PNG mô tả bố trí trên xe. Tờ 02 đã bổ sung dây 
 
 *Nguồn Pi tách biệt với nhánh BEC cấp servo.*
 
-![Thiết kế mục tiêu: USB, tín hiệu điều khiển và phản hồi](autopark/docs/hardware/wiring-v1/02-signal-feedback.png?v=82bd3e2dbe5c)
+![Thiết kế mục tiêu: USB, tín hiệu điều khiển và phản hồi](autopark/docs/hardware/wiring-v1/02-signal-feedback.png?v=ddc926dc9a8b)
 
-*C1 và hub bốn camera nối Pi; Pi nối ESP32 bằng USB ngắn. Hai MT6701 nối hai bus I²C riêng, BNO085 nối SPI; các đầu dây có cùng nhãn GPIO/3V3/GND nối với nhau. Sơ đồ đề xuất, chưa thử trên bo thật.*
+*C1 và hub bốn camera nối Pi; Pi nối ESP32 bằng USB ngắn. Hai MT6701 nối hai bus I²C riêng, BNO085 nối SPI. Mỗi dây tín hiệu chạy liên tục đến đúng chân ESP32; nguồn 3V3 (đỏ) và GND (đen) được chia nhánh có chấm nối. Giao cắt không chấm là hai dây riêng. Sơ đồ đề xuất, chưa thử trên bo thật.*
 
 ![Thiết kế sạc riêng cho pin LiPo 2S](autopark/docs/hardware/wiring-v1/03-charging.png?v=aecc2af97ca9)
 

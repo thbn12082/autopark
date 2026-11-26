@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "scope": "target_design_not_hardware_verified",
-  "revision": "pi4_sensors_wiring_v6",
+  "revision": "pi4_sensors_routed_v7",
   "design_date": "26/11/2026",
   "catalog_component_count": 18,
   "renderer": "QtSvg",
@@ -13,10 +13,10 @@
   "scale": 2.0,
   "external_media": false,
   "sources": {
-    "components.py": "5162a76613c504e09b048472df97666d4bb6a9de38629e681394e63e2b2ac6de",
-    "build_wiring.py": "4fe27a1b037a598aac9d4d98ad3e10373e244de36292581433b596e72dedc55d",
-    "render_png.py": "00d021d7c6ee88f4c20d936895ae8ebe82b457aeeb7cb67a1a89a43ac9ed91a9",
-    "wiring_spec.json": "222af77d788f5022d5907793f709e7536e967e33b8fed98e2fc4ba1ca0845489"
+    "components.py": "a277254d33b7e41852b9aabdcec739b3f47b9d90f023d0f812aab8a5aa6c46b7",
+    "build_wiring.py": "6e32c79a91325e740acd703bbacbd855d6d48b78127d5559be42271a1e7a1d2c",
+    "render_png.py": "21f14699c466637eb9411251ea771463d7a0f6bfd10a729f3ea8d0c41e4311b6",
+    "wiring_spec.json": "81c986d556d88ffbc760c79d5047346d84e8ed218ee46632e7b73fef86619e81"
   },
   "artifacts": [
     {
@@ -30,7 +30,7 @@
         3600,
         4190
       ],
-      "svg_sha256": "e016d535d00d16a84e073d79863deef3dfcf963e279825b8f35c0625abe4395e",
+      "svg_sha256": "c88898ac96c6d946abeec419ce19de1eeb4d3b4bfa099fc1baa9ae1fd7266c5d",
       "png_sha256": "0c99078718ba27f4d2e74037add1f3672e5d250a74fc8e4b30c02abeeaee2ea1",
       "png_bytes": 1068045,
       "nonblank_check": true
@@ -56,15 +56,15 @@
       "png": "02-signal-feedback.png",
       "svg_size": [
         2800,
-        3080
+        3650
       ],
       "png_size": [
         5600,
-        6160
+        7300
       ],
-      "svg_sha256": "ba9ab1607a93f8a151c07760c1ec180175895342d7db19020a2b0931cd83f6a7",
-      "png_sha256": "82bd3e2dbe5c5a99c42ca0b35e9c08e916036cef2177e75e94e33a5455c5e503",
-      "png_bytes": 2112578,
+      "svg_sha256": "69a54dccfe1984fe4a4e19620054846185d9a30682a4211f5bdabf2e0df29134",
+      "png_sha256": "ddc926dc9a8b1162ec85b709108a0351b63650ce55aa0180b9e4ca9f718b2506",
+      "png_bytes": 2104870,
       "nonblank_check": true
     },
     {
@@ -87,6 +87,7 @@
   "checks": [
     "SVG XML and viewBox parsed",
     "No external or embedded media",
+    "Continuous sensor paths match rotated module and ESP32 pins; 3V3/GND branch rails connected",
     "QtSvg accepted all sheets",
     "PNGs reopened at expected dimensions",
     "Nonblank raster samples"
