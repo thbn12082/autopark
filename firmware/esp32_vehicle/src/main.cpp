@@ -96,7 +96,9 @@ constexpr uint8_t kServoChannel = 1;
 static_assert(kPinEsc >= 0 && kPinServo >= 0 && (kPinEstop >= 0 || AP_ALLOW_NO_ESTOP),
               "CHUA CHOT: dat chan ESC/servo/E-stop da doi chieu voi so do day truoc khi bat AP_ENABLE_PWM_OUTPUTS");
 static_assert(kPinEsc != kPinServo && kPinEsc != kPinEstop && kPinServo != kPinEstop, "trung chan");
-static_assert(kServoMinUs >= 1000 && kServoMaxUs <= 2000 && kServoMinUs < kServoCenterUs &&
+// 500–2500 µs là khoảng xung mở rộng phổ biến của servo RC; điểm chặn thật của cơ cấu lái do người dùng dò bằng tab Lái
+// tay rồi đặt AP_SERVO_MIN_US/AP_SERVO_MAX_US theo (27/11/2026: 1000–2000 vẫn chưa tới điểm chặn).
+static_assert(kServoMinUs >= 500 && kServoMaxUs <= 2500 && kServoMinUs < kServoCenterUs &&
               kServoCenterUs < kServoMaxUs, "gioi han servo sai");
 static_assert(kPinEsc <= 48, "ESP32-S3 chi co GPIO 0..48 (esc_line_low_now ghi thanh ghi theo so chan)");
 #endif
@@ -349,6 +351,11 @@ void setup() {
     boot_id = 1;
   }
   ap::Config config;                                     // mặc định = FirmwareConfig() của bản tham chiếu Python
+#ifdef AP_MAX_STEER_MRAD
+  // Env có servo rộng hơn 524 mrad (27/11/2026): bo kẹp và báo giới hạn góc lái này trong HELLO_ACK, để laptop biết
+  // đúng tầm lái. Lõi và bản tham chiếu Python giữ mặc định 524, nên vector mẫu không đổi.
+  config.max_steer_mrad = AP_MAX_STEER_MRAD;
+#endif
   const uint32_t now = millis();
   g_core.begin(config, now, boot_id, map_reset_reason(esp_reset_reason()));
   g_next_tick_ms = now;

@@ -43,9 +43,10 @@ def test_drive_command_keys_and_limits():
     assert md.drive_command(inp, 0.3, 0.25) == (pytest.approx(-0.25), pytest.approx(-0.3))   # kẹp theo bo
 
 
-def test_real_car_steer_limited_by_bench_servo(qapp):
+def test_steer_limit_and_servo_pulse_follow_board(qapp):
     conn = cc.CarConnection(auto_tick=False)
-    assert conn.steer_limit() == pytest.approx(cc.SERVO_LIMIT_RAD)
+    assert conn.steer_limit() == pytest.approx(cc.DEFAULT_STEER_LIMIT_RAD)        # chưa kết nối
+    assert conn.servo_us(0.1) == 1600 and conn.servo_us(-5.0) == 1200             # 1 mrad ≈ 1 µs, kẹp theo giới hạn
 
 
 def test_wheel_left_is_positive(qapp):
