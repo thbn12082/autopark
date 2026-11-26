@@ -128,7 +128,7 @@ Sau lượt đạt, dùng `solve --out configs/rig/camera_rig_extrinsics_v1.json
 - Chưa có kết quả nghiệm thu hệ thống phân tán hoặc xe thật tự đỗ. Các số liệu mô phỏng cũ bên dưới chỉ có giá trị trong phạm vi và thời điểm đã ghi.
 - Đợt cập nhật này chỉ sửa tài liệu và hình minh họa, **không thay đổi mã điều khiển**.
 
-Đọc [README hiện hành](README.md), [kiến trúc](autopark/docs/KIEN_TRUC.md), [luồng vật cản](autopark/docs/LUONG_VAT_CAN.md) và [luồng tính đường](autopark/docs/LUONG_TINH_DUONG.md) để theo dõi thiết kế mới. Hai hình tương ứng là `autopark/docs/images/luong-vat-can.png` và `autopark/docs/images/luong-tinh-duong.png`.
+Đọc [README hiện hành](README.md), [kiến trúc](autopark/docs/KIEN_TRUC.md), [luồng vật cản](autopark/docs/LUONG_VAT_CAN.md) và [luồng tính đường](autopark/docs/LUONG_TINH_DUONG.md) để theo dõi thiết kế mới. Hai tài liệu luồng nay viết dạng sơ đồ cây; hai hình luồng cũ đã xóa ngày 26/11/2026.
 
 ## Bản bàn giao lịch sử ngày 08/11/2026
 

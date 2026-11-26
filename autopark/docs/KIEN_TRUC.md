@@ -8,9 +8,16 @@ Laptop chạy AI từ ảnh camera, hợp nhất thông tin môi trường, ch�
 
 Laptop và Pi nối bằng Wi-Fi nội bộ; không cần Internet hoặc 4G khi hai thiết bị ở gần nhau. Camera và LiDAR nối vào Pi, ESP32 nối Pi bằng USB ngắn. Laptop gửi quỹ đạo đã được kiểm tra; Pi tạo tốc độ và góc lái mục tiêu từ phản hồi mới nhất trên xe.
 
-**Đây là kiến trúc đích, chưa phải bản phân tán đã triển khai hoặc nghiệm thu.** Phần mềm hiện có vẫn thực hiện thao tác gần với đích do người dùng chọn. Chuyển bộ bám/định vị xuống Pi, truyền cảm biến qua mạng và tự chọn chỗ đỗ là các phần cần phát triển.
+**Đây là kiến trúc đích, chưa phải bản phân tán đã triển khai hoặc nghiệm thu.** Phần mềm đã tự tìm ô đỗ trên bản đồ LiDAR và cho bấm chọn ô (mô phỏng). Chuyển bộ bám/định vị xuống Pi và truyền cảm biến qua mạng là các phần cần phát triển.
 
-![Luồng tính đường và điều khiển theo kiến trúc đích](images/luong-tinh-duong.png)
+```
+Camera, LiDAR
+└── Pi: biết xe đang ở đâu
+    └── Laptop: tìm ô trống → bạn chọn ô → tính đường → bạn xác nhận
+        └── Pi: lái theo đường
+            └── ESP32: ga, lái
+                └── Xe vào ô, dừng
+```
 
 [Một lượt tính đường hoàn chỉnh](LUONG_TINH_DUONG.md) · [Xử lý khi gặp vật cản](LUONG_VAT_CAN.md) · [Kết nối phần cứng](LAP_RAP_DIEN_2D.md)
 

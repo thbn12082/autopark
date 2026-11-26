@@ -174,25 +174,37 @@ Laptop và Pi kết nối **Wi-Fi trong cùng mạng LAN**, có thể qua router
 
 Trên xe, LiDAR C1 dùng adapter USB nối Pi; bốn camera USB nối qua hub tới Pi; Pi nối ESP32 bằng cáp USB ngắn. Pi chuyển dữ liệu cần thiết lên laptop để xử lý AI và lập đường. Băng thông camera, độ trễ, khả năng cấp nguồn của hub và tải xử lý trên Pi còn cần đo khi tích hợp.
 
-## Hai luồng cần đọc trước
+## Hai luồng chính
 
-### Nhận biết vật cản và dừng
+**Tính đường**
 
-Pi thu LiDAR, ảnh camera và phản hồi chuyển động. Laptop chạy AI và hợp nhất bằng chứng vật cản; Pi duy trì định vị và giám sát cục bộ vùng mà toàn thân xe sắp đi qua. Khi vật cản làm vùng này không an toàn, dữ liệu cần thiết quá hạn hoặc liên kết mất quá ngưỡng giám sát, xe phải dừng. ESP32 có thêm watchdog để xử lý lệnh từ Pi hết hạn.
+```
+Camera, LiDAR
+└── Pi: biết xe đang ở đâu
+    └── Laptop: tìm ô trống → bạn chọn ô → tính đường → bạn xác nhận
+        └── Pi: lái theo đường
+            └── ESP32: ga, lái
+                └── Xe vào ô, dừng
+```
 
-![Thiết kế mục tiêu: luồng nhận biết vật cản và dừng trên Laptop–Pi–ESP32](autopark/docs/images/luong-vat-can.png?v=3c4768033b92)
+**Vật cản**
 
-Đọc [Luồng vật cản](autopark/docs/LUONG_VAT_CAN.md) để theo dõi nguồn dữ liệu, nơi xử lý và trách nhiệm dừng của từng thiết bị.
+```
+Thấy vật cản
+├── LiDAR thấy
+│   └── Pi dừng xe ngay
+└── Chỉ camera thấy
+    └── Laptop báo Pi → Pi dừng xe
 
-### Chọn ô đỗ, tính đường và thực hiện
+Lỗi
+├── Dữ liệu cũ, mất định vị, mất Wi-Fi → Pi dừng xe
+└── Pi treo, đứt USB → ESP32 tự dừng
 
-Laptop dùng bản đồ vật cản và tư thế đo được để đánh giá ô đỗ, tính đường tiến/lùi và kiểm khoảng trống cho toàn thân xe. Sau khi người dùng xác nhận, laptop gửi quỹ đạo xuống Pi. Pi kiểm điều kiện thực hiện, bám đường bằng phản hồi tại xe và gửi lệnh ngắn hạn tới ESP32.
+Sau khi dừng
+└── Đứng yên → đo vị trí mới → tính đường mới → bạn xác nhận → chạy tiếp
+```
 
-![Thiết kế mục tiêu: chọn ô đỗ, tính quỹ đạo trên laptop và bám đường trên Pi](autopark/docs/images/luong-tinh-duong.png?v=f065af9e9ba1)
-
-**Xe không tự chạy lại khi vật cản biến mất hoặc mạng/dữ liệu phục hồi.** Sau khi xác nhận xe đứng yên, Pi cung cấp tư thế mới đo được; laptop tính lại đường từ tư thế đó. Người dùng phải xác nhận lượt chạy mới. Nếu chưa có tư thế hoặc dữ liệu hợp lệ, xe tiếp tục đứng yên.
-
-Đọc [Luồng tính đường](autopark/docs/LUONG_TINH_DUONG.md) để phân biệt chọn ô, lập quỹ đạo, bám đường và tính lại sau khi dừng. Ứng dụng đã tự tìm ô đỗ và cho bấm chọn ô, hoặc kéo đích bằng tay. Bám quỹ đạo trên Pi là bước triển khai tiếp theo.
+Xe **không bao giờ tự chạy lại**. Đã làm trong mô phỏng: tìm ô, chọn ô, tính đường, lái theo đường. Chưa làm: chạy trên Pi và xe thật.
 
 ## Phần cứng và nguồn điện
 
