@@ -2,7 +2,14 @@
 
 AutoPark hướng tới xe mô hình tự tìm ô đỗ phù hợp, tính đường tiến/lùi và thực hiện ở tốc độ thấp. **Kiến trúc mục tiêu gồm laptop chạy AI và lập đường, Raspberry Pi trên xe thu cảm biến và bám đường, ESP32 điều khiển cơ cấu thật.** Người dùng xem phương án và xác nhận trước mỗi lượt chạy.
 
-**Hiện trạng ngày 24/11/2026.** Cửa sổ quan sát trên laptop nhận bốn camera USB và LiDAR C1 từ Pi qua Wi-Fi khi xe đứng yên. Bốn camera đã đạt nội tham ở 640×480. Công việc đang làm là đo vị trí và góc gá từng camera để ghép ảnh Bird’s Eye View (BEV) theo mặt sàn. Đọc [bàn giao cho phiên tiếp theo](BAN_GIAO_CODEX.md#bàn-giao-hiện-hành-ngày-24112026) để tiếp tục từ Camera 1.
+**Hiện trạng ngày 26/11/2026.**
+
+- **Quan sát:** cửa sổ quan sát trên laptop nhận bốn camera USB và LiDAR C1 từ Pi qua Wi-Fi khi xe đứng yên. Nút "Ghi LiDAR" lưu bản quét để dựng bản đồ sa bàn.
+- **Điều khiển:** firmware ESP32 đã điều khiển được ESC và servo trên bàn thử.
+- **Phần mềm đỗ xe:** đã tự tìm được ô đỗ trên bản đồ LiDAR. Bấm ô trong giao diện để đặt đích, rồi tính đường và chạy thử kín vòng trong mô phỏng với kích thước xe đo thật.
+- **Đang chờ:** in bốn tờ ChArUco để hiệu chuẩn ngoại tham Bird’s Eye View (BEV), và lắp MT6701 để có phản hồi góc lái và tốc độ.
+
+Đọc [bàn giao cho phiên tiếp theo](BAN_GIAO_CODEX.md) để tiếp tục.
 
 ## Phần cứng
 
@@ -10,13 +17,13 @@ AutoPark hướng tới xe mô hình tự tìm ô đỗ phù hợp, tính đư�
 |---|---|
 | Máy tính trên xe | **Raspberry Pi 4 Model B, RAM 8 GB**, chạy Raspberry Pi OS 64-bit trong lượt thử |
 | Lưu trữ trên Pi | **microSD 64 GB** cho hệ điều hành, chương trình, cấu hình và log; video ưu tiên lưu ở laptop |
-| Cảm biến góc lái | **MT6701 #1**, đọc góc tuyệt đối qua I²C vào ESP32; gá tại cơ cấu lái |
-| Cảm biến chuyển động | **MT6701 #2**, dự kiến đếm xung A/B qua ESP32 để tính tốc độ và quãng đường; gá trên bánh hoặc trục truyền động |
-| IMU hỗ trợ định vị | **BNO085**, thử đọc qua ESP32; gắn cố định lên khung để đo góc quay thân xe và đối chiếu với LiDAR C1 |
-| Điều khiển cơ cấu | ESP32-S3 với flash 16 MB và PSRAM 8 MB trên bo đã thử. ESC QuicRun 1060 và servo đảm nhiệm ga và lái trong thiết kế |
+| Cảm biến góc lái | **MT6701 #1**, đọc góc tuyệt đối qua I²C vào ESP32; gá tại cơ cấu lái. Đã có module, **chưa lắp** |
+| Cảm biến chuyển động | **MT6701 #2**, dự kiến đếm xung A/B qua ESP32 để tính tốc độ và quãng đường; gá trên bánh hoặc trục truyền động. **Chưa lắp** |
+| IMU hỗ trợ định vị | **BNO085**, dự kiến đọc qua ESP32; gắn cố định lên khung để đo góc quay thân xe và đối chiếu với LiDAR C1. **Chưa lắp** |
+| Điều khiển cơ cấu | ESP32-S3 với flash 16 MB và PSRAM 8 MB, cắm USB vào Pi. ESC QuicRun 1060 (GPIO4) và servo (GPIO5) đã chạy bằng firmware AutoPark trên bàn thử |
 | Quan sát | Đã nhận đồng thời **bốn camera USB qua hub có nguồn riêng** và LiDAR C1. Laptop hiển thị ảnh, bản quét và tab BEV |
 
-**Phương án cảm biến gồm hai MT6701 và một BNO085.** Tốc độ và góc lái đo được là hai phản hồi cần có để thử tự chạy. BNO085 là nguồn dữ liệu bổ sung cho định vị. Mỗi MT6701 có một nam châm và một vị trí gá. Đường xung A/B của MT6701 #2 dự kiến nối riêng vào ESP32, còn MT6701 #1 dùng bus I²C.
+**Phương án cảm biến gồm hai MT6701 và một BNO085.** Tốc độ và góc lái đo được là hai phản hồi cần có để thử tự chạy, nên không đo tay góc lái hay tốc độ trước khi lắp MT6701. BNO085 là nguồn dữ liệu bổ sung cho định vị. Mỗi MT6701 có một nam châm và một vị trí gá. Đường xung A/B của MT6701 #2 dự kiến nối riêng vào ESP32, còn MT6701 #1 dùng bus I²C. Thứ tự thử khi lắp:
 
 1. **Thử BNO085 trước.** Ngắt pin ESC, đọc góc trên bàn rồi xoay bo khoảng 90° để kiểm hướng và độ lớn góc đo. Sau đó gá lên khung để đối chiếu hướng quay với C1 khi di chuyển xe bằng tay.
 2. **Thử MT6701 #1.** Dùng bo 5 chân đang có để kiểm đọc góc qua I²C trên bàn. Sau khi tìm được vị trí gá tại cơ cấu lái, hiệu chuẩn chiều trái/phải, điểm giữa và quan hệ giữa góc cảm biến với góc bánh trước.
@@ -58,6 +65,8 @@ Bo `GY-BNO08X` của xe dùng chip **BNO085** theo xác nhận của người l�
 | Phần nhô trước | 37 mm | Tâm trục trước đến mũi xe |
 | Phần nhô sau | 47 mm | Tâm trục sau đến đuôi xe |
 
+Phần mềm dùng các số này qua [`autopark/configs/vehicle_measured.json`](autopark/configs/vehicle_measured.json). Góc lái tối đa 30° và giới hạn tốc độ trong tệp đó vẫn là giả định, chờ đo bằng MT6701.
+
 ![Sơ đồ kích thước MN300 đo thực](autopark/docs/images/kich-thuoc-mn300-do-thuc.png)
 
 ### Vị trí gá LiDAR C1 đo thực
@@ -70,7 +79,7 @@ Gốc tọa độ nằm trên mặt sàn, ngay dưới tâm trục sau.
 | `y` | +30 mm | Từ đường tâm dọc của xe sang trái, đến tâm quay C1 |
 | `z` | 160 mm | Từ mặt sàn lên mặt phẳng quét LiDAR |
 
-Góc hướng của C1 cần được đo khi hiệu chuẩn.
+Góc hướng của C1 cần được đo khi hiệu chuẩn. Tệp định vị `autopark/configs/dinh_vi_lidar_v0.json` vẫn ghi vị trí gá giả định, chưa cập nhật theo số đo này.
 
 ![Sơ đồ vị trí gá LiDAR C1 đo thực trên MN300](autopark/docs/images/vi-tri-ga-lidar-c1-do-thuc.png)
 
@@ -99,7 +108,7 @@ Giữ từng camera ở cổng hub đã đối chiếu với ô hiển thị tro
 
 ![Ảnh ghép Bird’s Eye View từ bốn camera MN300 trước khi hiệu chuẩn](autopark/docs/images/bev-chua-hieu-chuan.jpg)
 
-Phương án đã chọn dùng mô hình ống kính đo riêng cho từng camera và tư thế gá đo theo mốc sàn. Ảnh trên là mốc trước hiệu chuẩn. Tab BEV vẫn hiển thị hình chiếu ước lượng trong khi đo ngoại tham. Khi đủ bốn tư thế đã đo, tab nạp tệp rig `v1` để chiếu ảnh về cùng mặt sàn và kiểm các đường nối. [Quy trình hiệu chuẩn camera](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md#hiệu-chuẩn-camera)
+Mỗi camera dùng mô hình ống kính đo riêng (nội tham). Ảnh trên là mốc trước hiệu chuẩn. Tab BEV vẫn hiển thị hình chiếu ước lượng cho tới khi có ngoại tham. Khi có tệp rig `v1`, tab chiếu ảnh bốn camera về cùng mặt sàn để kiểm các đường nối. [Quy trình hiệu chuẩn camera](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md#hiệu-chuẩn-camera)
 
 | Camera | Ảnh dùng khi tính nội tham | RMS chiếu lại (px) | Tệp 640×480 |
 |---|---:|---:|---|
@@ -108,11 +117,18 @@ Phương án đã chọn dùng mô hình ống kính đo riêng cho từng camer
 | 3 · Trái | 21/22 | 0,143 | [cam_p3.json](autopark/calibration/cam_p3.json) |
 | 4 · Phải | 25/26 | 0,130 | [cam_p4.json](autopark/calibration/cam_p4.json) |
 
-**Ngoại tham đang ở Camera 1.** Bàn cờ trên tablet có 9×6 góc trong, cạnh ô đo được 7,2 mm và mặt màn hình cách mặt bàn 7 mm. Cặp ảnh có thước dẫn ở mốc 155 mm và 140 mm cho RMS chung **3,396 px**, đạt ngưỡng 4 px. Độ lệch hướng lớn nhất so với tư thế chung là **3,666°**, vượt ngưỡng 1°. Bước tiếp theo là xem ảnh từ trên xuống thấy **mũi xe, thước và bàn cờ** để kiểm mốc của điểm O trước khi chụp lại. [Các tệp và cách tiếp tục](BAN_GIAO_CODEX.md#bàn-giao-hiện-hành-ngày-24112026)
+**Ngoại tham dùng bốn tờ A4 in mẫu ChArUco, không đo thước.** Cách cũ dùng bàn cờ trên tablet cộng thước đã bỏ, vì tọa độ nhập tay lệch tới 4–5 cm. Theo cách mới:
 
-## Kết quả bàn thử trên xe thật ngày 22/11/2026
+1. In [bốn tờ ChArUco](autopark/calibration/bang_in/to_ngoai_tham/to_ngoai_tham_A4_4trang.pdf) (trước, sau, trái, phải).
+2. Đặt mỗi tờ sao cho mép tờ chạm lốp. Không cần nhập số đo nào.
+3. Chụp mỗi camera một ảnh.
+4. Chạy `autopark/perception/sheet_extrinsics.py solve` để giải tư thế bốn camera, kiểm chéo và ghi tệp rig.
 
-Các lượt dưới đây thực hiện khi xe đứng yên và pin ESC đã ngắt. Firmware AutoPark được nạp bằng bản build cho flash 16 MB với `AP_ENABLE_PWM_OUTPUTS=0`.
+Bộ giải đã đạt trên ảnh tổng hợp. **Đang chờ in tờ để chụp trên xe thật.** [Chi tiết](BAN_GIAO_CODEX.md#cập-nhật-tối-24112026-ngoại-tham-bằng-tờ-in-bỏ-đo-thước)
+
+## Kết quả bàn thử trên xe thật
+
+Các lượt ngày 22/11/2026 thực hiện khi xe đứng yên và pin ESC đã ngắt, với firmware AutoPark build cho flash 16 MB, PWM tắt. Các lượt motor và servo ngày 24–25/11 chạy với bánh nhấc khỏi sàn.
 
 | Hạng mục | Kết quả quan sát |
 |---|---|
@@ -121,17 +137,26 @@ Các lượt dưới đây thực hiện khi xe đứng yên và pin ESC đã ng
 | Nguồn và thu dữ liệu tại Pi | Nguồn từ cổng USB laptop báo thiếu áp (`0x50005`). Khi dùng sạc dự phòng, camera và C1 chạy đồng thời hơn 5 phút với ESP32 vẫn nối USB. Camera giải mã 8.784 khung MJPG 640×480 ở trung bình 29,28 fps. C1 đọc 2.984 vòng ở trung bình 10,02 Hz. Cả 199 lần lấy mẫu nguồn đều báo `throttled=0x0`. |
 | Truyền qua Wi-Fi | Trong 45 giây, laptop nhận đủ 450/450 khung camera ở 10,00 fps và 452/452 vòng C1 ở 10,04 Hz. Số thứ tự hai luồng liên tục. Trung bình toàn phiên SSH là 3,06 Mb/s. Khoảng cách lớn nhất giữa hai mẫu nhận liên tiếp là 156 ms cho camera và 154 ms cho C1. |
 | Kiểm hướng quan sát | Trong cửa sổ quan sát thử nghiệm trên laptop, người thử di chuyển hộp lần lượt ra trước, sang trái và sang phải xe. Ảnh camera và cụm điểm C1 đều thay đổi đúng phía theo quan sát. |
+| Motor và servo (sketch `MN300_Bench_Test`) | Người dùng xác nhận ngày 24/11/2026: motor quay qua ESC (GPIO4) và servo đánh lái (GPIO5), servo lấy nguồn BEC 6 V của ESC và chạy ổn. Không có nhật ký số liệu. |
+| Firmware AutoPark có PWM (env `esp32s3_16mb_pwm`) | Ngày 25/11/2026, bánh nhấc khỏi sàn, nạp từ Pi bằng `nap.sh`. Người dùng xác nhận đạt cả năm bước của `tools/thu_ban_pwm.py`: kết nối, servo trái/giữa/phải, tiến, lùi, và tự dừng khi ngừng gửi lệnh. Giới hạn thử bàn: ga 1375–1625 µs, servo 1200–1800 µs, lệnh hết hạn sau 200 ms. Không dùng E-stop theo thiết kế. Không lưu nhật ký số liệu. |
 
-Trước lượt tự chạy, cần hoàn thiện phản hồi góc lái và tốc độ từ hai MT6701, xác nhận tư thế xe, kiểm mất luồng và đo quãng dừng. Xem [Kiểm thử và lộ trình](autopark/docs/KIEM_THU_VA_LO_TRINH.md) và [Phần cứng và hiệu chuẩn](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
+Trước lượt tự chạy trên sàn, cần:
+
+- phản hồi góc lái và tốc độ từ hai MT6701;
+- bản đồ LiDAR của sa bàn;
+- xác nhận tư thế xe bằng định vị LiDAR;
+- kiểm mất luồng;
+- đo quãng dừng. Xem [Kiểm thử và lộ trình](autopark/docs/KIEM_THU_VA_LO_TRINH.md) và [Phần cứng và hiệu chuẩn](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md).
 
 ## Hiện có và cần phát triển
 
 | Hạng mục | Hiện có trong repository | Phần cần phát triển theo thiết kế mục tiêu |
 |---|---|---|
-| Thao tác và đích đến | Giao diện chọn đích gần, lập và bám đường trong ứng dụng; mô phỏng cua hẹp, lách vật cản, chỉnh vào khe | Laptop nhận biết, đánh giá và chọn ô đỗ từ dữ liệu cảm biến |
-| Cảm nhận | Các khối camera/AI, LiDAR, hợp nhất vật cản và ước lượng tư thế. Cửa sổ quan sát nhận bốn camera và C1, lưu ảnh hiệu chuẩn | Hoàn tất đo ngoại tham và kiểm độ khớp BEV. Đo tuổi dữ liệu bốn luồng và kiểm mất luồng trong ứng dụng |
+| Tìm ô đỗ | Tìm khe vuông góc và song song trên bản đồ LiDAR, không giới hạn khoảng cách tới xe (`planning/slot_finder.py`). Nút "Tìm ô đỗ" trong giao diện vẽ các ô lên sa bàn để bấm chọn (`ui/slot_picker.py`). Mới thử trên LiDAR mô phỏng | Chạy trên bản đồ C1 ghi từ sa bàn thật |
+| Thao tác và đích đến | Lập và bám đường trong ứng dụng; mô phỏng cua hẹp, lách vật cản, vào khe. Chạy kín mô phỏng từ quét LiDAR đến đỗ xong, lập đường chỉ trên bản đồ, chấm trong sa bàn thật (`simulation/slot_run.py`) | Thử trên xe thật sau khi có phản hồi MT6701 |
+| Cảm nhận | Các khối camera/AI, LiDAR, hợp nhất vật cản và ước lượng tư thế. Cửa sổ quan sát nhận bốn camera và C1, lưu ảnh hiệu chuẩn và ghi bản quét C1 | Ngoại tham BEV bằng tờ in; đo tuổi dữ liệu bốn luồng và kiểm mất luồng trong ứng dụng |
 | Thực hiện quỹ đạo | Bộ bám và xử lý dừng chạy trong ứng dụng hiện tại | Pi nhận quỹ đạo, định vị và bám đường cục bộ; giám sát vật cản và liên kết |
-| Bo điều khiển | Giao thức và logic firmware có xử lý hết hạn lệnh; PWM còn tắt, đọc encoder/góc lái thật chưa hoàn thiện | Hoàn thiện đầu ra ESC/servo, phản hồi thật và kiểm watchdog trên xe |
+| Bo điều khiển | Giao thức và logic firmware có xử lý hết hạn lệnh; PWM ESC/servo đã chạy trên bàn thử (25/11/2026, bánh nhấc); đọc encoder/góc lái thật chưa hoàn thiện | Đo điểm chặn servo và ánh xạ xung–góc/tốc độ, phản hồi thật và kiểm watchdog trên xe |
 
 Kết quả mô phỏng đã ghi nhận nằm trong [Kiểm thử và lộ trình](autopark/docs/KIEM_THU_VA_LO_TRINH.md). Kết quả đó chỉ áp dụng cho mô hình và bộ tình huống đã thử.
 
@@ -167,7 +192,7 @@ Laptop dùng bản đồ vật cản và tư thế đo được để đánh gi�
 
 **Xe không tự chạy lại khi vật cản biến mất hoặc mạng/dữ liệu phục hồi.** Sau khi xác nhận xe đứng yên, Pi cung cấp tư thế mới đo được; laptop tính lại đường từ tư thế đó. Người dùng phải xác nhận lượt chạy mới. Nếu chưa có tư thế hoặc dữ liệu hợp lệ, xe tiếp tục đứng yên.
 
-Đọc [Luồng tính đường](autopark/docs/LUONG_TINH_DUONG.md) để phân biệt chọn ô, lập quỹ đạo, bám đường và tính lại sau khi dừng. Ứng dụng mô phỏng hiện cho phép chọn đích gần thủ công. Tự chọn ô và bám quỹ đạo trên Pi là các bước triển khai tiếp theo.
+Đọc [Luồng tính đường](autopark/docs/LUONG_TINH_DUONG.md) để phân biệt chọn ô, lập quỹ đạo, bám đường và tính lại sau khi dừng. Ứng dụng đã tự tìm ô đỗ và cho bấm chọn ô, hoặc kéo đích bằng tay. Bám quỹ đạo trên Pi là bước triển khai tiếp theo.
 
 ## Phần cứng và nguồn điện
 
@@ -176,7 +201,7 @@ Chi tiết linh kiện, chân GPIO đề xuất, đầu nối, điều kiện t�
 Ba nhánh nguồn cần phân biệt:
 
 - **Motor:** pin LiPo 2S cấp ESC QuicRun 1060; ESC cấp motor kéo.
-- **Servo:** dự kiến lấy nguồn từ BEC 6 V của ESC, chỉ nối sau khi xác minh servo chịu được 6 V và BEC đáp ứng dòng tải lái. Chưa xác nhận tương thích servo gốc.
+- **Servo:** lấy nguồn từ BEC 6 V của ESC; đã chạy ổn trên bàn thử ngày 24/11/2026.
 - **Pi và thiết bị USB:** Pi cần nguồn ổn áp riêng phù hợp model và tổng tải. **Không cấp Pi bằng BEC 6 V của ESC.** ESP32 dùng USB từ Pi theo thiết kế; nguồn cho hub/camera và khả năng cấp dòng của từng cổng phải được kiểm tra.
 
 Bộ hình SVG và PNG mô tả bố trí mục tiêu cho bốn camera và hai MT6701. Sơ đồ chân BNO085 sẽ được bổ sung sau lượt thử trên bàn.
@@ -187,7 +212,7 @@ Bộ hình SVG và PNG mô tả bố trí mục tiêu cho bốn camera và hai M
 
 ![Thiết kế mục tiêu: nguồn và kết nối các khối trên xe](autopark/docs/hardware/wiring-v1/01-system.png?v=b04a45841440)
 
-*Nguồn Pi tách biệt với nhánh BEC cấp servo; BEC chỉ dùng khi đã xác minh tương thích.*
+*Nguồn Pi tách biệt với nhánh BEC cấp servo.*
 
 ![Thiết kế mục tiêu: USB, tín hiệu điều khiển và phản hồi](autopark/docs/hardware/wiring-v1/02-signal-feedback.png?v=8a5bdf9db514)
 
@@ -208,7 +233,13 @@ python -m venv .venv
 .\.venv\Scripts\python.exe run_app.py scenarios/thao_tac_cua_hep.json
 ```
 
-Có thể thay kịch bản bằng `scenarios/thao_tac_lui_vao_khe.json`. Trong giao diện, chọn vị trí và hướng đích gần, tính thao tác, xem trước rồi xác nhận thực hiện trong mô phỏng. Cách chạy này chưa triển khai dịch vụ trên Pi hoặc điều khiển xe thật.
+Có thể thay kịch bản bằng `scenarios/thao_tac_lui_vao_khe.json`. Trong giao diện, kéo đích tới vị trí và hướng mong muốn, tính thao tác, xem trước rồi xác nhận thực hiện trong mô phỏng. Cách chạy này chưa triển khai dịch vụ trên Pi hoặc điều khiển xe thật.
+
+Để thử tự tìm ô đỗ, mở `scenarios/tim_khe_vuong_goc.json` hoặc `scenarios/tim_khe_song_song.json` và bấm **Tìm ô đỗ**. Bấm một ô để đặt đích; bấm lại để đổi lùi vào ↔ tiến vào. Chạy cả chuỗi từ quét LiDAR đến đỗ xong không cần giao diện:
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m autopark.simulation.slot_run --scenario scenarios/tim_khe_vuong_goc.json --out runs/slot_run
+```
 
 ![Giao diện mô phỏng cảnh cua hẹp](autopark/docs/images/giao-dien-cua-hep.png)
 
@@ -224,6 +255,6 @@ Có thể thay kịch bản bằng `scenarios/thao_tac_lui_vao_khe.json`. Trong 
 | Cách dùng, lưu và phát lại mô phỏng | [Vận hành](autopark/docs/VAN_HANH.md) |
 | Đi dây, cấp nguồn và đối chiếu chân | [Lắp ráp điện 2D](autopark/docs/LAP_RAP_DIEN_2D.md) |
 | Đo xe, gá và hiệu chuẩn cảm biến | [Phần cứng và hiệu chuẩn](autopark/docs/PHAN_CUNG_VA_HIEU_CHUAN.md) |
-| Tiếp tục phiên hiệu chuẩn BEV | [Bàn giao AutoPark](BAN_GIAO_CODEX.md#bàn-giao-hiện-hành-ngày-24112026) |
+| Việc đang làm và cách tiếp tục | [Bàn giao AutoPark](BAN_GIAO_CODEX.md) |
 | Bằng chứng hiện có và các bước còn thiếu | [Kiểm thử và lộ trình](autopark/docs/KIEM_THU_VA_LO_TRINH.md) |
 | Nguồn dữ liệu và điều kiện sử dụng | [Dữ liệu và giấy phép](autopark/docs/DU_LIEU_VA_GIAY_PHEP.md) |

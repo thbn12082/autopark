@@ -207,6 +207,41 @@ class RemoteSensorLink:
         self._thread: threading.Thread | None = None
         self._process: subprocess.Popen | None = None
         self._snapshot = RemoteViewSnapshot(cameras=self._empty_cameras)
+        self._recorder = None              # ScanRecorder khi đang ghi LiDAR (thêm 26/11/2026)
+
+    # ---- ghi LiDAR: mọi vòng nhận được, kể cả vòng giao diện không kịp vẽ ---------------------------------------
+    def start_lidar_recording(self, path, meta: dict | None = None) -> Path:
+        """Ghi mọi vòng C1 nhận từ lúc này vào `<path>.npz` theo định dạng `lidar/recording.py`, để `lidar/occupancy.py`,
+        `lidar/map_builder.py` và `planning/slot_finder.py` đọc được. Dấu thời gian là đồng hồ Pi (giây), không phải
+        lúc laptop nhận, nên không mang độ giật của Wi-Fi."""
+        from autopark.lidar.recording import ScanRecorder, default_meta
+
+        with self._lock:
+            if self._recorder is not None:
+                raise RuntimeError("Đang ghi LiDAR")
+            info = default_meta("pi_lidar", device="RPLIDAR C1", port=f"ssh://{self.user}@{self.host}",
+                                mirror=False, clock="pi_monotonic_s", **(meta or {}))
+            self._recorder = ScanRecorder(path, info)
+            return self._recorder.path
+
+    def stop_lidar_recording(self) -> tuple[Path, int] | None:
+        """Dừng ghi và ghi tệp. Trả (đường dẫn .npz, số vòng); không đang ghi thì trả None."""
+        with self._lock:
+            recorder, self._recorder = self._recorder, None
+        if recorder is None:
+            return None
+        return recorder.close(), len(recorder)
+
+    def lidar_recording_count(self) -> int | None:
+        with self._lock:
+            return None if self._recorder is None else len(self._recorder)
+
+    def _record_scan(self, scan: LidarScan, pi_stamp_ns: int) -> None:
+        with self._lock:
+            if self._recorder is None:
+                return
+            t = pi_stamp_ns * 1e-9
+            self._recorder.add(LidarScan(SourceStamp("pi_lidar", t, frame_id="lidar"), scan.angles_rad, scan.ranges_m))
 
     def start(self) -> None:
         with self._lock:
@@ -233,6 +268,7 @@ class RemoteSensorLink:
         _terminate(process)
         if thread is not None and thread is not threading.current_thread():
             thread.join(timeout=1.0)
+        self.stop_lidar_recording()            # còn đang ghi thì vẫn ghi tệp, không bỏ dữ liệu
 
     def _update(self, **fields) -> None:
         with self._lock:
@@ -277,8 +313,10 @@ class RemoteSensorLink:
             last_seq[kind], last_stamp[kind] = seq, stamp
             counts[kind] += 1
             if kind == "lidar":
+                scan = _decode_scan(payload, received_at)
+                self._record_scan(scan, stamp)
                 self._update(status="live", detail="Đang nhận dữ liệu từ Pi",
-                             scan=_decode_scan(payload, received_at), scan_seq=seq, scan_at=received_at)
+                             scan=scan, scan_seq=seq, scan_at=received_at)
             else:
                 self._update_camera(self._camera_indices[kind],
                                     RemoteCameraSample(_decode_frame(payload), seq, received_at))

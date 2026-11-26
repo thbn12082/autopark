@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "xe_that_kich_thuoc_do",
+  "wheelbase_m": 0.21,
+  "width_m": 0.16,
+  "front_overhang_m": 0.037,
+  "rear_overhang_m": 0.047,
+  "max_steer_deg": 30.0,
+  "max_speed_mps": 0.3,
+  "max_accel_mps2": 0.3,
+  "max_decel_mps2": 0.6,
+  "max_steer_rate_deg_s": 90.0,
+  "notes": "Kích thước ĐO TRÊN XE THẬT (thêm 26/11/2026): chiều dài cơ sở 210 mm (đo 23/11/2026), bề rộng ngoài hai lốp 160 mm (đo 24/11/2026), mũi xe ở x = 247 mm và đuôi ở x = −47 mm tính từ tâm trục sau (khung xe của ảnh nhìn quanh xe, perception/surround_view.py), nên phần nhô trước 37 mm, sau 47 mm, dài 294 mm. Góc lái tối đa 30°, tốc độ, gia tốc và tốc độ đổi góc lái vẫn GIẢ ĐỊNH như vehicle_default.json: chờ đo bằng MT6701."
+}

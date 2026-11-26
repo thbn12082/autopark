@@ -61,7 +61,8 @@ QTabBar::tab:selected { color: #126761; background: white; border-top: 2px solid
 
 class RemoteSensorWindow(QMainWindow):
     def __init__(self, host="", *, camera_count=1, duration_s=180.0, log_path=None,
-                 calibration_dir=None, calibration_floor=False, link_factory=RemoteSensorLink, clock=time.monotonic):
+                 calibration_dir=None, calibration_floor=False, link_factory=RemoteSensorLink, clock=time.monotonic,
+                 lidar_dir=None):
         super().__init__()
         if camera_count not in (1, 4):
             raise ValueError("Chọn chế độ một hoặc bốn camera")
@@ -73,6 +74,7 @@ class RemoteSensorWindow(QMainWindow):
         self.log_path = log_path
         self.calibration_dir = Path(calibration_dir) if calibration_dir is not None else None
         self.calibration_floor = calibration_floor
+        self.lidar_dir = Path(lidar_dir) if lidar_dir is not None else Path("runs") / "lidar_pi"
         self.link_factory = link_factory
         self.clock = clock
         self.link = None
@@ -139,6 +141,21 @@ class RemoteSensorWindow(QMainWindow):
             label.setAlignment(alignment)
             directions.addWidget(label, 1)
         scan_panel.layout().insertLayout(1, directions)
+        # Ghi LiDAR (26/11/2026): mỗi lần bấm là một chỗ đặt xe đứng yên, dùng cho lidar/map_builder.py và
+        # planning/slot_finder.py.
+        self.lidar_record_button = QPushButton("Ghi LiDAR")
+        self.lidar_record_button.setCheckable(True)
+        self.lidar_record_button.setEnabled(False)
+        self.lidar_record_button.setAccessibleName("Ghi bản quét LiDAR")
+        self.lidar_record_button.toggled.connect(self._toggle_lidar_recording)
+        self.lidar_record_status = QLabel(f"Lưu vào {self.lidar_dir}")
+        self.lidar_record_status.setTextFormat(Qt.TextFormat.PlainText)
+        self.lidar_record_status.setWordWrap(True)
+        self.lidar_record_status.setObjectName("guide")
+        record_row = QHBoxLayout()
+        record_row.addWidget(self.lidar_record_button)
+        record_row.addWidget(self.lidar_record_status, 1)
+        scan_panel.layout().addLayout(record_row)
 
         panels = QHBoxLayout()
         panels.setSpacing(14)
@@ -353,6 +370,46 @@ class RemoteSensorWindow(QMainWindow):
         if label.styleSheet() != style:
             label.setStyleSheet(style)
 
+    def _can_record_lidar(self):
+        return self.link is not None and hasattr(self.link, "start_lidar_recording")
+
+    def _toggle_lidar_recording(self, active):
+        if active:
+            if not self._can_record_lidar():
+                self.lidar_record_button.setChecked(False)
+                return
+            name = time.strftime("c1_%Y%m%d_%H%M%S")
+            try:
+                path = self.link.start_lidar_recording(self.lidar_dir / name)
+            except (OSError, RuntimeError, ValueError) as exc:
+                self.lidar_record_status.setText(f"Lỗi bắt đầu ghi: {exc}")
+                self.lidar_record_button.blockSignals(True)
+                self.lidar_record_button.setChecked(False)
+                self.lidar_record_button.blockSignals(False)
+                return
+            self.lidar_record_button.setText("Dừng ghi")
+            self.lidar_record_status.setText(f"Đang ghi · 0 vòng · {path.name}. Giữ xe đứng yên.")
+            self._show_event(f"LIDAR_RECORD_START {path.name}", deduplicate=False)
+        else:
+            self._finish_lidar_recording()
+
+    def _finish_lidar_recording(self):
+        self.lidar_record_button.blockSignals(True)
+        self.lidar_record_button.setChecked(False)
+        self.lidar_record_button.blockSignals(False)
+        self.lidar_record_button.setText("Ghi LiDAR")
+        if not self._can_record_lidar():
+            return
+        try:
+            result = self.link.stop_lidar_recording()
+        except (OSError, ValueError) as exc:
+            self.lidar_record_status.setText(f"Lỗi ghi tệp LiDAR: {exc}")
+            return
+        if result is not None:
+            path, scans = result
+            self.lidar_record_status.setText(f"Đã ghi {scans} vòng · {path}")
+            self._show_event(f"LIDAR_RECORD_STOP {path.name} scans={scans}", deduplicate=False)
+
     def connect_link(self):
         if self.link is not None and self.link.snapshot().status in ACTIVE:
             return
@@ -370,6 +427,8 @@ class RemoteSensorWindow(QMainWindow):
 
     def stop_link(self):
         if self.link is not None:
+            if self.lidar_record_button.isChecked():
+                self._finish_lidar_recording()
             self.link.close()
             self.link = None
             self._show_event("STOPPED")
@@ -388,6 +447,7 @@ class RemoteSensorWindow(QMainWindow):
             self._set_sensor_status(status, "Chờ ảnh", False)
         self.scan_view.set_scan(None, stale=True)
         self._set_sensor_status(self.scan_status, "Chờ bản quét", False)
+        self.lidar_record_button.setEnabled(False)
         self.link_status.setText("Chọn Kết nối để mở phiên quan sát.")
         self.host.setEnabled(True)
         self.connect_button.setEnabled(True)
@@ -456,6 +516,18 @@ class RemoteSensorWindow(QMainWindow):
         scan_fresh = (is_active and view.scan is not None and view.scan_at is not None
                       and 0 <= now - view.scan_at <= DISPLAY_STALE_S)
 
+        recording = self.lidar_record_button.isChecked()
+        self.lidar_record_button.setEnabled(recording or (scan_fresh and self._can_record_lidar()))
+        if recording:
+            if not is_active:
+                self._finish_lidar_recording()
+            else:
+                count = self.link.lidar_recording_count()
+                if count is not None:
+                    text = f"Đang ghi · {count} vòng. Giữ xe đứng yên."
+                    if self.lidar_record_status.text() != text:
+                        self.lidar_record_status.setText(text)
+
         if scan_fresh:
             self._set_sensor_status(self.scan_status, "Trực tiếp", True)
             if view.scan_seq != self.shown_scan:
@@ -512,6 +584,8 @@ def main(argv=None):
     parser.add_argument("--calibration-floor", action="store_true",
                         help="Lưu ảnh nguyên gốc của lần đặt bảng trên sàn để giải ngoại tham")
     parser.add_argument("--bird-eye", action="store_true", help="Mở tab nhìn từ trên khi khởi động")
+    parser.add_argument("--lidar-dir", type=Path, default=None,
+                        help="Thư mục lưu bản ghi LiDAR của nút Ghi LiDAR (mặc định runs/lidar_pi)")
     args = parser.parse_args(argv)
     if args.bird_eye and args.cameras != 4:
         parser.error("--bird-eye dùng với chế độ bốn camera")
@@ -522,7 +596,7 @@ def main(argv=None):
     app.setFont(QFont("Segoe UI", 10))
     window = RemoteSensorWindow(args.host, camera_count=args.cameras,
                                 duration_s=args.seconds, log_path=args.log, calibration_dir=args.calibration_dir,
-                                calibration_floor=args.calibration_floor)
+                                calibration_floor=args.calibration_floor, lidar_dir=args.lidar_dir)
     if args.bird_eye:
         window.tabs.setCurrentWidget(window.bird_eye)
     window.show()

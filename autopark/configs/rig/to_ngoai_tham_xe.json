@@ -1,0 +1,8 @@
+{
+  "format": "autopark.rig_sheets_vehicle/1",
+  "wheelbase_m": 0.210,
+  "tire_radius_m": 0.037,
+  "tire_outer_width_m": 0.160,
+  "measured": true,
+  "notes": "Kích thước xe cho tờ hiệu chuẩn ngoại tham (autopark.perception.rig_sheets). Chiều dài cơ sở 210 mm đo 23/11/2026 (do-kich-thuoc-xe.html). Người dùng đo 24/11/2026: đường kính lốp 74 mm (bán kính 37 mm), bề rộng ngoài hai lốp 160 mm. Tờ trước/sau chạm mặt lốp nên mép tờ ở x = cơ sở + bán kính (trước) và x = −bán kính (sau); tờ trái/phải chạm mặt ngoài lốp nên mép tờ ở y = ±bề rộng/2."
+}

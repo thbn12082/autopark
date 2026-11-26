@@ -41,7 +41,7 @@ from autopark.control.tracker import TrackerOutput, TrackerParams, TrajectoryTra
 from autopark.application.cusp_policy import CuspCheck, CuspLimit, CuspPolicy, check_cusps, resolve_cusp_limit
 from autopark.application.vehicle_link import DriveMode, VehicleLink, VehicleLinkError
 from autopark.domain.computation import ComputationCancelled, ComputationControl, ComputationTimedOut
-from autopark.domain.types import Obstacle, Pose, Scenario, VehicleConfig, clamp
+from autopark.domain.types import ManeuverLimits, Obstacle, Pose, Scenario, VehicleConfig, clamp
 from autopark.evaluation.logger import RunLog
 from autopark.geometry.footprint import CollisionResult, check_pose
 from autopark.planning.types import PlannerParams, PlanResult
@@ -241,6 +241,15 @@ class Session:
     def set_goal_pose(self, pose: Pose) -> None:
         self._require_editable()
         self.scenario.goal = replace(self.scenario.goal, pose=pose)
+        self._invalidate()
+
+    def set_maneuver_limits(self, limits: ManeuverLimits) -> None:
+        """Đổi giới hạn thao tác của kịch bản (thêm 26/11/2026): chọn ô đỗ tìm được thì nới theo cỡ sa bàn, bỏ mức
+        0,7 m của thao tác gần (`slot_finder.wide_limits`). Đường cũ bị hủy."""
+        self._require_editable()
+        if not isinstance(limits, ManeuverLimits):
+            raise SessionError("Giới hạn thao tác không hợp lệ")
+        self.scenario.maneuver = limits
         self._invalidate()
 
     def add_obstacle(self, obstacle: Obstacle | None = None) -> Obstacle:

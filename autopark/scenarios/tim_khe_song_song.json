@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "Tìm khe song song",
+  "notes": "Sa bàn thử cho autopark.planning.slot_finder (26/11/2026). Hai xe đỗ dọc mép dưới, khe giữa dài 51 cm (ô 37 cm; khe 45 cm có đường nhưng xe mô phỏng dừng ngoài dung sai). Thông số giả định cho mô phỏng.",
+  "vehicle_config": "../configs/vehicle_measured.json",
+  "bounds": {"xmin": 0.0, "ymin": 0.0, "xmax": 2.0, "ymax": 1.2},
+  "start": {"x": 1.45, "y": 0.42, "yaw_deg": 180.0},
+  "goal": {"x": 1.25, "y": 0.42, "yaw_deg": 180.0, "tolerance_cm": 3.0, "tolerance_deg": 5.0},
+  "obstacles": [
+    {"id": "xe_truoc", "cx": 0.30, "cy": 0.10, "width": 0.31, "height": 0.14, "kind": "car"},
+    {"id": "xe_sau", "cx": 1.12, "cy": 0.10, "width": 0.31, "height": 0.14, "kind": "car"}
+  ],
+  "seed": 0,
+  "maneuver": {"max_goal_distance_m": 0.7, "area_half_extent_m": 0.75, "max_path_length_m": 1.4, "max_cusps": 3}
+}

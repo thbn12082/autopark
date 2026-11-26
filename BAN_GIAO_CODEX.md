@@ -1,6 +1,62 @@
 # Bàn giao AutoPark cho Codex tiếp quản
 
-## Bàn giao hiện hành ngày 24/11/2026
+## Cập nhật 26/11/2026 (chiều): xe đo thật, chọn ô trong giao diện, chạy kín mô phỏng
+
+- **Cấu hình xe đo thật `autopark/configs/vehicle_measured.json`**: trục 0,21 m, rộng 0,16 m, nhô trước 0,037 m, nhô sau 0,047 m (dài 0,294 m), theo số đo 23–24/11 và khung xe của `perception/surround_view.py`. Góc lái 30°, tốc độ và gia tốc **vẫn giả định**, chờ MT6701. `slot_finder`, `simulation.slot_run` và hai sa bàn `tim_khe_*.json` dùng tệp này mặc định. Các sa bàn và bộ thử cũ vẫn dùng `vehicle_default.json` để giữ kết quả so sánh. Ô "Cấu hình xe" của giao diện tự liệt kê tệp mới.
+- **Kết quả với xe thật** (LiDAR mô phỏng, `--verify`): hai khe vuông góc 26 cm cách xe 0,75 m và 1,02 m vẫn đạt cả lùi lẫn tiến (khe rộng hơn ô 2 cm; ô đã gồm lề 3 cm mỗi bên xe). Khe song song 51 cm đạt. Có thêm hai ô sát tường, gắn cờ "thành chưa thấy rõ".
+- **Nút "Tìm ô đỗ" trong giao diện chính** (`autopark/ui/slot_picker.py`, gắn vào `ui/main_window.py`, nên có ở cả `ui.app` lẫn `ui.lidar_app`):
+  - Tìm ở luồng nền trên bản đồ LiDAR mô phỏng của sa bàn đang mở. Ở `ui.lidar_app`, vật cản LiDAR thật đã thành hộp trong sa bàn, nên cũng có trong bản đồ này.
+  - Ô vẽ thành khung xanh đánh số; thành chưa thấy rõ thì vẽ nét đứt cam. Bấm ô thì đích vào giữa ô; bấm lại đổi lùi vào ↔ tiến vào.
+  - Giới hạn thao tác nới theo cỡ sa bàn (`slot_finder.wide_limits`, hàm mới `Session.set_maneuver_limits`), không có mức 0,7 m.
+  - Lúc bấm, ô được kiểm lại với vật cản hiện tại; đổi xe hay mở kịch bản khác thì bỏ ô cũ.
+  - Test: `tests/test_slot_picker_ui.py`.
+- **Chạy kín mô phỏng `autopark/simulation/slot_run.py`**: quét LiDAR ảo → bản đồ → tìm ô → lập đường **chỉ trên bản đồ** → bộ bám đường lái xe ảo trong sa bàn **thật** (va chạm kiểm với vật cản thật). Ghi `ket_qua.json` và `ket_qua.png`.
+  - Vuông góc: chọn ô 1 lùi vào, đường 1,46 m, 1 lần đổi chiều, dừng lệch 0,9 cm / +0,1°.
+  - Song song: đường 2,07 m, 4 lần đổi chiều, dừng lệch 0,9 cm / −1,7°. Không va chạm ở cả hai.
+  - Test: `tests/test_slot_run.py`.
+  - Phản hồi xe vẫn lý tưởng (không trễ, không nhiễu); chưa kiểm với trễ lái thật.
+- Đã tách hàm dùng chung trong `slot_finder`: `map_obstacles`, `slot_scenario`, `plan_to_slot`, `plan_entry`, `wide_limits`, `DEFAULT_VEHICLE`.
+- **Còn lại:** chạy trên sa bàn thật (cần xe); nút trong giao diện chưa đọc được bản đồ ghi sẵn từ `map_builder`, việc đó vẫn làm qua dòng lệnh `slot_finder --map`; Pi chạy bộ bám đường (việc 4 đề xuất, chưa được duyệt).
+
+## Cập nhật 26/11/2026: tự tìm ô đỗ bằng LiDAR (việc 4)
+
+- **`autopark/planning/slot_finder.py`** tìm khe đỗ trên bản đồ lưới LiDAR, chưa dùng AI hay camera.
+  - Hai kiểu khe: vuông góc (thành hai bên và đáy, miệng mở, trước miệng có chỗ tiếp cận) và song song (dọc một lề, có vật chặn ở hai đầu, ngoài có làn trống).
+  - Ô đỗ được canh giữa khe. Mỗi ô ghi độ dư so với xe và cờ "thành chưa thấy rõ" (thành chỉ là ô UNKNOWN).
+  - `--verify` lập quỹ đạo tới từng ô để kiểm xe vào được.
+  - **Không giới hạn 0,7 m** theo yêu cầu người dùng: giới hạn thao tác được nới theo cỡ bản đồ.
+- **Sa bàn thử:** `scenarios/tim_khe_vuong_goc.json` và `scenarios/tim_khe_song_song.json`.
+  - Trên LiDAR mô phỏng, phần mềm tìm đúng các khe 26 cm và loại khe 11 cm.
+  - Hai khe vuông góc cách xe 0,76 m và 1,02 m: lập quỹ đạo đạt cả lùi vào lẫn tiến vào.
+  - Khe song song 51 cm: đạt, 1 lần đổi chiều. Khe 45 cm: tìm được đường, nhưng xe mô phỏng dừng lệch 5,7°, ngoài dung sai.
+  - Test: `tests/test_slot_finder.py`.
+- **Nút "Ghi LiDAR"** trên cửa sổ quan sát Pi (`ui/remote_sensor_view.py`, `--lidar-dir`, mặc định `runs/lidar_pi`) ghi mọi vòng C1 theo định dạng `lidar/recording.py`, dấu thời gian theo đồng hồ Pi. Test: `tests/test_remote_lidar_recording.py`.
+- **Đường dữ liệu thật:** mỗi chỗ đặt xe đứng yên thì ghi khoảng 5 giây. Dựng bản đồ bằng `lidar.occupancy` (một chỗ đặt) hoặc `lidar.map_builder` (nhiều chỗ đặt), dùng lưới 0,02 m, rồi chạy `planning.slot_finder --map`. Chuỗi này đã kiểm trên bản ghi tổng hợp, **chưa chạy trên bản ghi C1 thật**.
+- **Chưa làm:** chạy trên sa bàn thật. Giao diện chọn ô và cấu hình xe thật đã làm ở mục chiều 26/11 phía trên.
+
+## Cập nhật 25/11/2026: PWM ESC/servo chạy trên bàn thử
+
+- **Firmware đang nạp trên ESP32:** env `esp32s3_16mb_pwm` trong `autopark/firmware/esp32_vehicle/platformio.ini`, có PWM bật. ESC ở GPIO4, servo ở GPIO5. Không dùng E-stop theo thiết kế đã chốt (`AP_PIN_ESTOP=-1`, `AP_ALLOW_NO_ESTOP=1`). Servo giới hạn 1200–1800 µs; ga giới hạn bởi `max_effort_permille = 250`, tức 1375–1625 µs.
+- **Kết quả:** người dùng xác nhận đạt cả năm bước của `tools/thu_ban_pwm.py` (kết nối, servo, tiến, lùi, mất lệnh), bánh nhấc khỏi sàn. Không lưu nhật ký số liệu.
+- **Build:** PlatformIO lỗi khi đường dẫn có dấu ("xe tự lái"). Chép `platformio.ini src qemu test` sang một thư mục chỉ có ký tự ASCII rồi chạy `pio run -e esp32s3_16mb_pwm` ở đó.
+- **Nạp:** ESP32 cắm USB vào Pi. Gói thử gồm esptool, intelhex, pyserial, `protocol.py`, `thu_ban_pwm.py` và `nap.sh`. Chép gói sang Pi, giải nén, rồi chạy `sh nap.sh` để nạp.
+- **Chưa làm:**
+  - đo điểm chặn servo và quan hệ giữa xung với góc bánh;
+  - đo quan hệ giữa xung ESC với tốc độ, tìm xung nhỏ nhất làm bánh bắt đầu quay;
+  - đọc MT6701 để có phản hồi thật.
+
+## Cập nhật tối 24/11/2026: ngoại tham bằng tờ in, bỏ đo thước
+
+Ảnh chụp từ trên xuống cho thấy tọa độ góc O nhập tay lệch khoảng 43 mm theo x (thước đọc ở mép bảng, không phải O) và khoảng 50 mm theo y (O không nằm trên đường giữa). Người dùng chọn bỏ cách đo thước. Cách mới:
+
+- `autopark/perception/rig_sheets.py` sinh 4 tờ A4 ChArUco (trước 0–11, sau 12–23, trái 24–35, phải 36–47) ở `autopark/calibration/bang_in/to_ngoai_tham/to_ngoai_tham_A4_4trang.pdf`. Mép dưới tờ chạm lốp; thang đối xứng để căn giữa. Không nhập số nào khi đặt.
+- Kích thước xe cho tờ: `autopark/configs/rig/to_ngoai_tham_xe.json` (cơ sở 210 mm; lốp Ø 74 mm và bề rộng ngoài hai lốp 160 mm do người dùng đo 24/11).
+- `autopark/perception/sheet_extrinsics.py solve --dir <thư mục có cam_p1..cam_p4>` giải mọi cổng, kiểm chéo giữa các tờ và giữa các ảnh, ghi báo cáo `bao_cao_to/`; thêm `--out configs/rig/camera_rig_extrinsics_v1.json` để ghi rig qua `extrinsics_calib.write_rig_file`.
+- Kiểm: `tests/test_sheet_extrinsics.py` 11 ca trên ảnh tổng hợp đạt, `tests/test_extrinsics_calib.py` vẫn đạt. **Chưa thử trên camera thật**: đang chờ người dùng in và chụp.
+
+Phần bên dưới về bảng Kindle và tệp `cam_p1_placements_guided.json` là lịch sử.
+
+## Bàn giao ngày 24/11/2026 (lịch sử: cách bàn cờ trên tablet đã bỏ)
 
 Mục tiêu đang làm là hiệu chuẩn Bird’s Eye View theo **cách 2**, dùng bảng ô vuông điện tử trên màn hình. Bốn camera đã có nội tham đạt kiểm tra. Công việc đang dừng ở bước xác minh ngoại tham Camera 1 (Trước).
 

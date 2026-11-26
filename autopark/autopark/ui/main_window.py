@@ -66,10 +66,12 @@ from autopark.ui.items import (
     MarkerItem,
     ObstacleItem,
     PathItem,
+    SlotCandidateItem,
     SweepItem,
     TrailItem,
     cosmetic_pen,
 )
+from autopark.ui.slot_picker import SlotPicker
 from autopark.ui.theme import Card, StatusPill, WrapLabel
 from autopark.ui.cockpit import CockpitStage, DrivingReadout, StepRail
 from autopark.ui.qemu_runner import BUSY_STATES as QEMU_BUSY_STATES, QemuBoardRunner, QemuRunnerState
@@ -250,7 +252,7 @@ class SandboxView(QGraphicsView):
             for item in self.items(event.position().toPoint()):
                 obj = item
                 while obj is not None:
-                    if isinstance(obj, (CarItem, ObstacleItem)):
+                    if isinstance(obj, (CarItem, ObstacleItem, SlotCandidateItem)):
                         draggable = True
                         break
                     obj = obj.parentItem()
@@ -345,6 +347,7 @@ class MainWindow(QMainWindow):
 
         self.scene = QGraphicsScene(self)
         self.view = SandboxView(self.scene, self._handle_key)
+        self.slot_picker = SlotPicker(self)      # nút "Tìm ô đỗ" (26/11/2026, ui/slot_picker.py)
 
         self._build_controls()
         self._build_inspector()
@@ -374,6 +377,11 @@ class MainWindow(QMainWindow):
         self.preview_action.clicked.connect(self.preview)
         self.reset_action = QPushButton("Vị trí khác")
         self.reset_action.clicked.connect(self._return_to_editing)
+        self.find_slots_action = QPushButton("Tìm ô đỗ")
+        self.find_slots_action.setToolTip(
+            "Tìm ô đỗ trống trên bản đồ LiDAR mô phỏng của sa bàn, vẽ lên sa bàn. Bấm một ô để đặt làm đích, bấm lại để "
+            "đổi kiểu đỗ. Ô xa hơn 0,7 m vẫn chọn được: giới hạn thao tác nới theo cỡ sa bàn.")
+        self.find_slots_action.clicked.connect(self.find_slots)
         self.lbl_step = QLabel()
         self.lbl_step.setObjectName("stepLine")
         self.lbl_plan = WrapLabel()
@@ -691,6 +699,7 @@ class MainWindow(QMainWindow):
         info.addWidget(self.lbl_step)
         info.addWidget(self.lbl_plan)
         controls.addLayout(info, 1)
+        controls.addWidget(self.find_slots_action)
         controls.addWidget(self.reset_action)
         controls.addWidget(self.preview_action)
         controls.addWidget(self.primary_action)
@@ -795,6 +804,7 @@ class MainWindow(QMainWindow):
     def _rebuild_scene(self) -> None:
         self._rebuilding_scene = True
         self.scene.clear()
+        self.slot_picker.forget_items()          # cảnh mới (mở kịch bản, đổi xe): ô cũ không còn đúng
         self._obstacle_items = {}
         self._grid_items = []
         sc = self.session.scenario
@@ -1066,6 +1076,7 @@ class MainWindow(QMainWindow):
         self.sim_item.setVisible(st in driving)
         self.ghost_item.setVisible(st == SessionState.PREVIEW)
         self.lookahead_item.setVisible(False)
+        self.slot_picker.refresh()
         self._arrange_cockpit(self.stage.width(), self.stage.height())
 
     def _refresh_status(self) -> None:
@@ -2433,8 +2444,15 @@ class MainWindow(QMainWindow):
         return self.sync_marks.write_csv(csv_path.with_name(csv_path.stem + "_sync_marks.csv"))
 
     # ------------------------------------------------------------------ nhịp
+    def find_slots(self) -> None:
+        """Nút "Tìm ô đỗ": tìm ở luồng nền, `_on_tick` nhận kết quả và vẽ ô."""
+        if self.slot_picker.start():
+            self.slot_picker.refresh()
+
     def _on_tick(self) -> None:
         real_dt = min(self._clock.restart() / 1000.0, 0.1)
+        if self.slot_picker.poll():
+            self.slot_picker.refresh()
         st = self.session.state
         if st == SessionState.PLANNING:
             result = self.session.poll_plan()
@@ -2561,6 +2579,7 @@ class MainWindow(QMainWindow):
         if lost:
             print(f"CẢNH BÁO: {lost} dòng dấu đồng bộ chưa ghi được ra đĩa ({log.error}); mất khi đóng cửa sổ nếu chưa "
                   f"Xuất log CSV", file=sys.stderr)
+        self.slot_picker.close()
         self.session.close()
         self.qemu_runner.shutdown()              # SAU session.close(): enable=0 + DISARM qua liên kết trước khi tắt QEMU
         super().closeEvent(event)

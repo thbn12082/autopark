@@ -44,9 +44,30 @@
 namespace {
 
 // ===================== CHƯA CHỐT theo bo thực (đo/đối chiếu ở giai đoạn 4-5 rồi mới điền) =====================
-constexpr int kPinEsc = -1;                // chân xung ESC
-constexpr int kPinServo = -1;              // chân xung servo lái
-constexpr int kPinEstop = -1;              // chân đọc trạng thái nút E-stop (chỉ để báo/chốt lỗi)
+// Chân đặt bằng cờ biên dịch trong platformio.ini. 25/11/2026: ESC = GPIO4, servo = GPIO5, đã chạy với sketch
+// MN300_Bench_Test (người dùng xác nhận 24/11/2026). Thiết kế đã bỏ E-stop (docs/LAP_RAP_DIEN_2D.md): env
+// esp32s3_16mb_pwm đặt AP_PIN_ESTOP=-1 và AP_ALLOW_NO_ESTOP=1.
+#ifndef AP_PIN_ESC
+#define AP_PIN_ESC -1
+#endif
+#ifndef AP_PIN_SERVO
+#define AP_PIN_SERVO -1
+#endif
+#ifndef AP_PIN_ESTOP
+#define AP_PIN_ESTOP -1
+#endif
+#ifndef AP_ALLOW_NO_ESTOP
+#define AP_ALLOW_NO_ESTOP 0
+#endif
+#ifndef AP_SERVO_MIN_US
+#define AP_SERVO_MIN_US 1000
+#endif
+#ifndef AP_SERVO_MAX_US
+#define AP_SERVO_MAX_US 2000
+#endif
+constexpr int kPinEsc = AP_PIN_ESC;        // chân xung ESC
+constexpr int kPinServo = AP_PIN_SERVO;    // chân xung servo lái
+constexpr int kPinEstop = AP_PIN_ESTOP;    // chân đọc trạng thái nút E-stop (chỉ để báo/chốt lỗi)
 // E-stop AN TOÀN KHI HỞ MẠCH: tiếp điểm NC (loại mở cưỡng bức, khối NC của nút) nối giữa chân và GND, điện trở kéo
 // LÊN (trong ≈ 45 kΩ; nên thêm 4,7–10 kΩ ngoài lên 3V3 ngay tại bo vì dây đi cạnh ESC/động cơ). Nhả nút: NC đóng, chân
 // LOW. Nhấn nút, đứt dây, tuột đầu nối: chân HIGH = E-stop → FAULT. Cắm nhầm tiếp điểm NO thì xe luôn ở FAULT (hướng
@@ -61,8 +82,8 @@ constexpr int kEscDirection = 1;           // +1/-1: chiều tiến của ESC
 constexpr int kServoCenterUs = 1500;       // xung servo khi góc lái 0 (từ steering_calibration.yaml)
 constexpr int kServoUsPerRad = 1000;       // µs trên mỗi rad góc lái tương đương
 constexpr int kServoDirection = 1;         // +1/-1: dương = rẽ trái
-constexpr int kServoMinUs = 1000;          // giới hạn cơ khí servo
-constexpr int kServoMaxUs = 2000;
+constexpr int kServoMinUs = AP_SERVO_MIN_US;   // giới hạn cơ khí servo (env thử bàn: hẹp hơn, chưa đo điểm chặn)
+constexpr int kServoMaxUs = AP_SERVO_MAX_US;
 // ===============================================================================================================
 
 constexpr uint32_t kTickMs = 10;               // chu kỳ điều khiển
@@ -72,8 +93,11 @@ constexpr uint8_t kEscChannel = 0;             // chỉ dùng với Arduino 2.x 
 constexpr uint8_t kServoChannel = 1;
 
 #if AP_ENABLE_PWM_OUTPUTS
-static_assert(kPinEsc >= 0 && kPinServo >= 0 && kPinEstop >= 0,
+static_assert(kPinEsc >= 0 && kPinServo >= 0 && (kPinEstop >= 0 || AP_ALLOW_NO_ESTOP),
               "CHUA CHOT: dat chan ESC/servo/E-stop da doi chieu voi so do day truoc khi bat AP_ENABLE_PWM_OUTPUTS");
+static_assert(kPinEsc != kPinServo && kPinEsc != kPinEstop && kPinServo != kPinEstop, "trung chan");
+static_assert(kServoMinUs >= 1000 && kServoMaxUs <= 2000 && kServoMinUs < kServoCenterUs &&
+              kServoCenterUs < kServoMaxUs, "gioi han servo sai");
 static_assert(kPinEsc <= 48, "ESP32-S3 chi co GPIO 0..48 (esc_line_low_now ghi thanh ghi theo so chan)");
 #endif
 

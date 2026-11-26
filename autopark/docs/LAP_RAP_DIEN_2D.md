@@ -137,7 +137,7 @@ Không tự chạy lại khi vật cản biến mất hoặc liên kết trở l
 
 ### Trạng thái firmware tại lúc vẽ
 
-Mã hiện tại vẫn đặt `kPinEsc`, `kPinServo`, `kPinEstop` bằng `-1` và `AP_ENABLE_PWM_OUTPUTS=0`. Khi bật PWM, mã còn kiểm tĩnh yêu cầu cấu hình chân E-stop. Vì bản thiết kế này theo lựa chọn bỏ E-stop, **không thể chỉ đổi cờ PWM thành 1 rồi coi là chạy được**; cần thiết kế và kiểm nhánh cấu hình firmware phù hợp. Không gán một chân giả chỉ để vượt kiểm tra đó.
+Theo lựa chọn bỏ E-stop, firmware có nhánh cấu hình riêng (25/11/2026): env `esp32s3_16mb_pwm` đặt `AP_PIN_ESC=4`, `AP_PIN_SERVO=5`, `AP_PIN_ESTOP=-1` và `AP_ALLOW_NO_ESTOP=1`. Không gán chân giả nào cho E-stop. Xe dừng nhờ lệnh có hạn 200 ms, ngắt khi mất liên lạc 500 ms và bộ canh vòng lặp của firmware. Env mặc định `esp32s3` vẫn tắt PWM.
 
 Phần đọc cảm biến thật trong `read_inputs()` chưa hoàn thiện. Phần mềm hiện tại còn yêu cầu số đo tốc độ/góc lái và nguồn tư thế thật hợp lệ trước START. Giới hạn tốc độ mô phỏng 0,10 m/s cũng chưa tự thay các hằng số giới hạn trong firmware bo. Phân vai laptop–Pi trong tài liệu là mục tiêu cần triển khai, không có nghĩa vòng bám hiện đã chuyển sang Pi. Đợt cập nhật bản vẽ không sửa hoặc bật firmware điều khiển xe.
 

@@ -527,3 +527,92 @@ class MarkerItem(QGraphicsEllipseItem):
         self.setPen(Qt.PenStyle.NoPen)
         self.setBrush(QBrush(color))
         self.setZValue(8)
+
+
+COLOR_SLOT = QColor("#7fb8ff")
+COLOR_SLOT_UNSURE = QColor("#efb76b")
+
+
+class SlotCandidateItem(QGraphicsItem):
+    """Ô đỗ do slot_finder đề xuất: khung chữ nhật đánh số, bấm để chọn làm đích. Gốc ở tâm ô, x theo trục ô.
+
+    Thành chưa thấy rõ (chỉ là vùng LiDAR chưa quét tới) vẽ nét đứt màu cam. Ô đang chọn tô đậm màu đích."""
+
+    def __init__(self, index: int, cx: float, cy: float, yaw: float, length: float, width: float, *,
+                 unsure: bool = False, wall: str | None = "end", tooltip: str = "",
+                 on_pick: Callable[[int], None] | None = None):
+        """`wall`: cạnh có thành vẽ đậm, "end" = đáy ô (cuối trục +x, ô vuông góc), "left"/"right" = lề (ô song song)."""
+        super().__init__()
+        self.index = index
+        self.wall = wall
+        self.length, self.width = length, width
+        self.unsure = unsure
+        self.chosen = False
+        self._on_pick = on_pick
+        self.setPos(cx, cy)
+        self.setRotation(math.degrees(yaw))
+        self.setZValue(3)
+        self.setAcceptHoverEvents(True)
+        self.setAcceptedMouseButtons(Qt.MouseButton.LeftButton)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip(tooltip)
+        self._hover = False
+        color = COLOR_SLOT_UNSURE if unsure else COLOR_SLOT
+        self._label = attach_label(self, str(index + 1), 0.0, 0.0, color)
+        bold = QFont(FONT_LABEL)
+        bold.setPointSize(11)
+        bold.setBold(True)
+        self._label.setFont(bold)
+        self._label.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresParentOpacity, True)
+
+    def set_chosen(self, chosen: bool) -> None:
+        self.chosen = chosen
+        self.update()
+
+    def boundingRect(self) -> QRectF:
+        pad = 0.02
+        return QRectF(-self.length / 2 - pad, -self.width / 2 - pad, self.length + 2 * pad, self.width + 2 * pad)
+
+    def shape(self) -> QPainterPath:
+        path = QPainterPath()
+        path.addRect(QRectF(-self.length / 2, -self.width / 2, self.length, self.width))
+        return path
+
+    def paint(self, painter: QPainter, option, widget=None) -> None:
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        rect = QRectF(-self.length / 2, -self.width / 2, self.length, self.width)
+        if self.chosen:
+            color, width, alpha = COLOR_GOAL, 2.5, 60
+        else:
+            color = COLOR_SLOT_UNSURE if self.unsure else COLOR_SLOT
+            width, alpha = (2.0, 45) if self._hover else (1.5, 22)
+        fill = QColor(color)
+        fill.setAlpha(alpha)
+        painter.setBrush(QBrush(fill))
+        style = Qt.PenStyle.DashLine if self.unsure and not self.chosen else Qt.PenStyle.SolidLine
+        painter.setPen(cosmetic_pen(color, width, style))
+        painter.drawRect(rect)
+        # vạch đậm ở cạnh có thành (đáy ô hay lề): cho thấy xe vào ô từ phía nào
+        hl, hw = self.length / 2, self.width / 2
+        edges = {"end": ((hl, -hw), (hl, hw)), "left": ((-hl, hw), (hl, hw)), "right": ((-hl, -hw), (hl, -hw))}
+        if self.wall in edges:
+            a, b = edges[self.wall]
+            painter.setPen(cosmetic_pen(color, width + 1.5))
+            painter.drawLine(QPointF(*a), QPointF(*b))
+
+    def hoverEnterEvent(self, event) -> None:
+        self._hover = True
+        self.update()
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event) -> None:
+        self._hover = False
+        self.update()
+        super().hoverLeaveEvent(event)
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton and self._on_pick is not None:
+            self._on_pick(self.index)
+            event.accept()
+            return
+        super().mousePressEvent(event)

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "name": "Tìm khe vuông góc",
+  "notes": "Sa bàn thử cho autopark.planning.slot_finder (26/11/2026). Ba xe đỗ vuông góc sát mép trên: khe 1 và khe 2 rộng 26 cm (đủ cho ô 20 cm), khe 3 rộng 11 cm (không đủ). Thông số giả định cho mô phỏng.",
+  "vehicle_config": "../configs/vehicle_measured.json",
+  "bounds": {"xmin": 0.0, "ymin": 0.0, "xmax": 2.0, "ymax": 1.5},
+  "start": {"x": 1.4, "y": 0.55, "yaw_deg": 180.0},
+  "goal": {"x": 1.2, "y": 0.55, "yaw_deg": 180.0, "tolerance_cm": 3.0, "tolerance_deg": 5.0},
+  "obstacles": [
+    {"id": "xe_1", "cx": 0.40, "cy": 1.315, "width": 0.31, "height": 0.14, "yaw_deg": 90.0, "kind": "car"},
+    {"id": "xe_2", "cx": 0.80, "cy": 1.315, "width": 0.31, "height": 0.14, "yaw_deg": 90.0, "kind": "car"},
+    {"id": "xe_3", "cx": 1.20, "cy": 1.315, "width": 0.31, "height": 0.14, "yaw_deg": 90.0, "kind": "car"},
+    {"id": "xe_4", "cx": 1.45, "cy": 1.315, "width": 0.31, "height": 0.14, "yaw_deg": 90.0, "kind": "car"}
+  ],
+  "seed": 0,
+  "maneuver": {"max_goal_distance_m": 0.7, "area_half_extent_m": 0.75, "max_path_length_m": 1.4, "max_cusps": 3}
+}

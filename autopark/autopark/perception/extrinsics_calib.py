@@ -1050,8 +1050,9 @@ def write_rig_file(out_path, results: list, *, base_path=DEFAULT_BASE, overwrite
         data["ghi_chu_tu_tep_goc"] = list(base.get("ghi_chu", []))
     data["ghi_chu"] = [
         f"({_date_vn(now)}) Tệp do autopark.perception.extrinsics_calib ghi. Camera có \"measured\": true được đo bằng "
-        f"bảng ô vuông đặt trên sàn ở vị trí đo bằng thước (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham); nguồn gốc từng camera ở khóa "
-        f"provenance. Camera còn \"measured\": false giữ nguyên số GIẢ ĐỊNH của tệp gốc.",
+        f"bảng trên sàn: bảng ô vuông ở vị trí đo bằng thước (extrinsics_calib) hoặc tờ ChArUco in sẵn đặt chạm lốp "
+        f"(sheet_extrinsics); cách đo và nguồn gốc từng camera ở khóa provenance. Camera còn \"measured\": false giữ "
+        f"nguyên số GIẢ ĐỊNH của tệp gốc.",
         "Khối vehicle_assumed (kích thước xe, hộp thân xe) chép từ tệp gốc: vẫn là GIẢ ĐỊNH cho tới khi đo MN300 "
         "(giai đoạn 4).",
         "Các ngưỡng kiểm (thresholds) là ĐỀ XUẤT – CHỜ CHỐT, chưa kiểm trên camera thật.",
