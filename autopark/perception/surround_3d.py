@@ -59,7 +59,7 @@ class View:
 
     def clamped(self) -> "View":
         return replace(self, azimuth_deg=self.azimuth_deg % 360.0,
-                       elevation_deg=min(max(self.elevation_deg, 8.0), 89.5),
+                       elevation_deg=min(max(self.elevation_deg, -20.0), 89.5),   # mặt đất chặn ở limit_view
                        distance_m=min(max(self.distance_m, 0.6), 2.6))
 
     def scaled(self, factor: float) -> "View":
@@ -94,6 +94,31 @@ class View:
             u = self.width / 2 - 0.5 + self.focal_px * (rel @ right) / z
             v = self.height / 2 - 0.5 + self.focal_px * (rel @ down) / z
         return u, v, ok
+
+
+MIN_CAMERA_HEIGHT_M = 0.03       # camera ảo không xuống thấp hơn mặt đất chừng này
+BOWL_CLEARANCE_M = 0.05          # và luôn ở trong lòng bát, cao hơn thành bát tại chỗ đứng chừng này
+
+
+def limit_view(view: View, bowl: Bowl) -> View:
+    """Giới hạn góc nhìn: camera ảo không xuống dưới đất và không chui ra sau thành bát.
+
+    Kéo xuống quá giới hạn thì góc ngẩng dừng ở mức thấp nhất còn hợp lệ (tìm bằng chia đôi)."""
+    view = view.clamped()
+
+    def ok(elevation: float) -> bool:
+        position = replace(view, elevation_deg=elevation).basis()[0]
+        r = math.hypot(position[0] - bowl.center_xy[0], position[1] - bowl.center_xy[1])
+        floor = MIN_CAMERA_HEIGHT_M if r <= bowl.floor_radius_m else float(bowl.height(r)) + BOWL_CLEARANCE_M
+        return position[2] >= max(floor, MIN_CAMERA_HEIGHT_M)
+
+    if ok(view.elevation_deg):
+        return view
+    lo, hi = view.elevation_deg, 89.5
+    for _ in range(30):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (lo, mid) if ok(mid) else (mid, hi)
+    return replace(view, elevation_deg=hi)
 
 
 PRESETS: dict[str, tuple[str, View]] = {
@@ -238,7 +263,7 @@ class Surround3DRenderer:
 
     # ------------------------------------------------------------------ bảng tra
     def set_view(self, view: View) -> None:
-        view = view.clamped()
+        view = limit_view(view, self.bowl)
         center = (self.bowl.center_xy[0], self.bowl.center_xy[1], view.target[2])
         view = replace(view, target=center)
         points, hit = bowl_points(view, self.bowl)

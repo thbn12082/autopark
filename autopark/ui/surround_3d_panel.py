@@ -164,6 +164,7 @@ class Surround3DPanel(QWidget):
         self.view = PRESETS["sau_phai"][1]
         self.quality = 1.0
         self._drag_from = None
+        self._bowl = None
         self._renderer_factory = renderer_factory or _make_renderer
         self._renderer = None
         self._demo = None
@@ -208,11 +209,17 @@ class Surround3DPanel(QWidget):
         self.set_view(self._presets[key][1])
 
     def set_view(self, view, quality: float = 1.0) -> None:
-        self.view = view.clamped()
+        if self.gl:
+            self.canvas.set_view(view)
+            self.view = self.canvas.view
+        else:
+            from autopark.perception.surround_3d import Bowl, limit_view
+            from autopark.perception.surround_view import BODY
+            if self._bowl is None:
+                self._bowl = Bowl(center_xy=((BODY.x_min + BODY.x_max) / 2, (BODY.y_min + BODY.y_max) / 2))
+            self.view = limit_view(view, self._bowl)            # không kéo xuống dưới đất
         self.quality = quality
         self._dirty = True
-        if self.gl:
-            self.canvas.set_view(self.view)
 
     def _clear_preset(self):
         self._preset_group.setExclusive(False)

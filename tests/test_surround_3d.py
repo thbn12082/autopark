@@ -134,3 +134,19 @@ def test_pi_viewer_has_3d_tab():
         assert "3D quanh xe" in titles and window.surround_3d is not None
     finally:
         window.close()
+
+
+@pytest.mark.parametrize("azimuth", [0.0, 90.0, 210.0, 300.0])
+@pytest.mark.parametrize("distance", [0.6, 1.5, 2.6])
+def test_drag_stops_at_ground_and_keeps_picture(azimuth, distance):
+    """Kéo xuống quá tay: camera ảo dừng ở mặt đất (hoặc trên thành bát) và mặt bát vẫn phủ kín khung hình."""
+    bowl = s3.Bowl()
+    view = s3.limit_view(s3.View(azimuth_deg=azimuth, elevation_deg=-90.0, distance_m=distance).scaled(0.3), bowl)
+    position = view.basis()[0]
+    r = math.hypot(position[0] - bowl.center_xy[0], position[1] - bowl.center_xy[1])
+    assert position[2] >= s3.MIN_CAMERA_HEIGHT_M - 1e-6
+    assert position[2] >= float(bowl.height(r)) - 1e-6
+    _, hit = s3.bowl_points(view, bowl)
+    assert hit.mean() > 0.95
+    higher = s3.limit_view(s3.replace(view, elevation_deg=45.0), bowl)
+    assert higher.elevation_deg == pytest.approx(45.0)              # trong giới hạn thì giữ nguyên

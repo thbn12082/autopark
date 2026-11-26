@@ -427,7 +427,7 @@ class Surround3DGLWidget(QOpenGLWidget):
         self.update()
 
     def set_view(self, view: s3.View) -> None:
-        self.view = view.clamped()
+        self.view = s3.limit_view(view, self.bowl)        # không kéo xuống dưới đất
         self.update()
 
     # ------------------------------------------------------------------ chuột
