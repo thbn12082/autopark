@@ -258,6 +258,7 @@ Từ thư mục gốc repository, trên Windows: chạy `cai_dat.cmd` một lầ
 AutoPark
 ├── Đỗ xe ............. mô phỏng, tìm ô đỗ, tính đường, LiDAR thật
 ├── Quan sát Pi ....... 4 camera + LiDAR qua Wi-Fi, ghi LiDAR
+├── Lái tay ........... vô lăng, giữ Space tiến, giữ W lùi, Esc dừng
 ├── Nội tham camera
 ├── Ngoại tham, ROI
 ├── Bộ camera ......... cần môi trường .venv-train
@@ -265,7 +266,16 @@ AutoPark
 └── Camera trên cao
 ```
 
-Trang chỉ được dựng khi bấm tới, và không tự mở camera hay LiDAR. Mở thẳng một trang: `run_app.py --page quan_sat_pi --host <IP Pi>`. Hoặc trong PowerShell:
+Trang chỉ được dựng khi bấm tới, và không tự mở camera hay LiDAR. Mở thẳng một trang: `run_app.py --page quan_sat_pi --host <IP Pi>`.
+
+**Lái tay** điều khiển xe thật theo một trong ba đường:
+- **Pi qua Wi-Fi**: laptop SSH vào Pi, Pi chuyển nguyên byte lệnh sang ESP32 qua USB (`autopark/transport/ssh_serial.py`). Pi cần python3 và pyserial, như trang Quan sát Pi. Mật khẩu Pi được hỏi trong cửa sổ dòng lệnh đã mở app.
+- **ESP32 cắm laptop**: cổng COM trực tiếp.
+- **Mô phỏng**: không cần xe.
+
+Kết nối xong là bo được ARM. Giữ Space để tiến, giữ W để lùi, nhả phím là về 0. Kéo vô lăng bằng chuột hoặc giữ ← →. Esc để DISARM. Mỗi lệnh chỉ có hạn 150–250 ms, nên app treo, Wi-Fi rớt hay chuyển sang cửa sổ khác thì xe tự dừng. Cầu nối khóa cổng ESP32 trên Pi, nên muốn xem camera cùng lúc thì mở Quan sát Pi trước rồi mới kết nối lái tay.
+
+Hoặc trong PowerShell:
 
 ```powershell
 python -m venv .venv

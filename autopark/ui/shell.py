@@ -1,6 +1,6 @@
 """AutoPark: một cửa sổ chung cho mọi công cụ (thêm 26/11/2026).
 
-    python run_app.py [--page do_xe|quan_sat_pi|noi_tham|ngoai_tham|bo_camera|gan_nhan|tren_cao]
+    python run_app.py [--page do_xe|quan_sat_pi|lai_tay|noi_tham|ngoai_tham|bo_camera|gan_nhan|tren_cao]
                       [--scenario KỊCH_BẢN.json] [--host IP_PI]
 
 Thanh bên trái chọn trang. Mỗi trang là một công cụ có sẵn (cửa sổ cũ nhúng vào), dựng lần đầu khi bấm tới nó:
@@ -10,7 +10,8 @@ AutoPark
 ├── Đỗ xe
 │   └── Đỗ xe ............ mô phỏng, tìm ô đỗ, tính đường; ngăn LiDAR thật và ghi cảm biến (ui.lidar_app)
 ├── Xe thật
-│   └── Quan sát Pi ...... 4 camera + LiDAR từ Pi qua Wi-Fi, ghi LiDAR (ui.remote_sensor_view)
+│   ├── Quan sát Pi ...... 4 camera + LiDAR từ Pi qua Wi-Fi, ghi LiDAR (ui.remote_sensor_view)
+│   └── Lái tay .......... vô lăng, Space tiến, W lùi; qua Pi, USB hoặc mô phỏng (ui.manual_drive)
 ├── Hiệu chuẩn
 │   ├── Nội tham camera .. bàn cờ, camera cắm laptop (ui.calib_app)
 │   ├── Ngoại tham, ROI .. (ui.roi_app)
@@ -71,6 +72,13 @@ def _pi_viewer(opts: ShellOptions) -> QWidget:
     return RemoteSensorWindow(opts.host, camera_count=4)
 
 
+def _manual_drive(opts: ShellOptions) -> QWidget:
+    from PySide6.QtCore import QSettings
+
+    from autopark.ui.manual_drive import ManualDriveWindow
+    return ManualDriveWindow(opts.host, settings=QSettings("AutoPark", "AutoPark"))
+
+
 def _intrinsics(opts: ShellOptions) -> QWidget:
     from autopark.ui.calib_app import build_window
     return build_window([], start=False)
@@ -110,6 +118,7 @@ def _overhead(opts: ShellOptions) -> QWidget:
 PAGES: tuple[Page, ...] = (
     Page("do_xe", "ĐỖ XE", "Đỗ xe", "Mô phỏng, tìm ô đỗ, tính đường, LiDAR thật", _parking),
     Page("quan_sat_pi", "XE THẬT", "Quan sát Pi", "4 camera + LiDAR qua Wi-Fi, ghi LiDAR", _pi_viewer),
+    Page("lai_tay", "XE THẬT", "Lái tay", "Vô lăng, Space tiến, W lùi, Esc dừng", _manual_drive),
     Page("noi_tham", "HIỆU CHUẨN", "Nội tham camera", "Bàn cờ, camera cắm laptop", _intrinsics),
     Page("ngoai_tham", "HIỆU CHUẨN", "Ngoại tham, ROI", "Tư thế camera, vùng quan tâm", _extrinsics_roi),
     Page("bo_camera", "HIỆU CHUẨN", "Bộ camera", "4 camera + AI trên laptop", _camera_rig),
