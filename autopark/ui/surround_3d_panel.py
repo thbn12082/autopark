@@ -14,9 +14,24 @@ import time
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QPainter, QPixmap
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
+                               QWidget)
 
 from autopark.ui import theme
+
+OVERLAY_STYLE = f"""
+QLabel#badge {{ margin: 14px; padding: 6px 12px; border-radius: 13px; font-size: 12px; font-weight: 600; }}
+QLabel#badge[tone="warn"] {{ color: {theme.WARN}; background: rgba(48, 36, 18, 210); border: 1px solid #6b5228; }}
+QLabel#badge[tone="ok"] {{ color: {theme.OK}; background: rgba(18, 44, 38, 210); border: 1px solid #2f6b5c; }}
+QFrame#presetBar {{ margin-bottom: 16px; background: rgba(12, 19, 27, 215); border: 1px solid {theme.BORDER};
+    border-radius: 14px; }}
+QPushButton#preset {{ background: transparent; color: {theme.TEXT_DIM}; border: none; border-radius: 9px;
+    padding: 7px 14px; font-size: 12px; }}
+QPushButton#preset:hover {{ background: rgba(38, 57, 71, 220); color: {theme.TEXT}; }}
+QPushButton#preset:checked {{ background: rgba(31, 58, 53, 235); color: {theme.ACCENT}; font-weight: 600; }}
+QLabel#hint3d {{ margin: 0 16px 22px 0; padding: 5px 10px; color: {theme.TEXT_DIM}; font-size: 11px;
+    background: rgba(12, 19, 27, 190); border-radius: 10px; }}
+"""
 
 LIVE_TIMEOUT_S = 1.5          # quá chừng này không có ảnh mới từ Pi thì quay về cảnh mẫu
 FRAME_INTERVAL_S = 0.10       # tối đa 10 khung/giây
@@ -95,21 +110,32 @@ class Surround3DPanel(QWidget):
         from autopark.ui.surround_3d_gl import gl_available
 
         self._presets = PRESETS
+        self.setStyleSheet(OVERLAY_STYLE)
+        # nhãn trạng thái nổi ở góc trên trái của khung hình
         self.notice = QLabel("Đang chuẩn bị cảnh 3D…")
-        self.notice.setWordWrap(True)
-        self.notice.setStyleSheet(f"color: {theme.TEXT_DIM}; padding: 4px 2px;")
+        self.notice.setObjectName("badge")
+        self.notice.setProperty("tone", "warn")
+        # thanh góc nhìn nổi ở cạnh dưới của khung hình
+        self.preset_bar = QFrame()
+        self.preset_bar.setObjectName("presetBar")
+        bar = QHBoxLayout(self.preset_bar)
+        bar.setContentsMargins(6, 6, 6, 6)
+        bar.setSpacing(2)
         self.preset_buttons: dict[str, QPushButton] = {}
-        row = QHBoxLayout()
-        row.setSpacing(6)
+        self._preset_group = QButtonGroup(self)
+        self._preset_group.setExclusive(True)
         for key, (label, _view) in PRESETS.items():
             button = QPushButton(label)
+            button.setObjectName("preset")
+            button.setCheckable(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(lambda _checked=False, k=key: self.use_preset(k))
+            self._preset_group.addButton(button)
             self.preset_buttons[key] = button
-            row.addWidget(button)
-        row.addStretch(1)
-        hint = QLabel("Kéo chuột để xoay · lăn để phóng to")
-        hint.setStyleSheet(f"color: {theme.TEXT_FAINT};")
-        row.addWidget(hint)
+            bar.addWidget(button)
+        self.preset_buttons["sau_phai"].setChecked(True)
+        self.hint = QLabel("Kéo để xoay · lăn để phóng to")
+        self.hint.setObjectName("hint3d")
         self.gl = (gl_available() if use_gl is None else use_gl) and renderer_factory is None
         self._gl_notice = ""
         if self.gl:
@@ -118,18 +144,21 @@ class Surround3DPanel(QWidget):
             cameras, preview, self._gl_notice = display_cameras()
             self._gl_cameras, self._gl_preview = cameras, preview
             self.canvas = Surround3DGLWidget(cameras, is_preview=preview, parent=self)
+            self.canvas.on_manual_view = self._clear_preset
         else:
             self.canvas = _Canvas(self)
             self.canvas.pressed.connect(self._drag_start)
             self.canvas.dragged.connect(self._drag)
             self.canvas.released.connect(self._drag_end)
             self.canvas.wheeled.connect(self._zoom)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(6)
-        layout.addWidget(self.notice)
-        layout.addLayout(row)
-        layout.addWidget(self.canvas, 1)
+        stage = QGridLayout(self)
+        stage.setContentsMargins(0, 0, 0, 0)
+        stage.addWidget(self.canvas, 0, 0)
+        stage.addWidget(self.notice, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        stage.addWidget(self.preset_bar, 0, 0, Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
+        stage.addWidget(self.hint, 0, 0, Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
+        for overlay in (self.notice, self.preset_bar, self.hint):
+            overlay.raise_()
 
         self.clock = clock
         self.view = PRESETS["sau_phai"][1]
@@ -175,6 +204,7 @@ class Surround3DPanel(QWidget):
         self._dirty = True
 
     def use_preset(self, key: str) -> None:
+        self.preset_buttons[key].setChecked(True)
         self.set_view(self._presets[key][1])
 
     def set_view(self, view, quality: float = 1.0) -> None:
@@ -184,7 +214,14 @@ class Surround3DPanel(QWidget):
         if self.gl:
             self.canvas.set_view(self.view)
 
+    def _clear_preset(self):
+        self._preset_group.setExclusive(False)
+        for button in self.preset_buttons.values():
+            button.setChecked(False)
+        self._preset_group.setExclusive(True)
+
     def _drag_start(self):
+        self._clear_preset()
         self._drag_from = self.view
 
     def _drag(self, dx, dy):
@@ -221,11 +258,20 @@ class Surround3DPanel(QWidget):
             self.rendered.emit(self._gl_preview, True)
 
     def _show_gl_notice(self):
-        parts = ["Cảnh mẫu (sa bàn tổng hợp, chưa có ảnh từ Pi)" if self.using_demo else "Ảnh trực tiếp từ Pi",
-                 self._gl_notice, "vẽ bằng GPU"]
-        self.notice.setText(" · ".join(p for p in parts if p))
-        warn = self._gl_preview or self.using_demo
-        self.notice.setStyleSheet(f"color: {theme.WARN if warn else theme.TEXT_DIM}; padding: 4px 2px;")
+        self._set_badge(self.using_demo, self._gl_preview, self._gl_notice + " Vẽ bằng GPU.")
+
+    def _set_badge(self, demo: bool, preview: bool, detail: str) -> None:
+        """Nhãn nổi: nguồn ảnh · tình trạng hiệu chuẩn; lời giải thích đầy đủ ở tooltip."""
+        source = "Cảnh mẫu" if demo else "Ảnh trực tiếp"
+        calib = "gá camera giả định" if preview else "đã hiệu chuẩn"
+        self.notice.setText(f"●  {source} · {calib}")
+        tip = ("Chưa có ảnh từ Pi: đang hiện sa bàn tổng hợp để xem thử. " if demo else "") + detail
+        self.notice.setToolTip(tip)
+        tone = "warn" if (demo or preview) else "ok"
+        if self.notice.property("tone") != tone:
+            self.notice.setProperty("tone", tone)
+            self.notice.style().unpolish(self.notice)
+            self.notice.style().polish(self.notice)
 
     def _tick(self):
         live = self._live_at is not None and self.clock() - self._live_at <= LIVE_TIMEOUT_S
@@ -278,9 +324,7 @@ class Surround3DPanel(QWidget):
             self.notice.setText(f"Lỗi dựng cảnh 3D: {' '.join(str(exc).split())[:200]}")
             return
         self.using_demo = demo
-        parts = ["Cảnh mẫu (sa bàn tổng hợp, chưa có ảnh từ Pi)" if demo else "Ảnh trực tiếp từ Pi", notice]
-        self.notice.setText(" · ".join(p for p in parts if p))
-        self.notice.setStyleSheet(f"color: {theme.WARN if (is_preview or demo) else theme.TEXT_DIM}; padding: 4px 2px;")
+        self._set_badge(demo, is_preview, notice)
         self.canvas.present(QPixmap.fromImage(image))
         self.rendered.emit(is_preview, demo)
 

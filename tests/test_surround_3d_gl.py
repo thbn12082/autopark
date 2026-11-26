@@ -30,16 +30,21 @@ def test_bowl_mesh_lies_on_bowl():
     assert r.max() == pytest.approx(bowl.rim_radius_m, abs=1e-4)
 
 
-def test_body_and_overlay_geometry():
+def test_car_mesh_fits_measured_body_and_overlays():
     from autopark.perception.surround_view import BODY
-    tris, lines = g.body_geometry(BODY)
-    assert tris.shape == (30, 7) and lines.shape[1] == 7 and len(lines) % 2 == 0
-    assert tris[:, 0].min() == pytest.approx(BODY.x_min) and tris[:, 0].max() == pytest.approx(BODY.x_max)
-    lines, points = g.overlay_geometry(s3.Overlays(lidar_xy=np.zeros((5, 2)), slots=([(0, 0), (1, 0), (1, 1)],),
-                                                   path_xy=np.array([[0, 0], [1, 1], [2, 1]])))
-    assert len(points) == 5 and len(lines) == 2 * 3 + 2 * 2
-    empty_lines, empty_points = g.overlay_geometry(None)
-    assert empty_lines.shape == (0, 7) and empty_points.shape == (0, 7)
+    mesh = g.car_mesh(BODY)
+    assert mesh.ndim == 2 and mesh.shape[1] == 10 and len(mesh) % 3 == 0
+    xyz, normals = mesh[:, :3], mesh[:, 3:6]
+    assert xyz[:, 0].min() >= BODY.x_min - 0.005 and xyz[:, 0].max() <= BODY.x_max + 0.005
+    assert xyz[:, 1].min() >= BODY.y_min - 0.001 and xyz[:, 1].max() <= BODY.y_max + 0.001
+    assert xyz[:, 2].min() == pytest.approx(0.0, abs=1e-6)            # bánh chạm sàn
+    assert 0.10 < xyz[:, 2].max() < 0.13
+    assert np.allclose(np.linalg.norm(normals, axis=1), 1.0, atol=1e-4)
+    tris, points = g.overlay_geometry(s3.Overlays(lidar_xy=np.zeros((5, 2)), slots=([(0, 0), (1, 0), (1, 1)],),
+                                                  path_xy=np.array([[0, 0], [1, 1], [2, 1]])))
+    assert len(points) == 5 and len(tris) == 6 * 3 + 6 * 2           # mỗi đoạn là một dải 2 tam giác
+    empty_tris, empty_points = g.overlay_geometry(None)
+    assert empty_tris.shape == (0, 7) and empty_points.shape == (0, 7)
 
 
 def test_gl_unavailable_offscreen_falls_back_to_cpu():

@@ -350,27 +350,39 @@ class Surround3DRenderer:
 # ---------------------------------------------------------------------------------------------- cảnh mẫu tổng hợp
 @dataclass(frozen=True)
 class DemoScene:
-    """Sa bàn mẫu: sàn kẻ ô 10 cm, vạch ô đỗ trắng, vài hộp màu (như các xe đang đỗ)."""
+    """Sa bàn mẫu: sàn xi măng có vân và ron, vạch sơn trắng, ba xe đang đỗ màu trung tính, một bức tường phía sau.
+
+    Mỗi xe đỗ: (hộp, màu thân BGR). Thân có dải kính tối ở phần trên như xe thật."""
 
     boxes: tuple = (
-        (bev.SyntheticBox(-0.25, 0.05, 0.42, 0.56, 0.12), (60, 60, 200)),
-        (bev.SyntheticBox(0.25, 0.55, 0.42, 0.56, 0.12), (200, 120, 50)),
-        (bev.SyntheticBox(0.55, 0.85, -0.62, -0.48, 0.12), (60, 170, 90)),
-        (bev.SyntheticBox(-0.70, -0.55, -0.30, 0.30, 0.20), (150, 150, 160)),
+        (bev.SyntheticBox(-0.25, 0.05, 0.42, 0.56, 0.11), (70, 66, 62)),      # xám than
+        (bev.SyntheticBox(0.25, 0.55, 0.42, 0.56, 0.11), (196, 190, 184)),    # bạc
+        (bev.SyntheticBox(0.55, 0.85, -0.62, -0.48, 0.11), (92, 64, 44)),     # xanh than
     )
+    walls: tuple = ((bev.SyntheticBox(-0.95, -0.85, -1.2, 1.2, 0.32), (150, 156, 160)),)
     lines: tuple = ((0.075, 0.30, 0.175, 0.80), (0.075, 0.30, 0.225, 0.80))    # (x0, y0, x1, y1) mép ô đỗ trống
-    marker: tuple = (0.55, -0.05, 0.65, 0.05)                                   # ô đỏ trên sàn (kiểm vị trí)
+    marker: tuple = (0.55, -0.05, 0.65, 0.05)                                   # ô sơn đỏ trên sàn (kiểm vị trí)
+
+
+def _hash(x, y, cell):
+    """Nhiễu hạt cố định theo vị trí (0..1), ô cỡ `cell` mét."""
+    ix, iy = np.floor(x / cell), np.floor(y / cell)
+    return np.modf(np.abs(np.sin(ix * 12.9898 + iy * 78.233) * 43758.5453))[0]
 
 
 def _floor_color(x, y, scene: DemoScene) -> np.ndarray:
-    checker = ((np.floor(x / 0.1) + np.floor(y / 0.1)) % 2).astype(bool)
-    color = np.where(checker[..., None], np.array([92, 98, 104], np.float32), np.array([70, 76, 82], np.float32))
-    for x0, y0, x1, y1 in scene.lines:                                          # vạch trắng dày 1 cm dọc theo y
+    """Sàn xi măng: nền xám ấm, loang nhẹ, hạt mịn, ron 0,5 m; vạch sơn trắng và ô đỏ đánh dấu."""
+    stain = 0.5 + 0.25 * np.sin(x * 3.1 + 1.3) * np.sin(y * 2.7 - 0.4) + 0.15 * np.sin(x * 7.3 + y * 5.1)
+    grain = _hash(x, y, 0.004) - 0.5
+    value = 112 + 18 * stain + 10 * grain
+    color = np.stack([value - 4, value, value + 3], axis=-1).astype(np.float32)          # BGR, hơi ấm
+    joint = (np.abs(((x + 0.25) % 0.5) - 0.25) > 0.247) | (np.abs(((y + 0.25) % 0.5) - 0.25) > 0.247)
+    color[joint] *= 0.82
+    paint = np.array((226, 228, 230), np.float32)
+    for x0, y0, x1, y1 in scene.lines:                                          # vạch trắng dày 1,2 cm
         for xl in (x0, x1):
-            on = (np.abs(x - xl) < 0.006) & (y >= y0) & (y <= y1)
-            color[on] = (235, 235, 235)
-        on = (np.abs(y - y0) < 0.006) & (x >= x0) & (x <= x1)
-        color[on] = (235, 235, 235)
+            color[(np.abs(x - xl) < 0.006) & (y >= y0) & (y <= y1)] = paint
+        color[(np.abs(y - y0) < 0.006) & (x >= x0) & (x <= x1)] = paint
     x0, y0, x1, y1 = scene.marker
     color[(x >= x0) & (x <= x1) & (y >= y0) & (y <= y1)] = (40, 40, 230)
     return color
@@ -392,21 +404,29 @@ def demo_frames(cameras: dict, scene: DemoScene | None = None, far_m: float = 6.
             t_floor = np.where(d[:, 2] < -1e-9, -o[2] / d[:, 2], np.inf)
         t_floor = np.where(t_floor <= far_m, t_floor, np.inf)
         img = np.empty((len(d), 3), np.float32)
-        img[:] = (60, 48, 40)                                                  # xa / trời
+        img[:] = (58, 46, 38)                                                  # xa / trời
         floor = np.isfinite(t_floor)
         p = o + t_floor[floor, None] * d[floor]
         img[floor] = _floor_color(p[:, 0], p[:, 1], scene)
         t_best = np.where(floor, t_floor, np.inf)
-        for box, color in scene.boxes:
-            t_box = bev._box_hit(o, d, box)
-            nearer = t_box < t_best
-            if not nearer.any():
-                continue
-            q = o + t_box[nearer, None] * d[nearer]
-            top = np.abs(q[:, 2] - box.height) < 1e-3
-            shade = np.where(top, 1.15, 0.8 + 0.2 * (np.abs(q[:, 0] - box.x_min) < 1e-3))
-            img[nearer] = np.clip(np.array(color, np.float32)[None, :] * shade[:, None], 0, 255)
-            t_best = np.where(nearer, t_box, t_best)
+        for kind, items in (("car", scene.boxes), ("wall", scene.walls)):
+            for box, color in items:
+                t_box = bev._box_hit(o, d, box)
+                nearer = t_box < t_best
+                if not nearer.any():
+                    continue
+                q = o + t_box[nearer, None] * d[nearer]
+                top = np.abs(q[:, 2] - box.height) < 1e-3
+                side_x = (np.abs(q[:, 0] - box.x_min) < 1e-3) | (np.abs(q[:, 0] - box.x_max) < 1e-3)
+                shade = np.where(top, 1.08, np.where(side_x, 0.78, 0.92))
+                c = np.array(color, np.float32)[None, :] * shade[:, None]
+                if kind == "car":                                    # dải kính tối ở phần trên thân
+                    rel = q[:, 2] / box.height
+                    glass = (rel > 0.62) & (rel < 0.93) & ~top
+                    c[glass] = (44, 38, 34)
+                    c[top] = np.array(color, np.float32) * 1.05
+                img[nearer] = np.clip(c, 0, 255)
+                t_best = np.where(nearer, t_box, t_best)
         img[~ok] = (0, 0, 0)
         out[port] = img.reshape(intr.height, intr.width, 3).astype(np.uint8)
     return out
