@@ -164,3 +164,39 @@ def test_writes_rig_file_readable_by_bev(textures, tmp_path):
         pose = rig.cameras[res.port]
         assert pose.measured
         assert np.allclose(pose.extrinsics.translation, res.t_cv, atol=1e-4)
+
+
+def _synth_intrinsics(port):
+    record = ec.synthetic_intrinsics_record(port)
+    return ec.CameraIntrinsics(port, f"tong_hop_p{port}.json", ec.SYNTH_K, ec.SYNTH_D, (640, 480), record, True, None)
+
+
+def test_calibrate_from_frames_one_click(textures, tmp_path):
+    """Nút Hiệu chuẩn của app: ảnh vừa lấy của bốn camera → lưu ảnh, báo cáo, ghi tệp rig đủ bốn cổng."""
+    frames = {port: [render(port, textures)[0] for _ in range(2)] for port in (1, 2, 3, 4)}
+    rig = tmp_path / "rig_v1.json"
+    run = se.calibrate_from_frames(frames, tmp_path / "phien", vehicle=dict(VEHICLE), rig_out=rig,
+                                   intrinsics=_synth_intrinsics, allow_synthetic=True)
+    assert run.ok_ports == [1, 2, 3, 4] and run.all_ok and run.rig_path == rig, run.to_text()
+    assert all(line.startswith("✓") for line in run.short_lines())
+    assert (tmp_path / "phien" / "to_in" / "cam_p3" / "anh_2.png").is_file()
+    assert (tmp_path / "phien" / "bao_cao_to" / "ket_qua_p4.json").is_file()
+    assert "ĐẠT" in (tmp_path / "phien" / "ket_qua.txt").read_text(encoding="utf-8")
+    from autopark.perception import bev
+    cams = bev.load_rig_extrinsics(rig).cameras
+    for port in (1, 2, 3, 4):
+        cam = cams[port]
+        assert cam.measured
+        assert np.allclose(cam.extrinsics.translation, POSES[port][0], atol=0.01)
+
+
+def test_calibrate_from_frames_reports_camera_without_sheet(textures, tmp_path):
+    blank = np.full((480, 640, 3), 120, np.uint8)
+    frames = {1: [blank], 2: [render(2, textures)[0]], 3: [], 4: [render(4, textures)[0]]}
+    rig = tmp_path / "rig_v1.json"
+    run = se.calibrate_from_frames(frames, tmp_path / "phien", vehicle=dict(VEHICLE), rig_out=rig,
+                                   intrinsics=_synth_intrinsics, allow_synthetic=True)
+    assert run.ok_ports == [2, 4] and not run.all_ok and run.rig_path == rig     # cổng đạt vẫn được ghi
+    lines = run.short_lines()
+    assert lines[0].startswith("✗ Camera 1") and "không" in lines[0]
+    assert lines[2] == "✗ Camera 3 · Trái: không có ảnh"

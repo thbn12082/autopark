@@ -273,3 +273,61 @@ def test_sender_source_passes_esp32_flag():
     from autopark.rig.remote_view_link import _sender_source
     assert b"VIEW_CHECK_ESP32 = False\n" in _sender_source(10.0, 4, False)
     assert b"VIEW_CHECK_ESP32 = True\n" in _sender_source(10.0, 4)
+
+
+def test_rig_calibration_button_captures_solves_and_rebuilds(qapp, tmp_path):
+    """Nút Hiệu chuẩn camera (27/11/2026): gom 3 ảnh/camera, giải bằng 4 tờ in, ghi rig, dựng lại BEV và 3D."""
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent))
+    import test_sheet_extrinsics as tse
+    from autopark.perception import extrinsics_calib as ec
+    from autopark.perception import rig_sheets as rs
+    from autopark.perception.calib_board import render_rects_png
+
+    textures = {}
+    for sheet in rs.SHEETS:
+        rects, _ = rs.page_content(sheet, rs.make_board(sheet["first_id"]))
+        textures[sheet["key"]] = render_rects_png(rs.PAGE_MM, rects, (), tse.DPI)
+    images = {port: tse.render(port, textures)[0] for port in (1, 2, 3, 4)}
+
+    now = [100.0]
+    window = RemoteSensorWindow("10.0.0.2", camera_count=4, link_factory=FakeLink, clock=lambda: now[0])
+    window.timer.stop()
+    window.rig_calib_folder = tmp_path / "phien"
+    window.rig_calib_out = tmp_path / "rig_v1.json"
+    window.rig_calib_kwargs = {"vehicle": dict(tse.VEHICLE), "intrinsics": tse._synth_intrinsics,
+                               "allow_synthetic": True}
+    try:
+        window.connect_link()
+        state = window.link.state
+        state.status = "live"
+        old_3d, old_bev = window.surround_3d, window.bird_eye
+        window.start_rig_calibration()
+        assert window.rig_calib_button.text() == "Đang chụp ảnh…" and not window.rig_calib_button.isEnabled()
+        for seq in range(1, 4):                                      # ba khung mới của mỗi camera
+            now[0] += 0.2
+            state.cameras = tuple(RemoteCameraSample(frame=images[p], seq=seq, at=now[0]) for p in (1, 2, 3, 4))
+            window._advance_rig_calibration()
+        assert window._rig_calib["stage"] == "solve"
+        window._rig_calib["future"].result(timeout=120)
+        window._advance_rig_calibration()
+        assert window._rig_calib is None and window.rig_calib_button.isEnabled()
+        box = window._rig_calib_box
+        assert box.text() == "Hiệu chuẩn xong: cả 4 camera đạt", box.informativeText()
+        assert window.rig_calib_out.is_file() and (tmp_path / "phien" / "to_in" / "cam_p2" / "anh_3.png").is_file()
+        assert window.surround_3d is not old_3d and window.bird_eye is not old_bev
+        assert window.tabs.indexOf(window.surround_3d) == 2 and window.tabs.indexOf(window.bird_eye) == 1
+        box.close()
+    finally:
+        window.close()
+
+
+def test_rig_calibration_needs_live_cameras(qapp):
+    window = RemoteSensorWindow("10.0.0.2", camera_count=4, link_factory=FakeLink)
+    window.timer.stop()
+    try:
+        window.start_rig_calibration()
+        assert window._rig_calib is None and window._rig_calib_box.text() == "Chưa có hình từ Pi"
+        window._rig_calib_box.close()
+    finally:
+        window.close()

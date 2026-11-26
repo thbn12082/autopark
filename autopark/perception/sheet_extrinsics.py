@@ -385,6 +385,96 @@ def write_report(folder, res: SheetResult, K, D, ego=None) -> Path:
     return folder
 
 
+# ---- hiệu chuẩn một lần bấm (nút trong app, 27/11/2026) -------------------------------------------------------------
+@dataclass
+class CalibrationRun:
+    """Kết quả `calibrate_from_frames`: mỗi cổng một SheetResult (hoặc lỗi), tệp rig đã ghi (nếu có cổng đạt)."""
+
+    folder: Path
+    results: list = field(default_factory=list)
+    errors: dict = field(default_factory=dict)      # cổng → lý do không giải được (thiếu ảnh, thiếu nội tham)
+    rig_path: Path | None = None
+    write_error: str = ""
+
+    @property
+    def ok_ports(self) -> list[int]:
+        return sorted(r.port for r in self.results if r.ok)
+
+    @property
+    def all_ok(self) -> bool:
+        return self.ok_ports == [1, 2, 3, 4] and self.rig_path is not None and not self.write_error
+
+    def short_lines(self) -> list[str]:
+        """Một dòng mỗi camera, cho hộp thoại."""
+        names = {1: "Camera 1 · Trước", 2: "Camera 2 · Sau", 3: "Camera 3 · Trái", 4: "Camera 4 · Phải"}
+        by_port = {r.port: r for r in self.results}
+        lines = []
+        for port in (1, 2, 3, 4):
+            r = by_port.get(port)
+            if port in self.errors:
+                lines.append(f"✗ {names[port]}: {self.errors[port]}")
+            elif r is None:
+                lines.append(f"✗ {names[port]}: không có ảnh")
+            elif r.ok:
+                x, y, z = (float(v) for v in r.t_cv)
+                lines.append(f"✓ {names[port]}: đạt · sai số {r.rms_px:.2f} px · cao {100 * z:.1f} cm")
+            else:
+                lines.append(f"✗ {names[port]}: " + "; ".join(r.refusals)[:300])
+        return lines
+
+    def to_text(self) -> str:
+        parts = [summary_text(r) for r in self.results] + [f"cổng {p}: {e}" for p, e in sorted(self.errors.items())]
+        if self.rig_path is not None:
+            parts.append(f"đã ghi cổng {', '.join(map(str, self.ok_ports))} vào {self.rig_path}")
+        if self.write_error:
+            parts.append(f"không ghi tệp rig: {self.write_error}")
+        return "\n\n".join(parts)
+
+
+def calibrate_from_frames(frames: dict, folder, *, vehicle: dict | None = None, rig_out=ec.DEFAULT_OUT,
+                          intrinsics=None, allow_synthetic: bool = False) -> CalibrationRun:
+    """Hiệu chuẩn ngoại tham từ ảnh vừa lấy của các camera (cổng → list ảnh BGR), như `solve --dir … --out …`.
+
+    Lưu ảnh vào `<folder>/to_in/cam_pN/` (để kiểm lại hay giải lại bằng dòng lệnh), báo cáo và ảnh kiểm vào
+    `<folder>/bao_cao_to/`. Cổng nào ĐẠT thì ghi vào `rig_out` (chép các cổng khác từ chính tệp đó nếu đã có, không thì
+    từ tệp v0; bản cũ được `write_rig_file` sao lưu). `intrinsics(port)` thay cách đọc nội tham (cho test)."""
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    run = CalibrationRun(folder)
+    vehicle = vehicle if vehicle is not None else load_vehicle()
+    base = Path(rig_out) if rig_out is not None and Path(rig_out).exists() else ec.DEFAULT_BASE
+    ego = ec.rig_ego(base)
+    for port in sorted(frames):
+        images = [img for img in frames[port] if img is not None]
+        if not images:
+            run.errors[port] = "không có ảnh"
+            continue
+        paths = []
+        (folder / "to_in" / f"cam_p{port}").mkdir(parents=True, exist_ok=True)
+        for i, img in enumerate(images):
+            path = folder / "to_in" / f"cam_p{port}" / f"anh_{i + 1}.png"
+            fc.write_image(path, img)
+            paths.append(path)
+        try:
+            intr = intrinsics(port) if intrinsics is not None else \
+                ec.load_camera_intrinsics(ec.default_intrinsics_path(port), port)
+        except ec.ExtrinsicsError as exc:
+            run.errors[port] = str(exc)
+            continue
+        res = solve_port(port, list(zip(paths, images)), intr, vehicle)
+        write_report(folder / "bao_cao_to", res, intr.K, intr.D, ego)
+        run.results.append(res)
+    good = [r for r in run.results if r.ok]
+    if good and rig_out is not None:
+        try:
+            run.rig_path = ec.write_rig_file(rig_out, good, base_path=base, overwrite=True,
+                                             allow_synthetic=allow_synthetic)
+        except ec.ExtrinsicsError as exc:
+            run.write_error = str(exc)
+    (folder / "ket_qua.txt").write_text(run.to_text() + "\n", encoding="utf-8")
+    return run
+
+
 # ---- dòng lệnh --------------------------------------------------------------------------------------------------------
 def images_in(folder: Path) -> list:
     return sorted(p for p in Path(folder).iterdir() if p.suffix.lower() in IMAGE_SUFFIXES and p.is_file())

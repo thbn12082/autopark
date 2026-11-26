@@ -29,6 +29,8 @@ from autopark.ui.surround_view_panel import SurroundViewPanel
 
 DISPLAY_STALE_S = 0.75
 RECONNECT_S = 5.0               # app: phiên xem hỏng/hết giờ thì mở lại sau ngần này giây
+RIG_CALIB_FRAMES = 3            # nút Hiệu chuẩn camera: số ảnh khác nhau lấy từ mỗi camera
+RIG_CALIB_COLLECT_S = 6.0       # gom ảnh tối đa ngần này giây; camera không có ảnh thì báo riêng
 ACTIVE = {"connecting", "live"}
 # Vị trí đã đối chiếu trên xe theo thứ tự cổng USB của bộ bốn camera.
 FOUR_CAMERA_LABELS = ("Camera 1 · Trước", "Camera 2 · Sau", "Camera 3 · Trái", "Camera 4 · Phải")
@@ -47,6 +49,13 @@ class RemoteSensorWindow(QMainWindow):
         self.auto_connect = connection is not None and auto_connect
         self._last_attempt = float("-inf")
         self.link_host = ""
+        self.rig_calib_button = None
+        self._rig_calib = None              # đang hiệu chuẩn: {"stage", "frames", "started", "folder", "future"}
+        self._rig_calib_executor = None
+        self._rig_calib_box = None
+        self.rig_calib_folder = None        # cho test: nơi lưu ảnh/báo cáo; None = runs/calib/<thời điểm>
+        self.rig_calib_out = None           # cho test: tệp rig ghi ra; None = configs/rig/camera_rig_extrinsics_v1.json
+        self.rig_calib_kwargs = {}          # cho test: tham số thêm cho calibrate_from_frames
         if camera_count not in (1, 4):
             raise ValueError("Chọn chế độ một hoặc bốn camera")
         self.setWindowTitle("AutoPark — Kiểm hướng cảm biến")
@@ -202,6 +211,14 @@ class RemoteSensorWindow(QMainWindow):
             self.surround_3d = Surround3DPanel()
             self.tabs.addTab(self.surround_3d, "3D quanh xe")
             self.tabs.currentChanged.connect(self._change_tab)
+            # Hiệu chuẩn vị trí 4 camera bằng 4 tờ ChArUco in sẵn (27/11/2026): sheet_extrinsics.calibrate_from_frames
+            self.rig_calib_button = QPushButton("Hiệu chuẩn camera")
+            self.rig_calib_button.setObjectName("connect")
+            self.rig_calib_button.setToolTip(
+                "Đặt 4 tờ hiệu chuẩn (in A4 ngang, 100%) quanh xe: mép dưới áp sát lốp, tờ nằm giữa theo vạch in. "
+                "Xe đứng yên. Bấm để chụp 4 camera, tính vị trí từng camera rồi dựng lại BEV và 3D.")
+            self.rig_calib_button.clicked.connect(self.start_rig_calibration)
+            self.tabs.setCornerWidget(self.rig_calib_button, Qt.Corner.TopRightCorner)
             layout.addWidget(self.tabs, 1)
         else:
             layout.addWidget(camera_page, 1)
@@ -253,7 +270,117 @@ class RemoteSensorWindow(QMainWindow):
         self.host.setText(host)
         self.connect_link()
 
+    # ---- hiệu chuẩn vị trí camera bằng 4 tờ in ----------------------------------------------------------------
+    def start_rig_calibration(self) -> None:
+        """Bước 1: gom RIG_CALIB_FRAMES ảnh khác nhau của mỗi camera (ảnh trực tiếp, mới); bước 2 (luồng nền): giải."""
+        if self._rig_calib is not None:
+            return
+        view = self.link.snapshot() if self.link is not None else None
+        if view is None or view.status != "live":
+            self._show_rig_result("Chưa có hình từ Pi", ["Chờ tab có hình trực tiếp từ 4 camera rồi bấm lại."], None,
+                                  ok=False)
+            return
+        self._rig_calib = {"stage": "collect", "frames": {p: {} for p in range(1, 5)}, "started": self.clock()}
+        self.rig_calib_button.setEnabled(False)
+        self.rig_calib_button.setText("Đang chụp ảnh…")
+
+    def _advance_rig_calibration(self) -> None:
+        job = self._rig_calib
+        if job is None:
+            return
+        if job["stage"] == "collect":
+            view = self.link.snapshot() if self.link is not None else None
+            now = self.clock()
+            if view is not None:
+                for index, sample in enumerate(view.cameras):
+                    if sample is not None and 0 <= now - sample.at <= DISPLAY_STALE_S:
+                        job["frames"][index + 1].setdefault(sample.seq, sample.frame.copy())
+            enough = all(len(f) >= RIG_CALIB_FRAMES for f in job["frames"].values())
+            if enough or now - job["started"] > RIG_CALIB_COLLECT_S:
+                self._solve_rig_calibration(job)
+            return
+        if job["stage"] == "solve" and job["future"].done():
+            self._finish_rig_calibration(job)
+
+    def _solve_rig_calibration(self, job) -> None:
+        from autopark.perception import extrinsics_calib as ec
+        from autopark.perception import sheet_extrinsics as se
+        from autopark.perception.paths import PROJECT
+
+        frames = {port: [frame for _, frame in sorted(f.items())[-RIG_CALIB_FRAMES:]]
+                  for port, f in job["frames"].items()}
+        folder = self.rig_calib_folder or PROJECT / "runs" / "calib" / time.strftime("%Y%m%d-%H%M%S")
+        out = self.rig_calib_out or ec.DEFAULT_OUT
+        if self._rig_calib_executor is None:
+            self._rig_calib_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="autopark-rig-calib")
+        job.update(stage="solve", folder=folder, future=self._rig_calib_executor.submit(
+            se.calibrate_from_frames, frames, folder, rig_out=out, **self.rig_calib_kwargs))
+        self.rig_calib_button.setText("Đang tính…")
+
+    def _finish_rig_calibration(self, job) -> None:
+        self._rig_calib = None
+        self.rig_calib_button.setEnabled(True)
+        self.rig_calib_button.setText("Hiệu chuẩn camera")
+        try:
+            run = job["future"].result()
+        except Exception as exc:  # noqa: BLE001 - báo lỗi trong giao diện, không làm sập app
+            self._show_rig_result("Hiệu chuẩn lỗi", [" ".join(str(exc).split())[:400]], job["folder"], ok=False)
+            return
+        lines = run.short_lines()
+        if run.write_error:
+            lines.append(f"Không ghi được kết quả: {run.write_error}")
+        if run.all_ok:
+            title = "Hiệu chuẩn xong: cả 4 camera đạt"
+            lines.append("BEV và 3D quanh xe đã dùng số đo mới.")
+        elif run.ok_ports:
+            title = f"Mới đạt {len(run.ok_ports)}/4 camera"
+            lines.append("Đã lưu các camera đạt. Chỉnh tờ của camera chưa đạt rồi bấm lại; 3D dùng số đo khi đủ cả 4.")
+        else:
+            title = "Chưa camera nào đạt"
+            lines.append("Kiểm tờ: in đúng 100%, nằm phẳng, mép dưới áp sát lốp, đủ sáng, camera thấy trọn tờ.")
+        if run.rig_path is not None:
+            self._rebuild_surround_tabs()
+        self._show_event(f"RIG_CALIB ok={run.ok_ports} folder={job['folder']}", deduplicate=False)
+        self._show_rig_result(title, lines, job["folder"], ok=run.all_ok)
+
+    def _show_rig_result(self, title, lines, folder, *, ok) -> None:
+        from PySide6.QtWidgets import QMessageBox
+
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Information if ok else QMessageBox.Icon.Warning)
+        box.setWindowTitle("Hiệu chuẩn camera")
+        box.setText(title)
+        box.setInformativeText("\n".join(lines) + (f"\n\nẢnh và báo cáo: {folder}" if folder else ""))
+        box.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._rig_calib_box = box
+        box.open()
+
+    def _rebuild_surround_tabs(self) -> None:
+        """Dựng lại BEV và 3D để đọc tệp rig mới (cả hai nạp camera một lần lúc dựng)."""
+        if self.tabs is None:
+            return
+        current = self.tabs.currentIndex()
+        self.tabs.blockSignals(True)
+        try:
+            for attr, title, factory in (("bird_eye", "Nhìn từ trên (BEV)", SurroundViewPanel),
+                                         ("surround_3d", "3D quanh xe", Surround3DPanel)):
+                old = getattr(self, attr)
+                index = self.tabs.indexOf(old)
+                new = factory()
+                if attr == "bird_eye":
+                    new.rendered.connect(self._record_bev_frame)
+                self.tabs.removeTab(index)
+                self.tabs.insertTab(index, new, title)
+                old.shutdown()
+                old.deleteLater()
+                setattr(self, attr, new)
+            self.tabs.setCurrentIndex(current)
+        finally:
+            self.tabs.blockSignals(False)
+        self._bev_sequences = None
+
     def _tick(self) -> None:
+        self._advance_rig_calibration()
         self._sync_connection()
         if self.connection is None or self.isVisible():   # app: tab ẩn thì vẫn giữ phiên xem nhưng không vẽ
             self.refresh()
@@ -618,6 +745,8 @@ class RemoteSensorWindow(QMainWindow):
     def closeEvent(self, event):
         self.timer.stop()
         self.stop_link()
+        if self._rig_calib_executor is not None:
+            self._rig_calib_executor.shutdown(wait=False, cancel_futures=True)
         if self.calibration_dir is not None:
             self._calibration_executor.shutdown(wait=False, cancel_futures=True)
         if self.bird_eye is not None:
