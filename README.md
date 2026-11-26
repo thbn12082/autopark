@@ -257,8 +257,9 @@ Từ thư mục gốc repository, trên Windows: chạy `cai_dat.cmd` một lầ
 ```
 AutoPark
 ├── Đỗ xe ............. mô phỏng, tìm ô đỗ, tính đường, LiDAR thật
-├── Quan sát Pi ....... 4 camera + LiDAR qua Wi-Fi, ghi LiDAR
+├── Kết nối xe ........ kết nối tới ESP32 qua Pi (hoặc mô phỏng), dùng chung cho các tab lái
 ├── Lái tay ........... vô lăng, giữ Space tiến, giữ W lùi, Esc dừng
+├── Quan sát Pi ....... 4 camera + LiDAR qua Wi-Fi, ghi LiDAR
 ├── Nội tham camera
 ├── Ngoại tham, ROI
 ├── Bộ camera ......... cần môi trường .venv-train
@@ -268,9 +269,9 @@ AutoPark
 
 Trang chỉ được dựng khi bấm tới, và không tự mở camera hay LiDAR. Mở thẳng một trang: `run_app.py --page quan_sat_pi --host <IP Pi>`.
 
-**Lái tay** điều khiển xe thật: laptop SSH vào Pi qua Wi-Fi, Pi chuyển nguyên byte lệnh sang ESP32 đang cắm USB vào Pi (`autopark/transport/ssh_serial.py`). Pi cần python3 và pyserial, như trang Quan sát Pi. Mật khẩu Pi được hỏi trong cửa sổ dòng lệnh đã mở app. Chọn **Mô phỏng** để thử khi không có xe.
+**Kết nối xe** là tab riêng để nối tới xe, một lần cho cả app. Chọn **Xe thật (qua Pi)**, nhập IP của Pi rồi bấm Kết nối. Laptop SSH vào Pi qua Wi-Fi, và Pi chuyển nguyên byte lệnh sang ESP32 đang cắm USB vào Pi (`autopark/transport/ssh_serial.py`). Pi cần python3 và pyserial, như trang Quan sát Pi. Mật khẩu Pi được hỏi trong cửa sổ dòng lệnh đã mở app. Tab này hiện từng bước kết nối (SSH, mở ESP32, bắt tay, ARM), cùng thông tin bo, giới hạn bo báo và chất lượng liên lạc. Chọn **Mô phỏng** để thử khi không có xe.
 
-Kết nối xong là bo được ARM. Giữ Space để tiến, giữ W để lùi, nhả phím là về 0. Kéo vô lăng bằng chuột hoặc giữ ← →. Esc để DISARM. Mỗi lệnh chỉ có hạn 150–250 ms, nên app treo, Wi-Fi rớt hay chuyển sang cửa sổ khác thì xe tự dừng. Cầu nối khóa cổng ESP32 trên Pi, nên muốn xem camera cùng lúc thì mở Quan sát Pi trước rồi mới kết nối lái tay.
+**Lái tay** dùng kết nối của tab Kết nối xe. Giữ Space để tiến, giữ W để lùi, nhả phím là về 0. Kéo vô lăng bằng chuột hoặc giữ ← →. Esc để DISARM, bấm "Bật lái" để chạy lại. Mỗi lệnh chỉ có hạn 150–250 ms, nên app treo, Wi-Fi rớt hay chuyển sang cửa sổ khác thì xe tự dừng. Cầu nối khóa cổng ESP32 trên Pi, nên muốn xem camera cùng lúc thì mở Quan sát Pi trước rồi mới kết nối xe.
 
 Hoặc trong PowerShell:
 

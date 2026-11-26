@@ -1,4 +1,4 @@
-"""Trang Lái tay (ui.manual_drive) và cầu nối SSH tới ESP32 trên Pi (transport.ssh_serial)."""
+"""Tab Kết nối xe (ui.car_connection), tab Lái tay (ui.manual_drive) và cầu nối SSH tới ESP32 trên Pi."""
 from __future__ import annotations
 
 import base64
@@ -20,6 +20,7 @@ from autopark.transport import protocol as P  # noqa: E402
 from autopark.transport.protocol import State  # noqa: E402
 from autopark.transport.ssh_serial import BRIDGE_SOURCE, SshSerialPort, bridge_command  # noqa: E402
 from autopark.transport.vehicle_io import SerialVehicleIO  # noqa: E402
+from autopark.ui import car_connection as cc  # noqa: E402
 from autopark.ui import manual_drive as md  # noqa: E402
 
 
@@ -42,8 +43,9 @@ def test_drive_command_keys_and_limits():
     assert md.drive_command(inp, 0.3, 0.25) == (pytest.approx(-0.25), pytest.approx(-0.3))   # kẹp theo bo
 
 
-def test_real_car_steer_limited_by_bench_servo():
-    assert md.steer_limit(None, "pi") == pytest.approx(md.SERVO_LIMIT_RAD)
+def test_real_car_steer_limited_by_bench_servo(qapp):
+    conn = cc.CarConnection(auto_tick=False)
+    assert conn.steer_limit() == pytest.approx(cc.SERVO_LIMIT_RAD)
 
 
 def test_wheel_left_is_positive(qapp):
@@ -162,7 +164,7 @@ def test_vehicle_io_over_ssh_pipe_arms_and_drives():
         io.close()
 
 
-# ------------------------------------------------------------------------------------------------ trang (mô phỏng)
+# ------------------------------------------------------------------------------------------------ tab (mô phỏng)
 class Clock:
     def __init__(self):
         self.t = 0.0
@@ -171,103 +173,165 @@ class Clock:
         return self.t
 
 
-def sim_window(qapp, clock):
-    def factory(mode, target):
-        return _SyncConnector(mode, target)
-
-    w = md.ManualDriveWindow(connector_factory=factory, clock=clock)
-    w.timer.stop()                                  # test tự gọi tick()
-    w.mode_box.setCurrentIndex(w.mode_box.findData("sim"))
-    w.keys_live = lambda: True
-    return w
-
-
-class _SyncConnector(md.Connector):
+class _SyncConnector(cc.Connector):
     def start(self):
         self.run_now()
         return self
 
 
-def run(w, clock, seconds):
-    for _ in range(int(seconds / 0.02)):
-        clock.t += 0.02
-        w.tick()
+class Rig:
+    """Kết nối chung + tab Kết nối xe + tab Lái tay, đồng hồ giả, test tự gọi tick()."""
+
+    def __init__(self):
+        self.clock = Clock()
+        self.conn = cc.CarConnection(connector_factory=_SyncConnector, clock=self.clock, auto_tick=False)
+        self.page = cc.CarConnectionPage(self.conn)
+        self.page.timer.stop()
+        self.drive = md.ManualDriveWindow(self.conn, clock=self.clock)
+        self.drive.timer.stop()
+        self.drive.keys_live = lambda: True
+
+    def connect_sim(self):
+        self.page.mode_box.setCurrentIndex(self.page.mode_box.findData("sim"))
+        self.page.toggle()
+        self.run(0.1)
+
+    def run(self, seconds):
+        for _ in range(int(round(seconds / 0.02))):
+            self.clock.t += 0.02
+            self.conn.tick()
+            self.drive.tick()
+        self.page.refresh()
+        self.drive._refresh_ui(force=True)
+
+    def key(self, k, press):
+        ev = QKeyEvent(QEvent.Type.KeyPress if press else QEvent.Type.KeyRelease, k, Qt.KeyboardModifier.NoModifier)
+        return self.drive.eventFilter(self.drive, ev)
+
+    def close(self):
+        self.drive.close()
+        self.page.close()
 
 
-def test_page_drives_sim_car_with_space_w_and_wheel(qapp):
-    clock = Clock()
-    w = sim_window(qapp, clock)
+def test_connection_tab_connects_and_drive_tab_drives(qapp):
+    rig = Rig()
     try:
-        w.connect_link()
-        run(w, clock, 0.1)
-        assert w.io is not None and w.status.text() == "Sẵn sàng lái"
-        assert w.io.latest().state in (State.ARMED, State.RUNNING)
+        assert rig.drive.banner.isVisibleTo(rig.drive)                    # chưa kết nối: tab lái chỉ đường sang
+        rig.connect_sim()
+        conn, page, w = rig.conn, rig.page, rig.drive
+        assert conn.connected and conn.status() == ("Đã kết nối · sẵn sàng lái", "ok")
+        assert [icon.text() for icon, _ in page.step_rows] == ["✓"] * 4
+        assert page.connect_button.text() == "Ngắt kết nối" and not page.mode_box.isEnabled()
+        assert page.board["firmware"].text() != "—" and page.limit_values["speed"].text() == "0.30 m/s"
+        assert not w.banner.isVisibleTo(w)
 
-        def key(k, press):
-            ev = QKeyEvent(QEvent.Type.KeyPress if press else QEvent.Type.KeyRelease, k, Qt.KeyboardModifier.NoModifier)
-            return w.eventFilter(w, ev)
-
-        x0 = w.io.truth.pose.x
-        assert key(Qt.Key.Key_Space, True)
-        run(w, clock, 1.5)
+        x0 = conn.io.truth.pose.x
+        assert rig.key(Qt.Key.Key_Space, True)
+        rig.run(1.5)
         assert w.forward_tile.property("on") is True
-        assert w.io.latest().speed_ref_mps > 0.05 and w.io.truth.pose.x > x0 + 0.03
-        key(Qt.Key.Key_Space, False)
-        run(w, clock, 1.0)
-        assert w.io.latest().speed_ref_mps == 0.0
+        assert conn.io.latest().speed_ref_mps > 0.05 and conn.io.truth.pose.x > x0 + 0.03
+        rig.key(Qt.Key.Key_Space, False)
+        rig.run(1.0)
+        assert conn.io.latest().speed_ref_mps == 0.0
 
-        x1 = w.io.truth.pose.x
-        key(Qt.Key.Key_W, True)
-        run(w, clock, 1.5)
-        assert w.io.latest().speed_ref_mps < -0.05 and w.io.truth.pose.x < x1 - 0.03
-        key(Qt.Key.Key_W, False)
+        x1 = conn.io.truth.pose.x
+        rig.key(Qt.Key.Key_W, True)
+        rig.run(1.5)
+        assert conn.io.latest().speed_ref_mps < -0.05 and conn.io.truth.pose.x < x1 - 0.03
+        rig.key(Qt.Key.Key_W, False)
 
         w.wheel.set_value(1.0)                                    # vô lăng hết trái
-        run(w, clock, 1.0)
-        assert w.io.latest().steer_ref_rad == pytest.approx(md.steer_limit(w.io, "sim"), abs=0.01)
+        rig.run(1.0)
+        assert conn.io.latest().steer_ref_rad == pytest.approx(conn.steer_limit(), abs=0.01)
 
-        key(Qt.Key.Key_Escape, True)                              # dừng khẩn: DISARM, không gửi lệnh chạy nữa
-        run(w, clock, 0.3)
-        assert w.io.latest().state == State.DISARMED and w.arm_button.isEnabled()
-        key(Qt.Key.Key_Space, True)
-        run(w, clock, 0.5)
-        assert w.io.latest().speed_ref_mps == 0.0
-        key(Qt.Key.Key_Space, False)
+        rig.key(Qt.Key.Key_Escape, True)                          # dừng khẩn: DISARM, không gửi lệnh chạy nữa
+        rig.run(0.3)
+        assert conn.io.latest().state == State.DISARMED
+        assert page.arm_button.isEnabled() and w.arm_button.isVisibleTo(w)
+        rig.key(Qt.Key.Key_Space, True)
+        rig.run(0.5)
+        assert conn.io.latest().speed_ref_mps == 0.0
+        rig.key(Qt.Key.Key_Space, False)
 
-        w.rearm()
-        run(w, clock, 0.2)
-        assert w.status.text() == "Sẵn sàng lái"
+        page.arm_button.click()                                   # Bật lái ở tab Kết nối xe
+        rig.run(0.2)
+        assert conn.can_drive()
+
+        page.toggle()                                             # Ngắt ở tab Kết nối xe
+        rig.run(0.1)
+        assert conn.io is None and conn.status() == ("Chưa kết nối xe", "")
+        assert w.banner.isVisibleTo(w)
     finally:
-        w.close()
-    assert w.io is None
+        rig.close()
+
+
+def test_drive_tab_closed_stops_commanding(qapp):
+    rig = Rig()
+    try:
+        rig.connect_sim()
+        rig.drive.close()
+        assert rig.conn.command_source is None                     # không còn nguồn lệnh: chỉ PING, xe đứng yên
+        rig.run(0.5)
+        assert rig.conn.connected and rig.conn.io.latest().speed_ref_mps == 0.0
+    finally:
+        rig.close()
+    assert rig.conn.io is None                                    # đóng tab Kết nối xe (thoát app): ngắt
+
+
+def test_connect_failure_marks_step(qapp):
+    class Failing(cc.Connector):
+        def start(self):
+            self.step = 1
+            self.result = (None, "Pi không mở được ESP32: busy")
+            return self
+
+    clock = Clock()
+    conn = cc.CarConnection(connector_factory=Failing, clock=clock, auto_tick=False)
+    page = cc.CarConnectionPage(conn)
+    try:
+        page.host.setText("192.168.1.50")
+        page.toggle()
+        conn.tick()
+        page.refresh()
+        assert conn.status() == ("Không kết nối được", "bad")
+        assert [icon.text() for icon, _ in page.step_rows][:2] == ["✓", "✗"]
+        assert "busy" in page.error.text()
+    finally:
+        page.close()
+
+
+def test_pi_mode_needs_host(qapp):
+    conn = cc.CarConnection(auto_tick=False)
+    assert conn.connect_to("pi", "") is False and not conn.connecting
 
 
 def test_focus_loss_releases_keys(qapp):
-    clock = Clock()
-    w = sim_window(qapp, clock)
+    rig = Rig()
     try:
-        w.set_key(Qt.Key.Key_Space, True)
-        w.set_key(Qt.Key.Key_Left, True)
-        w.eventFilter(w, QEvent(QEvent.Type.ApplicationDeactivate))
-        assert not w.drive.forward and not any(w.steer_keys.values())
+        rig.drive.set_key(Qt.Key.Key_Space, True)
+        rig.drive.set_key(Qt.Key.Key_Left, True)
+        rig.drive.eventFilter(rig.drive, QEvent(QEvent.Type.ApplicationDeactivate))
+        assert not rig.drive.drive.forward and not any(rig.drive.steer_keys.values())
     finally:
-        w.close()
+        rig.close()
 
 
 def test_keys_ignored_when_page_not_active(qapp):
-    w = md.ManualDriveWindow()
+    conn = cc.CarConnection(auto_tick=False)
+    w = md.ManualDriveWindow(conn)
     try:
         w.timer.stop()
         ev = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Space, Qt.KeyboardModifier.NoModifier)
-        assert w.eventFilter(w, ev) is False and not w.drive.forward      # trang chưa hiện: không bắt phím
+        assert w.eventFilter(w, ev) is False and not w.drive.forward      # tab chưa hiện: không bắt phím
     finally:
         w.close()
 
 
-def test_shell_has_manual_drive_page():
+def test_shell_has_connection_and_drive_tabs():
     from autopark.ui import shell
-    assert "lai_tay" in [p.key for p in shell.PAGES]
-    assert shell.parse_args(["--page", "lai_tay"]).page == "lai_tay"
+    keys = [p.key for p in shell.PAGES]
+    assert keys.index("ket_noi_xe") + 1 == keys.index("lai_tay")
+    assert shell.parse_args(["--page", "ket_noi_xe"]).page == "ket_noi_xe"
 
 
 def test_protocol_ids_match_bridge_usb():

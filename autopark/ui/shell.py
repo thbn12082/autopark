@@ -1,6 +1,6 @@
 """AutoPark: một cửa sổ chung cho mọi công cụ (thêm 26/11/2026).
 
-    python run_app.py [--page do_xe|quan_sat_pi|lai_tay|noi_tham|ngoai_tham|bo_camera|gan_nhan|tren_cao]
+    python run_app.py [--page do_xe|ket_noi_xe|lai_tay|quan_sat_pi|noi_tham|ngoai_tham|bo_camera|gan_nhan|tren_cao]
                       [--scenario KỊCH_BẢN.json] [--host IP_PI]
 
 Thanh bên trái chọn trang. Mỗi trang là một công cụ có sẵn (cửa sổ cũ nhúng vào), dựng lần đầu khi bấm tới nó:
@@ -10,8 +10,9 @@ AutoPark
 ├── Đỗ xe
 │   └── Đỗ xe ............ mô phỏng, tìm ô đỗ, tính đường; ngăn LiDAR thật và ghi cảm biến (ui.lidar_app)
 ├── Xe thật
-│   ├── Quan sát Pi ...... 4 camera + LiDAR từ Pi qua Wi-Fi, ghi LiDAR (ui.remote_sensor_view)
-│   └── Lái tay .......... vô lăng, Space tiến, W lùi; xe thật qua Pi hoặc mô phỏng (ui.manual_drive)
+│   ├── Kết nối xe ....... kết nối chung tới ESP32 qua Pi (hoặc mô phỏng) cho các tab lái (ui.car_connection)
+│   ├── Lái tay .......... vô lăng, Space tiến, W lùi, dùng kết nối của tab Kết nối xe (ui.manual_drive)
+│   └── Quan sát Pi ...... 4 camera + LiDAR từ Pi qua Wi-Fi, ghi LiDAR (ui.remote_sensor_view)
 ├── Hiệu chuẩn
 │   ├── Nội tham camera .. bàn cờ, camera cắm laptop (ui.calib_app)
 │   ├── Ngoại tham, ROI .. (ui.roi_app)
@@ -72,11 +73,17 @@ def _pi_viewer(opts: ShellOptions) -> QWidget:
     return RemoteSensorWindow(opts.host, camera_count=4)
 
 
-def _manual_drive(opts: ShellOptions) -> QWidget:
+def _car_connection(opts: ShellOptions) -> QWidget:
     from PySide6.QtCore import QSettings
 
+    from autopark.ui.car_connection import CarConnectionPage, shared_connection
+    return CarConnectionPage(shared_connection(), opts.host, settings=QSettings("AutoPark", "AutoPark"))
+
+
+def _manual_drive(opts: ShellOptions) -> QWidget:
+    from autopark.ui.car_connection import shared_connection
     from autopark.ui.manual_drive import ManualDriveWindow
-    return ManualDriveWindow(opts.host, settings=QSettings("AutoPark", "AutoPark"))
+    return ManualDriveWindow(shared_connection())
 
 
 def _intrinsics(opts: ShellOptions) -> QWidget:
@@ -117,8 +124,10 @@ def _overhead(opts: ShellOptions) -> QWidget:
 
 PAGES: tuple[Page, ...] = (
     Page("do_xe", "ĐỖ XE", "Đỗ xe", "Mô phỏng, tìm ô đỗ, tính đường, LiDAR thật", _parking),
-    Page("quan_sat_pi", "XE THẬT", "Quan sát Pi", "4 camera + LiDAR qua Wi-Fi, ghi LiDAR", _pi_viewer),
+    Page("ket_noi_xe", "XE THẬT", "Kết nối xe", "Kết nối tới ESP32 qua Pi, dùng chung cho các tab lái",
+         _car_connection),
     Page("lai_tay", "XE THẬT", "Lái tay", "Vô lăng, Space tiến, W lùi, Esc dừng", _manual_drive),
+    Page("quan_sat_pi", "XE THẬT", "Quan sát Pi", "4 camera + LiDAR qua Wi-Fi, ghi LiDAR", _pi_viewer),
     Page("noi_tham", "HIỆU CHUẨN", "Nội tham camera", "Bàn cờ, camera cắm laptop", _intrinsics),
     Page("ngoai_tham", "HIỆU CHUẨN", "Ngoại tham, ROI", "Tư thế camera, vùng quan tâm", _extrinsics_roi),
     Page("bo_camera", "HIỆU CHUẨN", "Bộ camera", "4 camera + AI trên laptop", _camera_rig),
