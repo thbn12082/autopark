@@ -1,7 +1,8 @@
 """Thẻ "3D quanh xe" (thêm 26/11/2026): cảnh 3D từ bốn camera, kéo chuột để xoay, lăn để phóng to.
 
-Dựng hình chạy ở một luồng nền (`perception.surround_3d.Surround3DRenderer`). Khi kéo chuột, bảng tra dựng ở nửa độ phân
-giải cho mượt; thả chuột thì dựng lại bản nét. Chưa có ảnh từ Pi thì hiện **cảnh mẫu** (sa bàn tổng hợp) để xem thử.
+Máy có OpenGL 3.3 thì vẽ bằng GPU (`ui.surround_3d_gl`): xoay mượt theo nhịp màn hình. Không có thì dựng bằng CPU ở luồng
+nền (`perception.surround_3d.Surround3DRenderer`, kéo chuột dựng ở nửa độ phân giải). Chưa có ảnh từ Pi thì hiện **cảnh
+mẫu** (sa bàn tổng hợp) để xem thử.
 """
 from __future__ import annotations
 
@@ -88,9 +89,10 @@ class Surround3DPanel(QWidget):
     rendered = Signal(bool, bool)        # (đang xem thử gá giả định, đang dùng cảnh mẫu)
     _completed = Signal(object)
 
-    def __init__(self, parent=None, *, renderer_factory=None, clock=time.monotonic):
+    def __init__(self, parent=None, *, renderer_factory=None, clock=time.monotonic, use_gl: bool | None = None):
         super().__init__(parent)
         from autopark.perception.surround_3d import PRESETS
+        from autopark.ui.surround_3d_gl import gl_available
 
         self._presets = PRESETS
         self.notice = QLabel("Đang chuẩn bị cảnh 3D…")
@@ -108,11 +110,20 @@ class Surround3DPanel(QWidget):
         hint = QLabel("Kéo chuột để xoay · lăn để phóng to")
         hint.setStyleSheet(f"color: {theme.TEXT_FAINT};")
         row.addWidget(hint)
-        self.canvas = _Canvas(self)
-        self.canvas.pressed.connect(self._drag_start)
-        self.canvas.dragged.connect(self._drag)
-        self.canvas.released.connect(self._drag_end)
-        self.canvas.wheeled.connect(self._zoom)
+        self.gl = (gl_available() if use_gl is None else use_gl) and renderer_factory is None
+        self._gl_notice = ""
+        if self.gl:
+            from autopark.perception.surround_view import display_cameras
+            from autopark.ui.surround_3d_gl import Surround3DGLWidget
+            cameras, preview, self._gl_notice = display_cameras()
+            self._gl_cameras, self._gl_preview = cameras, preview
+            self.canvas = Surround3DGLWidget(cameras, is_preview=preview, parent=self)
+        else:
+            self.canvas = _Canvas(self)
+            self.canvas.pressed.connect(self._drag_start)
+            self.canvas.dragged.connect(self._drag)
+            self.canvas.released.connect(self._drag_end)
+            self.canvas.wheeled.connect(self._zoom)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
@@ -136,6 +147,7 @@ class Surround3DPanel(QWidget):
         self._dirty = True
         self._last_start = -1e9
         self.using_demo = True
+        self._demo_future: Future | None = None
         self._timer = QTimer(self)
         self._timer.setInterval(int(FRAME_INTERVAL_S * 1000))
         self._timer.timeout.connect(self._tick)
@@ -150,17 +162,27 @@ class Surround3DPanel(QWidget):
             self._live_at = self.clock()
         if overlays is not None:
             self._overlays = overlays
+        if self.gl:
+            if frames:
+                if self.using_demo:                       # bỏ ảnh mẫu còn lại trên các cổng chưa có ảnh thật
+                    self.canvas.clear_frames()
+                    self.using_demo = False
+                    self._show_gl_notice()
+                self.canvas.set_frames(frames)
+            if overlays is not None:
+                self.canvas.set_overlays(overlays)
+            return
         self._dirty = True
 
     def use_preset(self, key: str) -> None:
-        self.view = self._presets[key][1]
-        self.quality = 1.0
-        self._dirty = True
+        self.set_view(self._presets[key][1])
 
     def set_view(self, view, quality: float = 1.0) -> None:
         self.view = view.clamped()
         self.quality = quality
         self._dirty = True
+        if self.gl:
+            self.canvas.set_view(self.view)
 
     def _drag_start(self):
         self._drag_from = self.view
@@ -180,8 +202,36 @@ class Surround3DPanel(QWidget):
         self.set_view(replace(self.view, distance_m=self.view.distance_m * (1.1 ** steps)), 1.0)
 
     # ------------------------------------------------------------------ dựng nền
+    def _tick_gl(self, live: bool):
+        """GPU: chỉ lo chuyển giữa ảnh thật và cảnh mẫu; xoay đã vẽ ngay trong canvas."""
+        if live or self._closed.is_set():
+            return
+        if self._demo is None:
+            if self._demo_future is None:
+                from autopark.perception import surround_3d as s3
+                self._demo_future = self._executor.submit(s3.demo_frames, self._gl_cameras)
+            if not self._demo_future.done():
+                return
+            self._demo = self._demo_future.result()
+        if not self.using_demo or not self.canvas._frames:
+            self.canvas.clear_frames()
+            self.canvas.set_frames(self._demo)
+            self.using_demo = True
+            self._show_gl_notice()
+            self.rendered.emit(self._gl_preview, True)
+
+    def _show_gl_notice(self):
+        parts = ["Cảnh mẫu (sa bàn tổng hợp, chưa có ảnh từ Pi)" if self.using_demo else "Ảnh trực tiếp từ Pi",
+                 self._gl_notice, "vẽ bằng GPU"]
+        self.notice.setText(" · ".join(p for p in parts if p))
+        warn = self._gl_preview or self.using_demo
+        self.notice.setStyleSheet(f"color: {theme.WARN if warn else theme.TEXT_DIM}; padding: 4px 2px;")
+
     def _tick(self):
         live = self._live_at is not None and self.clock() - self._live_at <= LIVE_TIMEOUT_S
+        if self.gl:
+            self._tick_gl(live)
+            return
         if live == self.using_demo:            # đổi giữa ảnh thật và cảnh mẫu
             self._dirty = True
         if self._closed.is_set() or self._active is not None or not self._dirty or not self.isVisible():
