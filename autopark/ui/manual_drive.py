@@ -423,12 +423,16 @@ class ManualDriveWindow(QWidget):
         self.speed_label.setText(f"{self.drive.speed_mps:.2f} m/s")
 
     def set_key(self, key, pressed: bool) -> bool:
-        """Một phím được nhấn/nhả. Trả True nếu là phím lái (đã xử lý)."""
-        if key == Qt.Key.Key_Space:
-            self.drive.forward = pressed
-        elif key == Qt.Key.Key_W:
-            self.drive.reverse = pressed
-        elif key in self.steer_keys:
+        """Một phím được nhấn/nhả. Trả True nếu là phím lái (đã xử lý). Phím ga gửi lệnh ngay, không chờ nhịp 20 ms."""
+        if key in (Qt.Key.Key_Space, Qt.Key.Key_W):
+            if key == Qt.Key.Key_Space:
+                self.drive.forward = pressed
+            else:
+                self.drive.reverse = pressed
+            self._refresh_keys()
+            self.connection.send_now()
+            return True
+        if key in self.steer_keys:
             self.steer_keys[key] = pressed
         elif key == Qt.Key.Key_Escape:
             if pressed:

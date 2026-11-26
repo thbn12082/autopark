@@ -356,6 +356,17 @@ void setup() {
   // đúng tầm lái. Lõi và bản tham chiếu Python giữ mặc định 524, nên vector mẫu không đổi.
   config.max_steer_mrad = AP_MAX_STEER_MRAD;
 #endif
+  // Gia tốc/giảm tốc của dốc tốc độ đặt (27/11/2026): mặc định 300/600/600 mm/s² làm ga lên đủ mất ≈ 250 ms sau lệnh
+  // (đo trên xe qua cầu nối), người lái thấy trễ. Env có PWM đặt lại; bo báo các giá trị này trong HELLO_ACK.
+#ifdef AP_MAX_ACCEL_MM_S2
+  config.max_accel_mm_s2 = AP_MAX_ACCEL_MM_S2;
+#endif
+#ifdef AP_MAX_DECEL_MM_S2
+  config.max_decel_mm_s2 = AP_MAX_DECEL_MM_S2;
+#endif
+#ifdef AP_STOP_DECEL_MM_S2
+  config.stop_decel_mm_s2 = AP_STOP_DECEL_MM_S2;
+#endif
   const uint32_t now = millis();
   g_core.begin(config, now, boot_id, map_reset_reason(esp_reset_reason()));
   g_next_tick_ms = now;

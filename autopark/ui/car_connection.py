@@ -356,6 +356,16 @@ class CarConnection(QObject):
         except VehicleIOError as exc:
             self.log(str(exc))
 
+    def send_now(self) -> None:
+        """Gửi lệnh của command_source ngay, không chờ nhịp 20 ms kế tiếp (tab lái gọi khi bấm/nhả phím ga)."""
+        io = self.io
+        if io is None or not io.connected or isinstance(io, SimVehicleIO):   # mô phỏng: thời gian chỉ chạy theo nhịp
+            return
+        try:
+            self._send(io)
+        except VehicleIOError as exc:
+            self.log(str(exc))
+
     def _send(self, io: VehicleIO) -> None:
         if self.command_source is not None and self.can_drive():
             v, steer = self.command_source()

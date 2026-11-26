@@ -7,8 +7,8 @@
   "rear_overhang_m": 0.047,
   "max_steer_deg": 25.783,
   "max_speed_mps": 0.3,
-  "max_accel_mps2": 0.3,
-  "max_decel_mps2": 0.6,
+  "max_accel_mps2": 1.5,
+  "max_decel_mps2": 1.5,
   "max_steer_rate_deg_s": 90.0,
-  "notes": "Kích thước ĐO TRÊN XE THẬT (thêm 26/11/2026): chiều dài cơ sở 210 mm (đo 23/11/2026), bề rộng ngoài hai lốp 160 mm (đo 24/11/2026), mũi xe ở x = 247 mm và đuôi ở x = −47 mm tính từ tâm trục sau (khung xe của ảnh nhìn quanh xe, perception/surround_view.py), nên phần nhô trước 37 mm, sau 47 mm, dài 294 mm. Góc lái tối đa 25,783° = 450 mrad (27/11/2026): điểm chặn cơ khí dò bằng tab Lái tay ở 1500 ± 471 µs, firmware kẹp 1050–1950 µs và báo 450 mrad; người dùng ước lượng góc bánh thật khi hết lái ≈ 25°, khớp quy ước 1 µs = 1 mrad. Tốc độ, gia tốc và tốc độ đổi góc lái vẫn GIẢ ĐỊNH như vehicle_default.json: chờ đo bằng MT6701."
+  "notes": "Kích thước ĐO TRÊN XE THẬT (thêm 26/11/2026): chiều dài cơ sở 210 mm (đo 23/11/2026), bề rộng ngoài hai lốp 160 mm (đo 24/11/2026), mũi xe ở x = 247 mm và đuôi ở x = −47 mm tính từ tâm trục sau (khung xe của ảnh nhìn quanh xe, perception/surround_view.py), nên phần nhô trước 37 mm, sau 47 mm, dài 294 mm. Góc lái tối đa 25,783° = 450 mrad (27/11/2026): điểm chặn cơ khí dò bằng tab Lái tay ở 1500 ± 471 µs, firmware kẹp 1050–1950 µs và báo 450 mrad; người dùng ước lượng góc bánh thật khi hết lái ≈ 25°, khớp quy ước 1 µs = 1 mrad. Gia tốc và giảm tốc 1,5 m/s² (27/11/2026) = dốc tốc độ đặt của firmware env esp32s3_16mb_pwm, nâng từ 0,3/0,6 vì ga lên đủ mất ≈ 250 ms sau lệnh; đây là giới hạn của bo, chưa phải gia tốc xe đo được. Tốc độ và tốc độ đổi góc lái vẫn GIẢ ĐỊNH như vehicle_default.json: chờ đo bằng MT6701."
 }
