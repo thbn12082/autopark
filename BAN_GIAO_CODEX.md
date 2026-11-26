@@ -46,7 +46,7 @@ Hiệu chuẩn camera
 
 ```
 cai_dat.cmd ............ tạo .venv (một lần)
-chay_app.cmd ........... giao diện mô phỏng
+chay_app.cmd ........... app AutoPark: mọi công cụ trong một cửa sổ (autopark/ui/shell.py)
 chay_test.cmd .......... toàn bộ test
 chay_kiem_huong.cmd .... cửa sổ quan sát camera + LiDAR từ Pi
 ```

@@ -1,13 +1,11 @@
-"""Chạy giao diện thao tác gần (mặc định: cua 90 độ trong lối hẹp):
+"""Mở AutoPark: một cửa sổ chung cho mọi công cụ (đỗ xe, quan sát Pi, hiệu chuẩn, dữ liệu).
 
-    python run_app.py [đường_dẫn_kịch_bản.json] [--max-cusps N] [--warn-cusps N] [--vehicle-config TỆP_XE]
-
-    python run_app.py scenarios/thao_tac_cua_hep.json
-    python run_app.py scenarios/thao_tac_lui_vao_khe.json
+    python run_app.py [--page do_xe|quan_sat_pi|noi_tham|ngoai_tham|bo_camera|gan_nhan|tren_cao]
+                      [--scenario scenarios/thao_tac_cua_hep.json] [--host IP_PI]
 """
 import sys
 
-from autopark.ui.app import main
+from autopark.ui.shell import main
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main(sys.argv[1:]))

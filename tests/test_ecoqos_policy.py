@@ -36,7 +36,7 @@ windows_only = pytest.mark.skipif(sys.platform != "win32", reason="EcoQoS chỉ 
 # Điểm vào có hành vi thời gian thực: mở thiết bị chạy liên tục, chạy theo hạn giờ đồng hồ thật, hay ghi số đo thời gian
 # để so với ngân sách thời gian thực. Tên thành phần truyền cho apply_ecoqos_policy = tên mô-đun dưới autopark/.
 INCLUDED = (
-    "ui.app", "ui.lidar_app", "ui.rig_app", "ui.calib_app", "ui.roi_app", "lidar.live_view",
+    "ui.app", "ui.shell", "ui.lidar_app", "ui.rig_app", "ui.calib_app", "ui.roi_app", "lidar.live_view",
     "rig.bench", "rig.may_moi", "video.camera_bench", "lidar.bench", "lidar.rplidar_c1", "lidar.scan_odometry",
     "lidar.localize", "fusion.demo", "transport.qemu_board",
     "evaluation.fault_drill", "evaluation.maneuver_bench",

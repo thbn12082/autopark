@@ -252,7 +252,20 @@ Bộ hình SVG và PNG mô tả bố trí trên xe. Tờ 02 đã bổ sung dây 
 
 ## Chạy mô phỏng hiện có
 
-Từ thư mục gốc repository, trên Windows: chạy `cai_dat.cmd` một lần để tạo `.venv`, rồi `chay_app.cmd`. Hoặc trong PowerShell:
+Từ thư mục gốc repository, trên Windows: chạy `cai_dat.cmd` một lần để tạo `.venv`, rồi `chay_app.cmd`. Mọi công cụ nằm trong **một cửa sổ AutoPark**, chọn ở thanh bên trái:
+
+```
+AutoPark
+├── Đỗ xe ............. mô phỏng, tìm ô đỗ, tính đường, LiDAR thật
+├── Quan sát Pi ....... 4 camera + LiDAR qua Wi-Fi, ghi LiDAR
+├── Nội tham camera
+├── Ngoại tham, ROI
+├── Bộ camera ......... cần môi trường .venv-train
+├── Gán nhãn
+└── Camera trên cao
+```
+
+Trang chỉ được dựng khi bấm tới, và không tự mở camera hay LiDAR. Mở thẳng một trang: `run_app.py --page quan_sat_pi --host <IP Pi>`. Hoặc trong PowerShell:
 
 ```powershell
 python -m venv .venv
