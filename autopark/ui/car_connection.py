@@ -35,8 +35,11 @@ SIM_CONFIG = PROJECT_ROOT / "configs" / "vehicle_io_sim.json"
 
 TICK_MS = 20                      # 50 lệnh/giây, như thu_ban_pwm.py
 PING_IDLE_S = 0.2
-# Env esp32s3_16mb_pwm kẹp servo 1200–1800 µs, 1 mrad ≈ 1 µs: quá ±0,30 rad servo không quay thêm dù bo cho phép 0,524.
-SERVO_LIMIT_RAD = 0.30
+# Env esp32s3_16mb_pwm kẹp servo AP_SERVO_MIN_US..AP_SERVO_MAX_US, 1 mrad ≈ 1 µs quanh 1500. 25/11: 1200–1800 (±0,30 rad),
+# chưa tới điểm chặn cơ khí; 26/11 nới 1000–2000 µs (±0,50 rad) để dò điểm chặn. Bo cho tới 0,524 rad nên ±0,50 dùng hết.
+SERVO_LIMIT_RAD = 0.50
+SERVO_CENTER_US = 1500
+SERVO_US_PER_RAD = 1000
 FALLBACK_MAX_SPEED_MPS = 0.30
 LOG_LIMIT = 300
 
@@ -199,6 +202,12 @@ class CarConnection(QObject):
         """Góc lái ứng với hết lái: giới hạn bo báo, với xe thật thêm giới hạn servo của bản thử bàn."""
         board = self.limits.max_steer_rad if self.limits is not None else SERVO_LIMIT_RAD
         return board if self.mode == "sim" else min(board, SERVO_LIMIT_RAD)
+
+    def servo_us(self, steer_rad: float) -> int:
+        """Xung servo (µs) mà firmware xuất cho góc lái này: 1500 + 1000·rad, kẹp trong giới hạn servo."""
+        us = SERVO_CENTER_US + round(steer_rad * SERVO_US_PER_RAD)
+        lim = round(SERVO_LIMIT_RAD * SERVO_US_PER_RAD)
+        return min(SERVO_CENTER_US + lim, max(SERVO_CENTER_US - lim, us))
 
     def max_speed(self) -> float:
         return self.limits.max_speed_mps if self.limits is not None else FALLBACK_MAX_SPEED_MPS

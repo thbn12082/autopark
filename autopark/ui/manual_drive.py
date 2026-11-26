@@ -413,7 +413,8 @@ class ManualDriveWindow(QWidget):
         self.drive.steer_frac = value
         deg = math.degrees(value * self.connection.steer_limit())
         side = "trái" if deg > 0.05 else ("phải" if deg < -0.05 else "thẳng")
-        self.steer_readout.setText(f"Góc lái {abs(deg):.1f}° {side}")
+        servo = "" if self.connection.is_sim else f" · servo {self.connection.servo_us(math.radians(deg))} µs"
+        self.steer_readout.setText(f"Góc lái {abs(deg):.1f}° {side}{servo}")
         self.wheel.caption = f"{'◀ ' if deg > 0.05 else ''}{abs(deg):.0f}°{' ▶' if deg < -0.05 else ''}"
         self.wheel.update()
 
