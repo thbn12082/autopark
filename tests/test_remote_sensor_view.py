@@ -130,7 +130,8 @@ def test_bird_eye_tab_uses_only_current_camera_samples(qapp):
     window.connect_link()
     submitted = []
     cleared = []
-    window.bird_eye.submit = submitted.append
+    lidar_seen = []
+    window.bird_eye.submit = lambda frames, lidar=None: (submitted.append(frames), lidar_seen.append(lidar))
     window.bird_eye.clear = lambda: cleared.append(True)
     try:
         state = window.link.state

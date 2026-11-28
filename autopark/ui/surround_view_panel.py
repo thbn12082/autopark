@@ -100,6 +100,7 @@ class SurroundViewPanel(QWidget):
         self.mark_ai_box.setChecked(self._mark_ai)
         self.mark_ai_box.toggled.connect(self._set_mark_ai)
         self._last_frames: dict[int, np.ndarray] | None = None
+        self._last_lidar: np.ndarray | None = None
         self.notice = QLabel("Góc nhìn quanh xe đang chờ ảnh camera.")
         self.notice.setTextFormat(Qt.TextFormat.PlainText)
         self.notice.setWordWrap(True)
@@ -130,11 +131,16 @@ class SurroundViewPanel(QWidget):
         self._delay.timeout.connect(self._start_next)
         self._completed.connect(self._finish, Qt.ConnectionType.QueuedConnection)
 
-    def submit(self, frames: dict[int, np.ndarray]) -> None:
+    def submit(self, frames: dict[int, np.ndarray], lidar_xy: np.ndarray | None = None, *, lidar_pose=None,
+               pose_epoch: int | None = None) -> None:
+        """`lidar_xy`: điểm LiDAR hệ xe (canh vùng AI vẽ); `lidar_pose`, `pose_epoch`: tư thế odometry LiDAR (ảnh nhớ)."""
         if self._closed.is_set():
             return
-        self._pending = (self._generation, dict(frames))
+        extra = {key: value for key, value in (("lidar_xy", lidar_xy), ("lidar_pose", lidar_pose),
+                                                ("pose_epoch", pose_epoch)) if value is not None}
+        self._pending = (self._generation, dict(frames), extra)
         self._last_frames = dict(frames)
+        self._last_lidar = lidar_xy
         if self._active is None and not self._delay.isActive():
             self._start_next()
 
@@ -163,19 +169,19 @@ class SurroundViewPanel(QWidget):
         if wait_s > 0:
             self._delay.start(math.ceil(1_000 * wait_s))
             return
-        generation, frames = self._pending
+        generation, frames, extra = self._pending
         self._pending = None
         self._last_start = now
-        future = self._executor.submit(self._render, frames)
+        future = self._executor.submit(self._render, frames, extra)
         self._active = (generation, future)
         future.add_done_callback(self._notify_done)
 
-    def _render(self, frames):
+    def _render(self, frames, extra=None):
         if self._renderer is None:
             self._renderer = self._renderer_factory()
         if hasattr(self._renderer, "mark_ai"):
             self._renderer.mark_ai = self._mark_ai
-        image = self._renderer.render(frames)
+        image = self._renderer.render(frames, **extra) if extra else self._renderer.render(frames)
         if not (isinstance(image, np.ndarray) and image.ndim == 3 and image.shape[2] == 3
                 and image.size and image.dtype == np.uint8):
             raise ValueError("Ảnh ghép phải có ba kênh BGR 8 bit")
@@ -212,7 +218,7 @@ class SurroundViewPanel(QWidget):
         self._mark_ai = bool(checked)
         self._settings.setValue(_MARK_AI_KEY, "true" if checked else "false")
         if self._last_frames is not None:
-            self.submit(self._last_frames)          # vẽ lại ngay với lựa chọn mới
+            self.submit(self._last_frames, self._last_lidar)   # vẽ lại ngay với lựa chọn mới
 
     def _show_notice(self, text: str, is_preview: bool) -> None:
         if self.notice.text() != text:

@@ -65,6 +65,10 @@ class RemoteViewSnapshot:
     scan_seq: int | None = None
     scan_at: float | None = None
     cameras: tuple[RemoteCameraSample | None, ...] = (None,)
+    # tư thế cảm biến LiDAR (x, y, góc) trong hệ odometry khớp scan (29/11/2026, cho ảnh nhớ mặt sàn); None khi chưa có
+    # hoặc odometry mất dấu (vòng đó không khớp được)
+    lidar_pose: tuple[float, float, float] | None = None
+    lidar_pose_epoch: int = 0             # tăng mỗi lần odometry khởi động lại: ảnh nhớ cũ không còn cùng hệ
 
 
 def _host_name(value: str) -> str:
@@ -212,12 +216,20 @@ class RemoteSensorLink:
         self._process: subprocess.Popen | None = None
         self._snapshot = RemoteViewSnapshot(cameras=self._empty_cameras)
         self._recorder = None              # ScanRecorder khi đang ghi LiDAR (thêm 26/11/2026)
+        self._camera_dir: Path | None = None   # thư mục ảnh khi ghi kèm camera (29/11/2026)
+        self._camera_count_saved = 0
+        self._odometry = None                  # ScanOdometry chạy trên luồng nhận, mỗi vòng ≈ 7 ms
+        self._odometry_epoch = 0
+        self._odometry_failures = 0
 
     # ---- ghi LiDAR: mọi vòng nhận được, kể cả vòng giao diện không kịp vẽ ---------------------------------------
-    def start_lidar_recording(self, path, meta: dict | None = None) -> Path:
+    def start_lidar_recording(self, path, meta: dict | None = None, *, cameras: bool = False) -> Path:
         """Ghi mọi vòng C1 nhận từ lúc này vào `<path>.npz` theo định dạng `lidar/recording.py`, để `lidar/occupancy.py`,
         `lidar/map_builder.py` và `planning/slot_finder.py` đọc được. Dấu thời gian là đồng hồ Pi (giây), không phải
-        lúc laptop nhận, nên không mang độ giật của Wi-Fi."""
+        lúc laptop nhận, nên không mang độ giật của Wi-Fi.
+
+        `cameras=True` (29/11/2026, cho ảnh nhớ mặt sàn khi xe chạy): mọi khung JPEG nhận được ghi nguyên byte vào
+        `<path>_cam/cam_p<N>/<t_ns đồng hồ Pi>.jpg`, cùng đồng hồ với các vòng quét."""
         from autopark.lidar.recording import ScanRecorder, default_meta
 
         with self._lock:
@@ -226,12 +238,18 @@ class RemoteSensorLink:
             info = default_meta("pi_lidar", device="RPLIDAR C1", port=f"ssh://{self.user}@{self.host}",
                                 mirror=False, clock="pi_monotonic_s", **(meta or {}))
             self._recorder = ScanRecorder(path, info)
+            self._camera_count_saved = 0
+            if cameras:
+                self._camera_dir = Path(str(path) + "_cam")
+                for index in range(1, len(self._camera_indices) + 1):
+                    (self._camera_dir / f"cam_p{index}").mkdir(parents=True, exist_ok=True)
             return self._recorder.path
 
     def stop_lidar_recording(self) -> tuple[Path, int] | None:
         """Dừng ghi và ghi tệp. Trả (đường dẫn .npz, số vòng); không đang ghi thì trả None."""
         with self._lock:
             recorder, self._recorder = self._recorder, None
+            self._camera_dir = None
         if recorder is None:
             return None
         return recorder.close(), len(recorder)
@@ -239,6 +257,44 @@ class RemoteSensorLink:
     def lidar_recording_count(self) -> int | None:
         with self._lock:
             return None if self._recorder is None else len(self._recorder)
+
+    def _odometry_step(self, scan: LidarScan, pi_stamp_ns: int):
+        """Odometry khớp scan cho ảnh nhớ mặt sàn. FAILED 5 vòng liền thì khởi động lại (hệ mới, `epoch` tăng)."""
+        try:
+            if self._odometry is None:
+                from autopark.lidar.scan_odometry import ScanOdometry
+                self._odometry = ScanOdometry()
+                self._odometry_epoch += 1
+                self._odometry_failures = 0
+            step = self._odometry.update(np.asarray(scan.angles_rad, np.float64),
+                                         np.asarray(scan.ranges_m, np.float64), pi_stamp_ns * 1e-9)
+        except Exception:  # noqa: BLE001 - odometry chỉ phục vụ hiển thị, lỗi thì bỏ ảnh nhớ, không cắt luồng
+            self._odometry = None
+            return None, self._odometry_epoch
+        if step.status == "FAILED":
+            self._odometry_failures += 1
+            if self._odometry_failures >= 5:
+                self._odometry = None
+            return None, self._odometry_epoch
+        self._odometry_failures = 0
+        return (float(step.x), float(step.y), float(step.theta)), self._odometry_epoch
+
+    def camera_recording_count(self) -> int | None:
+        with self._lock:
+            return None if self._camera_dir is None else self._camera_count_saved
+
+    def _record_camera(self, kind: str, payload: bytes, pi_stamp_ns: int) -> None:
+        with self._lock:
+            directory = self._camera_dir
+        if directory is None:
+            return
+        index = self._camera_indices[kind] + 1
+        try:
+            (directory / f"cam_p{index}" / f"{pi_stamp_ns}.jpg").write_bytes(payload)
+        except OSError:
+            return
+        with self._lock:
+            self._camera_count_saved += 1
 
     def _record_scan(self, scan: LidarScan, pi_stamp_ns: int) -> None:
         with self._lock:
@@ -319,9 +375,11 @@ class RemoteSensorLink:
             if kind == "lidar":
                 scan = _decode_scan(payload, received_at)
                 self._record_scan(scan, stamp)
+                pose, epoch = self._odometry_step(scan, stamp)
                 self._update(status="live", detail="Đang nhận dữ liệu từ Pi",
-                             scan=scan, scan_seq=seq, scan_at=received_at)
+                             scan=scan, scan_seq=seq, scan_at=received_at, lidar_pose=pose, lidar_pose_epoch=epoch)
             else:
+                self._record_camera(kind, payload, stamp)
                 self._update_camera(self._camera_indices[kind],
                                     RemoteCameraSample(_decode_frame(payload), seq, received_at))
 

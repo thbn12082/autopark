@@ -13,7 +13,7 @@ import cv2
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QApplication, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
+    QApplication, QCheckBox, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
     QPushButton, QSizePolicy, QTabWidget, QVBoxLayout, QWidget,
 )
 
@@ -147,8 +147,12 @@ class RemoteSensorWindow(QMainWindow):
         self.lidar_record_status.setTextFormat(Qt.TextFormat.PlainText)
         self.lidar_record_status.setWordWrap(True)
         self.lidar_record_status.setObjectName("guide")
+        # Kèm camera (29/11/2026): ghi cả ảnh bốn camera cùng đồng hồ Pi, để dựng ảnh nhớ mặt sàn khi xe chạy
+        self.lidar_record_cameras = QCheckBox("Kèm camera")
+        self.lidar_record_cameras.setToolTip("Ghi cả ảnh bốn camera (≈ 2 MB/s) để thử ảnh nhớ mặt sàn khi xe chạy")
         record_row = QHBoxLayout()
         record_row.addWidget(self.lidar_record_button)
+        record_row.addWidget(self.lidar_record_cameras)
         record_row.addWidget(self.lidar_record_status, 1)
         scan_panel.layout().addLayout(record_row)
 
@@ -537,9 +541,13 @@ class RemoteSensorWindow(QMainWindow):
             if not self._can_record_lidar():
                 self.lidar_record_button.setChecked(False)
                 return
-            name = time.strftime("c1_%Y%m%d_%H%M%S")
+            with_cameras = self.lidar_record_cameras.isChecked()
+            name = time.strftime("chay_%Y%m%d_%H%M%S" if with_cameras else "c1_%Y%m%d_%H%M%S")
             try:
-                path = self.link.start_lidar_recording(self.lidar_dir / name)
+                if with_cameras:
+                    path = self.link.start_lidar_recording(self.lidar_dir / name, cameras=True)
+                else:
+                    path = self.link.start_lidar_recording(self.lidar_dir / name)
             except (OSError, RuntimeError, ValueError) as exc:
                 self.lidar_record_status.setText(f"Lỗi bắt đầu ghi: {exc}")
                 self.lidar_record_button.blockSignals(True)
@@ -547,7 +555,9 @@ class RemoteSensorWindow(QMainWindow):
                 self.lidar_record_button.blockSignals(False)
                 return
             self.lidar_record_button.setText("Dừng ghi")
-            self.lidar_record_status.setText(f"Đang ghi · 0 vòng · {path.name}. Giữ xe đứng yên.")
+            hint = "Lái chậm quanh khu cần xem." if with_cameras else "Giữ xe đứng yên."
+            self.lidar_record_cameras.setEnabled(False)
+            self.lidar_record_status.setText(f"Đang ghi · 0 vòng · {path.name}. {hint}")
             self._show_event(f"LIDAR_RECORD_START {path.name}", deduplicate=False)
         else:
             self._finish_lidar_recording()
@@ -557,6 +567,7 @@ class RemoteSensorWindow(QMainWindow):
         self.lidar_record_button.setChecked(False)
         self.lidar_record_button.blockSignals(False)
         self.lidar_record_button.setText("Ghi LiDAR")
+        self.lidar_record_cameras.setEnabled(True)
         if not self._can_record_lidar():
             return
         try:
@@ -638,7 +649,7 @@ class RemoteSensorWindow(QMainWindow):
         else:
             self.bird_eye.clear()
 
-    def _refresh_bev(self, samples, camera_fresh):
+    def _refresh_bev(self, samples, camera_fresh, scan=None, lidar_pose=None, pose_epoch=None):
         if self.tabs is None or self.tabs.currentWidget() is not self.bird_eye:
             return
         sequences = tuple(sample.seq if fresh else None for sample, fresh in zip(samples, camera_fresh))
@@ -651,7 +662,14 @@ class RemoteSensorWindow(QMainWindow):
         frames = {index: sample.frame for index, (sample, fresh) in enumerate(zip(samples, camera_fresh), 1)
                   if fresh}
         if frames:
-            self.bird_eye.submit(frames)
+            lidar = None
+            if scan is not None:
+                from autopark.perception.surround_view import lidar_points
+                lidar = lidar_points(scan)       # LiDAR canh vùng AI vẽ ở góc xe
+            if lidar_pose is not None:
+                self.bird_eye.submit(frames, lidar, lidar_pose=lidar_pose, pose_epoch=pose_epoch)
+            else:
+                self.bird_eye.submit(frames, lidar)
 
     def _refresh_3d(self, view, camera_fresh, scan_fresh):
         """Thẻ 3D quanh xe: ảnh camera còn mới và điểm LiDAR (gá theo configs/dinh_vi_lidar_v0.json)."""
@@ -689,9 +707,11 @@ class RemoteSensorWindow(QMainWindow):
                         for i, sample in enumerate(view.cameras)]
         if self.calibration_dir is not None and self.calibration_auto.isChecked():
             self._refresh_auto_calibration(view, now)
-        self._refresh_bev(view.cameras, camera_fresh)
         scan_fresh = (is_active and view.scan is not None and view.scan_at is not None
                       and 0 <= now - view.scan_at <= DISPLAY_STALE_S)
+        self._refresh_bev(view.cameras, camera_fresh, view.scan if scan_fresh else None,
+                          getattr(view, "lidar_pose", None) if scan_fresh else None,
+                          getattr(view, "lidar_pose_epoch", None))
         self._refresh_3d(view, camera_fresh, scan_fresh)
 
         recording = self.lidar_record_button.isChecked()
@@ -701,8 +721,11 @@ class RemoteSensorWindow(QMainWindow):
                 self._finish_lidar_recording()
             else:
                 count = self.link.lidar_recording_count()
+                frames = (self.link.camera_recording_count() if hasattr(self.link, "camera_recording_count")
+                          else None)
                 if count is not None:
-                    text = f"Đang ghi · {count} vòng. Giữ xe đứng yên."
+                    text = (f"Đang ghi · {count} vòng · {frames} ảnh. Lái chậm quanh khu cần xem." if frames is not None
+                            else f"Đang ghi · {count} vòng. Giữ xe đứng yên.")
                     if self.lidar_record_status.text() != text:
                         self.lidar_record_status.setText(text)
 

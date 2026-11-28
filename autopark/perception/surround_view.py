@@ -7,7 +7,9 @@ from dataclasses import dataclass, replace
 import cv2
 import numpy as np
 
-from . import bev, bev_inpaint
+import time
+
+from . import bev, bev_inpaint, ground_memory
 from .fisheye_calib import LIVE_SIZE
 
 
@@ -25,6 +27,15 @@ _GAIN_RING_M = 0.2               # đo màu trên dải sàn sát thân xe, nơi
 _GAIN_SMOOTH = 0.25              # trung bình trượt theo khung để hệ số không nhấp nháy
 _BODY = bev.EgoBox(-0.047, 0.247, -0.080, 0.080)
 _CENTER_X = (_BODY.x_min + _BODY.x_max) / 2
+# LiDAR canh vùng AI vẽ (29/11/2026): gá C1 ĐO trên xe (README "Vị trí gá LiDAR C1 đo thực": x 180, y +30, z 160 mm);
+# hướng chưa đo nên lấy 0° và nới vùng cảnh báo `_LIDAR_GUARD_M`. configs/dinh_vi_lidar_v0.json vẫn giữ gá giả định cho
+# định vị (có kiểm tiên quyết riêng), không dùng ở đây.
+LIDAR_MOUNT_XY = (0.18, 0.03)
+LIDAR_YAW_DEG = 0.0
+_LIDAR_GUARD_M = 0.04            # nới quanh mỗi điểm vật: sai hướng gá chưa đo + bề dày vật
+_LIDAR_SELF_M = 0.03             # bỏ điểm sát thân xe (chạm gá camera, dây…)
+_WARN_COLOR = np.array([40, 140, 255], np.float32)    # BGR cam
+_WARN_ALPHA = 0.55
 _MEASURED_RIG = bev.DEFAULT_EXTRINSICS.with_name("camera_rig_extrinsics_v1.json")
 _ROI_DIR = bev.PROJECT / "configs/roi/rig_v1"
 
@@ -125,6 +136,7 @@ class SurroundViewRenderer:
         self._ai_fill_fn = ai_fill_fn
         self._filler = None
         self.mark_ai = True                    # sọc mảnh trên vùng AI/màu loang; tab BEV cho bật/tắt
+        self.lidar_blocked_px = 0
 
         self._res = _GROUND_WIDTH_M / _CANVAS_SIZE
         offset = (np.arange(_CANVAS_SIZE) + 0.5 - _CANVAS_SIZE / 2) * self._res
@@ -150,6 +162,11 @@ class SurroundViewRenderer:
             covered |= view.weights > 0
         self._gaps = ~covered                     # cả dải dưới hình xe: lấp rồi vẽ hình xe đè lên
         self._fill_gaps = not self.is_preview and bool(self._gaps.any())
+        self._feather = bev_inpaint.feather_alpha(self._gaps)
+        self._memory = ground_memory.GroundMemory(_CANVAS_SIZE, self._res, _CENTER_X)
+        self._memory_epoch = None
+        self.memory_fraction = 0.0             # phần vùng mù đang lấy từ ảnh nhớ (ảnh thật cũ) ở khung gần nhất
+        self._visible_real = None
 
     def _pixel(self, x_m: float, y_m: float) -> tuple[float, float]:
         """Điểm hệ xe (m) → (cột, hàng) trên ảnh; x hướng lên trên, y sang trái."""
@@ -177,8 +194,12 @@ class SurroundViewRenderer:
             out[port] = image * gain.astype(np.float32)
         return out
 
-    def render(self, frames: dict[int, np.ndarray]) -> np.ndarray:
-        """Render the available 1280x720 BGR sources on a fresh 480x480 BGR canvas."""
+    def render(self, frames: dict[int, np.ndarray], lidar_xy: np.ndarray | None = None,
+               lidar_pose=None, pose_epoch: int | None = None) -> np.ndarray:
+        """Render the available 1280x720 BGR sources on a fresh 480x480 BGR canvas.
+
+        `lidar_xy`: điểm LiDAR (N, 2) hệ xe của vòng quét còn mới (`lidar_points`). Chỗ có vật trong vùng AI/màu loang tô
+        thì không vẽ sàn mà tô cam cảnh báo."""
         canvas = self._background.copy()
         if not frames:
             return canvas
@@ -214,10 +235,73 @@ class SurroundViewRenderer:
                 filled = cv2.resize(_push_pull(small, (known > 0.99).astype(np.float32), levels=6),
                                     (out.shape[1], out.shape[0]), interpolation=cv2.INTER_LINEAR)
                 filled = filled.clip(0, 255).astype(np.uint8)
-            out = np.where(self._gaps[:, :, None], filled, out)
+            real = out
+            alpha = self._feather[:, :, None]
+            out = (out * (1.0 - alpha) + filled * alpha + 0.5).astype(np.uint8)
+            remembered = self._remember(real, visible, lidar_pose, pose_epoch)
+            painted = self._gaps
+            if remembered is not None:
+                image, mem = remembered
+                soft = cv2.GaussianBlur(mem.astype(np.float32), (5, 5), 0)[:, :, None]
+                out = (out * (1.0 - soft) + image * soft + 0.5).astype(np.uint8)
+                painted = self._gaps & ~mem
+                self.notice = f"{self.notice} Ảnh nhớ khi xe chạy: {100 * self.memory_fraction:.0f}% vùng mù là ảnh thật cũ."
             if self.mark_ai:
-                out = bev_inpaint.mark_ai_region(out, self._gaps & ~self._car_mask)
+                out = bev_inpaint.mark_ai_region(out, painted & ~self._car_mask)
+            out = self._lidar_guard(out, lidar_xy)
             out[self._car_mask] = self._background[self._car_mask]
+        return out
+
+    def _remember(self, real: np.ndarray, visible: np.ndarray, lidar_pose, pose_epoch):
+        """Dán phần camera thật thấy vào ảnh nhớ mặt sàn rồi đọc lại cho vùng mù (None khi chưa có tư thế LiDAR)."""
+        self.memory_fraction = 0.0
+        if lidar_pose is None:
+            return None
+        if pose_epoch != self._memory_epoch:              # odometry khởi động lại: hệ tọa độ mới, ảnh nhớ cũ bỏ
+            self._memory.reset()
+            self._memory_epoch = pose_epoch
+        pose = ground_memory.vehicle_pose_from_sensor(lidar_pose, LIDAR_MOUNT_XY, np.radians(LIDAR_YAW_DEG))
+        now = time.monotonic()
+        seen = visible & ~self._hidden & (self._feather <= 0)        # chỉ điểm ảnh camera thật, không lấy dải mép
+        self._memory.update(real, seen, pose, now)
+        image, valid = self._memory.recall(pose, now)
+        valid &= self._gaps & ~self._car_mask
+        region = self._gaps & ~self._car_mask
+        self.memory_fraction = float(valid.sum()) / max(int(region.sum()), 1)
+        return (image, valid) if valid.any() else None
+
+    def _lidar_guard(self, image: np.ndarray, lidar_xy) -> np.ndarray:
+        """Tô cam phần vùng tô (không phải hình thật) nằm trong `_LIDAR_GUARD_M` quanh điểm LiDAR.
+
+        LiDAR quét ở độ cao ≈ 16 cm: vật thấp hơn không có điểm nên vẫn có thể bị vẽ thành sàn."""
+        self.lidar_blocked_px = 0
+        if lidar_xy is None:
+            return image
+        xy = np.asarray(lidar_xy, np.float64).reshape(-1, 2)
+        xy = xy[np.isfinite(xy).all(axis=1)]
+        near_body = ((xy[:, 0] > _BODY.x_min - _LIDAR_SELF_M) & (xy[:, 0] < _BODY.x_max + _LIDAR_SELF_M)
+                     & (xy[:, 1] > _BODY.y_min - _LIDAR_SELF_M) & (xy[:, 1] < _BODY.y_max + _LIDAR_SELF_M))
+        xy = xy[~near_body]
+        if not len(xy):
+            return image
+        cols, rows = self._pixel(xy[:, 0], xy[:, 1])
+        cols, rows = np.rint(cols).astype(int), np.rint(rows).astype(int)
+        inside = (cols >= 0) & (cols < _CANVAS_SIZE) & (rows >= 0) & (rows < _CANVAS_SIZE)
+        if not inside.any():
+            return image
+        hits = np.zeros(self._gaps.shape, np.uint8)
+        hits[rows[inside], cols[inside]] = 255
+        radius = max(1, int(round(_LIDAR_GUARD_M / self._res)))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius + 1, 2 * radius + 1))
+        blocked = (cv2.dilate(hits, kernel) > 0) & self._gaps & ~self._car_mask
+        self.lidar_blocked_px = int(blocked.sum())
+        if not self.lidar_blocked_px:
+            return image
+        out = image.copy()
+        out[blocked] = ((1 - _WARN_ALPHA) * out[blocked] + _WARN_ALPHA * _WARN_COLOR).astype(np.uint8)
+        edge = blocked & ~cv2.erode(blocked.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
+        out[edge] = _WARN_COLOR.astype(np.uint8)
+        self.notice = f"{self.notice} LiDAR thấy vật trong vùng mù: tô cam."
         return out
 
     def _ai_result(self, composite: np.ndarray) -> np.ndarray | None:
@@ -226,7 +310,7 @@ class SurroundViewRenderer:
             self.notice = f"{self._base_notice} Vùng mù ở góc xe: tô màu loang, không phải hình thật."
             return None
         if self._filler is None:
-            fill_fn = self._ai_fill_fn or _shared_lama_fill
+            fill_fn = bev_inpaint.TiledFill(self._ai_fill_fn or _shared_lama_fill, self._gaps.shape)
             self._filler = bev_inpaint.BackgroundFiller(fill_fn, self._gaps)
         self._filler.offer(composite)
         result = self._filler.latest()
@@ -308,3 +392,14 @@ def _draw_car(image: np.ndarray, pixel, box: bev.EgoBox) -> None:
     for side in (1, -1):                                  # đèn pha
         cy = side * (half - inset - 0.016)
         rect(x1 - 0.018, x1 - 0.006, cy - 0.01, cy + 0.01, (170, 225, 240))
+
+
+def lidar_points(scan) -> np.ndarray:
+    """Vòng quét C1 (góc theo quy ước dự án, như `surround_3d.scan_to_vehicle`) → điểm (N, 2) hệ xe theo gá đo
+    `LIDAR_MOUNT_XY`, `LIDAR_YAW_DEG`."""
+    angles = np.asarray(scan.angles_rad, np.float64)
+    ranges = np.asarray(scan.ranges_m, np.float64)
+    good = np.isfinite(ranges) & (ranges > 0.02)
+    a = angles[good] + np.radians(LIDAR_YAW_DEG)
+    r = ranges[good]
+    return np.column_stack([LIDAR_MOUNT_XY[0] + r * np.cos(a), LIDAR_MOUNT_XY[1] + r * np.sin(a)])

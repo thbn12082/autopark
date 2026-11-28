@@ -62,6 +62,7 @@ EXCLUDED = {
     "transport.vectors": "sinh vector thử",
     "perception.rig_sheets": "in tờ ChArUco ngoại tham", "perception.sheet_extrinsics": OFFLINE,
     "perception.bev_inpaint": "tải và kiểm mô hình LaMa một lần",
+    "perception.bev_replay": OFFLINE,
     "planning.slot_finder": OFFLINE, "simulation.slot_run": "mô phỏng theo đồng hồ mô phỏng, không theo đồng hồ thật",
     "rig.remote_view_sender": "chạy trên Pi (Linux), EcoQoS chỉ có trên Windows",
     "ui.remote_sensor_view": "chỉ xem luồng từ Pi; không mở thiết bị trên laptop, không đo thời gian thực",

@@ -159,6 +159,20 @@ uv pip install --python .venv\Scripts\python.exe "onnxruntime-gpu[cuda,cudnn]>=1
 
 Thiếu GPU, onnxruntime-gpu hoặc mô hình thì tab BEV tự tô màu loang như cũ.
 
+Vùng mù được lấp theo thứ tự:
+
+1. **Ảnh nhớ khi xe chạy.** Phần sàn camera đã thấy được dán vào một tấm ảnh cố định theo mặt đất, theo vị trí xe tính từ LiDAR (odometry khớp scan, khoảng 7 ms mỗi vòng). Khi một góc xe đi vào vùng mù, phần sàn đó lấy lại từ ảnh thật đã chụp. Dòng báo ghi tỉ lệ vùng mù đang dùng ảnh nhớ.
+2. **AI (LaMa)** vẽ phần chưa từng thấy. LaMa xử lý 4 ô góc riêng, mỗi ô phóng lên khoảng 2 lần; chỗ giáp ảnh thật được trộn mềm.
+3. **LiDAR canh.** Chỗ C1 thấy vật trong vùng mù thì tô cam thay vì vẽ sàn. LiDAR quét ở độ cao 16 cm, vật thấp hơn không được canh.
+
+Gá LiDAR dùng cho phần này là số đo thật (x 180, y +30 mm), hướng tạm lấy 0°. Tệp `configs/dinh_vi_lidar_v0.json` của bước định vị không đổi.
+
+Ghi một lượt chạy để kiểm: trên tab Quan sát Pi tích **Kèm camera** rồi bấm **Ghi LiDAR**, lái chậm, bấm **Dừng ghi**. Phát lại ra video:
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m autopark.perception.bev_replay --recording runs\lidar_pi\chay_<giờ>.npz --out runs\bev\replay
+```
+
 ## Kết quả bàn thử trên xe thật
 
 Các lượt ngày 22/11/2026 thực hiện khi xe đứng yên và pin ESC đã ngắt, với firmware AutoPark build cho flash 16 MB, PWM tắt. Các lượt motor và servo ngày 24–25/11 chạy với bánh nhấc khỏi sàn.

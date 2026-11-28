@@ -38,6 +38,8 @@ MASK_DILATE_PX = 5                     # nới mặt nạ để mép vùng thi�
 REFRESH_S = 0.4                        # không chạy lại sớm hơn thế này dù cảnh đổi
 CHANGE_LEVEL = 4.0                     # đổi trung bình > ngần này mức xám quanh vùng thiếu thì vẽ lại
 MAX_AGE_S = 3.0                        # kết quả cũ hơn thế này thì chạy lại dù cảnh không đổi
+TILE_OVERLAP_PX = 24                   # bốn ô góc chồng nhau chừng này (trộn tuyến tính ở chỗ chồng)
+FEATHER_PX = 4                         # trộn ảnh tô với ảnh thật trong dải này ngoài vùng thiếu
 STRIPE_PERIOD_PX, STRIPE_WIDTH_PX, STRIPE_ALPHA = 9, 1, 0.22
 STRIPE_COLOR = np.array([235, 205, 150], np.float32)   # BGR, xanh nhạt
 
@@ -85,14 +87,83 @@ class LamaInpainter:
 
     def fill(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         h, w = image.shape[:2]
+        grow = max(h, w) < INPUT_SIZE                  # ô góc nhỏ hơn 512: phóng lên (bậc ba), ra thì thu lại (vùng)
         rgb = cv2.resize(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), (INPUT_SIZE, INPUT_SIZE),
-                         interpolation=cv2.INTER_AREA).astype(np.float32) / 255.0
+                         interpolation=cv2.INTER_CUBIC if grow else cv2.INTER_AREA)
+        rgb = np.clip(rgb, 0, 255).astype(np.float32) / 255.0
         hole = cv2.resize(mask.astype(np.uint8), (INPUT_SIZE, INPUT_SIZE), interpolation=cv2.INTER_NEAREST)
         hole = cv2.dilate(hole, np.ones((MASK_DILATE_PX, MASK_DILATE_PX), np.uint8)).astype(np.float32)
         rgb *= 1.0 - hole[..., None]
         out = self.session.run(None, {"image": rgb.transpose(2, 0, 1)[None], "mask": hole[None, None]})[0]
         out = np.clip(out[0].transpose(1, 2, 0), 0, 255).astype(np.uint8)
-        return cv2.resize(cv2.cvtColor(out, cv2.COLOR_RGB2BGR), (w, h), interpolation=cv2.INTER_CUBIC)
+        return cv2.resize(cv2.cvtColor(out, cv2.COLOR_RGB2BGR), (w, h),
+                          interpolation=cv2.INTER_AREA if grow else cv2.INTER_CUBIC)
+
+
+class TiledFill:
+    """Tô theo bốn ô góc chồng nhau thay vì cả ảnh một lần (29/11/2026).
+
+    Mỗi ô (≈ nửa ảnh + `TILE_OVERLAP_PX`) được phóng lên 512 cho LaMa, nên chi tiết vẽ ra mịn gần bằng ảnh camera thay vì
+    bị thu rồi phóng lại cả ảnh. Ô nào quanh vùng thiếu không đổi (và kết quả chưa cũ) thì giữ kết quả cũ, nên một lần
+    cảnh đổi ở một góc chỉ tốn một lần suy luận. Chỗ hai ô chồng nhau trộn theo trọng số tuyến tính."""
+
+    def __init__(self, fill_fn, shape: tuple[int, int], *, overlap: int | None = None, clock=time.monotonic):
+        self._fill = fill_fn
+        self._clock = clock
+        h, w = shape
+        o = TILE_OVERLAP_PX if overlap is None else overlap
+        hy, hx = h // 2, w // 2
+        self.tiles = [(slice(0, hy + o), slice(0, hx + o)), (slice(0, hy + o), slice(hx - o, w)),
+                      (slice(hy - o, h), slice(0, hx + o)), (slice(hy - o, h), slice(hx - o, w))]
+        weight = np.zeros((h, w), np.float32)
+        self._weights = []
+        for ys, xs in self.tiles:
+            th, tw = ys.stop - ys.start, xs.stop - xs.start
+            ry = np.minimum(np.arange(th) + 1, np.arange(th)[::-1] + 1).astype(np.float32)
+            rx = np.minimum(np.arange(tw) + 1, np.arange(tw)[::-1] + 1).astype(np.float32)
+            wy = np.clip(ry / (2 * o + 1), 0, 1) if o else np.ones(th, np.float32)
+            wx = np.clip(rx / (2 * o + 1), 0, 1) if o else np.ones(tw, np.float32)
+            # mép ảnh không có ô bên cạnh: trọng số đủ 1 ở đó
+            if ys.start == 0: wy[: th // 2] = 1
+            if ys.stop == h: wy[th // 2:] = 1
+            if xs.start == 0: wx[: tw // 2] = 1
+            if xs.stop == w: wx[tw // 2:] = 1
+            tile_w = np.outer(wy, wx)
+            self._weights.append(tile_w)
+            weight[ys, xs] += tile_w
+        self._norm = 1.0 / np.maximum(weight, 1e-6)
+        self._last: list[tuple[np.ndarray, np.ndarray, float] | None] = [None] * 4
+        self.runs = 0
+
+    def __call__(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        now = self._clock()
+        out = np.zeros(image.shape, np.float32)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        for k, (ys, xs) in enumerate(self.tiles):
+            hole = mask[ys, xs]
+            if not hole.any():
+                out[ys, xs] += image[ys, xs] * self._weights[k][..., None]
+                continue
+            ring = cv2.dilate(hole.astype(np.uint8), np.ones((15, 15), np.uint8)).astype(bool) & ~hole
+            context = gray[ys, xs][ring].astype(np.float32)
+            last = self._last[k]
+            fresh = (last is not None and now - last[2] <= MAX_AGE_S and last[1].shape == context.shape
+                     and float(np.mean(np.abs(context - last[1]))) <= CHANGE_LEVEL)
+            if fresh:
+                tile = last[0]
+            else:
+                tile = self._fill(image[ys, xs], hole)
+                self.runs += 1
+                self._last[k] = (tile, context, now)
+            out[ys, xs] += tile.astype(np.float32) * self._weights[k][..., None]
+        return np.clip(out * self._norm[..., None] + 0.5, 0, 255).astype(np.uint8)
+
+
+def feather_alpha(mask: np.ndarray, width_px: int = FEATHER_PX) -> np.ndarray:
+    """Trọng số dán ảnh tô: 1 trong vùng thiếu, giảm tuyến tính về 0 ở `width_px` ra ngoài (dải mép LaMa vẽ lại, trộn
+    với ảnh thật cho không lộ đường ranh)."""
+    outside = cv2.distanceTransform((~mask).astype(np.uint8), cv2.DIST_L2, 3)
+    return np.clip(1.0 - outside / max(width_px, 1), 0.0, 1.0).astype(np.float32)
 
 
 @dataclass(frozen=True)

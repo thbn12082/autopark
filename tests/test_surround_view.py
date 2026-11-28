@@ -72,7 +72,7 @@ def test_ai_fill_paints_blind_area_and_marks_it(monkeypatch):
     first = renderer.render(frames)
     assert "loang" in renderer.notice                      # chưa có kết quả AI: tạm tô màu loang
     image = _render_until(renderer, frames, lambda: renderer._filler.latest() is not None)
-    assert "AI vẽ" in renderer.notice and calls and np.array_equal(calls[0], renderer._gaps)
+    assert "AI vẽ" in renderer.notice and 1 <= len(calls) <= 4          # mỗi ô góc có vùng thiếu một lần
     region = renderer._gaps & ~renderer._car_mask
     painted = image[region]
     plain = np.all(painted == (10, 200, 30), axis=1)
@@ -168,3 +168,65 @@ def test_panel_toggle_is_remembered_and_reaches_renderer(tmp_path):
     assert not again.mark_ai_box.isChecked()
     again.shutdown()
     assert app is not None
+
+
+def test_lidar_point_in_blind_area_turns_it_orange(monkeypatch):
+    renderer = _measured_renderer(monkeypatch, ai_fill_fn=lambda image, mask: np.full_like(image, (10, 200, 30)))
+    renderer.mark_ai = False
+    frames = {port: np.full((720, 1280, 3), 90, np.uint8) for port in (1, 2, 3, 4)}
+    _render_until(renderer, frames, lambda: renderer._filler.latest() is not None)
+    region = renderer._gaps & ~renderer._car_mask
+    rows, cols = np.nonzero(region)
+    far = np.argmax((rows - 240) ** 2 + (cols - 240) ** 2)          # một điểm vùng mù xa thân xe
+    from autopark.perception import surround_view as sv
+    x = sv._CENTER_X - (rows[far] + 0.5 - sv._CANVAS_SIZE / 2) * renderer._res
+    y = -(cols[far] + 0.5 - sv._CANVAS_SIZE / 2) * renderer._res
+    image = renderer.render(frames, lidar_xy=np.array([[x, y]]))
+    assert renderer.lidar_blocked_px > 0 and "LiDAR thấy vật" in renderer.notice
+    assert not np.array_equal(image[rows[far], cols[far]], (10, 200, 30))       # không còn sàn AI ở đó
+    clean = renderer.render(frames, lidar_xy=np.array([[0.1, 0.0], [5.0, 5.0]]))  # trong thân xe / ngoài khung
+    assert renderer.lidar_blocked_px == 0 and np.all(clean[region] == (10, 200, 30))
+    renderer.close()
+
+
+def test_tiled_fill_reuses_unchanged_corners():
+    from autopark.perception import bev_inpaint
+
+    now = [0.0]
+    calls = []
+    tiled = bev_inpaint.TiledFill(lambda img, m: calls.append(m.shape) or np.full_like(img, 50), (100, 100),
+                                  overlap=6, clock=lambda: now[0])
+    mask = np.zeros((100, 100), bool)
+    mask[5:15, 5:15] = True                                  # góc trên-trái
+    mask[85:95, 85:95] = True                                # góc dưới-phải
+    image = np.full((100, 100, 3), 120, np.uint8)
+    out = tiled(image, mask)
+    assert len(calls) == 2 and out[10, 10, 0] == 50 and out[90, 10, 0] == 120   # (90, 10): chỉ ô dưới-trái, không thiếu
+    now[0] = 0.5
+    changed = image.copy(); changed[80:100, 80:100] = 220   # chỉ góc dưới-phải đổi
+    tiled(changed, mask)
+    assert len(calls) == 3
+    tiled(changed, mask)
+    assert len(calls) == 3                                   # không đổi gì: không suy luận lại
+
+
+def test_feather_alpha_ramps_outside_mask():
+    from autopark.perception import bev_inpaint
+
+    mask = np.zeros((30, 30), bool)
+    mask[10:20, 10:20] = True
+    a = bev_inpaint.feather_alpha(mask, 4)
+    assert a[15, 15] == 1 and a[15, 22] < 1 and a[15, 22] > 0 and a[15, 28] == 0
+
+
+def test_moving_car_fills_blind_area_from_memory(monkeypatch):
+    renderer = _measured_renderer(monkeypatch, ai_fill=False)
+    rng = np.random.default_rng(1)
+    frames = {port: rng.integers(0, 255, (720, 1280, 3), dtype=np.uint8) for port in (1, 2, 3, 4)}
+    renderer.render(frames, lidar_pose=(0.0, 0.0, 0.0), pose_epoch=1)
+    assert renderer.memory_fraction == 0.0                   # đứng yên: vùng mù chưa từng thấy
+    for step in range(1, 6):                                  # tiến 5 cm mỗi khung: góc trước vào vùng camera trước đã thấy
+        renderer.render(frames, lidar_pose=(0.05 * step, 0.0, 0.0), pose_epoch=1)
+    assert renderer.memory_fraction > 0.05 and "Ảnh nhớ" in renderer.notice
+    renderer.render(frames, lidar_pose=(0.25, 0.0, 0.0), pose_epoch=2)   # odometry khởi động lại: bỏ ảnh nhớ
+    assert renderer.memory_fraction == 0.0

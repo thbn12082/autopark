@@ -119,3 +119,19 @@ def test_window_button_records_and_stops(tmp_path):
         assert link.recording is None and not window.lidar_record_button.isChecked()
     finally:
         window.close()
+
+
+def test_link_records_camera_jpegs_with_pi_clock(tmp_path):
+    from autopark.rig.remote_view_link import RemoteSensorLink
+
+    link = RemoteSensorLink("10.0.0.2", camera_count=4)
+    path = link.start_lidar_recording(tmp_path / "chay", cameras=True)
+    assert link.camera_recording_count() == 0
+    link._record_camera("camera_2", b"\xff\xd8abc\xff\xd9", 123456789)
+    assert (tmp_path / "chay_cam" / "cam_p2" / "123456789.jpg").read_bytes() == b"\xff\xd8abc\xff\xd9"
+    assert link.camera_recording_count() == 1
+    link.stop_lidar_recording()
+    assert link.camera_recording_count() is None
+    link._record_camera("camera_2", b"x", 5)                # sau khi dừng: không ghi nữa
+    assert not (tmp_path / "chay_cam" / "cam_p2" / "5.jpg").exists()
+    assert path.name.startswith("chay")
