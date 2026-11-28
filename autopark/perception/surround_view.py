@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 import cv2
 import numpy as np
 
-from . import bev
+from . import bev, bev_inpaint
 from .fisheye_calib import LIVE_SIZE
 
 
@@ -109,12 +109,20 @@ class SurroundViewRenderer:
 
     Giống màn hình 360° trên ô tô: vùng hiển thị chừng một chiều dài xe quanh thân; hai camera trộn mềm ở chỗ chồng nhau
     (trọng số giảm dần về mép ảnh); độ sáng và màu từng camera được kéo về cùng một mức; khe hẹp không camera nào thấy
-    được lấp từ hai bên; giữa là hình xe nhìn từ trên. Cân màu và lấp khe chỉ bật khi đã hiệu chuẩn đủ bốn camera."""
+    được lấp từ hai bên; giữa là hình xe nhìn từ trên. Cân màu và lấp khe chỉ bật khi đã hiệu chuẩn đủ bốn camera.
+
+    Vùng không camera nào thấy được AI (LaMa, `bev_inpaint`) vẽ tiếp mặt sàn khi có GPU; trong lúc chờ hoặc khi không có
+    AI thì tô màu loang. Mọi vùng tô như vậy đều có sọc mảnh: đó KHÔNG phải hình thật, ảnh này chỉ để người xem.
+    `ai_fill_fn(ảnh, mặt nạ) → ảnh` thay mô hình (cho test); `ai_fill=False` tắt AI."""
 
     def __init__(self, *, extrinsics_path=_MEASURED_RIG, calibration_dir=bev.DEFAULT_CALIBRATION_DIR,
-                 roi_dir=_ROI_DIR):
-        cameras, self.is_preview, self.notice = display_cameras(
+                 roi_dir=_ROI_DIR, ai_fill: bool = True, ai_fill_fn=None):
+        cameras, self.is_preview, self._base_notice = display_cameras(
             extrinsics_path=extrinsics_path, calibration_dir=calibration_dir, roi_dir=roi_dir)
+        self.notice = self._base_notice
+        self._ai_enabled = ai_fill
+        self._ai_fill_fn = ai_fill_fn
+        self._filler = None
 
         self._res = _GROUND_WIDTH_M / _CANVAS_SIZE
         offset = (np.arange(_CANVAS_SIZE) + 0.5 - _CANVAS_SIZE / 2) * self._res
@@ -193,15 +201,57 @@ class SurroundViewRenderer:
         mixed = color / np.maximum(total, 1e-6)[:, :, None]
         out = (np.where(visible[:, :, None], mixed, canvas) + 0.5).clip(0, 255).astype(np.uint8)   # làm tròn
         if self._fill_gaps and len(images) == len(self._views):
-            # lấp ở nửa độ phân giải: màu loang vốn mờ, nhanh gấp ≈ 4 lần
-            small = cv2.resize(out, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA).astype(np.float32)
-            known = cv2.resize((visible & ~self._hidden).astype(np.float32), None, fx=0.5, fy=0.5,
-                               interpolation=cv2.INTER_AREA)
-            filled = cv2.resize(_push_pull(small, (known > 0.99).astype(np.float32), levels=6),
-                                (out.shape[1], out.shape[0]), interpolation=cv2.INTER_LINEAR)
-            out = np.where(self._gaps[:, :, None], filled.clip(0, 255).astype(np.uint8), out)
+            ai = self._ai_result(out)
+            if ai is not None:
+                filled = ai
+            else:
+                # lấp ở nửa độ phân giải: màu loang vốn mờ, nhanh gấp ≈ 4 lần
+                small = cv2.resize(out, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA).astype(np.float32)
+                known = cv2.resize((visible & ~self._hidden).astype(np.float32), None, fx=0.5, fy=0.5,
+                                   interpolation=cv2.INTER_AREA)
+                filled = cv2.resize(_push_pull(small, (known > 0.99).astype(np.float32), levels=6),
+                                    (out.shape[1], out.shape[0]), interpolation=cv2.INTER_LINEAR)
+                filled = filled.clip(0, 255).astype(np.uint8)
+            out = np.where(self._gaps[:, :, None], filled, out)
+            out = bev_inpaint.mark_ai_region(out, self._gaps & ~self._car_mask)
             out[self._car_mask] = self._background[self._car_mask]
         return out
+
+    def _ai_result(self, composite: np.ndarray) -> np.ndarray | None:
+        """Gửi ảnh ghép mới nhất cho luồng AI (không chờ) và trả lần tô gần nhất nếu có; cập nhật dòng báo."""
+        if not self._ai_enabled:
+            self.notice = f"{self._base_notice} Vùng sọc: tô màu loang, không phải hình thật."
+            return None
+        if self._filler is None:
+            fill_fn = self._ai_fill_fn or _shared_lama_fill
+            self._filler = bev_inpaint.BackgroundFiller(fill_fn, self._gaps)
+        self._filler.offer(composite)
+        result = self._filler.latest()
+        if self._filler.error is not None:
+            self.notice = f"{self._base_notice} AI tắt ({self._filler.error}); vùng sọc tô màu loang."
+            return None
+        if result is None:
+            self.notice = f"{self._base_notice} Đang nạp AI tô vùng mù; tạm tô màu loang."
+            return None
+        self.notice = f"{self._base_notice} Vùng sọc: AI vẽ, không phải hình thật."
+        return result.image
+
+    def close(self) -> None:
+        if self._filler is not None:
+            self._filler.close()
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:  # noqa: BLE001 - dọn khi thu gom rác, không được ném
+            pass
+
+
+def _shared_lama_fill(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    inpainter = bev_inpaint.shared_inpainter()
+    if inpainter is None:
+        raise bev_inpaint.InpaintUnavailable(bev_inpaint.shared_error() or "không có LaMa")
+    return inpainter.fill(image, mask)
 
 
 def _push_pull(image: np.ndarray, known: np.ndarray, levels: int = 7) -> np.ndarray:

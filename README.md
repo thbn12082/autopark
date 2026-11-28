@@ -142,6 +142,23 @@ Mỗi camera dùng mô hình ống kính đo riêng (nội tham). Ảnh trên l�
 
 Bộ giải đã đạt trên ảnh tổng hợp. **Đang chờ in tờ để chụp trên xe thật.** [Chi tiết](BAN_GIAO_CODEX.md)
 
+### Vùng mù ở góc xe và AI tô
+
+Luồng quan sát lấy ảnh 1280×720. Ở chế độ này camera dùng trọn chiều ngang cảm biến và nhìn ngang khoảng 98–102°, còn ở 640×480 camera cắt bớt 25% chiều ngang. Nội tham 1280×720 suy chính xác từ bản 640×480 (`fisheye_calib derive`).
+
+Bốn camera gắn ở mép thân xe nên sát mỗi góc xe vẫn còn một hình nêm không camera nào thấy. Tab BEV cho mô hình LaMa vẽ tiếp mặt sàn vào vùng đó. LaMa chạy ở luồng nền trên GPU CUDA, mỗi lần khoảng 0,25 s.
+
+**Vùng có sọc mảnh là do AI hoặc màu loang tô, không phải hình thật.** Ảnh BEV chỉ để người xem; lập đường và tìm vật cản không dùng nó.
+
+Cài một lần:
+
+```powershell
+uv pip install --python .venv\Scripts\python.exe "onnxruntime-gpu[cuda,cudnn]>=1.20"
+.\.venv\Scripts\python.exe -X utf8 -m autopark.perception.bev_inpaint download
+```
+
+Thiếu GPU, onnxruntime-gpu hoặc mô hình thì tab BEV tự tô màu loang như cũ.
+
 ## Kết quả bàn thử trên xe thật
 
 Các lượt ngày 22/11/2026 thực hiện khi xe đứng yên và pin ESC đã ngắt, với firmware AutoPark build cho flash 16 MB, PWM tắt. Các lượt motor và servo ngày 24–25/11 chạy với bánh nhấc khỏi sàn.

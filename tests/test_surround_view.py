@@ -38,3 +38,90 @@ def test_renderer_requires_every_camera_measured_and_accepted(monkeypatch):
 
     cameras["p2"] = replace(cameras["p2"], synthetic=("nội tham",))
     assert SurroundViewRenderer().is_preview
+
+
+def _measured_renderer(monkeypatch, **kwargs):
+    nominal, _ = bev.synthetic_rig(width=1280, height=720)
+    cameras = {name: replace(camera, extrinsics_measured=True, acceptance_all_pass=True)
+               for name, camera in nominal.items()}
+    monkeypatch.setattr(bev, "load_rig", lambda *args, **kw: (cameras, None, {}))
+    renderer = SurroundViewRenderer(**kwargs)
+    assert not renderer.is_preview and renderer._gaps.any()
+    return renderer
+
+
+def _render_until(renderer, frames, done, timeout_s=5.0):
+    import time
+    deadline = time.monotonic() + timeout_s
+    image = renderer.render(frames)
+    while not done() and time.monotonic() < deadline:
+        time.sleep(0.02)
+        image = renderer.render(frames)
+    return renderer.render(frames)
+
+
+def test_ai_fill_paints_blind_area_and_marks_it(monkeypatch):
+    calls = []
+
+    def fake_fill(image, mask):
+        calls.append(mask.copy())
+        return np.full_like(image, (10, 200, 30))
+
+    renderer = _measured_renderer(monkeypatch, ai_fill_fn=fake_fill)
+    frames = {port: np.full((720, 1280, 3), 90, np.uint8) for port in (1, 2, 3, 4)}
+    first = renderer.render(frames)
+    assert "loang" in renderer.notice                      # chưa có kết quả AI: tạm tô màu loang
+    image = _render_until(renderer, frames, lambda: renderer._filler.latest() is not None)
+    assert "AI vẽ" in renderer.notice and calls and np.array_equal(calls[0], renderer._gaps)
+    region = renderer._gaps & ~renderer._car_mask
+    painted = image[region]
+    plain = np.all(painted == (10, 200, 30), axis=1)
+    assert plain.mean() > 0.7                               # phần lớn vùng mù là màu AI trả về
+    assert (~plain).any()                                   # còn lại là sọc đánh dấu
+    assert np.array_equal(image[renderer._car_mask], renderer._background[renderer._car_mask])
+    assert first.shape == image.shape
+    renderer.close()
+
+
+def test_ai_failure_falls_back_to_blend(monkeypatch):
+    def broken(image, mask):
+        raise RuntimeError("không có GPU")
+
+    renderer = _measured_renderer(monkeypatch, ai_fill_fn=broken)
+    frames = {port: np.full((720, 1280, 3), 90, np.uint8) for port in (1, 2, 3, 4)}
+    image = _render_until(renderer, frames, lambda: renderer._filler.error is not None)
+    assert "AI tắt" in renderer.notice and "không có GPU" in renderer.notice
+    assert image.dtype == np.uint8 and image.shape == (480, 480, 3)
+
+
+def test_background_filler_refreshes_only_on_change():
+    import time
+    from autopark.perception import bev_inpaint
+
+    now = [0.0]
+    calls = []
+    mask = np.zeros((40, 40), bool)
+    mask[15:25, 15:25] = True
+    filler = bev_inpaint.BackgroundFiller(lambda img, m: calls.append(1) or img, mask, clock=lambda: now[0])
+
+    def wait_idle():
+        deadline = time.monotonic() + 2
+        while filler._pending is not None and time.monotonic() < deadline:
+            time.sleep(0.005)
+
+    grey = np.full((40, 40, 3), 100, np.uint8)
+    filler.offer(grey); wait_idle()
+    assert len(calls) == 1 and filler.latest() is not None
+    now[0] = 1.0
+    filler.offer(grey); wait_idle()
+    assert len(calls) == 1                                  # cảnh không đổi, kết quả còn mới
+    now[0] = 1.1
+    filler.offer(np.full((40, 40, 3), 200, np.uint8)); wait_idle()
+    assert len(calls) == 2                                  # quanh vùng thiếu đổi rõ: vẽ lại
+    now[0] = 1.2
+    filler.offer(np.full((40, 40, 3), 30, np.uint8)); wait_idle()
+    assert len(calls) == 2                                  # đổi tiếp nhưng chưa đủ REFRESH_S từ lần chạy trước
+    now[0] = 1.1 + bev_inpaint.MAX_AGE_S + 0.5
+    filler.offer(np.full((40, 40, 3), 30, np.uint8)); wait_idle()
+    assert len(calls) == 3                                  # kết quả đã cũ: vẽ lại
+    filler.close()
