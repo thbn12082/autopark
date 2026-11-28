@@ -294,6 +294,12 @@ def guarded(state, label, worker, *args):
             state.fail(f"{label}: {exc}")
 
 
+# vcgencmd get_throttled: bit 0–3 = đang sụt áp / đang hạ xung / đang throttle / đang chạm ngưỡng nhiệt; bit 16–19 = các
+# trạng thái đó ĐÃ TỪNG xảy ra từ lúc khởi động (chỉ xóa khi reboot). Chỉ chặn theo bit đang xảy ra: trước 29/11/2026 một
+# lần sụt áp thoáng qua khóa tab Quan sát Pi tới khi reboot. Giá trị thô vẫn ghi trong gói end (power_start/power_end).
+ACTIVE_POWER_MASK = 0xF
+
+
 def power_flags():
     output = subprocess.check_output(["vcgencmd", "get_throttled"], text=True, timeout=4)
     return int(output.strip().split("=", 1)[-1], 16)
@@ -382,7 +388,7 @@ def main(duration=DEFAULT_DURATION, camera_count=1, check_esp32=True):
         port = device_port(*LIDAR_USB)
         esp_port = device_port(*ESP32_USB) if check_esp32 else None
         power_start = power_flags()
-        if power_start:
+        if power_start & ACTIVE_POWER_MASK:
             raise RuntimeError(f"Pi power check at start: {power_start:#x}")
         if check_esp32:
             esp_start = esp32_probe(esp_port)
@@ -403,7 +409,7 @@ def main(duration=DEFAULT_DURATION, camera_count=1, check_esp32=True):
             now = time.monotonic()
             if now - last_power_check >= 2:
                 flags = power_flags()
-                if flags:
+                if flags & ACTIVE_POWER_MASK:
                     raise RuntimeError(f"Pi reported throttled={flags:#x} during streaming")
                 last_power_check = now
             with state.condition:
@@ -437,7 +443,8 @@ def main(duration=DEFAULT_DURATION, camera_count=1, check_esp32=True):
         except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
             state.fail(str(exc))
         esp_ok = not check_esp32 or (bool(esp_start) and esp_start == esp_end)
-        ok = (not state.errors and elapsed >= duration - 0.1 and power_end == 0
+        ok = (not state.errors and elapsed >= duration - 0.1 and power_end is not None
+              and not power_end & ACTIVE_POWER_MASK
               and esp_ok and all(sent.values()))
         output.emit("end", json_bytes({
             "ok": ok, "sent": sent, "published": state.published, "replaced": state.replaced,
