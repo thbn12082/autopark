@@ -33,3 +33,6 @@ datasets/benchmark_tools/
 
 # Ảnh chụp gốc của người dùng (bản dùng trong tài liệu nằm ở docs/images/)
 anh_goc/
+
+# Bản sao lưu tự động khi ghi lại tệp rig (sheet_extrinsics)
+configs/rig/*.bak_*.json
