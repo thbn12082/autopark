@@ -69,6 +69,15 @@ def load_vehicle(path=rs.VEHICLE_FILE) -> dict:
         raise SheetError(f"không đọc được kích thước xe {path}: {exc}") from exc
     if not all(v > 0 for v in vehicle.values()):
         raise SheetError(f"{path}: kích thước xe phải dương")
+    spacer = data.get("spacer_m") or {}
+    try:
+        spacer = {str(k): float(v) for k, v in spacer.items() if not str(k).startswith("_")}
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise SheetError(f"{path}: spacer_m phải là {{tờ: mét}}: {exc}") from exc
+    bad = [k for k, v in spacer.items() if k not in {s["key"] for s in rs.SHEETS} or not 0.0 <= v <= 0.5]
+    if bad:
+        raise SheetError(f"{path}: spacer_m sai ở {bad} (tờ front/rear/left/right, 0..0,5 m)")
+    vehicle["spacer_m"] = spacer
     vehicle["_path"] = str(path)
     vehicle["_measured"] = data.get("measured") is True
     return vehicle
@@ -240,7 +249,8 @@ class SheetResult:
                                                         "acceptance_all_pass": intr.acceptance_all_pass,
                                                         "synthetic": intr.synthetic},
                 "vehicle": {k: self.vehicle[k] for k in rs.VEHICLE_KEYS} | {"file": self.vehicle.get("_path"),
-                                                                            "measured": self.vehicle.get("_measured")},
+                                                                            "measured": self.vehicle.get("_measured"),
+                                                                            "spacer_m": self.vehicle.get("spacer_m", {})},
                 "sheet": {"dictionary": rs.DICTIONARY, "square_mm": rs.SQUARE_MM, "marker_mm": rs.MARKER_MM},
                 "images": [r.to_dict() for r in self.images], "n_images_used": len(self.used),
                 "rms_px": None if self.rms_px is None else round(self.rms_px, 4),
@@ -339,6 +349,11 @@ def summary_text(res: SheetResult) -> str:
             tail += f"; kiểm chéo {r.sheet_spread['pair'][0]}/{r.sheet_spread['pair'][1]}: " \
                     f"{100 * r.sheet_spread['position_m']:.2f} cm, {r.sheet_spread['angle_deg']:.2f}°"
         lines.append(f"  {Path(r.path).name}: {seen}; {tail}")
+    seen_keys = sorted({h.key for r in res.images for h in r.hits})
+    for key in seen_keys:
+        gap = rs.spacer_m(key, res.vehicle) if res.vehicle else 0.0
+        if gap > 0:
+            lines.append(f"  tờ {key}: tính với khoảng kê {1000 * gap:.0f} mm giữa lốp và tờ")
     if res.R_cv is not None:
         a = res.angles()
         lines.append(f"vị trí camera (hệ xe): x {res.t_cv[0]:+.4f} m, y {res.t_cv[1]:+.4f} m, cao {res.t_cv[2]:.4f} m")

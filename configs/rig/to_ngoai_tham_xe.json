@@ -1,8 +1,15 @@
 {
   "format": "autopark.rig_sheets_vehicle/1",
-  "wheelbase_m": 0.210,
+  "wheelbase_m": 0.21,
   "tire_radius_m": 0.037,
-  "tire_outer_width_m": 0.160,
+  "tire_outer_width_m": 0.16,
   "measured": true,
-  "notes": "Kích thước xe cho tờ hiệu chuẩn ngoại tham (autopark.perception.rig_sheets). Chiều dài cơ sở 210 mm đo 23/11/2026 (do-kich-thuoc-xe.html). Người dùng đo 24/11/2026: đường kính lốp 74 mm (bán kính 37 mm), bề rộng ngoài hai lốp 160 mm. Tờ trước/sau chạm mặt lốp nên mép tờ ở x = cơ sở + bán kính (trước) và x = −bán kính (sau); tờ trái/phải chạm mặt ngoài lốp nên mép tờ ở y = ±bề rộng/2."
+  "notes": "Kích thước xe cho tờ hiệu chuẩn ngoại tham (autopark.perception.rig_sheets). Chiều dài cơ sở 210 mm đo 23/11/2026 (do-kich-thuoc-xe.html). Người dùng đo 24/11/2026: đường kính lốp 74 mm (bán kính 37 mm), bề rộng ngoài hai lốp 160 mm. Tờ trước/sau chạm mặt lốp nên mép tờ ở x = cơ sở + bán kính (trước) và x = −bán kính (sau); tờ trái/phải chạm mặt ngoài lốp nên mép tờ ở y = ±bề rộng/2.",
+  "spacer_m": {
+    "front": 0.105,
+    "rear": 0.105,
+    "left": 0.0,
+    "right": 0.0,
+    "_ghi_chu": "28/11/2026: camera cao ~7 cm nên tờ trước/sau chạm lốp nằm ngay dưới camera (camera 2 chỉ thấy 2–6 góc). Kê tờ A4 trắng gấp đôi theo chiều dài (297 × 105 mm) giữa lốp và mép dưới tờ trước/sau. Tờ trái/phải vẫn chạm lốp (camera 4 đạt 8 góc lúc 16:29)."
+  }
 }

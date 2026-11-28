@@ -4,6 +4,7 @@ Dựng ảnh camera mắt cá ảo nhìn bốn tờ đặt đúng vạch quanh x
 đặt lệch, và từ chối cổng nhìn sai hướng."""
 from __future__ import annotations
 
+import json
 import math
 
 import numpy as np
@@ -200,3 +201,24 @@ def test_calibrate_from_frames_reports_camera_without_sheet(textures, tmp_path):
     lines = run.short_lines()
     assert lines[0].startswith("✗ Camera 1") and "không" in lines[0]
     assert lines[2] == "✗ Camera 3 · Trái: không có ảnh"
+
+
+def test_spacer_pushes_sheet_away_from_tire():
+    """Khoảng kê đẩy tờ ra xa xe đúng bằng spacer theo hướng ra ngoài; tờ không kê giữ nguyên."""
+    spaced = dict(VEHICLE, spacer_m={"rear": 0.105, "front": 0.05})
+    for sheet in rs.SHEETS:
+        board = rs.make_board(sheet["first_id"])
+        delta = rs.corners_vehicle_m(sheet, board, spaced) - rs.corners_vehicle_m(sheet, board, VEHICLE)
+        expect = {"front": (0.05, 0.0), "rear": (-0.105, 0.0), "left": (0.0, 0.0), "right": (0.0, 0.0)}[sheet["key"]]
+        assert np.allclose(delta, expect)
+
+
+def test_load_vehicle_reads_spacer(tmp_path):
+    path = tmp_path / "xe.json"
+    path.write_text(json.dumps({"wheelbase_m": 0.21, "tire_radius_m": 0.037, "tire_outer_width_m": 0.16,
+                                "spacer_m": {"rear": 0.105, "_ghi_chu": "x"}}), encoding="utf-8")
+    assert se.load_vehicle(path)["spacer_m"] == {"rear": 0.105}
+    path.write_text(json.dumps({"wheelbase_m": 0.21, "tire_radius_m": 0.037, "tire_outer_width_m": 0.16,
+                                "spacer_m": {"back": 0.1}}), encoding="utf-8")
+    with pytest.raises(se.SheetError):
+        se.load_vehicle(path)

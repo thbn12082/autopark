@@ -68,8 +68,18 @@ SHEETS = (
 def anchor_xy(anchor: str, vehicle: dict) -> tuple[float, float]:
     """Điểm neo (m, hệ xe) của mép tờ. Tờ trái/phải: neo = tâm trục sau chiếu ra mép (vạch TRỤC SAU, u = u_ref)."""
     L, r, w = (float(vehicle[k]) for k in VEHICLE_KEYS)
-    return {"front_edge": (L + r, 0.0), "rear_edge": (-r, 0.0),
-            "left_edge": (0.0, w / 2), "right_edge": (0.0, -w / 2)}[anchor]
+    gap = spacer_m(anchor, vehicle)
+    return {"front_edge": (L + r + gap, 0.0), "rear_edge": (-r - gap, 0.0),
+            "left_edge": (0.0, w / 2 + gap), "right_edge": (0.0, -w / 2 - gap)}[anchor]
+
+
+def spacer_m(anchor: str, vehicle: dict) -> float:
+    """Khoảng kê (m) giữa lốp và mép dưới tờ, đẩy tờ ra xa xe (28/11/2026).
+
+    Camera xe cao ≈ 7 cm nên tờ trước/sau chạm lốp nằm gần như ngay dưới camera, không camera nào thấy đủ góc. Kê một tờ
+    A4 trắng gấp đôi theo chiều dài (rộng 105 mm) giữa lốp và tờ ChArUco: `spacer_m` = {"rear": 0.105, ...} trong
+    `to_ngoai_tham_xe.json`. Không có khóa nào thì là 0 (tờ chạm lốp như cũ)."""
+    return float((vehicle.get("spacer_m") or {}).get(anchor.removesuffix("_edge"), 0.0))
 
 
 def board_origin_mm() -> tuple[float, float]:
