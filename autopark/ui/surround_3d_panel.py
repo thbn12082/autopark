@@ -186,7 +186,7 @@ class Surround3DPanel(QWidget):
 
     # ------------------------------------------------------------------ đầu vào
     def submit(self, frames: dict[int, np.ndarray], overlays=None) -> None:
-        """Ảnh mới từ Pi (cổng → BGR 640×480) và lớp vẽ chồng (`surround_3d.Overlays`)."""
+        """Ảnh mới từ Pi (cổng → BGR 1280×720) và lớp vẽ chồng (`surround_3d.Overlays`)."""
         if frames:
             self._frames = dict(frames)
             self._live_at = self.clock()

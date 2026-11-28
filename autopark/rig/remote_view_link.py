@@ -25,6 +25,8 @@ from autopark.domain.sensors import LidarScan, SourceStamp
 _MAGIC = b"APW1\n"
 _MAX_HEADER = 4096
 _FOUR_CAMERAS = ("camera_1", "camera_2", "camera_3", "camera_4")
+# Mode camera của luồng quan sát (fisheye_calib.LIVE_SIZE): 1280×720 dùng trọn chiều ngang cảm biến.
+CAMERA_WIDTH, CAMERA_HEIGHT = 1280, 720
 _PAYLOAD_LIMITS = {
     "start": 65536, "end": 65536, "lidar": 262144,
     **dict.fromkeys(("camera", *_FOUR_CAMERAS), 1048576),
@@ -144,8 +146,8 @@ def _decode_frame(payload: bytes) -> np.ndarray:
     if not payload.startswith(b"\xff\xd8") or not payload.endswith(b"\xff\xd9"):
         raise ValueError("Gói camera không phải JPEG hoàn chỉnh")
     image = cv2.imdecode(np.frombuffer(payload, dtype=np.uint8), cv2.IMREAD_COLOR)
-    if image is None or image.shape != (480, 640, 3) or image.dtype != np.uint8:
-        raise ValueError("Ảnh camera không giải mã được thành BGR 640×480")
+    if image is None or image.shape != (CAMERA_HEIGHT, CAMERA_WIDTH, 3) or image.dtype != np.uint8:
+        raise ValueError(f"Ảnh camera không giải mã được thành BGR {CAMERA_WIDTH}×{CAMERA_HEIGHT}")
     image.setflags(write=False)
     return image
 

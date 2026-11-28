@@ -23,7 +23,7 @@ import cv2
 import numpy as np
 
 from . import bev
-from .fisheye_calib import DEFAULT_SIZE
+from .fisheye_calib import LIVE_SIZE
 
 SKY_TOP = np.array([46, 33, 24], np.float32)        # BGR: nền trên (tối)
 SKY_BOTTOM = np.array([24, 19, 14], np.float32)
@@ -223,7 +223,7 @@ def _camera_map(camera, points: np.ndarray, usable: np.ndarray, preview: bool) -
     if camera.roi is not None:
         roi = (camera.roi > 0).astype(np.uint8) * 255
         valid &= cv2.remap(roi, map_x, map_y, cv2.INTER_NEAREST) == 255
-    width, height = DEFAULT_SIZE
+    width, height = LIVE_SIZE
     edge = np.minimum.reduce((u, v, width - 1 - u, height - 1 - v))
     weights = np.clip(edge / 64, 0.04, 1) ** 2 / (1 + (dx * dx + dy * dy) / 0.16)
     maps = cv2.convertMaps(map_x, map_y, cv2.CV_16SC2)
@@ -303,7 +303,7 @@ class Surround3DRenderer:
         canvas = self._background.copy()
         color = np.zeros(canvas.shape, np.float32)
         total = np.zeros(canvas.shape[:2], np.float32)
-        width, height = DEFAULT_SIZE
+        width, height = LIVE_SIZE
         for port, cmap in self._maps.items():
             frame = frames.get(port)
             if frame is None or frame.shape != (height, width, 3) or frame.dtype != np.uint8:

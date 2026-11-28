@@ -672,3 +672,19 @@ def test_acceptance_checks_use_the_real_statistics_and_fail_exactly_the_violated
     true_theta = math.degrees(float(np.nanmax(fc.pixel_theta(c[:, 0], c[:, 1], TRUE_K, TRUE_D))))
     assert fov["theta_observed_max_deg"] == pytest.approx(true_theta, abs=0.2)
     assert fov["theta_observed_max_deg"] < min(fov["theta_image_corners_deg"])
+
+
+def test_derive_mode_maps_rays_like_the_crop():
+    """1280×720 suy từ 640×480: cùng một tia rơi đúng chỗ u720 = 1,5·(u480 + 0,5) − 0,5 + 160 (vùng cắt giữa, co 1,5×)."""
+    import cv2
+    K = np.array([[448.2, 0, 339.6], [0, 447.9, 256.3], [0, 0, 1]])
+    D = np.array([0.165, -0.011, -0.0028, -0.055])
+    record = {"format": fc.FORMAT, "camera": {"hub_port": 1}, "image_size": [640, 480], "K": K.tolist(), "D": D.tolist(),
+              "acceptance": {"all_pass": True}, "field_of_view_deg": {"theta_observed_max_deg": 41.5}}
+    out = fc.derive_mode(record, (1280, 720), 1.5, (160.0, 0.0), source="test")
+    rays = np.array([[[0.1, -0.2, 1.0]], [[-0.4, 0.3, 1.0]], [[0.0, 0.0, 1.0]]])
+    old, _ = cv2.fisheye.projectPoints(rays, np.zeros(3), np.zeros(3), K, D)
+    new, _ = cv2.fisheye.projectPoints(rays, np.zeros(3), np.zeros(3), np.array(out["K"]), D)
+    assert np.allclose(new.reshape(-1, 2), 1.5 * (old.reshape(-1, 2) + 0.5) - 0.5 + [160.0, 0.0], atol=1e-6)
+    assert out["image_size"] == [1280, 720] and out["woodscape_intrinsic"]["ok"]
+    assert out["field_of_view_deg"]["horizontal_deg"] > 95

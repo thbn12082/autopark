@@ -1,0 +1,186 @@
+{
+ "format": "autopark.fisheye_intrinsics/1",
+ "camera": {
+  "hub_port": 4,
+  "source_id": "cam_p4",
+  "device": "MN300 Camera 4, digital checkerboard"
+ },
+ "image_size": [
+  1280,
+  720
+ ],
+ "model": "opencv_fisheye_kannala_brandt",
+ "K": [
+  [
+   678.576759,
+   0.0,
+   616.979639
+  ],
+  [
+   0.0,
+   677.738874,
+   388.13307549999996
+  ],
+  [
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "D": [
+  0.1671135262479836,
+  0.0028406239747833743,
+  -0.08066660479434294,
+  0.0278427128280184
+ ],
+ "flags": {
+  "value": 58720256,
+  "names": [
+   "CALIB_RECOMPUTE_EXTRINSIC",
+   "CALIB_FIX_SKEW",
+   "CALIB_CHECK_COND"
+  ]
+ },
+ "rms_px": 0.12959,
+ "opencv_rms": 0.12959,
+ "max_view_rms_px": 0.20764,
+ "n_images_used": 25,
+ "n_images_total": 26,
+ "board": {
+  "cols": 9,
+  "rows": 6,
+  "square_mm": 20.0,
+  "pattern": "chessboard"
+ },
+ "square_mm_measured": null,
+ "square_mm_note": "cỡ ô chỉ ảnh hưởng distance_m của từng ảnh (và ngoại tham sau này), không ảnh hưởng K, D",
+ "field_of_view_deg": {
+  "horizontal_deg": 98.21,
+  "vertical_deg": 58.37,
+  "diagonal_deg": 111.3,
+  "theta_image_corners_deg": [
+   55.27,
+   57.97,
+   53.27,
+   56.05
+  ],
+  "model_monotonic_limit_deg": 90.0,
+  "theta_observed_max_deg": 37.37
+ },
+ "woodscape_intrinsic": {
+  "model": "radial_poly",
+  "poly_order": 4,
+  "width": 1280,
+  "height": 720,
+  "k1": 684.6983503613326,
+  "k2": -57.77981604086748,
+  "k3": 273.24539643257026,
+  "k4": -141.97725545840345,
+  "cx_offset": -22.52036099999998,
+  "cy_offset": 28.63307549999996,
+  "aspect_ratio": 0.9987652318048222,
+  "theta_max_deg": 57.97,
+  "theta_max_source": "given",
+  "theta_image_corner_deg": null,
+  "theta_max_raise_deg": null,
+  "max_fit_error_px": 0.1975,
+  "rms_fit_error_px": 0.1391,
+  "max_error_allowed_px": 3.0,
+  "projection_check_max_px": 0.1971,
+  "monotonic": true,
+  "corners_invertible": true,
+  "ok": true,
+  "reason": null
+ },
+ "extrinsic": null,
+ "rig": null,
+ "note": "Chưa gắn lên rig: tệp này chỉ có nội tham (K, D) của một camera, KHÔNG có ngoại tham (vị trí/hướng camera so với xe). Ngoại tham đo riêng bằng perception/extrinsics_calib.py sau khi gá camera, ghi vào configs/rig/camera_rig_extrinsics_v1.json (docs/PHAN_CUNG_VA_HIEU_CHUAN.md#ngoai-tham).",
+ "images_dir": "runs\\calib\\bev_20261124\\auto_intrinsics\\cam_p4",
+ "created_local": "2026-11-29T01:02:48",
+ "software": {
+  "opencv": "5.0.0",
+  "numpy": "2.5.3",
+  "python": "3.12.10"
+ },
+ "acceptance": {
+  "status": "đề xuất, chưa kiểm trên camera thật",
+  "all_pass": true,
+  "checks": [
+   {
+    "key": "rms_px",
+    "label": "RMS chiếu lại toàn bộ (px)",
+    "value": 0.1296,
+    "op": "<=",
+    "threshold": 0.5,
+    "pass": true
+   },
+   {
+    "key": "max_view_rms_px",
+    "label": "RMS ảnh tệ nhất còn dùng (px)",
+    "value": 0.2076,
+    "op": "<=",
+    "threshold": 1.0,
+    "pass": true
+   },
+   {
+    "key": "images",
+    "label": "số ảnh dùng",
+    "value": 25,
+    "op": ">=",
+    "threshold": 15,
+    "pass": true
+   },
+   {
+    "key": "coverage",
+    "label": "tỉ lệ ô lưới 8×6 có góc",
+    "value": 0.75,
+    "op": ">=",
+    "threshold": 0.7,
+    "pass": true
+   },
+   {
+    "key": "corner_blocks",
+    "label": "số góc ảnh có điểm",
+    "value": 4,
+    "op": ">=",
+    "threshold": 4,
+    "pass": true
+   },
+   {
+    "key": "tilted_images",
+    "label": "số ảnh bảng nghiêng ≥ 20°",
+    "value": 17,
+    "op": ">=",
+    "threshold": 4,
+    "pass": true
+   },
+   {
+    "key": "fit_error_px",
+    "label": "sai số chuyển sang mô hình dự án (px)",
+    "value": 0.0683,
+    "op": "<=",
+    "threshold": 0.5,
+    "pass": true
+   }
+  ]
+ },
+ "derived": {
+  "from": "calibration/cam_p4.json",
+  "from_image_size": [
+   640,
+   480
+  ],
+  "scale": 1.5,
+  "offset_px": [
+   160.0,
+   0.0
+  ],
+  "old_mode_box_in_new_px": [
+   160.0,
+   0.0,
+   1120.0,
+   720.0
+  ],
+  "note": "Suy từ nội tham 640×480 (ảnh cũ = vùng [160.0, 0.0, 1120.0, 720.0] của ảnh 1280×720, co 1.5×), không chụp bàn cờ lại. Ngoài vùng đó là ngoại suy của mô hình KB: tia ở góc ảnh tới θ 58° trong khi bàn cờ chỉ được thấy tới θ ≈ 37.37°."
+ }
+}

@@ -425,8 +425,8 @@ class RemoteSensorWindow(QMainWindow):
             self.calibration_status.setText("Chưa có ảnh trực tiếp đủ mới từ camera đã chọn.")
             return
         frame = sample.frame
-        if frame.shape != (480, 640, 3) or frame.dtype.name != "uint8":
-            self.calibration_status.setText("Ảnh camera phải là ảnh màu gốc 640×480.")
+        if frame.shape != (fisheye_calib.LIVE_SIZE[1], fisheye_calib.LIVE_SIZE[0], 3) or frame.dtype.name != "uint8":
+            self.calibration_status.setText("Ảnh camera phải là ảnh màu gốc {}×{}.".format(*fisheye_calib.LIVE_SIZE))
             return
         try:
             damaged = fisheye_calib.damage_reason(frame)

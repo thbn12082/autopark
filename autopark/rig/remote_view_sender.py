@@ -20,6 +20,8 @@ CAMERA = Path("/dev/video0")
 LIDAR_USB = (0x10C4, 0xEA60)
 ESP32_USB = (0x303A, 0x1001)
 PAYLOAD_LIMIT = 1024 * 1024
+# 1280×720 dùng trọn chiều ngang cảm biến; 640×480 cắt 25 % (29/11/2026). Khớp remote_view_link.CAMERA_WIDTH/HEIGHT.
+VIDEO_SIZE = "1280x720"
 
 
 def json_bytes(value):
@@ -174,7 +176,7 @@ def mjpeg_packets(pipe):
 def camera_worker(state, kind, video, fps):
     child = subprocess.Popen(
         ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-xerror",
-         "-f", "v4l2", "-input_format", "mjpeg", "-video_size", "640x480", "-i", str(video),
+         "-f", "v4l2", "-input_format", "mjpeg", "-video_size", VIDEO_SIZE, "-i", str(video),
          "-map", "0:v:0", "-an", "-c:v", "copy", "-f", "mpjpeg",
          "-flush_packets", "1", "pipe:1"],
         stdout=subprocess.PIPE,
@@ -220,7 +222,7 @@ def advertises_mjpeg(formats):
         format_line = re.match(r"\s*\[\d+\]:\s*'(.{4})'", line)
         if format_line:
             mjpeg = format_line[1] == "MJPG"
-        elif mjpeg and re.search(r"Size:\s*Discrete\s+640x480\b", line):
+        elif mjpeg and re.search(rf"Size:\s*Discrete\s+{VIDEO_SIZE}\b", line):
             return True
     return False
 
@@ -249,7 +251,7 @@ def camera_devices(count, check_open):
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
             continue
     if len(by_usb) != count:
-        raise RuntimeError(f"expected {count} distinct USB cameras supporting MJPG 640x480, found {len(by_usb)}")
+        raise RuntimeError(f"expected {count} distinct USB cameras supporting MJPG {VIDEO_SIZE}, found {len(by_usb)}")
     # Numeric bus and port components keep order stable when video nodes are renumbered.
     ordered = sorted(by_usb, key=lambda usb: tuple(map(int, re.findall(r"\d+", usb.name))))
     return {f"camera_{index}": by_usb[usb] for index, usb in enumerate(ordered, 1)}
@@ -373,7 +375,7 @@ def main(duration=DEFAULT_DURATION, camera_count=1, check_esp32=True):
         output.write(b"APW1\n")
         start = {
             "duration_s": duration,
-            "camera_mode": "MJPG 640x480",
+            "camera_mode": f"MJPG {VIDEO_SIZE}",
             "target_camera_fps": target_fps,
             "timestamp": "Pi application receipt, monotonic ns",
         }

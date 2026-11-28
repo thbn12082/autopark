@@ -472,7 +472,7 @@ def calibrate_from_frames(frames: dict, folder, *, vehicle: dict | None = None, 
             paths.append(path)
         try:
             intr = intrinsics(port) if intrinsics is not None else \
-                ec.load_camera_intrinsics(ec.default_intrinsics_path(port), port)
+                ec.load_camera_intrinsics(ec.default_intrinsics_path(port, size=(images[0].shape[1], images[0].shape[0])), port)
         except ec.ExtrinsicsError as exc:
             run.errors[port] = str(exc)
             continue
@@ -518,11 +518,12 @@ def _cmd_solve(args) -> int:
     results = []
     for port, paths in sorted(jobs.items()):
         try:
-            intr = ec.load_camera_intrinsics(args.intrinsics or ec.default_intrinsics_path(port), port)
+            images = [(p, fc.read_image(p)) for p in paths]
+            size = next(((img.shape[1], img.shape[0]) for _, img in images if img is not None), fc.DEFAULT_SIZE)
+            intr = ec.load_camera_intrinsics(args.intrinsics or ec.default_intrinsics_path(port, size=size), port)
         except ec.ExtrinsicsError as exc:
             print(f"cổng {port}: {exc}", file=sys.stderr)
             continue
-        images = [(p, fc.read_image(p)) for p in paths]
         res = solve_port(port, images, intr, vehicle)
         write_report(report_dir, res, intr.K, intr.D, ego)
         print(summary_text(res))

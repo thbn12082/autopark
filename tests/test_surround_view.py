@@ -13,7 +13,7 @@ def test_preview_projects_four_directions_and_masks_vehicle(tmp_path):
     renderer = SurroundViewRenderer(extrinsics_path=tmp_path / "missing.json")
     assert renderer.is_preview and "ước lượng" in renderer.notice
     colors = {1: (0, 30, 210), 2: (0, 170, 50), 3: (200, 0, 0), 4: (70, 180, 190)}
-    frames = {port: np.full((480, 640, 3), color, dtype=np.uint8) for port, color in colors.items()}
+    frames = {port: np.full((720, 1280, 3), color, dtype=np.uint8) for port, color in colors.items()}
     background = renderer.render({})
     surround = renderer.render(frames)
     assert surround.shape == background.shape == (480, 480, 3)

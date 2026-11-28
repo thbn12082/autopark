@@ -56,6 +56,12 @@ from autopark.video.sources import IMAGE_EXTENSIONS, natural_key, torn_bands, tr
 
 FORMAT = "autopark.fisheye_intrinsics/1"
 DEFAULT_SIZE = (640, 480)          # mode chính thức của bốn camera qua hub (docs/DU_LIEU_VA_GIAY_PHEP.md)
+# Mode quan sát qua Wi-Fi (29/11/2026). Camera HD Camera 1bcf:0b09 có cảm biến 16:9: ở 640×480 nó CẮT 25 % chiều ngang
+# (ảnh 640×480 = vùng 960×720 giữa khung 1280×720, thu 1,5 lần; đo bằng SIFT trên cả bốn camera), nên trường nhìn ngang
+# chỉ ≈ 77°. 1280×720 dùng trọn chiều ngang cảm biến. Nội tham 1280×720 suy chính xác từ bản 640×480 (`derive_mode`).
+LIVE_SIZE = (1280, 720)
+CROP_640_TO_1280x720 = {"scale": 1.5, "offset": (160.0, 0.0)}   # x720 = 1,5·x480 + 160 (hệ góc điểm ảnh)
+DERIVED_FIT_MAX_PX = 3.0
 
 # ---- ngưỡng (ĐỀ XUẤT, chưa kiểm trên camera thật) -------------------------------------------------------------------
 MAX_EDGE_WIDTH_PX = 3.0      # độ rộng vùng chuyển đen→trắng; tài liệu OpenCV: "nên dưới ~3 px"
@@ -937,6 +943,74 @@ def load_intrinsics(path, *, width: int | None = None, height: int | None = None
     return intrinsics_from_block(block)
 
 
+def derive_mode(record: dict, new_size: tuple[int, int], scale: float, offset: tuple[float, float], *,
+                source: str | None = None) -> dict:
+    """Nội tham cho một mode khác của CÙNG cảm biến, khi mode cũ là một vùng cắt rồi co của mode mới:
+    u_mới = scale·u_cũ + offset theo hệ góc điểm ảnh (mép trái điểm ảnh 0 là u = 0).
+
+    Với tâm điểm ảnh của OpenCV (điểm ảnh i ở u = i): u_mới = scale·(u_cũ + 0,5) − 0,5 + offset, nên fx, fy nhân scale,
+    cx, cy dịch theo công thức đó. D (Kannala–Brandt) theo góc tia nên giữ nguyên. Phần ảnh mới nằm ngoài vùng cũ là ngoại
+    suy của mô hình: ghi rõ trong `derived` và `field_of_view_deg`."""
+    K = np.asarray(record["K"], np.float64).copy()
+    D = np.asarray(record["D"], np.float64)
+    K[0, 0] *= scale
+    K[1, 1] *= scale
+    K[0, 2] = scale * (K[0, 2] + 0.5) - 0.5 + offset[0]
+    K[1, 2] = scale * (K[1, 2] + 0.5) - 0.5 + offset[1]
+    old_w, old_h = record["image_size"]
+    out = json.loads(json.dumps(record))
+    for key in ("views", "coverage", "rounds"):
+        out.pop(key, None)
+    out["image_size"] = [int(new_size[0]), int(new_size[1])]
+    out["K"] = K.tolist()
+    fov = field_of_view(K, D, tuple(new_size))
+    fov["theta_observed_max_deg"] = (record.get("field_of_view_deg") or {}).get("theta_observed_max_deg")
+    out["field_of_view_deg"] = fov
+    # Vùng mới tới θ lớn hơn vùng đã đo: giới hạn theta_max dưới chỗ mô hình KB hết đơn điệu (trừ biên 3°). Tia vượt
+    # theta_max bị FisheyeIntrinsics.project coi là không hợp lệ (BEV bỏ qua), điểm ảnh ở đó unproject ra NaN. Đa thức
+    # bậc 4 khó khớp KB trên đoạn dài hơn, nên cho sai số khớp tới DERIVED_FIT_MAX_PX (≈ 0,25 % bề rộng ảnh 1280).
+    corner = [t for t in fov["theta_image_corners_deg"] if t is not None]
+    cap = min(max(corner) if len(corner) == 4 else math.inf, fov["model_monotonic_limit_deg"] - 3.0)
+    ws = woodscape_intrinsics(K, D, tuple(new_size), max_error_px=DERIVED_FIT_MAX_PX, theta_max=math.radians(cap))
+    if not ws.get("ok") and ws.get("monotonic") and ws.get("max_fit_error_px", math.inf) <= DERIVED_FIT_MAX_PX:
+        ws["ok"] = True
+        ws["reason"] = (f"mode suy: theta_max giới hạn ở {cap:.1f}° (giới hạn đơn điệu KB − 3°); điểm ảnh ngoài "
+                        f"theta_max không dùng")
+    out["woodscape_intrinsic"] = ws
+    old_box = [offset[0], offset[1], offset[0] + scale * old_w, offset[1] + scale * old_h]
+    corner_theta = [t for t in fov["theta_image_corners_deg"] if t is not None]
+    edge = f"{max(corner_theta):.0f}°" if len(corner_theta) == 4 else "quá giới hạn đơn điệu của mô hình ở góc ảnh"
+    out["derived"] = {
+        "from": source, "from_image_size": [old_w, old_h], "scale": scale, "offset_px": list(offset),
+        "old_mode_box_in_new_px": old_box,
+        "note": (f"Suy từ nội tham {old_w}×{old_h} (ảnh cũ = vùng {old_box} của ảnh {new_size[0]}×{new_size[1]}, co "
+                 f"{scale}×), không chụp bàn cờ lại. Ngoài vùng đó là ngoại suy của mô hình KB: tia ở góc ảnh tới θ "
+                 f"{edge} trong khi bàn cờ chỉ được "
+                 f"thấy tới θ ≈ {fov['theta_observed_max_deg']}°."),
+    }
+    out["created_local"] = datetime.now().isoformat(timespec="seconds")
+    if not out["woodscape_intrinsic"].get("ok"):
+        acc = dict(out.get("acceptance") or {})
+        acc["all_pass"] = False
+        acc["status"] = f"suy mode không đạt: {out['woodscape_intrinsic'].get('reason')}"
+        out["acceptance"] = acc
+    return out
+
+
+def _cmd_derive(args) -> int:
+    src = Path(args.file)
+    record = load_calibration(src)
+    w, h = (int(v) for v in args.size.lower().split("x"))
+    off = tuple(float(v) for v in args.offset.split(","))
+    out = derive_mode(record, (w, h), args.scale, off, source=str(src).replace("\\", "/"))
+    path = args.out or default_output_path(record["camera"]["hub_port"], (w, h), src.parent)
+    save_calibration(path, out)
+    fov = out["field_of_view_deg"]
+    print(f"{path}: ngang {fov['horizontal_deg']}°, dọc {fov['vertical_deg']}°, chéo {fov['diagonal_deg']}°; "
+          f"woodscape ok={out['woodscape_intrinsic'].get('ok')}; acceptance all_pass={out['acceptance'].get('all_pass')}")
+    return 0 if out["acceptance"].get("all_pass") else 1
+
+
 def _f(x, nd: int = 2) -> str:
     return "—" if x is None else f"{x:.{nd}f}".replace(".", ",")
 
@@ -1109,7 +1183,16 @@ def main(argv=None) -> int:
     k.add_argument("--image", type=Path, default=None)
     k.add_argument("--preview", type=Path, default=None)
     k.add_argument("--balance", type=float, default=0.3)
+    d = sub.add_parser("derive", help="suy nội tham cho mode khác của cùng cảm biến (ví dụ 640×480 → 1280×720)")
+    d.add_argument("file", type=Path, help="tệp nội tham mode cũ, ví dụ calibration/cam_p1.json")
+    d.add_argument("--size", default="1280x720")
+    d.add_argument("--scale", type=float, default=CROP_640_TO_1280x720["scale"])
+    d.add_argument("--offset", default=",".join(str(v) for v in CROP_640_TO_1280x720["offset"]),
+                   help="dịch (px) của góc trên-trái ảnh cũ trong ảnh mới, ví dụ 160,0")
+    d.add_argument("--out", type=Path, default=None)
     args = p.parse_args(argv)
+    if args.cmd == "derive":
+        return _cmd_derive(args)
     if args.cmd == "board":
         return run_board(args)
     if args.cmd == "calibrate":

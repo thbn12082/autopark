@@ -50,13 +50,13 @@ def test_view_shows_fresh_sources_and_clears_stale_images(qapp):
     try:
         state = link.state
         state.status = "live"
-        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        frame = np.zeros((720, 1280, 3), dtype=np.uint8)
         state.cameras = (RemoteCameraSample(frame=frame, seq=1, at=100.0),)
         state.scan = LidarScan(SourceStamp("C1", 100.0), (0.0, 0.2, -0.2), (1.0, 1.5, 1.2))
         state.scan_seq = 1
         state.scan_at = 100.0
         window.refresh()
-        assert window.camera_tiles[0].pixmap.width() == 640
+        assert window.camera_tiles[0].pixmap.width() == 1280
         assert window.scan_view.scan is state.scan
         assert window.camera_status[0].text() == window.scan_status.text() == "Trực tiếp"
 
@@ -193,8 +193,8 @@ def test_auto_calibration_saves_distinct_held_poses_once(qapp, tmp_path, monkeyp
     try:
         state = window.link.state
         state.status = "live"
-        first = np.full((480, 640, 3), 1, dtype=np.uint8)
-        second = np.full((480, 640, 3), 2, dtype=np.uint8)
+        first = np.full((720, 1280, 3), 1, dtype=np.uint8)
+        second = np.full((720, 1280, 3), 2, dtype=np.uint8)
         state.cameras = (RemoteCameraSample(frame=first, seq=1, at=now[0]),)
         window.calibration_auto.setChecked(True)
 
