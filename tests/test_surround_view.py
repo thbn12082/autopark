@@ -125,3 +125,46 @@ def test_background_filler_refreshes_only_on_change():
     filler.offer(np.full((40, 40, 3), 30, np.uint8)); wait_idle()
     assert len(calls) == 3                                  # kết quả đã cũ: vẽ lại
     filler.close()
+
+
+def test_stripes_can_be_turned_off(monkeypatch):
+    renderer = _measured_renderer(monkeypatch, ai_fill_fn=lambda image, mask: np.full_like(image, (10, 200, 30)))
+    frames = {port: np.full((720, 1280, 3), 90, np.uint8) for port in (1, 2, 3, 4)}
+    _render_until(renderer, frames, lambda: renderer._filler.latest() is not None)
+    renderer.mark_ai = False
+    image = renderer.render(frames)
+    region = renderer._gaps & ~renderer._car_mask
+    assert np.all(image[region] == (10, 200, 30))          # không sọc: đúng màu AI trả về
+    assert "AI vẽ" in renderer.notice                       # dòng báo vẫn nói đó không phải hình thật
+    renderer.close()
+
+
+def test_panel_toggle_is_remembered_and_reaches_renderer(tmp_path):
+    pytest.importorskip("PySide6")
+    import os
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtCore import QSettings
+    from PySide6.QtWidgets import QApplication
+    from autopark.ui.surround_view_panel import SurroundViewPanel
+
+    app = QApplication.instance() or QApplication([])
+    settings = QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat)
+
+    class Fake:
+        is_preview, notice, mark_ai = False, "ok", True
+
+        def render(self, frames):
+            return np.zeros((480, 480, 3), np.uint8)
+
+    fake = Fake()
+    panel = SurroundViewPanel(renderer_factory=lambda: fake, settings=settings)
+    assert panel.mark_ai_box.isChecked()
+    panel.mark_ai_box.setChecked(False)
+    assert settings.value("bev/soc_vung_ai") == "false"
+    panel._render({})
+    assert fake.mark_ai is False
+    panel.shutdown()
+    again = SurroundViewPanel(renderer_factory=lambda: fake, settings=settings)
+    assert not again.mark_ai_box.isChecked()
+    again.shutdown()
+    assert app is not None

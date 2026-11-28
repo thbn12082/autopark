@@ -7,9 +7,9 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor
 
 import numpy as np
-from PySide6.QtCore import QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QRectF, QSettings, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPalette, QPen, QPixmap
-from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from autopark.ui.rig_app import to_qimage
 
@@ -18,6 +18,7 @@ _RENDER_INTERVAL_S = 0.10
 _NOTICE_STYLE = "padding: 7px 10px; border-radius: 5px; font-weight: 600;"
 _NOTICE_NEUTRAL = _NOTICE_STYLE + "color: #9cafbe; background: #1c2a36;"
 _NOTICE_PREVIEW = _NOTICE_STYLE + "color: #efb76b; background: #3a2e1c;"
+_MARK_AI_KEY = "bev/soc_vung_ai"      # QSettings: có vẽ sọc lên vùng AI/màu loang không (mặc định có)
 
 
 def _make_renderer():
@@ -90,8 +91,15 @@ class SurroundViewPanel(QWidget):
     rendered = Signal(int, bool)  # số ảnh nguồn của khung đã vẽ, chế độ xem thử
     _completed = Signal(object)
 
-    def __init__(self, parent=None, *, renderer_factory=None):
+    def __init__(self, parent=None, *, renderer_factory=None, settings: QSettings | None = None):
         super().__init__(parent)
+        self._settings = settings if settings is not None else QSettings("AutoPark", "AutoPark")
+        self._mark_ai = str(self._settings.value(_MARK_AI_KEY, "true")).lower() in ("true", "1")
+        self.mark_ai_box = QCheckBox("Sọc vùng AI vẽ")
+        self.mark_ai_box.setToolTip("Vẽ sọc mảnh lên vùng mù ở góc xe mà AI hoặc màu loang tô (không phải hình thật)")
+        self.mark_ai_box.setChecked(self._mark_ai)
+        self.mark_ai_box.toggled.connect(self._set_mark_ai)
+        self._last_frames: dict[int, np.ndarray] | None = None
         self.notice = QLabel("Góc nhìn quanh xe đang chờ ảnh camera.")
         self.notice.setTextFormat(Qt.TextFormat.PlainText)
         self.notice.setWordWrap(True)
@@ -102,7 +110,11 @@ class SurroundViewPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
-        layout.addWidget(self.notice)
+        top = QHBoxLayout()
+        top.setSpacing(8)
+        top.addWidget(self.notice, 1)
+        top.addWidget(self.mark_ai_box, 0, Qt.AlignmentFlag.AlignVCenter)
+        layout.addLayout(top)
         layout.addWidget(self.canvas, 1)
 
         self._renderer_factory = _make_renderer if renderer_factory is None else renderer_factory
@@ -122,6 +134,7 @@ class SurroundViewPanel(QWidget):
         if self._closed.is_set():
             return
         self._pending = (self._generation, dict(frames))
+        self._last_frames = dict(frames)
         if self._active is None and not self._delay.isActive():
             self._start_next()
 
@@ -160,6 +173,8 @@ class SurroundViewPanel(QWidget):
     def _render(self, frames):
         if self._renderer is None:
             self._renderer = self._renderer_factory()
+        if hasattr(self._renderer, "mark_ai"):
+            self._renderer.mark_ai = self._mark_ai
         image = self._renderer.render(frames)
         if not (isinstance(image, np.ndarray) and image.ndim == 3 and image.shape[2] == 3
                 and image.size and image.dtype == np.uint8):
@@ -192,6 +207,12 @@ class SurroundViewPanel(QWidget):
                 self._show_notice(notice, is_preview)
                 self.canvas.present(QPixmap.fromImage(image), camera_count, is_preview)
         self._start_next()
+
+    def _set_mark_ai(self, checked: bool) -> None:
+        self._mark_ai = bool(checked)
+        self._settings.setValue(_MARK_AI_KEY, "true" if checked else "false")
+        if self._last_frames is not None:
+            self.submit(self._last_frames)          # vẽ lại ngay với lựa chọn mới
 
     def _show_notice(self, text: str, is_preview: bool) -> None:
         if self.notice.text() != text:

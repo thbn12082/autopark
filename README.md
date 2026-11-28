@@ -148,7 +148,7 @@ Luồng quan sát lấy ảnh 1280×720. Ở chế độ này camera dùng trọ
 
 Bốn camera gắn ở mép thân xe nên sát mỗi góc xe vẫn còn một hình nêm không camera nào thấy. Tab BEV cho mô hình LaMa vẽ tiếp mặt sàn vào vùng đó. LaMa chạy ở luồng nền trên GPU CUDA, mỗi lần khoảng 0,25 s.
 
-**Vùng có sọc mảnh là do AI hoặc màu loang tô, không phải hình thật.** Ảnh BEV chỉ để người xem; lập đường và tìm vật cản không dùng nó.
+**Vùng mù ở góc xe là do AI hoặc màu loang tô, không phải hình thật.** Ô **Sọc vùng AI vẽ** trên tab BEV bật hoặc tắt lớp sọc mảnh đánh dấu vùng đó (mặc định bật, app nhớ lựa chọn); dòng báo phía trên luôn ghi rõ. Ảnh BEV chỉ để người xem; lập đường và tìm vật cản không dùng nó.
 
 Cài một lần:
 
